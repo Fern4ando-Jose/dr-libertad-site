@@ -5,12 +5,11 @@ import Lenis from "lenis";
 
 export default function SmoothScroll() {
   useEffect(() => {
+    // Na versão 1.3.23, removemos as propriedades 'smoothWheel' e 'smoothTrack'
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t: number) => 1 - Math.pow(1 - t, 3),
-      smoothWheel: true,
-      smoothTouch: false,
-      smoothTrack: true,
+      // O Lenis 1.x lida com a suavização automaticamente.
     });
 
     // Expose for hash-anchor cinematic transitions.
@@ -32,4 +31,3 @@ export default function SmoothScroll() {
 
   return null;
 }
-
