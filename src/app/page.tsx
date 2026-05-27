@@ -52,19 +52,19 @@ export default function Page() {
       {
         id: "q1",
         quote:
-          "Você não precisa vencer o mundo. Precisa parar de ser vencido pelo seu próprio feed.",
+          "Voce nao precisa vencer o mundo. Precisa parar de ser vencido pelo seu proprio feed.",
         meta: "DR. LIBERTAD · nota editorial 01",
       },
       {
         id: "q2",
         quote:
-          "A mente é um palco. Se ninguém entra, você finalmente ouve o que sempre esteve lá.",
+          "A mente e um palco. Se ninguem entra, voce finalmente ouve o que sempre esteve la.",
         meta: "DR. LIBERTAD · nota editorial 02",
       },
       {
         id: "q3",
         quote:
-          "Liberdade não é ausência de estímulo; é habilidade de escolher a resposta.",
+          "Liberdade nao e ausencia de estimulo; e habilidade de escolher a resposta.",
         meta: "DR. LIBERTAD · nota editorial 03",
       },
     ],
@@ -73,13 +73,13 @@ export default function Page() {
 
   const topics = useMemo(
     () => [
-      { title: "Dopamine detox", desc: "Redesenhe seus incentivos para recuperar desejo e presença." },
-      { title: "Psicologia do hábito", desc: "Compreenda o ciclo de gatilho, rotina e recompensa." },
-      { title: "Ansiedade moderna", desc: "Ruído social + previsão excessiva = tensão constante." },
-      { title: "Vício em redes", desc: "Quando o scroll vira regulação emocional." },
-      { title: "Masculinidade consciente", desc: "Força, vulnerabilidade e disciplina com inteligência afetiva." },
-      { title: "Liberdade", desc: "Escolha deliberada sobre impulsos e recompensas rápidas." },
-      { title: "Inteligência emocional", desc: "Nomeie, processe e transforme emoção em ação." },
+      { title: "Dopamine detox", desc: "Redesenhe seus incentivos para recuperar desejo e presenca." },
+      { title: "Psicologia do habito", desc: "Compreenda o ciclo de gatilho, rotina e recompensa." },
+      { title: "Ansiedade moderna", desc: "Ruido social + previsao excessiva = tensao constante." },
+      { title: "Vicio em redes", desc: "Quando o scroll vira regulacao emocional." },
+      { title: "Masculinidade consciente", desc: "Forca, vulnerabilidade e disciplina com inteligencia afetiva." },
+      { title: "Liberdade", desc: "Escolha deliberada sobre impulsos e recompensas rapidas." },
+      { title: "Inteligencia emocional", desc: "Nomeie, processe e transforme emocao em acao." },
       { title: "Comportamento humano", desc: "Biologia + aprendizado + contexto. Sem moralismo." },
     ],
     []
@@ -99,12 +99,11 @@ export default function Page() {
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.9, ease: "easeOut" }}
     >
-      {/* HERO (presentation-like) */}
+      {/* HERO */}
       <section
         id="top"
         className="relative flex min-h-[92vh] items-center overflow-hidden border-b border-warm-gray/10"
       >
-        {/* Frame bars */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute left-0 right-0 top-0 z-0 h-20 bg-[linear-gradient(to_bottom,rgba(11,11,12,0.9),rgba(11,11,12,0))]"
@@ -120,7 +119,6 @@ export default function Page() {
             className="h-full w-full bg-[radial-gradient(1000px_circle_at_40%_-20%,rgba(164,90,90,0.22),transparent_60%),radial-gradient(800px_circle_at_80%_10%,rgba(231,221,204,0.12),transparent_55%)]"
           />
 
-          {/* Editorial grid (very subtle) */}
           <motion.div
             aria-hidden="true"
             className="absolute inset-0 opacity-[0.14]"
@@ -136,7 +134,6 @@ export default function Page() {
             />
           </motion.div>
 
-          {/* Light leak */}
           <div
             aria-hidden="true"
             className="absolute inset-0 opacity-60"
@@ -157,38 +154,43 @@ export default function Page() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="dl-chip" data-gsap-child="line">filosofia aplicada</span>
                     <span className="dl-chip" data-gsap-child="line">psicologia</span>
-                    <span className="dl-chip" data-gsap-child="line">atenção</span>
+                    <span className="dl-chip" data-gsap-child="line">atencao</span>
                   </div>
                 </div>
 
                 <div className="mt-7" data-gsap="stagger" data-gsap-stagger="0.07">
-                  <h1 className="font-serif text-[clamp(2.5rem,5.4vw,5.1rem)] leading-[0.92] tracking-[-0.05em] text-balance" data-gsap-child="line">
-                    A liberdade começa quando você entende quem controla sua mente.
+                  <h1
+                    className="font-serif text-[clamp(2.5rem,5.4vw,5.1rem)] leading-[0.92] tracking-[-0.05em] text-balance"
+                    data-gsap-child="line"
+                  >
+                    A liberdade comeca quando voce entende quem controla sua mente.
                   </h1>
                 </div>
 
                 <div className="mt-6" data-gsap="reveal">
                   <p className="max-w-xl text-[1.05rem] leading-[1.85] text-warm-gray/90">
-                    Um estúdio editorial de ideias: dopamine detox, ansiedade moderna e inteligência emocional —
-                    com estética cinematográfica e prática diária.
+                    Um estudio editorial de ideias: dopamine detox, ansiedade moderna e inteligencia emocional
+                    com estetica cinematografica e pratica diaria.
                   </p>
                 </div>
 
                 <div className="mt-10 flex flex-wrap items-center gap-3" data-gsap="reveal">
-                    <a
-                      href="#manifesto"
-                      className="group inline-flex items-center rounded-full border border-warm-gray/20 bg-white/5 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:bg-white/10 transition"
-                    >
-                      Entrar no manifesto
-                      <span className="ml-3 text-muted-red transition group-hover:translate-x-0.5">→</span>
-                    </a>
-                    <a
-                      href="#gallery"
-                      className="inline-flex items-center rounded-full border border-warm-gray/20 px-6 py-3 text-xs tracking-[0.22em] uppercase text-warm-gray/80 hover:text-offwhite hover:border-warm-gray/35 transition"
-                    >
-                      Ver editorial
-                    </a>
-                  </div>
+                  <a
+                    href="#manifesto"
+                    className="group inline-flex items-center rounded-full border border-warm-gray/20 bg-white/5 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:bg-white/10 transition"
+                  >
+                    Entrar no manifesto
+                    <span className="ml-3 text-muted-red transition group-hover:translate-x-0.5">
+                      {String.fromCharCode(8594)}
+                    </span>
+                  </a>
+                  <a
+                    href="#gallery"
+                    className="inline-flex items-center rounded-full border border-warm-gray/20 px-6 py-3 text-xs tracking-[0.22em] uppercase text-warm-gray/80 hover:text-offwhite hover:border-warm-gray/35 transition"
+                  >
+                    Ver editorial
+                  </a>
+                </div>
 
                 <ScrollHint />
               </div>
@@ -196,50 +198,51 @@ export default function Page() {
               <div className="lg:col-span-5">
                 <HeroFloatingDeck>
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.3 }}
-                    transition={{ duration: 0.75, ease: "easeOut" }}
-                    className="rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur"
-                    data-gsap="hover"
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 1.2, ease: "easeOut" }}
+                    whileHover={{ y: -6, scale: 1.02 }}
+                    className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.03] backdrop-blur-xl p-8 shadow-[0_20px_80px_rgba(0,0,0,0.45)]"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="text-sm tracking-[0.16em] text-warm-gray/80 uppercase">
-                          Ritual diário
-                        </div>
-                        <div className="mt-3 text-[1.05rem] leading-[1.45]">
-                          90 segundos para decidir:{" "}
-                          <span className="text-muted-red">responder</span> ou{" "}
-                          <span className="text-warm-gray/95">reagir</span>.
-                        </div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] to-transparent pointer-events-none" />
+                    <div className="relative z-10">
+                      <div className="text-[10px] uppercase tracking-[0.35em] text-warm-gray/70">
+                        Ritual Di&aacute;rio
                       </div>
-                      <div className="rounded-2xl border border-warm-gray/15 bg-ink/40 px-4 py-3 text-center">
-                        <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
+                      <h3 className="mt-4 text-3xl leading-[1.15] font-light text-offwhite">
+                        90 segundos de sil&ecirc;ncio antes da rea&ccedil;&atilde;o autom&aacute;tica.
+                      </h3>
+                      <p className="mt-4 text-sm leading-relaxed text-warm-gray/80">
+                        Entre o impulso e a resposta existe um espa&ccedil;o. &Eacute; ali que a liberdade come&ccedil;a.
+                      </p>
+                      <div className="mt-8 flex items-center gap-3">
+                        <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.25em] text-warm-gray/75">
                           foco
                         </div>
-                        <div className="mt-1 text-2xl font-semibold text-offwhite">
+                        <div className="text-2xl font-semibold text-offwhite">
                           90s
                         </div>
                       </div>
-                    </div>
-
-                    <div className="mt-6 space-y-3 text-sm text-warm-gray/90">
-                      {[
-                        { k: "1", t: "Nomeie a emoção (sem negociar)" },
-                        { k: "2", t: "Observe o impulso no corpo" },
-                        { k: "3", t: "Escolha a ação mais livre" },
-                      ].map((row) => (
-                        <div
-                          key={row.k}
-                          className="flex items-center gap-3 rounded-2xl border border-warm-gray/10 bg-ink/30 px-4 py-3"
-                        >
-                          <div className="h-7 w-7 shrink-0 rounded-full border border-warm-gray/20 bg-white/5 text-xs font-semibold text-offwhite/95 flex items-center justify-center">
-                            {row.k}
+                      <div className="mt-8 space-y-3">
+                        {[
+                          "Nomeie a emo&ccedil;&atilde;o",
+                          "Observe o impulso",
+                          "Escolha conscientemente",
+                        ].map((item, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3"
+                          >
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 text-xs text-warm-gray">
+                              {i + 1}
+                            </div>
+                            <span
+                              className="text-sm text-warm-gray/90"
+                              dangerouslySetInnerHTML={{ __html: item }}
+                            />
                           </div>
-                          <div>{row.t}</div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </motion.div>
                 </HeroFloatingDeck>
@@ -249,7 +252,7 @@ export default function Page() {
         </StudioContainer>
       </section>
 
-      {/* MARQUEE RHYTHM */}
+      {/* MARQUEE */}
       <section className="border-b border-warm-gray/10">
         <StudioContainer>
           <Marquee
@@ -273,32 +276,32 @@ export default function Page() {
       <section id="manifesto" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
-            <SectionHeading eyebrow="MANIFESTO" title="Um manifesto de ritmo emocional: menos estímulo, mais escolha." />
+            <SectionHeading eyebrow="MANIFESTO" title="Um manifesto de ritmo emocional: menos estimulo, mais escolha." />
           </Reveal>
 
           <div className="mt-10 grid gap-6 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <div className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur">
                 <div className="text-sm tracking-[0.18em] text-warm-gray/80 uppercase">
-                  princípios
+                  principios
                 </div>
                 <div className="mt-5 space-y-4">
                   {[
                     {
-                      t: "Você não tem falta de disciplina. Você tem falta de contexto.",
-                      d: "Tecnologia e ambiente foram projetados para capturar atenção. Seu trabalho é recuperar arquitetura interna.",
+                      t: "Voce nao tem falta de disciplina. Voce tem falta de contexto.",
+                      d: "Tecnologia e ambiente foram projetados para capturar atencao. Seu trabalho e recuperar arquitetura interna.",
                     },
                     {
-                      t: "A mente escolhe — mesmo quando parece automática.",
-                      d: "Impulsos são sinais. Você pode observar antes de agir.",
+                      t: "A mente escolhe mesmo quando parece automatica.",
+                      d: "Impulsos sao sinais. Voce pode observar antes de agir.",
                     },
                     {
-                      t: "Ansiedade não é destino. É informação.",
-                      d: "Nomear a sensação reduz a força do ruído e aumenta a precisão da decisão.",
+                      t: "Ansiedade nao e destino. E informacao.",
+                      d: "Nomear a sensacao reduz a forca do ruido e aumenta a precisao da decisao.",
                     },
                     {
-                      t: "Masculinidade é presença emocional, não performance.",
-                      d: "Inteligência afetiva constrói liberdade real.",
+                      t: "Masculinidade e presenca emocional, nao performance.",
+                      d: "Inteligencia afetiva constroi liberdade real.",
                     },
                   ].map((item, idx) => (
                     <motion.div
@@ -310,7 +313,9 @@ export default function Page() {
                       className="rounded-2xl border border-warm-gray/10 bg-ink/25 p-5"
                     >
                       <div className="text-base leading-[1.35]">
-                        <span className="text-muted-red mr-2 font-semibold">{String(idx + 1).padStart(2, "0")}</span>
+                        <span className="text-muted-red mr-2 font-semibold">
+                          {String(idx + 1).padStart(2, "0")}
+                        </span>
                         {item.t}
                       </div>
                       <div className="mt-2 text-sm leading-[1.6] text-warm-gray/90">
@@ -334,11 +339,11 @@ export default function Page() {
                   uma promessa
                 </div>
                 <h3 className="mt-4 text-[1.55rem] leading-[1.15]">
-                  Menos estímulo. Mais clareza. Decisões com alma.
+                  Menos estimulo. Mais clareza. Decisoes com alma.
                 </h3>
                 <p className="mt-4 text-sm leading-[1.7] text-warm-gray/90">
-                  A estética é silenciosa — mas a mudança é radical. Você vai aprender a
-                  reconhecer gatilhos, reduzir compulsão e fortalecer a relação com o próprio pensamento.
+                  A estetica e silenciosa mas a mudanca e radical. Voce vai aprender a
+                  reconhecer gatilhos, reduzir compulsao e fortalecer a relacao com o proprio pensamento.
                 </p>
 
                 <div className="mt-6 flex items-center gap-3">
@@ -349,16 +354,16 @@ export default function Page() {
                     <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
                       ritmo
                     </div>
-                    <div className="text-sm text-offwhite/95">Ciclos curtos. Transformação contínua.</div>
+                    <div className="text-sm text-offwhite/95">Ciclos curtos. Transformacao continua.</div>
                   </div>
                 </div>
 
                 <div className="mt-8 grid grid-cols-2 gap-3">
                   {[
-                    { k: "atenção", v: "projetada" },
-                    { k: "emoção", v: "nomeada" },
+                    { k: "atencao", v: "projetada" },
+                    { k: "emocao", v: "nomeada" },
                     { k: "impulso", v: "observado" },
-                    { k: "ação", v: "escolhida" },
+                    { k: "acao", v: "escolhida" },
                   ].map((s) => (
                     <div key={s.k} className="rounded-2xl border border-warm-gray/10 bg-ink/25 px-4 py-3">
                       <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
@@ -378,7 +383,7 @@ export default function Page() {
       <section id="topics" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
-            <SectionHeading eyebrow="TEMAS" title="Pilares editoriais com ritmo de estúdio." />
+            <SectionHeading eyebrow="TEMAS" title="Pilares editoriais com ritmo de estudio." />
           </Reveal>
           <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {topics.map((t, idx) => (
@@ -407,7 +412,7 @@ export default function Page() {
       <section id="gallery" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
-            <SectionHeading eyebrow="EDITORIAL" title="Cartazes filosóficos, capas de luxo, psicologia em alto contraste." />
+            <SectionHeading eyebrow="EDITORIAL" title="Cartazes filosoficos, capas de luxo, psicologia em alto contraste." />
           </Reveal>
           <div className="mt-10">
             <EditorialGrid />
@@ -419,7 +424,7 @@ export default function Page() {
       <section id="quotes" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
-            <SectionHeading eyebrow="CITAÇÕES" title="Ideias curtas. Impacto longo." />
+            <SectionHeading eyebrow="CITACOES" title="Ideias curtas. Impacto longo." />
           </Reveal>
 
           <div className="mt-10 space-y-6">
@@ -442,11 +447,11 @@ export default function Page() {
                       nota
                     </div>
                     <p className="mt-3 text-[1.35rem] leading-[1.4]">
-                      “{q.quote}”
+                      &ldquo;{q.quote}&rdquo;
                     </p>
                   </div>
                   <div className="hidden sm:block text-muted-red text-5xl leading-none font-serif">
-                    “”
+                    &ldquo;
                   </div>
                 </div>
                 <footer className="mt-5 text-sm text-warm-gray/90">{q.meta}</footer>
@@ -465,10 +470,9 @@ export default function Page() {
                 <SectionHeading eyebrow="NEWSLETTER" title="Cartas curtas. Verdades longas." />
               </Reveal>
               <p className="mt-4 text-sm leading-[1.8] text-warm-gray/90">
-                Receba ensaios editoriais sobre atenção, dopamina detox, psicologia e liberdade interna.
-                Sem ruído. Só direção.
+                Receba ensaios editoriais sobre atencao, dopamina detox, psicologia e liberdade interna.
+                Sem ruido. So direcao.
               </p>
-
               <NewsletterForm />
             </div>
 
@@ -481,13 +485,13 @@ export default function Page() {
                 className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur"
               >
                 <div className="text-sm tracking-[0.18em] text-warm-gray/80 uppercase">
-                  o que você recebe
+                  o que voce recebe
                 </div>
                 <div className="mt-5 space-y-3">
                   {[
-                    { t: "Manifestações curtas", d: "Para quebrar ciclo de reação e reacender escolha." },
-                    { t: "Rituais práticos", d: "Micro-hábitos para reduzir compulsão e recuperar desejo." },
-                    { t: "Psicologia aplicada", d: "Entenda o ‘por quê’ antes do ‘como’." },
+                    { t: "Manifestacoes curtas", d: "Para quebrar ciclo de reacao e reacender escolha." },
+                    { t: "Rituais praticos", d: "Micro-habitos para reduzir compulsao e recuperar desejo." },
+                    { t: "Psicologia aplicada", d: "Entenda o por que antes do como." },
                   ].map((row, idx) => (
                     <div key={row.t} className="rounded-2xl border border-warm-gray/10 bg-ink/25 px-5 py-4">
                       <div className="text-base">{row.t}</div>
@@ -511,49 +515,27 @@ export default function Page() {
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-sm tracking-[0.22em] text-warm-gray/80 uppercase">DR. LIBERTAD</div>
-              <div className="mt-2 text-sm text-warm-gray/90">Filosofia aplicada à atenção e ao comportamento.</div>
+              <div className="mt-2 text-sm text-warm-gray/90">Filosofia aplicada a atencao e ao comportamento.</div>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-warm-gray/90">
-              <a
-                className="hover:text-offwhite transition"
-                href="#manifesto"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("manifesto");
-                }}
-              >
-                Manifesto
-              </a>
-              <a
-                className="hover:text-offwhite transition"
-                href="#topics"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("topics");
-                }}
-              >
-                Tópicos
-              </a>
-              <a
-                className="hover:text-offwhite transition"
-                href="#gallery"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("gallery");
-                }}
-              >
-                Galeria
-              </a>
-              <a
-                className="hover:text-offwhite transition"
-                href="#newsletter"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("newsletter");
-                }}
-              >
-                Newsletter
-              </a>
+              {[
+                { label: "Manifesto", id: "manifesto" },
+                { label: "Topicos", id: "topics" },
+                { label: "Galeria", id: "gallery" },
+                { label: "Newsletter", id: "newsletter" },
+              ].map((link) => (
+                <a
+                  key={link.id}
+                  className="hover:text-offwhite transition"
+                  href={`#${link.id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToSection(link.id);
+                  }}
+                >
+                  {link.label}
+                </a>
+              ))}
             </div>
           </div>
         </StudioContainer>
@@ -567,14 +549,7 @@ function NewsletterForm() {
   const [status, setStatus] = useState<"idle" | "ok">("idle");
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!email.trim()) return;
-        setStatus("ok");
-        // No backend in this starter; keep it minimal.
-        // You can later wire this to an API route or a provider.
-      }}
+    <div
       className="mt-7 rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -589,16 +564,19 @@ function NewsletterForm() {
           className="w-full rounded-2xl border border-warm-gray/15 bg-ink/35 px-4 py-3 text-offwhite placeholder:text-warm-gray/50 outline-none focus:border-muted-red/60"
         />
         <button
-          type="submit"
+          type="button"
+          onClick={() => {
+            if (!email.trim()) return;
+            setStatus("ok");
+          }}
           className="rounded-2xl bg-muted-red px-5 py-3 text-sm font-semibold text-offwhite transition hover:bg-muted-red/85"
         >
           {status === "ok" ? "Inscrito (demo)" : "Inscrever"}
         </button>
       </div>
       <div className="mt-3 text-xs leading-[1.6] text-warm-gray/80">
-        Ao se inscrever, você recebe conteúdo editorial. Sem spam. (Este formulário é uma demo visual.)
+        Ao se inscrever, voce recebe conteudo editorial. Sem spam. (Este formulario e uma demo visual.)
       </div>
-    </form>
+    </div>
   );
 }
-
