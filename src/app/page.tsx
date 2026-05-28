@@ -52,19 +52,19 @@ export default function Page() {
       {
         id: "q1",
         quote:
-          "Voce nao precisa vencer o mundo. Precisa parar de ser vencido pelo seu proprio feed.",
+          "Você não precisa vencer o mundo. Precisa parar de ser vencido pelo seu próprio feed.",
         meta: "DR. LIBERTAD · nota editorial 01",
       },
       {
         id: "q2",
         quote:
-          "A mente e um palco. Se ninguem entra, voce finalmente ouve o que sempre esteve la.",
+          "A mente é um palco. Se ninguém entra, você finalmente ouve o que sempre esteve lá.",
         meta: "DR. LIBERTAD · nota editorial 02",
       },
       {
         id: "q3",
         quote:
-          "Liberdade nao e ausencia de estimulo; e habilidade de escolher a resposta.",
+          "Liberdade não é ausência de estímulo; é habilidade de escolher a resposta.",
         meta: "DR. LIBERTAD · nota editorial 03",
       },
     ],
@@ -73,13 +73,13 @@ export default function Page() {
 
   const topics = useMemo(
     () => [
-      { title: "Dopamine detox", desc: "Redesenhe seus incentivos para recuperar desejo e presenca." },
-      { title: "Psicologia do habito", desc: "Compreenda o ciclo de gatilho, rotina e recompensa." },
-      { title: "Ansiedade moderna", desc: "Ruido social + previsao excessiva = tensao constante." },
-      { title: "Vicio em redes", desc: "Quando o scroll vira regulacao emocional." },
-      { title: "Masculinidade consciente", desc: "Forca, vulnerabilidade e disciplina com inteligencia afetiva." },
-      { title: "Liberdade", desc: "Escolha deliberada sobre impulsos e recompensas rapidas." },
-      { title: "Inteligencia emocional", desc: "Nomeie, processe e transforme emocao em acao." },
+      { title: "Desintoxicação digital", desc: "Redesenhe seus incentivos para recuperar desejo e presença." },
+      { title: "Psicologia do hábito", desc: "Compreenda o ciclo de gatilho, rotina e recompensa." },
+      { title: "Ansiedade moderna", desc: "Ruído social + previsão excessiva = tensão constante." },
+      { title: "Vício em redes", desc: "Quando o scroll vira regulação emocional." },
+      { title: "Masculinidade consciente", desc: "Força, vulnerabilidade e disciplina com inteligência afetiva." },
+      { title: "Liberdade", desc: "Escolha deliberada sobre impulsos e recompensas rápidas." },
+      { title: "Inteligência emocional", desc: "Nomeie, processe e transforme emoção em ação." },
       { title: "Comportamento humano", desc: "Biologia + aprendizado + contexto. Sem moralismo." },
     ],
     []
@@ -154,7 +154,7 @@ export default function Page() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="dl-chip" data-gsap-child="line">filosofia aplicada</span>
                     <span className="dl-chip" data-gsap-child="line">psicologia</span>
-                    <span className="dl-chip" data-gsap-child="line">atencao</span>
+                    <span className="dl-chip" data-gsap-child="line">atenção</span>
                   </div>
                 </div>
 
@@ -163,14 +163,14 @@ export default function Page() {
                     className="font-serif text-[clamp(2.5rem,5.4vw,5.1rem)] leading-[0.92] tracking-[-0.05em] text-balance"
                     data-gsap-child="line"
                   >
-                    A liberdade comeca quando voce entende quem controla sua mente.
+                    A liberdade começa quando você entende quem controla sua mente.
                   </h1>
                 </div>
 
                 <div className="mt-6" data-gsap="reveal">
                   <p className="max-w-xl text-[1.05rem] leading-[1.85] text-warm-gray/90">
-                    Um estudio editorial de ideias: dopamine detox, ansiedade moderna e inteligencia emocional
-                    com estetica cinematografica e pratica diaria.
+                    Um estúdio editorial de ideias: desintoxicação digital, ansiedade moderna e inteligência emocional
+                    — com estética cinematográfica e prática diária.
                   </p>
                 </div>
 
@@ -207,13 +207,13 @@ export default function Page() {
                     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] to-transparent pointer-events-none" />
                     <div className="relative z-10">
                       <div className="text-[10px] uppercase tracking-[0.35em] text-warm-gray/70">
-                        Ritual Di&aacute;rio
+                        Ritual Diário
                       </div>
                       <h3 className="mt-4 text-3xl leading-[1.15] font-light text-offwhite">
-                        90 segundos de sil&ecirc;ncio antes da rea&ccedil;&atilde;o autom&aacute;tica.
+                        90 segundos de silêncio antes da reação automática.
                       </h3>
                       <p className="mt-4 text-sm leading-relaxed text-warm-gray/80">
-                        Entre o impulso e a resposta existe um espa&ccedil;o. &Eacute; ali que a liberdade come&ccedil;a.
+                        Entre o impulso e a resposta existe um espaço. É ali que a liberdade começa.
                       </p>
                       <div className="mt-8 flex items-center gap-3">
                         <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.25em] text-warm-gray/75">
@@ -225,7 +225,7 @@ export default function Page() {
                       </div>
                       <div className="mt-8 space-y-3">
                         {[
-                          "Nomeie a emo&ccedil;&atilde;o",
+                          "Nomeie a emoção",
                           "Observe o impulso",
                           "Escolha conscientemente",
                         ].map((item, i) => (
@@ -236,10 +236,7 @@ export default function Page() {
                             <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 text-xs text-warm-gray">
                               {i + 1}
                             </div>
-                            <span
-                              className="text-sm text-warm-gray/90"
-                              dangerouslySetInnerHTML={{ __html: item }}
-                            />
+                            <span className="text-sm text-warm-gray/90">{item}</span>
                           </div>
                         ))}
                       </div>
@@ -258,15 +255,15 @@ export default function Page() {
           <Marquee
             className="py-5"
             items={[
-              "CINEMATIC",
+              "CINEMATOGRÁFICO",
               "EDITORIAL",
-              "PHILOSOPHY",
-              "PSYCHOLOGY",
-              "DOPAMINE DETOX",
-              "ATTENTION",
-              "FREEDOM",
-              "MASCULINITY",
-              "EMOTIONAL INTELLIGENCE",
+              "FILOSOFIA",
+              "PSICOLOGIA",
+              "DESINTOXICAÇÃO DIGITAL",
+              "ATENÇÃO",
+              "LIBERDADE",
+              "MASCULINIDADE",
+              "INTELIGÊNCIA EMOCIONAL",
             ]}
           />
         </StudioContainer>
@@ -276,32 +273,32 @@ export default function Page() {
       <section id="manifesto" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
-            <SectionHeading eyebrow="MANIFESTO" title="Um manifesto de ritmo emocional: menos estimulo, mais escolha." />
+            <SectionHeading eyebrow="MANIFESTO" title="Um manifesto de ritmo emocional: menos estímulo, mais escolha." />
           </Reveal>
 
           <div className="mt-10 grid gap-6 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <div className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur">
                 <div className="text-sm tracking-[0.18em] text-warm-gray/80 uppercase">
-                  principios
+                  princípios
                 </div>
                 <div className="mt-5 space-y-4">
                   {[
                     {
-                      t: "Voce nao tem falta de disciplina. Voce tem falta de contexto.",
-                      d: "Tecnologia e ambiente foram projetados para capturar atencao. Seu trabalho e recuperar arquitetura interna.",
+                      t: "Você não tem falta de disciplina. Você tem falta de contexto.",
+                      d: "Tecnologia e ambiente foram projetados para capturar atenção. Seu trabalho é recuperar a arquitetura interna.",
                     },
                     {
-                      t: "A mente escolhe mesmo quando parece automatica.",
-                      d: "Impulsos sao sinais. Voce pode observar antes de agir.",
+                      t: "A mente escolhe — mesmo quando parece automática.",
+                      d: "Impulsos são sinais. Você pode observar antes de agir.",
                     },
                     {
-                      t: "Ansiedade nao e destino. E informacao.",
-                      d: "Nomear a sensacao reduz a forca do ruido e aumenta a precisao da decisao.",
+                      t: "Ansiedade não é destino. É informação.",
+                      d: "Nomear a sensação reduz a força do ruído e aumenta a precisão da decisão.",
                     },
                     {
-                      t: "Masculinidade e presenca emocional, nao performance.",
-                      d: "Inteligencia afetiva constroi liberdade real.",
+                      t: "Masculinidade é presença emocional, não performance.",
+                      d: "Inteligência afetiva constrói liberdade real.",
                     },
                   ].map((item, idx) => (
                     <motion.div
@@ -339,11 +336,11 @@ export default function Page() {
                   uma promessa
                 </div>
                 <h3 className="mt-4 text-[1.55rem] leading-[1.15]">
-                  Menos estimulo. Mais clareza. Decisoes com alma.
+                  Menos estímulo. Mais clareza. Decisões com alma.
                 </h3>
                 <p className="mt-4 text-sm leading-[1.7] text-warm-gray/90">
-                  A estetica e silenciosa mas a mudanca e radical. Voce vai aprender a
-                  reconhecer gatilhos, reduzir compulsao e fortalecer a relacao com o proprio pensamento.
+                  A estética é silenciosa — mas a mudança é radical. Você vai aprender a
+                  reconhecer gatilhos, reduzir compulsão e fortalecer a relação com o próprio pensamento.
                 </p>
 
                 <div className="mt-6 flex items-center gap-3">
@@ -354,16 +351,16 @@ export default function Page() {
                     <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
                       ritmo
                     </div>
-                    <div className="text-sm text-offwhite/95">Ciclos curtos. Transformacao continua.</div>
+                    <div className="text-sm text-offwhite/95">Ciclos curtos. Transformação contínua.</div>
                   </div>
                 </div>
 
                 <div className="mt-8 grid grid-cols-2 gap-3">
                   {[
-                    { k: "atencao", v: "projetada" },
-                    { k: "emocao", v: "nomeada" },
+                    { k: "atenção", v: "projetada" },
+                    { k: "emoção", v: "nomeada" },
                     { k: "impulso", v: "observado" },
-                    { k: "acao", v: "escolhida" },
+                    { k: "ação", v: "escolhida" },
                   ].map((s) => (
                     <div key={s.k} className="rounded-2xl border border-warm-gray/10 bg-ink/25 px-4 py-3">
                       <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
@@ -383,7 +380,7 @@ export default function Page() {
       <section id="topics" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
-            <SectionHeading eyebrow="TEMAS" title="Pilares editoriais com ritmo de estudio." />
+            <SectionHeading eyebrow="TEMAS" title="Pilares editoriais com ritmo de estúdio." />
           </Reveal>
           <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {topics.map((t, idx) => (
@@ -412,7 +409,7 @@ export default function Page() {
       <section id="gallery" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
-            <SectionHeading eyebrow="EDITORIAL" title="Cartazes filosoficos, capas de luxo, psicologia em alto contraste." />
+            <SectionHeading eyebrow="EDITORIAL" title="Cartazes filosóficos, capas de luxo, psicologia em alto contraste." />
           </Reveal>
           <div className="mt-10">
             <EditorialGrid />
@@ -424,7 +421,7 @@ export default function Page() {
       <section id="quotes" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
-            <SectionHeading eyebrow="CITACOES" title="Ideias curtas. Impacto longo." />
+            <SectionHeading eyebrow="CITAÇÕES" title="Ideias curtas. Impacto longo." />
           </Reveal>
 
           <div className="mt-10 space-y-6">
@@ -470,8 +467,8 @@ export default function Page() {
                 <SectionHeading eyebrow="NEWSLETTER" title="Cartas curtas. Verdades longas." />
               </Reveal>
               <p className="mt-4 text-sm leading-[1.8] text-warm-gray/90">
-                Receba ensaios editoriais sobre atencao, dopamina detox, psicologia e liberdade interna.
-                Sem ruido. So direcao.
+                Receba ensaios editoriais sobre atenção, desintoxicação digital, psicologia e liberdade interna.
+                Sem ruído. Só direção.
               </p>
               <NewsletterForm />
             </div>
@@ -485,13 +482,13 @@ export default function Page() {
                 className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur"
               >
                 <div className="text-sm tracking-[0.18em] text-warm-gray/80 uppercase">
-                  o que voce recebe
+                  o que você recebe
                 </div>
                 <div className="mt-5 space-y-3">
                   {[
-                    { t: "Manifestacoes curtas", d: "Para quebrar ciclo de reacao e reacender escolha." },
-                    { t: "Rituais praticos", d: "Micro-habitos para reduzir compulsao e recuperar desejo." },
-                    { t: "Psicologia aplicada", d: "Entenda o por que antes do como." },
+                    { t: "Reflexões curtas", d: "Para quebrar o ciclo de reação e reacender a escolha." },
+                    { t: "Rituais práticos", d: "Micro-hábitos para reduzir compulsão e recuperar desejo." },
+                    { t: "Psicologia aplicada", d: "Entenda o porquê antes do como." },
                   ].map((row, idx) => (
                     <div key={row.t} className="rounded-2xl border border-warm-gray/10 bg-ink/25 px-5 py-4">
                       <div className="text-base">{row.t}</div>
@@ -515,12 +512,12 @@ export default function Page() {
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-sm tracking-[0.22em] text-warm-gray/80 uppercase">DR. LIBERTAD</div>
-              <div className="mt-2 text-sm text-warm-gray/90">Filosofia aplicada a atencao e ao comportamento.</div>
+              <div className="mt-2 text-sm text-warm-gray/90">Filosofia aplicada à atenção e ao comportamento.</div>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-warm-gray/90">
               {[
                 { label: "Manifesto", id: "manifesto" },
-                { label: "Topicos", id: "topics" },
+                { label: "Tópicos", id: "topics" },
                 { label: "Galeria", id: "gallery" },
                 { label: "Newsletter", id: "newsletter" },
               ].map((link) => (
@@ -549,9 +546,7 @@ function NewsletterForm() {
   const [status, setStatus] = useState<"idle" | "ok">("idle");
 
   return (
-    <div
-      className="mt-7 rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur"
-    >
+    <div className="mt-7 rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           value={email}
@@ -571,11 +566,11 @@ function NewsletterForm() {
           }}
           className="rounded-2xl bg-muted-red px-5 py-3 text-sm font-semibold text-offwhite transition hover:bg-muted-red/85"
         >
-          {status === "ok" ? "Inscrito (demo)" : "Inscrever"}
+          {status === "ok" ? "Inscrito ✓" : "Inscrever"}
         </button>
       </div>
       <div className="mt-3 text-xs leading-[1.6] text-warm-gray/80">
-        Ao se inscrever, voce recebe conteudo editorial. Sem spam. (Este formulario e uma demo visual.)
+        Ao se inscrever, você recebe conteúdo editorial. Sem spam. (Este formulário é uma demonstração visual.)
       </div>
     </div>
   );
