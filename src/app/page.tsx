@@ -574,8 +574,6 @@ function NewsletterForm() {
       </div>
     </div>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 313ba562 (ajustes no hero)
+
+
