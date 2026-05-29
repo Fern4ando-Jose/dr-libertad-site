@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.0",
+    "@vercel/postgres": "^0.10.0",
     "framer-motion": "latest",
     "gsap": "latest",
     "lenis": "latest",
@@ -26,7 +27,7 @@
     "eslint": "latest",
     "eslint-config-next": "latest",
     "postcss": "latest",
-    "tailwindcss": "latest",
+    "tailwindcss": "^4.3.0",
     "typescript": "latest"
   }
 }
