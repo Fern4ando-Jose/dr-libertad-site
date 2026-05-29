@@ -15,6 +15,17 @@ interface GeneratedContent {
   tags: string[];
 }
 
+type Slot = "manha" | "tarde" | "noite";
+
+const SLOT_INSTRUCTIONS: Record<Slot, string> = {
+  manha:
+    "Post da MANHÃ: ângulo reflexivo/inspirador. Começa o dia gerando consciência sobre o tema. Tom mais suave, convida à reflexão.",
+  tarde:
+    "Post da TARDE: ângulo prático/informativo. Aprofunda o tema com dados, dicas concretas ou mecanismos explicados. Tom direto e útil.",
+  noite:
+    "Post da NOITE: ângulo provocativo/engajador. Termina o dia com uma pergunta, insight polêmico ou chamada à ação. Tom mais ousado.",
+};
+
 // ─── Helpers de pesquisa ─────────────────────────────────────────────────────
 
 async function searchTopic(topic: string): Promise<SearchResult[]> {
@@ -44,7 +55,8 @@ async function searchTopic(topic: string): Promise<SearchResult[]> {
 
 async function generateContent(
   topic: string,
-  searchResults: SearchResult[]
+  searchResults: SearchResult[],
+  slot: Slot
 ): Promise<GeneratedContent> {
   const context = searchResults
     .map((r, i) => `[${i + 1}] ${r.title}\n${r.content}`)
@@ -53,6 +65,7 @@ async function generateContent(
   const prompt = `Você é o editor do Dr. Libertad, um estúdio editorial sobre psicologia, atenção e liberdade mental.
 
 Tema do dia: "${topic}"
+${SLOT_INSTRUCTIONS[slot]}
 
 Contexto pesquisado:
 ${context}
@@ -83,9 +96,17 @@ Gere um JSON válido (sem markdown, sem backticks) com exatamente esta estrutura
   const data = await res.json();
   const raw = data.content?.[0]?.text ?? "";
 
-  // Remove possíveis backticks de markdown antes de parsear
   const clean = raw.replace(/```json|```/g, "").trim();
   return JSON.parse(clean) as GeneratedContent;
+}
+
+// ─── Seleciona imagem aleatória do pool ──────────────────────────────────────
+
+function getRandomImageUrl(): string {
+  const raw = process.env.META_IMAGE_URLS ?? process.env.META_DEFAULT_IMAGE_URL ?? "";
+  const urls = raw.split(",").map((u) => u.trim()).filter(Boolean);
+  if (urls.length === 0) return "";
+  return urls[Math.floor(Math.random() * urls.length)];
 }
 
 // ─── Publicação no Instagram ──────────────────────────────────────────────────
@@ -95,20 +116,12 @@ async function publishInstagram(caption: string, imageUrl?: string): Promise<str
   const token = process.env.META_ACCESS_TOKEN!;
   const baseUrl = `https://graph.facebook.com/v19.0/${accountId}`;
 
-  // Etapa 1: criar container de mídia
   const containerBody: Record<string, string> = {
     caption,
     access_token: token,
+    image_url: imageUrl ?? getRandomImageUrl(),
+    media_type: "IMAGE",
   };
-
-  if (imageUrl) {
-    containerBody.image_url = imageUrl;
-    containerBody.media_type = "IMAGE";
-  } else {
-    // Post de apenas texto não é suportado — usa imagem padrão da marca
-    containerBody.image_url = process.env.META_DEFAULT_IMAGE_URL ?? "";
-    containerBody.media_type = "IMAGE";
-  }
 
   const containerRes = await fetch(`${baseUrl}/media`, {
     method: "POST",
@@ -122,14 +135,10 @@ async function publishInstagram(caption: string, imageUrl?: string): Promise<str
   }
   const { id: containerId } = await containerRes.json();
 
-  // Etapa 2: publicar o container
   const publishRes = await fetch(`${baseUrl}/media_publish`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      creation_id: containerId,
-      access_token: token,
-    }),
+    body: JSON.stringify({ creation_id: containerId, access_token: token }),
   });
 
   if (!publishRes.ok) {
@@ -144,6 +153,7 @@ async function publishInstagram(caption: string, imageUrl?: string): Promise<str
 
 async function savePost(params: {
   topic: string;
+  slot: Slot;
   title: string;
   body: string;
   instagramCaption: string;
@@ -151,15 +161,15 @@ async function savePost(params: {
   instagramPostId: string | null;
   publishedAt: Date;
 }): Promise<void> {
-  // Importação dinâmica para não quebrar em ambientes sem @vercel/postgres
   const { sql } = await import("@vercel/postgres");
 
   await sql`
     INSERT INTO posts (
-      topic, title, body, instagram_caption,
+      topic, slot, title, body, instagram_caption,
       tags, instagram_post_id, published_at
     ) VALUES (
       ${params.topic},
+      ${params.slot},
       ${params.title},
       ${params.body},
       ${params.instagramCaption},
@@ -179,57 +189,60 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  // Tema do dia: pode vir de variável de ambiente, banco ou fila
+  // Tema do dia
   const topic =
     req.nextUrl.searchParams.get("topic") ??
     process.env.DAILY_TOPIC ??
     "ansiedade moderna e como a atenção se tornou o novo recurso escasso";
 
-  const log: Record<string, unknown> = { topic, startedAt: new Date().toISOString() };
+  const slots: Slot[] = ["manha", "tarde", "noite"];
+  const results = [];
 
   try {
-    // 1. Pesquisar
-    log.step = "pesquisa";
+    // Pesquisa feita uma única vez — compartilhada pelos 3 posts
     const searchResults = await searchTopic(topic);
-    log.resultsFound = searchResults.length;
 
-    // 2. Gerar conteúdo
-    log.step = "geracao";
-    const content = await generateContent(topic, searchResults);
-    log.postTitle = content.postTitle;
+    for (const slot of slots) {
+      const slotLog: Record<string, unknown> = { slot, topic };
 
-    // 3. Publicar no Instagram
-    log.step = "instagram";
-    let instagramPostId: string | null = null;
-    try {
-      instagramPostId = await publishInstagram(content.instagramCaption);
-      log.instagramPostId = instagramPostId;
-    } catch (igErr) {
-      // Falha no Instagram não impede salvar no site
-      log.instagramError = String(igErr);
+      try {
+        // Gerar conteúdo com ângulo específico do slot
+        const content = await generateContent(topic, searchResults, slot);
+        slotLog.title = content.postTitle;
+
+        // Publicar no Instagram
+        let instagramPostId: string | null = null;
+        try {
+          instagramPostId = await publishInstagram(content.instagramCaption);
+          slotLog.instagramPostId = instagramPostId;
+        } catch (igErr) {
+          slotLog.instagramError = String(igErr);
+        }
+
+        // Salvar no banco
+        await savePost({
+          topic,
+          slot,
+          title: content.postTitle,
+          body: content.postBody,
+          instagramCaption: content.instagramCaption,
+          tags: content.tags,
+          instagramPostId,
+          publishedAt: new Date(),
+        });
+
+        slotLog.ok = true;
+      } catch (slotErr) {
+        slotLog.ok = false;
+        slotLog.error = String(slotErr);
+      }
+
+      results.push(slotLog);
     }
 
-    // 4. Salvar no banco
-    log.step = "banco";
-    await savePost({
-      topic,
-      title: content.postTitle,
-      body: content.postBody,
-      instagramCaption: content.instagramCaption,
-      tags: content.tags,
-      instagramPostId,
-      publishedAt: new Date(),
-    });
-
-    log.step = "concluido";
-    log.finishedAt = new Date().toISOString();
-
-    return NextResponse.json({ ok: true, log });
+    return NextResponse.json({ ok: true, topic, posts: results });
   } catch (err) {
-    console.error("[publish] erro na etapa:", log.step, err);
-    return NextResponse.json(
-      { ok: false, step: log.step, error: String(err), log },
-      { status: 500 }
-    );
+    console.error("[publish] erro geral:", err);
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }

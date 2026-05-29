@@ -3,6 +3,7 @@
 CREATE TABLE IF NOT EXISTS posts (
   id               SERIAL PRIMARY KEY,
   topic            TEXT NOT NULL,
+  slot             TEXT NOT NULL DEFAULT 'manha', -- 'manha' | 'tarde' | 'noite'
   title            TEXT NOT NULL,
   body             TEXT NOT NULL,
   instagram_caption TEXT NOT NULL,
