@@ -250,12 +250,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }
-ts.push(slotLog);
-    }
-
-    return NextResponse.json({ ok: true, topic, posts: results });
-  } catch (err) {
-    console.error("[publish] erro geral:", err);
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
-  }
-}
