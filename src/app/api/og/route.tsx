@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
         }} />
 
         {/* Header — logo pequeno e discreto */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
+        <div style={{ display: "flex", alignItems: "center", marginTop: "8px" }}>
           <span style={{
             fontSize: "26px",
             color: "#999999",
@@ -79,14 +79,6 @@ export async function GET(req: NextRequest) {
             fontWeight: 400,
           }}>
             Dr. Libertad
-          </span>
-          <span style={{
-            fontSize: "22px",
-            color: "#bbbbbb",
-            letterSpacing: "4px",
-            textTransform: "uppercase",
-          }}>
-            {meta.label}
           </span>
         </div>
 
