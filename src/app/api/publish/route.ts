@@ -181,6 +181,7 @@ async function savePost(params: {
 }): Promise<void> {
   const { sql } = await import("@vercel/postgres");
 
+  const tagsJson = JSON.stringify(params.tags.map(t => t.normalize("NFC")));
   await sql`
     INSERT INTO posts (
       topic, slot, title, body, instagram_caption,
@@ -191,7 +192,7 @@ async function savePost(params: {
       ${params.title},
       ${params.body},
       ${params.instagramCaption},
-      ${JSON.stringify(params.tags.map(t => t.normalize("NFC")))},
+      ${tagsJson}::jsonb,
       ${params.instagramPostId},
       ${params.publishedAt.toISOString()}
     )
