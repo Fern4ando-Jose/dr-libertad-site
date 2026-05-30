@@ -222,7 +222,13 @@ export async function GET(req: NextRequest) {
         // Publicar no Instagram
         let instagramPostId: string | null = null;
         try {
-          instagramPostId = await publishInstagram(content.instagramCaption);
+          // Gerar URL da imagem com o template editorial
+          const baseUrl = process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : "https://www.drlibertad.com";
+          const shortTitle = content.postTitle.slice(0, 80);
+          const ogUrl = `${baseUrl}/api/og?slot=${slot}&title=${encodeURIComponent(shortTitle)}`;
+          instagramPostId = await publishInstagram(content.instagramCaption, ogUrl);
           slotLog.instagramPostId = instagramPostId;
         } catch (igErr) {
           slotLog.instagramError = String(igErr);
