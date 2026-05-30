@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  body { background: transparent; padding: 16px; }
+
+  .phase { border-radius: 12px; margin-bottom: 16px; overflow: hidden; border: 1.5px solid var(--border, #e2e8f0); }
+  .phase-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; font-weight: 700; font-size: 14px; }
+  .phase-body { padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 8px; }
+
+  .phase-1 .phase-header { background: #1a1a2e; color: #fff; }
+  .phase-2 .phase-header { background: #1e40af; color: #fff; }
+  .phase-3 .phase-header { background: #e2e8f0; color: #1a1a2e; }
+
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+  .badge-done   { background: #22c55e; color: #fff; }
+  .badge-active { background: #f97316; color: #fff; }
+  .badge-pending { background: #94a3b8; color: #fff; }
+
+  .step { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 8px; }
+  .step-done    { background: #f0fdf4; }
+  .step-current { background: #fff7ed; border: 1.5px solid #f97316; }
+  .step-todo    { background: #f8fafc; }
+
+  .step-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; font-weight: 700; margin-top: 1px; }
+  .icon-done    { background: #22c55e; color: #fff; }
+  .icon-current { background: #f97316; color: #fff; }
+  .icon-todo    { background: #cbd5e1; color: #fff; }
+
+  .step-text { flex: 1; }
+  .step-title { font-size: 13px; font-weight: 600; color: #1e293b; line-height: 1.3; }
+  .step-sub { font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.4; }
+  .step-current .step-title { color: #c2410c; }
+
+  .arrow { text-align: center; font-size: 18px; color: #94a3b8; margin: -6px 0; }
+  .warning { font-size: 11px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; padding: 6px 10px; color: #9a3412; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- FASE 1 -->
+<div class="phase phase-1">
+  <div class="phase-header">
+    <span>🤖 FASE 1 — Automação Instagram</span>
+    <span class="badge badge-done">✓ CONCLUÍDA</span>
+  </div>
+  <div class="phase-body">
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">Projeto Next.js criado e no GitHub</div>
+        <div class="step-sub">Repo: Fern4ando-Jose/dr-libertad-site · Domínio: www.drlibertad.com</div>
+      </div>
+    </div>
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">Site online no Vercel</div>
+      </div>
+    </div>
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">API de publicação (route.ts) — 3 posts/dia</div>
+        <div class="step-sub">Manhã (reflexivo) · Tarde (prático) · Noite (provocativo)</div>
+      </div>
+    </div>
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">Banco Neon Postgres + schema</div>
+        <div class="step-sub">Tabela posts com colunas: topic, slot, title, body, instagram_caption, tags, instagram_post_id</div>
+      </div>
+    </div>
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">Variáveis de ambiente configuradas no Vercel</div>
+        <div class="step-sub">ANTHROPIC_API_KEY · TAVILY_API_KEY · CRON_SECRET · META_* · POSTGRES_URL</div>
+      </div>
+    </div>
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">Instagram Business API v25 configurada</div>
+        <div class="step-sub">graph.instagram.com/v25.0 · App: Dr-Libertad (Meta Developer) · Conta: dr.liberdad · ID: 27549362607981575</div>
+        <div class="warning">⚠️ Token META_ACCESS_TOKEN expira em ~60 dias — ver docs/TROUBLESHOOTING.md para renovar</div>
+      </div>
+    </div>
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">Cron jobs ativos (3x/dia)</div>
+        <div class="step-sub">09h BRT (slot=manha) · 13h BRT (slot=tarde) · 20h BRT (slot=noite)</div>
+      </div>
+    </div>
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">Imagem padrão dos posts configurada</div>
+        <div class="step-sub">GitHub raw URL · Para imagem da marca: adicionar META_IMAGE_URLS no Vercel</div>
+      </div>
+    </div>
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">Primeiro post publicado com sucesso</div>
+        <div class="step-sub">"A Perfeição é Inimiga do Bem" · ID: 18082397880445842 · 2026-05-30</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="arrow">↓</div>
+
+<!-- FASE 2 -->
+<div class="phase phase-2">
+  <div class="phase-header">
+    <span>🌐 FASE 2 — Finalizar o Site</span>
+    <span class="badge badge-active">PRÓXIMA</span>
+  </div>
+  <div class="phase-body">
+
+    <div class="step step-current">
+      <div class="step-icon icon-current">►</div>
+      <div class="step-text">
+        <div class="step-title">Blog — exibir posts gerados automaticamente</div>
+        <div class="step-sub">Página /blog listando posts do banco · /blog/[slug] para post completo</div>
+      </div>
+    </div>
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">2</div>
+      <div class="step-text">
+        <div class="step-title">Revisão visual e de conteúdo do site</div>
+        <div class="step-sub">Layout, tipografia, textos fixos, cores da marca</div>
+      </div>
+    </div>
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">3</div>
+      <div class="step-text">
+        <div class="step-title">SEO básico</div>
+        <div class="step-sub">Meta tags, sitemap.xml, robots.txt</div>
+      </div>
+    </div>
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">4</div>
+      <div class="step-text">
+        <div class="step-title">Imagem da marca nos posts do Instagram</div>
+        <div class="step-sub">Substituir placeholder por imagem real · Hospedar em CDN (Cloudinary ou similar)</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="arrow">↓</div>
+
+<!-- FASE 3 -->
+<div class="phase phase-3">
+  <div class="phase-header">
+    <span>📚 FASE 3 — Infoprodutos</span>
+    <span class="badge badge-pending">AGUARDANDO FASE 2</span>
+  </div>
+  <div class="phase-body">
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">1</div>
+      <div class="step-text">
+        <div class="step-title">Publicar livros / infoprodutos no site</div>
+      </div>
+    </div>
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">2</div>
+      <div class="step-text">
+        <div class="step-title">Integração de pagamento</div>
+        <div class="step-sub">Avaliar Stripe, Hotmart ou Kiwify</div>
+      </div>
+    </div>
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">3</div>
+      <div class="step-text">
+        <div class="step-title">Funil de vendas: Instagram → site → compra</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
