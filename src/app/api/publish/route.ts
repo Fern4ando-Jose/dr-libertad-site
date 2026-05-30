@@ -114,7 +114,7 @@ function getRandomImageUrl(): string {
 async function publishInstagram(caption: string, imageUrl?: string): Promise<string> {
   const accountId = process.env.META_INSTAGRAM_ACCOUNT_ID!;
   const token = process.env.META_ACCESS_TOKEN!;
-  const baseUrl = `https://graph.facebook.com/v19.0/${accountId}`;
+  const baseUrl = `https://graph.instagram.com/v25.0/${accountId}`;
 
   const containerBody: Record<string, string> = {
     caption,
