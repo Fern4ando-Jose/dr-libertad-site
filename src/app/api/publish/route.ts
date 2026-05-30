@@ -191,7 +191,7 @@ async function savePost(params: {
       ${params.title},
       ${params.body},
       ${params.instagramCaption},
-      ${params.tags},
+      ${"{" + params.tags.join(",") + "}"},
       ${params.instagramPostId},
       ${params.publishedAt.toISOString()}
     )
