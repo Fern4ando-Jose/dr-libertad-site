@@ -19,11 +19,11 @@ type Slot = "manha" | "tarde" | "noite";
 
 const SLOT_INSTRUCTIONS: Record<Slot, string> = {
   manha:
-    "Post da MANHÃ: ângulo reflexivo/inspirador. Começa o dia gerando consciência sobre o tema. Tom mais suave, convida à reflexão.",
+    "Post de MAÑANA: ángulo reflexivo/inspirador. Empieza el día generando consciencia sobre el tema. Tono más suave, invita a la reflexión.",
   tarde:
-    "Post da TARDE: ângulo prático/informativo. Aprofunda o tema com dados, dicas concretas ou mecanismos explicados. Tom direto e útil.",
+    "Post de TARDE: ángulo práctico/informativo. Profundiza el tema con datos, consejos concretos o mecanismos explicados. Tono directo y útil.",
   noite:
-    "Post da NOITE: ângulo provocativo/engajador. Termina o dia com uma pergunta, insight polêmico ou chamada à ação. Tom mais ousado.",
+    "Post de NOCHE: ángulo provocador/engagement. Termina el día con una pregunta, insight polémico o llamada a la acción. Tono más audaz.",
 };
 
 // ─── Helpers de pesquisa ─────────────────────────────────────────────────────
@@ -62,19 +62,19 @@ async function generateContent(
     .map((r, i) => `[${i + 1}] ${r.title}\n${r.content}`)
     .join("\n\n");
 
-  const prompt = `Você é o editor do Dr. Libertad, um estúdio editorial sobre psicologia, atenção e liberdade mental.
+  const prompt = `Eres el editor de Dr. Libertad, un estudio editorial sobre psicología, atención y libertad mental.
 
-Tema do dia: "${topic}"
+Tema del día: "${topic}"
 ${SLOT_INSTRUCTIONS[slot]}
 
-Contexto pesquisado:
+Contexto investigado:
 ${context}
 
-Gere um JSON válido (sem markdown, sem backticks) com exatamente esta estrutura:
+Genera un JSON válido (sin markdown, sin backticks) con exactamente esta estructura:
 {
-  "postTitle": "título do post para o site (máx 80 chars, impactante)",
-  "postBody": "corpo do post para o site em markdown. Mínimo 300 palavras. Tom editorial, direto, sem jargão. Use ## para subtítulos se necessário.",
-  "instagramCaption": "legenda para o Instagram. Máx 2200 chars. Começa com gancho forte, depois o texto, termina com 3 a 5 hashtags relevantes em português.",
+  "postTitle": "título del post para el sitio (máx 80 chars, impactante, en español)",
+  "postBody": "cuerpo del post para el sitio en markdown. Mínimo 300 palabras. Tono editorial, directo, sin jerga. Usa ## para subtítulos si es necesario. TODO EN ESPAÑOL.",
+  "instagramCaption": "leyenda para Instagram. Máx 2200 chars. Empieza con un gancho fuerte, luego el texto, termina con 3 a 5 hashtags relevantes en español. TODO EN ESPAÑOL.",
   "tags": ["tag1", "tag2", "tag3"]
 }`;
 
@@ -111,11 +111,24 @@ function getRandomImageUrl(): string {
   return urls[Math.floor(Math.random() * urls.length)];
 }
 
+// ─── Token do Instagram (banco > env var) ────────────────────────────────────
+
+async function getAccessToken(): Promise<string> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const rows = await sql`SELECT value FROM config WHERE key = 'meta_access_token'`;
+    if (rows.rows[0]?.value) return rows.rows[0].value;
+  } catch {
+    // fallback silencioso para env var
+  }
+  return process.env.META_ACCESS_TOKEN!;
+}
+
 // ─── Publicação no Instagram ──────────────────────────────────────────────────
 
 async function publishInstagram(caption: string, imageUrl?: string): Promise<string> {
   const accountId = process.env.META_INSTAGRAM_ACCOUNT_ID!;
-  const token = process.env.META_ACCESS_TOKEN!;
+  const token = await getAccessToken();
   const baseUrl = `https://graph.instagram.com/v25.0/${accountId}`;
 
   const containerBody: Record<string, string> = {
@@ -198,7 +211,7 @@ export async function GET(req: NextRequest) {
   const topic =
     req.nextUrl.searchParams.get("topic") ??
     process.env.DAILY_TOPIC ??
-    "ansiedade moderna e como a atenção se tornou o novo recurso escasso";
+    "ansiedad moderna y cómo la atención se convirtió en el nuevo recurso escaso";
 
   // Se ?slot= for informado, publica apenas aquele slot; caso contrário, publica os 3
   const slotParam = req.nextUrl.searchParams.get("slot") as Slot | null;

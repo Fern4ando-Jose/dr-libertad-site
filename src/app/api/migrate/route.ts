@@ -9,18 +9,56 @@ export async function GET(req: NextRequest) {
   const { sql } = await import("@vercel/postgres");
   const results: string[] = [];
 
-  try {
-    await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS topic TEXT NOT NULL DEFAULT 'geral'`;
-    results.push("topic: ok");
-  } catch (e) {
-    results.push("topic: " + String(e));
+  // Tabela posts — colunas que podem faltar
+  const postsCols = [
+    { name: "topic", def: "TEXT NOT NULL DEFAULT 'geral'" },
+    { name: "slot", def: "TEXT NOT NULL DEFAULT 'manha'" },
+    { name: "body", def: "TEXT NOT NULL DEFAULT ''" },
+    { name: "instagram_caption", def: "TEXT NOT NULL DEFAULT ''" },
+    { name: "tags", def: "JSONB NOT NULL DEFAULT '[]'" },
+    { name: "instagram_post_id", def: "TEXT" },
+  ];
+
+  for (const col of postsCols) {
+    try {
+      await sql.query(
+        `ALTER TABLE posts ADD COLUMN IF NOT EXISTS ${col.name} ${col.def}`
+      );
+      results.push(`posts.${col.name}: ok`);
+    } catch (e) {
+      results.push(`posts.${col.name}: ${String(e)}`);
+    }
   }
 
+  // Tabela config — guarda token e outras configs dinâmicas
   try {
-    await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS slot TEXT NOT NULL DEFAULT 'manha'`;
-    results.push("slot: ok");
+    await sql`
+      CREATE TABLE IF NOT EXISTS config (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    results.push("config table: ok");
   } catch (e) {
-    results.push("slot: " + String(e));
+    results.push("config table: " + String(e));
+  }
+
+  // Seed: insere o token atual do env var se a linha ainda não existe
+  try {
+    const token = process.env.META_ACCESS_TOKEN;
+    if (token) {
+      await sql`
+        INSERT INTO config (key, value)
+        VALUES ('meta_access_token', ${token})
+        ON CONFLICT (key) DO NOTHING
+      `;
+      results.push("config seed token: ok");
+    } else {
+      results.push("config seed token: META_ACCESS_TOKEN env var nao definida");
+    }
+  } catch (e) {
+    results.push("config seed token: " + String(e));
   }
 
   const cols = await sql`
@@ -31,6 +69,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     results,
-    columns: cols.rows.map((r) => r.column_name),
+    posts_columns: cols.rows.map((r) => r.column_name),
   });
 }

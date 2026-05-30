@@ -4,9 +4,9 @@ import { NextRequest } from "next/server";
 export const runtime = "edge";
 
 const SLOT_META: Record<string, { label: string; eyebrow: string; footer: string }> = {
-  manha: { label: "Manha", eyebrow: "Reflexao", footer: "Psicologia - Consciencia" },
-  tarde: { label: "Tarde", eyebrow: "Dado que muda tudo", footer: "Atencao - Mente - Foco" },
-  noite: { label: "Noite", eyebrow: "Provoca", footer: "Responda nos comentarios" },
+  manha: { label: "Mañana", eyebrow: "Reflexión", footer: "Psicología · Consciencia · Libertad" },
+  tarde: { label: "Tarde", eyebrow: "Lo que cambia todo", footer: "Atención · Mente · Enfoque" },
+  noite: { label: "Noche", eyebrow: "Piénsalo", footer: "Responde en los comentarios" },
 };
 
 function wrapText(text: string, max = 26): string[] {

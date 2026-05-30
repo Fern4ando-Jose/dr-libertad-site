@@ -11,6 +11,10 @@
     {
       "path": "/api/publish?slot=noite",
       "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/refresh-token",
+      "schedule": "0 10 1 * *"
     }
   ]
 }
