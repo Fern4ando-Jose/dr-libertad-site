@@ -9,13 +9,22 @@ const SLOT_META: Record<string, { label: string; eyebrow: string; footer: string
   noite: { label: "Noche", eyebrow: "Piénsalo", footer: "Responde en los comentarios" },
 };
 
-function wrapText(text: string, max = 26): string[] {
+// Adapta o tamanho da fonte e chars/linha ao comprimento do título
+function getFontConfig(title: string): { fontSize: number; maxChars: number; maxLines: number } {
+  const len = title.length;
+  if (len <= 40)  return { fontSize: 80, maxChars: 18, maxLines: 3 };
+  if (len <= 60)  return { fontSize: 68, maxChars: 22, maxLines: 4 };
+  if (len <= 80)  return { fontSize: 58, maxChars: 26, maxLines: 5 };
+  return           { fontSize: 48, maxChars: 30, maxLines: 6 };
+}
+
+function wrapText(text: string, maxChars: number, maxLines: number): string[] {
   const words = text.split(" ");
   const lines: string[] = [];
   let current = "";
   for (const word of words) {
     const candidate = current ? current + " " + word : word;
-    if (candidate.length <= max) {
+    if (candidate.length <= maxChars) {
       current = candidate;
     } else {
       if (current) lines.push(current);
@@ -23,16 +32,18 @@ function wrapText(text: string, max = 26): string[] {
     }
   }
   if (current) lines.push(current);
-  return lines.slice(0, 4);
+  return lines.slice(0, maxLines);
 }
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const slot = searchParams.get("slot") ?? "tarde";
-  const title = searchParams.get("title") ?? "A mente precisa de silencio.";
+  const title = searchParams.get("title") ?? "La mente necesita silencio.";
   const sub = searchParams.get("sub") ?? "";
   const meta = SLOT_META[slot] ?? SLOT_META.tarde;
-  const titleLines = wrapText(title);
+
+  const { fontSize, maxChars, maxLines } = getFontConfig(title);
+  const titleLines = wrapText(title, maxChars, maxLines);
 
   return new ImageResponse(
     (
@@ -49,26 +60,40 @@ export async function GET(req: NextRequest) {
           fontFamily: "system-ui, -apple-system, sans-serif",
         }}
       >
-        <div style={{ position: "absolute", top: 0, left: 0, width: "1080px", height: "10px", background: "#8B1A1A" }} />
+        {/* Linha vermelha topo */}
+        <div style={{ position: "absolute", top: 0, left: 0, width: "1080px", height: "8px", background: "#8B1A1A" }} />
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: "10px" }}>
-          <span style={{ fontSize: "28px", color: "#999999", letterSpacing: "6px", textTransform: "uppercase" }}>Dr. Libertad</span>
-          <span style={{ fontSize: "26px", color: "#bbbbbb", letterSpacing: "4px", textTransform: "uppercase" }}>{meta.label}</span>
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
+          <span style={{ fontSize: "30px", color: "#8B1A1A", letterSpacing: "6px", textTransform: "uppercase", fontWeight: 600 }}>
+            Dr. Libertad
+          </span>
+          <span style={{ fontSize: "24px", color: "#bbbbbb", letterSpacing: "4px", textTransform: "uppercase" }}>
+            {meta.label}
+          </span>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center", paddingTop: "20px", paddingBottom: "20px" }}>
-          <span style={{ fontSize: "26px", color: "#8B1A1A", letterSpacing: "5px", textTransform: "uppercase", fontWeight: 500, marginBottom: "36px" }}>
+        {/* Conteúdo central */}
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center", paddingTop: "16px", paddingBottom: "16px" }}>
+          <span style={{
+            fontSize: "22px",
+            color: "#8B1A1A",
+            letterSpacing: "5px",
+            textTransform: "uppercase",
+            fontWeight: 600,
+            marginBottom: "32px",
+          }}>
             {meta.eyebrow}
           </span>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
             {titleLines.map((line, i) => (
               <span key={i} style={{
-                fontSize: "72px",
-                fontWeight: i === titleLines.length - 1 ? 600 : 300,
+                fontSize: `${fontSize}px`,
+                fontWeight: i === titleLines.length - 1 ? 700 : 300,
                 color: i === titleLines.length - 1 ? "#8B1A1A" : "#0A0A0A",
-                lineHeight: 1.15,
-                letterSpacing: "-2px",
+                lineHeight: 1.2,
+                letterSpacing: "-1px",
               }}>
                 {line}
               </span>
@@ -76,14 +101,22 @@ export async function GET(req: NextRequest) {
           </div>
 
           {sub ? (
-            <div style={{ display: "flex", flexDirection: "column", marginTop: "48px" }}>
-              <div style={{ width: "120px", height: "2px", background: "#cccccc", marginBottom: "24px" }} />
-              <span style={{ fontSize: "30px", color: "#888888", lineHeight: 1.5, maxWidth: "800px" }}>{sub}</span>
+            <div style={{ display: "flex", flexDirection: "column", marginTop: "40px" }}>
+              <div style={{ width: "100px", height: "2px", background: "#cccccc", marginBottom: "20px" }} />
+              <span style={{ fontSize: "28px", color: "#888888", lineHeight: 1.5 }}>{sub}</span>
             </div>
           ) : null}
         </div>
 
-        <span style={{ fontSize: "24px", color: "#bbbbbb", letterSpacing: "5px", textTransform: "uppercase" }}>{meta.footer}</span>
+        {/* Footer */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: "20px", color: "#bbbbbb", letterSpacing: "4px", textTransform: "uppercase" }}>
+            {meta.footer}
+          </span>
+          <span style={{ fontSize: "20px", color: "#cccccc", letterSpacing: "2px" }}>
+            drlibertad.com
+          </span>
+        </div>
       </div>
     ),
     { width: 1080, height: 1080 }
