@@ -103,7 +103,7 @@ Gere um JSON válido (sem markdown, sem backticks) com exatamente esta estrutura
 // ─── Seleciona imagem aleatória do pool ──────────────────────────────────────
 
 function getRandomImageUrl(): string {
-  const raw = process.env.META_IMAGE_URLS ?? process.env.META_DEFAULT_IMAGE_URL ?? "";
+  const raw = process.env.META_IMAGE_URLS ?? process.env.META_DEFAULT_IMAGE_URL ?? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1080&h=1080&fit=crop&auto=format";
   const urls = raw.split(",").map((u) => u.trim()).filter(Boolean);
   if (urls.length === 0) return "";
   return urls[Math.floor(Math.random() * urls.length)];
