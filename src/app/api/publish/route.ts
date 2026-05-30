@@ -195,7 +195,11 @@ export async function GET(req: NextRequest) {
     process.env.DAILY_TOPIC ??
     "ansiedade moderna e como a atenção se tornou o novo recurso escasso";
 
-  const slots: Slot[] = ["manha", "tarde", "noite"];
+  // Se ?slot= for informado, publica apenas aquele slot; caso contrário, publica os 3
+  const slotParam = req.nextUrl.searchParams.get("slot") as Slot | null;
+  const slots: Slot[] = slotParam && ["manha", "tarde", "noite"].includes(slotParam)
+    ? [slotParam]
+    : ["manha", "tarde", "noite"];
   const results = [];
 
   try {

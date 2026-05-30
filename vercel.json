@@ -1,8 +1,16 @@
 {
   "crons": [
     {
-      "path": "/api/publish",
-      "schedule": "0 9 * * *"
+      "path": "/api/publish?slot=manha",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/publish?slot=tarde",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/publish?slot=noite",
+      "schedule": "0 23 * * *"
     }
   ]
 }
