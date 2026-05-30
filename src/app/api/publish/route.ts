@@ -191,7 +191,7 @@ async function savePost(params: {
       ${params.title},
       ${params.body},
       ${params.instagramCaption},
-      ${JSON.stringify(params.tags)},
+      ${JSON.stringify(params.tags.map(t => t.normalize("NFC")))},
       ${params.instagramPostId},
       ${params.publishedAt.toISOString()}
     )
@@ -236,9 +236,8 @@ export async function GET(req: NextRequest) {
         let instagramPostId: string | null = null;
         try {
           // Gerar URL da imagem com o template editorial
-          const baseUrl = process.env.VERCEL_URL
-            ? `https://${process.env.VERCEL_URL}`
-            : "https://www.drlibertad.com";
+          // Sempre usa produção — Instagram rejeita URLs de preview
+          const baseUrl = process.env.PRODUCTION_URL ?? "https://www.drlibertad.com";
           const shortTitle = content.postTitle.slice(0, 80);
           const ogUrl = `${baseUrl}/api/og?slot=${slot}&title=${encodeURIComponent(shortTitle)}`;
           instagramPostId = await publishInstagram(content.instagramCaption, ogUrl);
