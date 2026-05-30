@@ -9,13 +9,13 @@ const SLOT_META: Record<string, { label: string; eyebrow: string; footer: string
   noite: { label: "Noche", eyebrow: "Piénsalo", footer: "Responde en los comentarios" },
 };
 
-// Adapta o tamanho da fonte e chars/linha ao comprimento do título
+// Fonte adaptável ao tamanho do título (90–120px conforme spec)
 function getFontConfig(title: string): { fontSize: number; maxChars: number; maxLines: number } {
   const len = title.length;
-  if (len <= 40)  return { fontSize: 80, maxChars: 18, maxLines: 3 };
-  if (len <= 60)  return { fontSize: 68, maxChars: 22, maxLines: 4 };
-  if (len <= 80)  return { fontSize: 58, maxChars: 26, maxLines: 5 };
-  return           { fontSize: 48, maxChars: 30, maxLines: 6 };
+  if (len <= 30) return { fontSize: 120, maxChars: 16, maxLines: 3 };
+  if (len <= 50) return { fontSize: 100, maxChars: 20, maxLines: 4 };
+  if (len <= 70) return { fontSize: 88,  maxChars: 24, maxLines: 5 };
+  return          { fontSize: 76,  maxChars: 28, maxLines: 6 };
 }
 
 function wrapText(text: string, maxChars: number, maxLines: number): string[] {
@@ -45,54 +45,80 @@ export async function GET(req: NextRequest) {
   const { fontSize, maxChars, maxLines } = getFontConfig(title);
   const titleLines = wrapText(title, maxChars, maxLines);
 
+  // Formato feed Instagram: 1080 x 1350 (4:5) — área segura com 80px de margem
   return new ImageResponse(
     (
       <div
         style={{
           width: "1080px",
-          height: "1080px",
+          height: "1350px",
           background: "#F7F5F0",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          padding: "80px 90px",
+          padding: "80px",
           position: "relative",
           fontFamily: "system-ui, -apple-system, sans-serif",
         }}
       >
         {/* Linha vermelha topo */}
-        <div style={{ position: "absolute", top: 0, left: 0, width: "1080px", height: "8px", background: "#8B1A1A" }} />
+        <div style={{
+          position: "absolute",
+          top: 0, left: 0,
+          width: "1080px", height: "8px",
+          background: "#8B1A1A",
+        }} />
 
-        {/* Header */}
+        {/* Header — logo pequeno e discreto */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
-          <span style={{ fontSize: "30px", color: "#8B1A1A", letterSpacing: "6px", textTransform: "uppercase", fontWeight: 600 }}>
+          <span style={{
+            fontSize: "26px",
+            color: "#999999",
+            letterSpacing: "8px",
+            textTransform: "uppercase",
+            fontWeight: 400,
+          }}>
             Dr. Libertad
           </span>
-          <span style={{ fontSize: "24px", color: "#bbbbbb", letterSpacing: "4px", textTransform: "uppercase" }}>
+          <span style={{
+            fontSize: "22px",
+            color: "#bbbbbb",
+            letterSpacing: "4px",
+            textTransform: "uppercase",
+          }}>
             {meta.label}
           </span>
         </div>
 
-        {/* Conteúdo central */}
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center", paddingTop: "16px", paddingBottom: "16px" }}>
+        {/* Conteúdo principal — centralizado verticalmente */}
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          justifyContent: "center",
+          paddingTop: "40px",
+          paddingBottom: "40px",
+        }}>
+          {/* Eyebrow */}
           <span style={{
             fontSize: "22px",
             color: "#8B1A1A",
-            letterSpacing: "5px",
+            letterSpacing: "6px",
             textTransform: "uppercase",
             fontWeight: 600,
-            marginBottom: "32px",
+            marginBottom: "48px",
           }}>
             {meta.eyebrow}
           </span>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+          {/* Título principal — 90–120px adaptável */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             {titleLines.map((line, i) => (
               <span key={i} style={{
                 fontSize: `${fontSize}px`,
                 fontWeight: i === titleLines.length - 1 ? 700 : 300,
                 color: i === titleLines.length - 1 ? "#8B1A1A" : "#0A0A0A",
-                lineHeight: 1.2,
+                lineHeight: 1.15,
                 letterSpacing: "-1px",
               }}>
                 {line}
@@ -100,25 +126,41 @@ export async function GET(req: NextRequest) {
             ))}
           </div>
 
+          {/* Subtítulo — 45–60px */}
           {sub ? (
-            <div style={{ display: "flex", flexDirection: "column", marginTop: "40px" }}>
-              <div style={{ width: "100px", height: "2px", background: "#cccccc", marginBottom: "20px" }} />
-              <span style={{ fontSize: "28px", color: "#888888", lineHeight: 1.5 }}>{sub}</span>
+            <div style={{ display: "flex", flexDirection: "column", marginTop: "60px" }}>
+              <div style={{ width: "80px", height: "2px", background: "#cccccc", marginBottom: "28px" }} />
+              <span style={{
+                fontSize: "50px",
+                color: "#666666",
+                lineHeight: 1.4,
+              }}>
+                {sub}
+              </span>
             </div>
           ) : null}
         </div>
 
         {/* Footer */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: "20px", color: "#bbbbbb", letterSpacing: "4px", textTransform: "uppercase" }}>
+          <span style={{
+            fontSize: "20px",
+            color: "#bbbbbb",
+            letterSpacing: "4px",
+            textTransform: "uppercase",
+          }}>
             {meta.footer}
           </span>
-          <span style={{ fontSize: "20px", color: "#cccccc", letterSpacing: "2px" }}>
+          <span style={{
+            fontSize: "20px",
+            color: "#cccccc",
+            letterSpacing: "2px",
+          }}>
             drlibertad.com
           </span>
         </div>
       </div>
     ),
-    { width: 1080, height: 1080 }
+    { width: 1080, height: 1350 }
   );
 }
