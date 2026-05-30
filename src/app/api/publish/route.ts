@@ -137,6 +137,9 @@ async function publishInstagram(caption: string, imageUrl?: string): Promise<str
   }
   const { id: containerId } = await containerRes.json();
 
+  // Aguardar 3s para container ser processado
+  await new Promise((r) => setTimeout(r, 3000));
+
   const publishRes = await fetch(`${baseUrl}/media_publish`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
