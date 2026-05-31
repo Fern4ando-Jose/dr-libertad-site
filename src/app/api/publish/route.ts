@@ -44,6 +44,14 @@ const TOPICS = [
   "El ego y el miedo",
 ];
 
+// ─── Extrai keyword curta do tópico ──────────────────────────────────────────
+
+function extractKeyword(topic: string): string {
+  const STOP = new Set(["y","e","o","de","del","la","el","los","las","a","en","con","por","un","una","sus","su","al","se","lo"]);
+  const word = topic.split(/\s+/).find(w => !STOP.has(w.toLowerCase())) ?? topic.split(" ")[0];
+  return word.toUpperCase().replace(/[^A-ZÁÉÍÓÚÜÑ]/g, "");
+}
+
 function getTopicForSlot(slot: Slot, date: Date): string {
   const start = new Date(date.getFullYear(), 0, 0);
   const dayOfYear = Math.floor((date.getTime() - start.getTime()) / 86400000);
@@ -259,6 +267,16 @@ export async function GET(req: NextRequest) {
         const content = await generateContent(topic, searchResults, slot);
         slotLog.title = content.postTitle;
 
+        // Número de edição: total de posts já publicados + 1
+        let editionNum = 1;
+        try {
+          const { sql } = await import("@vercel/postgres");
+          const countResult = await sql`SELECT COUNT(*) as n FROM posts`;
+          editionNum = (parseInt(countResult.rows[0]?.n ?? "0") || 0) + 1;
+        } catch { /* fallback silencioso */ }
+        const ed  = String(editionNum).padStart(2, "0");
+        const kw  = extractKeyword(topic);
+
         // Construir URLs dos slides
         const base = process.env.PRODUCTION_URL ?? "https://www.drlibertad.com";
         const enc  = (s: string) => encodeURIComponent(s.slice(0, 120));
@@ -266,13 +284,13 @@ export async function GET(req: NextRequest) {
 
         const slideUrls: string[] = [
           // Slide 1: capa
-          `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}`,
+          `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}&kw=${enc(kw)}&ed=${ed}`,
           // Slides internos: insights
           ...content.slides.map((text, i) =>
-            `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text)}&num=${i + 2}&total=${totalSlides}`
+            `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text)}&num=${i + 2}&total=${totalSlides}&kw=${enc(kw)}&ed=${ed}`
           ),
           // Slide final: CTA invertido
-          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}`,
+          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}&kw=${enc(kw)}&ed=${ed}`,
         ];
 
         // Publicar carrossel
