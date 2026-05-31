@@ -4,68 +4,42 @@ import { NextRequest } from "next/server";
 export const runtime = "edge";
 
 const SLOT_META: Record<string, { eyebrow: string; footer: string }> = {
-  manha: { eyebrow: "Reflexión", footer: "Psicología · Consciencia · Libertad" },
+  manha: { eyebrow: "Reflexión del día", footer: "Psicología · Consciencia · Libertad" },
   tarde: { eyebrow: "Lo que cambia todo", footer: "Atención · Mente · Enfoque" },
-  noite: { eyebrow: "Piénsalo", footer: "Responde en los comentarios" },
+  noite: { eyebrow: "Piénsalo esta noche", footer: "Responde en los comentarios" },
 };
 
-/**
- * Quebra o texto em linhas equilibradas, evitando órfãs.
- * Tenta manter linhas de comprimento similar e nunca deixa
- * uma palavra sozinha (exceto se for a última linha de destaque).
- */
-function balancedLines(text: string, maxChars: number, maxLines: number): string[] {
+function splitLines(text: string): { body: string; punch: string } {
   const words = text.split(" ");
-  const lines: string[] = [];
-  let current = "";
+  // Últimas 2-3 palavras viram a linha de destaque (punch)
+  // O resto é o corpo
+  const totalWords = words.length;
+  let splitAt = totalWords <= 4 ? totalWords - 1 : totalWords - 2;
+  if (splitAt < 2) splitAt = 2;
 
-  for (const word of words) {
-    const candidate = current ? current + " " + word : word;
-    if (candidate.length <= maxChars) {
-      current = candidate;
-    } else {
-      if (current) lines.push(current);
-      current = word;
-    }
-  }
-  if (current) lines.push(current);
-
-  const result = lines.slice(0, maxLines);
-
-  // Evitar linha final com 1 palavra sozinha: move a última palavra
-  // da penúltima linha para a última se a última tiver só 1 palavra
-  if (result.length >= 2) {
-    const last = result[result.length - 1];
-    const secondLast = result[result.length - 2];
-    if (last.split(" ").length === 1 && secondLast.split(" ").length > 1) {
-      const secondLastWords = secondLast.split(" ");
-      const movedWord = secondLastWords.pop()!;
-      result[result.length - 2] = secondLastWords.join(" ");
-      result[result.length - 1] = movedWord + " " + last;
-    }
-  }
-
-  return result;
+  const body = words.slice(0, splitAt).join(" ");
+  const punch = words.slice(splitAt).join(" ");
+  return { body, punch };
 }
 
-function getFontSize(title: string): { fontSize: number; maxChars: number; maxLines: number } {
-  const len = title.length;
-  if (len <= 25) return { fontSize: 110, maxChars: 14, maxLines: 3 };
-  if (len <= 40) return { fontSize: 96,  maxChars: 17, maxLines: 3 };
-  if (len <= 55) return { fontSize: 84,  maxChars: 20, maxLines: 4 };
-  if (len <= 70) return { fontSize: 74,  maxChars: 23, maxLines: 4 };
-  return               { fontSize: 64,  maxChars: 27, maxLines: 5 };
+function bodyFontSize(text: string): number {
+  const len = text.length;
+  if (len <= 20) return 90;
+  if (len <= 30) return 80;
+  if (len <= 40) return 70;
+  if (len <= 55) return 60;
+  return 52;
 }
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const slot = searchParams.get("slot") ?? "tarde";
-  const title = searchParams.get("title") ?? "La mente necesita silencio.";
-  const sub = searchParams.get("sub") ?? "";
+  const title = searchParams.get("title") ?? "La mente necesita silencio";
   const meta = SLOT_META[slot] ?? SLOT_META.tarde;
 
-  const { fontSize, maxChars, maxLines } = getFontSize(title);
-  const lines = balancedLines(title, maxChars, maxLines);
+  const { body, punch } = splitLines(title);
+  const bodySize = bodyFontSize(body);
+  const punchSize = Math.round(bodySize * 1.35);
 
   return new ImageResponse(
     (
@@ -76,96 +50,93 @@ export async function GET(req: NextRequest) {
           background: "#F7F4EF",
           display: "flex",
           flexDirection: "column",
-          padding: "80px",
           fontFamily: "system-ui, -apple-system, sans-serif",
         }}
       >
-        {/* Linha vermelha topo */}
-        <div style={{
-          position: "absolute",
-          top: 0, left: 0,
-          width: "1080px", height: "6px",
-          background: "#8B1A1A",
-        }} />
-
-        {/* Linha vermelha base */}
-        <div style={{
-          position: "absolute",
-          bottom: 0, left: 0,
-          width: "1080px", height: "6px",
-          background: "#8B1A1A",
-        }} />
+        {/* Barra vermelha topo */}
+        <div style={{ width: "1080px", height: "10px", background: "#8B1A1A", flexShrink: 0 }} />
 
         {/* Header */}
         <div style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginTop: "6px",
-          marginBottom: "0px",
+          padding: "40px 80px 0px 80px",
         }}>
           <span style={{
-            fontSize: "24px",
-            color: "#aaaaaa",
-            letterSpacing: "7px",
+            fontSize: "22px",
+            color: "#999999",
+            letterSpacing: "9px",
             textTransform: "uppercase",
             fontWeight: 400,
-          }}>
-            Dr. Libertad
-          </span>
+          }}>Dr. Libertad</span>
+          <span style={{
+            fontSize: "18px",
+            color: "#cccccc",
+            letterSpacing: "2px",
+          }}>drlibertad.com</span>
         </div>
 
-        {/* Área central — ocupa todo o espaço disponível */}
+        {/* Área central */}
         <div style={{
           display: "flex",
           flexDirection: "column",
           flex: 1,
           justifyContent: "center",
+          padding: "0px 80px",
         }}>
-          {/* Eyebrow */}
-          <span style={{
-            fontSize: "20px",
-            color: "#8B1A1A",
-            letterSpacing: "5px",
-            textTransform: "uppercase",
-            fontWeight: 600,
-            marginBottom: "52px",
-          }}>
-            {meta.eyebrow}
-          </span>
 
-          {/* Título — todas as linhas exceto a última em preto fino */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "0px" }}>
-            {lines.map((line, i) => {
-              const isLast = i === lines.length - 1;
-              return (
-                <span key={i} style={{
-                  fontSize: `${fontSize}px`,
-                  fontWeight: isLast ? 700 : 300,
-                  color: isLast ? "#8B1A1A" : "#111111",
-                  lineHeight: 1.18,
-                  letterSpacing: "-0.5px",
-                  display: "block",
-                }}>
-                  {line}
-                </span>
-              );
-            })}
+          {/* Eyebrow */}
+          <div style={{ display: "flex", alignItems: "center", marginBottom: "48px" }}>
+            <div style={{ width: "40px", height: "3px", background: "#8B1A1A", marginRight: "20px" }} />
+            <span style={{
+              fontSize: "24px",
+              color: "#8B1A1A",
+              letterSpacing: "5px",
+              textTransform: "uppercase",
+              fontWeight: 700,
+            }}>
+              {meta.eyebrow}
+            </span>
           </div>
 
-          {/* Subtítulo opcional */}
-          {sub ? (
-            <div style={{ display: "flex", flexDirection: "column", marginTop: "56px" }}>
-              <div style={{ width: "60px", height: "2px", background: "#cccccc", marginBottom: "24px" }} />
-              <span style={{ fontSize: "46px", color: "#666666", lineHeight: 1.4, fontWeight: 300 }}>
-                {sub}
-              </span>
-            </div>
-          ) : null}
+          {/* Corpo do título — peso leve */}
+          <span style={{
+            fontSize: `${bodySize}px`,
+            fontWeight: 300,
+            color: "#111111",
+            lineHeight: 1.2,
+            letterSpacing: "-1px",
+            marginBottom: "8px",
+            display: "block",
+          }}>
+            {body}
+          </span>
+
+          {/* Linha de destaque — grande, bold, vermelha */}
+          <span style={{
+            fontSize: `${punchSize}px`,
+            fontWeight: 800,
+            color: "#8B1A1A",
+            lineHeight: 1.1,
+            letterSpacing: "-2px",
+            display: "block",
+          }}>
+            {punch}
+          </span>
+
+          {/* Divisor decorativo */}
+          <div style={{
+            width: "80px",
+            height: "3px",
+            background: "#dddddd",
+            marginTop: "60px",
+          }} />
         </div>
 
         {/* Footer */}
         <div style={{
+          padding: "0px 80px 50px 80px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -178,14 +149,10 @@ export async function GET(req: NextRequest) {
           }}>
             {meta.footer}
           </span>
-          <span style={{
-            fontSize: "18px",
-            color: "#cccccc",
-            letterSpacing: "1px",
-          }}>
-            drlibertad.com
-          </span>
         </div>
+
+        {/* Barra vermelha base */}
+        <div style={{ width: "1080px", height: "10px", background: "#8B1A1A", flexShrink: 0 }} />
       </div>
     ),
     { width: 1080, height: 1350 }
