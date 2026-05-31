@@ -239,7 +239,7 @@ export async function GET(req: NextRequest) {
           // Gerar URL da imagem com o template editorial
           // Sempre usa produção — Instagram rejeita URLs de preview
           const baseUrl = process.env.PRODUCTION_URL ?? "https://www.drlibertad.com";
-          const shortTitle = content.postTitle.slice(0, 80);
+          const shortTitle = content.postTitle.slice(0, 60);
           const ogUrl = `${baseUrl}/api/og?slot=${slot}&title=${encodeURIComponent(shortTitle)}`;
           instagramPostId = await publishInstagram(content.instagramCaption, ogUrl);
           slotLog.instagramPostId = instagramPostId;
