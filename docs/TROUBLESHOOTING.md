@@ -4,15 +4,15 @@ Registro de problemas encontrados e como foram resolvidos.
 
 ---
 
-## 🔑 Token do Instagram — Renovação manual (a cada 60 dias)
+## 🔑 Token do Instagram — Renovação manual
 
 **Sintoma:** Erro `API access blocked (code 200)` ou `190 - Cannot parse access token`.
 
-**Causa:** O token Meta expirou.
+**Causa:** Token Meta expirou (validade ~60 dias).
 
 **Como renovar:**
 1. Acesse: https://developers.facebook.com/apps/2214160215805028/use_cases/customize/API-Setup/?use_case_enum=INSTAGRAM_BUSINESS&selected_tab=API-Setup&product_route=instagram-business&business_id=659071410613239
-2. Na seção **"2. Gerar tokens de acesso"**, clique em **"Gerar token"** ao lado de `dr.liberdad`
+2. Clique em **"Gerar token"** ao lado de `dr.liberdad`
 3. Copie o novo token
 4. No Vercel → Settings → Environment Variables → edite `META_ACCESS_TOKEN`
 5. Faça um **Redeploy** no Vercel
@@ -21,13 +21,13 @@ Registro de problemas encontrados e como foram resolvidos.
 Invoke-WebRequest -Uri "https://www.drlibertad.com/api/migrate" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
 ```
 
-> **A partir de agora:** o cron `/api/refresh-token` roda todo dia 1 do mês e renova automaticamente. A renovação manual só é necessária se o token já tiver expirado antes do cron rodar.
+> **A partir de agora:** o cron `/api/refresh-token` roda todo dia 1 do mês e renova automaticamente. Renovação manual só necessária se o token já tiver expirado.
 
 ---
 
-## 🔄 Auto-renovação do token (NOVO)
+## 🔄 Auto-renovação do token
 
-O sistema renova o token automaticamente todo dia 1 do mês via cron.
+Cron mensal automático — dia 1 de cada mês às 10h UTC.
 
 **Para forçar renovação manual:**
 ```powershell
@@ -40,11 +40,27 @@ Invoke-WebRequest -Uri "https://www.drlibertad.com/api/refresh-token" -Headers @
 
 ---
 
+## 🧪 Publicar post manualmente
+
+```powershell
+# Manhã
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
+
+# Tarde
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=tarde" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
+
+# Noite
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=noite" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
+
+# Com tema específico
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha&topic=libertad+mental" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
+```
+
+---
+
 ## 🗄️ Banco de dados — Migrate
 
-**Quando rodar o migrate:**
-- Após renovar o token manualmente (grava o novo token no banco)
-- Se aparecer erro de coluna inexistente
+**Quando rodar:** após renovar token manualmente, ou se aparecer erro de coluna inexistente.
 
 ```powershell
 Invoke-WebRequest -Uri "https://www.drlibertad.com/api/migrate" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
@@ -54,87 +70,60 @@ Invoke-WebRequest -Uri "https://www.drlibertad.com/api/migrate" -Headers @{ Auth
 
 `posts` — um registro por post publicado:
 ```
-id, topic, slot, title, body, instagram_caption,
+id, topic, slot, title, content, body, instagram_caption,
 tags (text[]), instagram_post_id, published_at, created_at
 ```
 
 `config` — configurações dinâmicas:
 ```
-key (PK) | value         | updated_at
-─────────────────────────────────────
-meta_access_token | {token} | {data}
+key (PK)           | value   | updated_at
+meta_access_token  | {token} | {data}
 ```
 
 ---
 
-## 📸 Imagem dos posts (template editorial)
+## 📸 Slides do carrossel (/api/og)
 
-**Sistema atual:** imagem gerada dinamicamente via `/api/og`
-- Formato: **1080 × 1350 px** (4:5 — feed Instagram mobile)
-- URL: `https://www.drlibertad.com/api/og?slot={slot}&title={titulo}`
-- Pré-visualizar: acesse a URL acima no browser
+Três tipos de slide, visualizáveis no browser:
 
-**Erro: Instagram rejeita a imagem (`9004 / 2207052`)**
+**Capa (slide 1):**
+```
+https://www.drlibertad.com/api/og?slide=cover&slot=tarde&title=Tu+atención+es+el+recurso+más+valioso
+```
+
+**Insight (slides 2-3):**
+```
+https://www.drlibertad.com/api/og?slide=insight&slot=tarde&text=Cada+notificación+roba+23+minutos&num=2&total=4
+```
+
+**CTA invertido (slide final):**
+```
+https://www.drlibertad.com/api/og?slide=cta&slot=tarde&text=¿Cuántas+horas+al+día+le+regalas+a+una+pantalla?
+```
+
+**Erro: Instagram rejeita imagem (9004/2207052)**
 - Causa: URL de preview do Vercel (`*.vercel.app`) em vez de produção
-- Solução: garantir que `PRODUCTION_URL=https://www.drlibertad.com` está no Vercel
-
-**URLs que NÃO funcionam com Instagram:** qualquer URL `*.vercel.app` ou com redirect. Sempre usar o domínio de produção.
+- Solução: verificar variável `PRODUCTION_URL=https://www.drlibertad.com` no Vercel
 
 ---
 
-## 🔒 CRON_SECRET
+## ⏱️ Timeout da função (10s → 60s)
 
-Valor: `bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1`
+O carrossel leva ~25s para executar. O publish route tem `export const maxDuration = 60` para suportar isso no plano Hobby.
 
-Usar em todos os endpoints protegidos:
-```powershell
--Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" }
-```
-
-Para gerar um novo se necessário:
-```powershell
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
+**Se a função travar:** verificar se `maxDuration = 60` está no topo de `src/app/api/publish/route.ts`.
 
 ---
 
-## 🧪 Testar publicação manual
+## ⏰ Frequência dos posts
 
-```powershell
-# Slot manhã
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
-
-# Slot tarde
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=tarde" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
-
-# Slot noite
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=noite" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
-
-# Com tema específico
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha&topic=libertad+mental" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
-```
-
----
-
-## 🐛 Erros comuns da API Instagram
-
-| Código | Mensagem | Causa | Solução |
-|--------|----------|-------|---------|
-| `200` | API access blocked | Token expirado | Renovar token + rodar migrate |
-| `190` | Cannot parse access token | Token corrompido | Re-salvar token no Vercel + migrate |
-| `9004 / 2207052` | Media download has failed | URL de preview do Vercel | Verificar variável `PRODUCTION_URL` no Vercel |
-| `9007 / 2207027` | Cannot Publish | Permissão ausente | Verificar `instagram_business_content_publish` no app Meta |
-
----
-
-## ⏱️ Alterar frequência dos posts
-
-**Produção (3x/dia):**
+**Produção (3x/dia — padrão):**
 ```json
 { "path": "/api/publish?slot=manha", "schedule": "0 12 * * *" },
 { "path": "/api/publish?slot=tarde", "schedule": "0 16 * * *" },
 { "path": "/api/publish?slot=noite", "schedule": "0 23 * * *" }
 ```
+Horários BRT: 09h / 13h / 20h
 
 **Teste (a cada 2h):**
 ```json
@@ -143,7 +132,29 @@ Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha&topic=
 { "path": "/api/publish?slot=noite", "schedule": "0 16 * * *" }
 ```
 
-Editar em `vercel.json` e fazer push.
+Editar `vercel.json` e fazer push.
+
+---
+
+## 🐛 Erros comuns da API Instagram
+
+| Código | Mensagem | Causa | Solução |
+|--------|----------|-------|---------|
+| `200` | API access blocked | Token expirado | Renovar token + rodar migrate |
+| `190` | Cannot parse access token | Token corrompido | Re-salvar no Vercel + migrate |
+| `9004/2207052` | Media download failed | URL de preview do Vercel | Verificar `PRODUCTION_URL` no Vercel |
+| `9007/2207027` | Cannot Publish | Permissão ausente | Verificar `instagram_business_content_publish` no app Meta |
+
+---
+
+## 🔒 CRON_SECRET
+
+Valor: `bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1`
+
+Para gerar um novo:
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
 
 ---
 
@@ -151,7 +162,7 @@ Editar em `vercel.json` e fazer push.
 
 **Sintoma:** `fatal: Unable to create '.git/index.lock': File exists`
 
-**Causa:** VS Code ou Cursor com o repositório aberto travou o índice.
+**Causa:** VS Code ou Cursor com o repositório aberto.
 
 **Solução:**
 ```powershell
