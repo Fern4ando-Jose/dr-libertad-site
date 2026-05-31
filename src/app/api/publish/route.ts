@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Aumenta o limite de execução para 60s (Vercel Hobby permite até 60s)
+export const maxDuration = 60;
+
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 interface SearchResult { title: string; content: string; url: string }
@@ -174,7 +177,7 @@ async function publishCarousel(
     if (!r.ok) throw new Error(`Carousel child error: ${await r.text()}`);
     const { id } = await r.json();
     childIds.push(id);
-    await new Promise(res => setTimeout(res, 1500)); // pausa entre criações
+    await new Promise(res => setTimeout(res, 800)); // pausa entre criações
   }
 
   // 2. Criar container do carrossel
@@ -192,7 +195,7 @@ async function publishCarousel(
   const { id: carId } = await carRes.json();
 
   // 3. Aguardar processamento
-  await new Promise(res => setTimeout(res, 5000));
+  await new Promise(res => setTimeout(res, 3000));
 
   // 4. Publicar
   const pubRes = await fetch(`${base}/media_publish`, {
