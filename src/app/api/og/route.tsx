@@ -24,7 +24,6 @@ const SLOT_META: Record<string, { eyebrow: string; micro: string; footer: string
 function splitLines(text: string): { body: string; punch: string } {
   const words = text.split(" ");
   const total = words.length;
-  // Últimas 2 palavras = punch (destaque vermelho)
   const splitAt = total <= 3 ? total - 1 : total - 2;
   return {
     body: words.slice(0, splitAt).join(" "),
@@ -49,8 +48,7 @@ export async function GET(req: NextRequest) {
 
   const { body, punch } = splitLines(title);
   const bodySize = bodyFontSize(body);
-  // Destaque 55% maior que o corpo (era 35%) + peso 900
-  const punchSize = Math.round(bodySize * 1.55);
+  const punchSize = Math.round(bodySize * 1.6);
 
   return new ImageResponse(
     (
@@ -62,52 +60,76 @@ export async function GET(req: NextRequest) {
           display: "flex",
           flexDirection: "column",
           fontFamily: "system-ui, -apple-system, sans-serif",
+          position: "relative",
         }}
       >
-        {/* Barra vermelha topo — 16px, mais presente */}
+        {/* ── Elementos geométricos abstratos (fundo) ── */}
+        {/* Círculo grande — canto inferior direito, parcialmente fora */}
+        <div style={{
+          position: "absolute",
+          bottom: "60px",
+          right: "-120px",
+          width: "520px",
+          height: "520px",
+          borderRadius: "50%",
+          border: "1.5px solid rgba(139,26,26,0.07)",
+        }} />
+        {/* Círculo médio concêntrico */}
+        <div style={{
+          position: "absolute",
+          bottom: "130px",
+          right: "-50px",
+          width: "360px",
+          height: "360px",
+          borderRadius: "50%",
+          border: "1px solid rgba(139,26,26,0.05)",
+        }} />
+        {/* Círculo pequeno interno */}
+        <div style={{
+          position: "absolute",
+          bottom: "200px",
+          right: "20px",
+          width: "220px",
+          height: "220px",
+          borderRadius: "50%",
+          border: "1px solid rgba(139,26,26,0.04)",
+        }} />
+
+        {/* ── Barra vermelha topo — 16px ── */}
         <div style={{ width: "1080px", height: "16px", background: "#8B1A1A", flexShrink: 0 }} />
 
-        {/* Header — logo com tracking reduzido */}
+        {/* ── Header ── */}
         <div style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "36px 80px 0px 80px",
+          padding: "40px 100px 0px 100px",
         }}>
           <span style={{
-            fontSize: "22px",
+            fontSize: "21px",
             color: "#aaaaaa",
-            letterSpacing: "5px", // reduzido de 9px → 5px
+            letterSpacing: "5px",
             textTransform: "uppercase",
             fontWeight: 400,
           }}>Dr. Libertad</span>
           <span style={{
-            fontSize: "18px",
+            fontSize: "17px",
             color: "#bbbbbb",
             letterSpacing: "1px",
           }}>drlibertad.com</span>
         </div>
 
-        {/* Bloco principal — posicionado NO TOPO, não centralizado */}
+        {/* ── Bloco principal — posicionado alto ── */}
         <div style={{
           display: "flex",
           flexDirection: "column",
-          flex: 1,
-          justifyContent: "flex-start",
-          padding: "100px 80px 0px 80px", // ≈ 7% da altura — bloco alto
+          padding: "90px 100px 0px 100px",
         }}>
-
           {/* Eyebrow com traço */}
-          <div style={{ display: "flex", alignItems: "center", marginBottom: "52px" }}>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: "56px" }}>
+            <div style={{ width: "32px", height: "2px", background: "#8B1A1A", marginRight: "16px" }} />
             <span style={{
-              fontSize: "14px",
-              color: "#8B1A1A",
-              letterSpacing: "1px",
-              fontWeight: 400,
-              marginRight: "16px",
-            }}>—</span>
-            <span style={{
-              fontSize: "22px",
+              fontSize: "20px",
               color: "#8B1A1A",
               letterSpacing: "5px",
               textTransform: "uppercase",
@@ -117,65 +139,76 @@ export async function GET(req: NextRequest) {
             </span>
           </div>
 
-          {/* Corpo — cinza escuro, leve */}
+          {/* Corpo — cinza escuro, leve, leading apertado */}
           <span style={{
             fontSize: `${bodySize}px`,
             fontWeight: 300,
-            color: "#222222",
-            lineHeight: 1.15,
-            letterSpacing: "-1px",
+            color: "#3a3a3a",        // cinza escuro (não preto puro)
+            lineHeight: 1.08,         // leading apertado
+            letterSpacing: "-1.5px",
             display: "block",
-            marginBottom: "4px", // espaço reduzido entre corpo e punch
+            marginBottom: "2px",      // mínimo entre corpo e punch
           }}>
             {body}
           </span>
 
-          {/* Punch — vermelho, dominante, peso máximo */}
+          {/* Punch — dominante, sombra sutil */}
           <span style={{
             fontSize: `${punchSize}px`,
             fontWeight: 900,
             color: "#8B1A1A",
-            lineHeight: 1.05,
-            letterSpacing: "-2px",
+            lineHeight: 1.0,
+            letterSpacing: "-2.5px",
             display: "block",
+            textShadow: "0px 4px 24px rgba(139,26,26,0.18)",
           }}>
             {punch}
           </span>
 
-          {/* Micro-frase — ponto focal secundário */}
-          <div style={{ display: "flex", alignItems: "center", marginTop: "52px" }}>
-            <div style={{ width: "36px", height: "2px", background: "#cccccc", marginRight: "20px" }} />
-            <span style={{
-              fontSize: "28px",
-              color: "#777777",
-              fontWeight: 300,
-              letterSpacing: "0px",
-              fontStyle: "italic",
-            }}>
-              {meta.micro}
-            </span>
-          </div>
-
+          {/* Micro-frase — maior, sem traço, próxima ao punch */}
+          <span style={{
+            fontSize: "30px",
+            color: "#666666",
+            fontWeight: 300,
+            letterSpacing: "0px",
+            fontStyle: "italic",
+            marginTop: "44px",
+            display: "block",
+          }}>
+            {meta.micro}
+          </span>
         </div>
 
-        {/* Footer — mais visível */}
+        {/* Espaço flexível */}
+        <div style={{ flex: 1 }} />
+
+        {/* ── Footer ── */}
         <div style={{
-          padding: "0px 80px 44px 80px",
+          padding: "0px 100px 20px 100px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
         }}>
           <span style={{
-            fontSize: "21px", // +15% de 18px
-            color: "#888888", // era #bbbbbb — mais contraste
+            fontSize: "20px",
+            color: "#888888",
             letterSpacing: "4px",
             textTransform: "uppercase",
           }}>
             {meta.footer}
           </span>
+          {/* CTA Carrossel */}
+          <span style={{
+            fontSize: "20px",
+            color: "#8B1A1A",
+            letterSpacing: "1px",
+            fontWeight: 500,
+          }}>
+            Desliza →
+          </span>
         </div>
 
-        {/* Barra vermelha base */}
+        {/* ── Barra vermelha base — 16px ── */}
         <div style={{ width: "1080px", height: "16px", background: "#8B1A1A", flexShrink: 0 }} />
       </div>
     ),
