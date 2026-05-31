@@ -183,12 +183,13 @@ async function savePost(params: {
 
   await sql`
     INSERT INTO posts (
-      topic, slot, title, body, instagram_caption,
+      topic, slot, title, content, body, instagram_caption,
       tags, instagram_post_id, published_at
     ) VALUES (
       ${params.topic},
       ${params.slot},
       ${params.title},
+      ${params.body},
       ${params.body},
       ${params.instagramCaption},
       ${"{" + params.tags.join(",") + "}"},
