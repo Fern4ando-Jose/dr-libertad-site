@@ -1,32 +1,75 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// ─── Tipos ───────────────────────────────────────────────────────────────────
+// ─── Tipos ────────────────────────────────────────────────────────────────────
 
-interface SearchResult {
-  title: string;
-  content: string;
-  url: string;
-}
+interface SearchResult { title: string; content: string; url: string }
 
 interface GeneratedContent {
   postTitle: string;
   postBody: string;
+  slides: string[];   // 2-3 insights para slides internos
+  cta: string;        // pergunta para slide final
   instagramCaption: string;
   tags: string[];
 }
 
 type Slot = "manha" | "tarde" | "noite";
 
+// ─── Tópicos predefinidos (rotação semanal) ───────────────────────────────────
+
+const TOPICS = [
+  "Libertad mental",
+  "Autoconocimiento profundo",
+  "Redes sociales y el impacto negativo en las relaciones",
+  "Adicción a las redes sociales",
+  "Dopamina y recompensa inmediata",
+  "Mucha elección, poca libertad",
+  "Ansiedad moderna",
+  "La trampa de la comparación social",
+  "Soledad en la era hiperconectada",
+  "La validación externa como droga",
+  "El miedo al fracaso como parálisis",
+  "Límites sanos y relaciones",
+  "Procrastinación y culpa",
+  "Neuroplasticidad: puedes cambiar",
+  "Perfeccionismo y ansiedad",
+  "El poder del aburrimiento",
+  "Burnout emocional",
+  "La máscara social y el yo real",
+  "Desintoxicación digital",
+  "Amor propio vs. autoexigencia",
+  "El ego y el miedo",
+];
+
+function getTopicForSlot(slot: Slot, date: Date): string {
+  const start = new Date(date.getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((date.getTime() - start.getTime()) / 86400000);
+  const weekNum   = Math.floor(dayOfYear / 7);
+  const dayOfWeek = date.getDay();
+  const slotIdx   = { manha: 0, tarde: 1, noite: 2 }[slot];
+
+  // Embaralha deterministicamente por semana
+  const arr = [...TOPICS];
+  let seed = weekNum * 6364136223846793005 + 1442695040888963407;
+  for (let i = arr.length - 1; i > 0; i--) {
+    seed = Math.imul(seed, 1664525) + 1013904223;
+    const j = Math.abs(seed) % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+
+  const idx = (dayOfWeek * 3 + slotIdx) % arr.length;
+  return arr[idx];
+}
+
+// ─── Instruções por slot ──────────────────────────────────────────────────────
+
 const SLOT_INSTRUCTIONS: Record<Slot, string> = {
-  manha:
-    "Post de MAÑANA: ángulo reflexivo/inspirador. Empieza el día generando consciencia sobre el tema. Tono más suave, invita a la reflexión.",
-  tarde:
-    "Post de TARDE: ángulo práctico/informativo. Profundiza el tema con datos, consejos concretos o mecanismos explicados. Tono directo y útil.",
-  noite:
-    "Post de NOCHE: ángulo provocador/engagement. Termina el día con una pregunta, insight polémico o llamada a la acción. Tono más audaz.",
+  manha: "Ángulo MAÑANA: reflexivo e inspirador. Invita al lector a empezar el día con mayor consciencia. Tono suave y profundo.",
+  tarde: "Ángulo TARDE: práctico e informativo. Explica mecanismos, datos o consejos concretos. Tono directo y útil.",
+  noite: "Ángulo NOCHE: provocador y de alto engagement. Termina con una pregunta o insight que genere debate. Tono audaz.",
 };
 
-// ─── Helpers de pesquisa ─────────────────────────────────────────────────────
+// ─── Pesquisa de contexto ─────────────────────────────────────────────────────
 
 async function searchTopic(topic: string): Promise<SearchResult[]> {
   const res = await fetch("https://api.tavily.com/search", {
@@ -34,20 +77,16 @@ async function searchTopic(topic: string): Promise<SearchResult[]> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       api_key: process.env.TAVILY_API_KEY,
-      query: topic,
+      query: topic + " psicología neurociencia",
       search_depth: "advanced",
       max_results: 5,
       include_answer: true,
     }),
   });
-
   if (!res.ok) throw new Error(`Tavily error: ${res.status}`);
   const data = await res.json();
-
   return (data.results ?? []).map((r: any) => ({
-    title: r.title ?? "",
-    content: r.content ?? "",
-    url: r.url ?? "",
+    title: r.title ?? "", content: r.content ?? "", url: r.url ?? "",
   }));
 }
 
@@ -58,24 +97,28 @@ async function generateContent(
   searchResults: SearchResult[],
   slot: Slot
 ): Promise<GeneratedContent> {
-  const context = searchResults
-    .map((r, i) => `[${i + 1}] ${r.title}\n${r.content}`)
-    .join("\n\n");
+  const context = searchResults.map((r, i) => `[${i + 1}] ${r.title}\n${r.content}`).join("\n\n");
 
-  const prompt = `Eres el editor de Dr. Libertad, un estudio editorial sobre psicología, atención y libertad mental.
+  const prompt = `Eres el editor de Dr. Libertad, estudio editorial sobre psicología, atención y libertad mental.
 
-Tema del día: "${topic}"
+Tema: "${topic}"
 ${SLOT_INSTRUCTIONS[slot]}
 
 Contexto investigado:
 ${context}
 
-Genera un JSON válido (sin markdown, sin backticks) con exactamente esta estructura:
+Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
 {
-  "postTitle": "título del post para el sitio (máx 80 chars, impactante, en español)",
-  "postBody": "cuerpo del post para el sitio en markdown. Mínimo 300 palabras. Tono editorial, directo, sin jerga. Usa ## para subtítulos si es necesario. TODO EN ESPAÑOL.",
-  "instagramCaption": "leyenda para Instagram. Máx 2200 chars. Empieza con un gancho fuerte, luego el texto, termina con 3 a 5 hashtags relevantes en español. TODO EN ESPAÑOL.",
-  "tags": ["tag1", "tag2", "tag3"]
+  "postTitle": "título impactante máx 55 chars, en español",
+  "postBody": "artículo en markdown mín 300 palabras, TODO EN ESPAÑOL",
+  "slides": [
+    "insight 1 — frase contundente de 60-120 chars que desarrolla el tema",
+    "insight 2 — frase contundente de 60-120 chars que profundiza",
+    "insight 3 — frase contundente de 60-120 chars que remata"
+  ],
+  "cta": "pregunta provocadora de 60-100 chars que genere comentarios, en español",
+  "instagramCaption": "leyenda IG máx 2200 chars, gancho fuerte + texto + 4-5 hashtags en español",
+  "tags": ["tag1", "tag2", "tag3", "tag4"]
 }`;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -94,107 +137,91 @@ Genera un JSON válido (sin markdown, sin backticks) con exactamente esta estruc
 
   if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
   const data = await res.json();
-  const raw = data.content?.[0]?.text ?? "";
-
+  const raw  = data.content?.[0]?.text ?? "";
   const clean = raw.replace(/```json|```/g, "").trim();
   return JSON.parse(clean) as GeneratedContent;
 }
 
-// ─── Seleciona imagem aleatória do pool ──────────────────────────────────────
-
-function getRandomImageUrl(): string {
-  const raw = process.env.META_IMAGE_URLS ?? process.env.META_DEFAULT_IMAGE_URL ?? "https://raw.githubusercontent.com/Fern4ando-Jose/dr-libertad-site/main/Public/images/post-1.jpg";
-  const FALLBACK_IMG = "https://raw.githubusercontent.com/Fern4ando-Jose/dr-libertad-site/main/Public/images/post-1.jpg";
-  const urls = raw.split(",").map((u) => u.trim()).filter(u => u && !u.includes("drlibertad.com/images/post-1.jpg"));
-  if (urls.length === 0) return FALLBACK_IMG;
-  if (urls.length === 0) return "";
-  return urls[Math.floor(Math.random() * urls.length)];
-}
-
-// ─── Token do Instagram (banco > env var) ────────────────────────────────────
+// ─── Token do Instagram ───────────────────────────────────────────────────────
 
 async function getAccessToken(): Promise<string> {
   try {
     const { sql } = await import("@vercel/postgres");
     const rows = await sql`SELECT value FROM config WHERE key = 'meta_access_token'`;
     if (rows.rows[0]?.value) return rows.rows[0].value;
-  } catch {
-    // fallback silencioso para env var
-  }
+  } catch { /* fallback */ }
   return process.env.META_ACCESS_TOKEN!;
 }
 
-// ─── Publicação no Instagram ──────────────────────────────────────────────────
+// ─── Publicação como carrossel ────────────────────────────────────────────────
 
-async function publishInstagram(caption: string, imageUrl?: string): Promise<string> {
+async function publishCarousel(
+  caption: string,
+  imageUrls: string[],
+): Promise<string> {
   const accountId = process.env.META_INSTAGRAM_ACCOUNT_ID!;
-  const token = await getAccessToken();
-  const baseUrl = `https://graph.instagram.com/v25.0/${accountId}`;
+  const token     = await getAccessToken();
+  const base      = `https://graph.instagram.com/v25.0/${accountId}`;
 
-  const containerBody: Record<string, string> = {
-    caption,
-    access_token: token,
-    image_url: imageUrl ?? getRandomImageUrl(),
-    media_type: "IMAGE",
-  };
+  // 1. Criar container para cada slide
+  const childIds: string[] = [];
+  for (const url of imageUrls) {
+    const r = await fetch(`${base}/media`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image_url: url, is_carousel_item: true, access_token: token }),
+    });
+    if (!r.ok) throw new Error(`Carousel child error: ${await r.text()}`);
+    const { id } = await r.json();
+    childIds.push(id);
+    await new Promise(res => setTimeout(res, 1500)); // pausa entre criações
+  }
 
-  const containerRes = await fetch(`${baseUrl}/media`, {
+  // 2. Criar container do carrossel
+  const carRes = await fetch(`${base}/media`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(containerBody),
+    body: JSON.stringify({
+      media_type: "CAROUSEL",
+      children: childIds.join(","),
+      caption,
+      access_token: token,
+    }),
   });
+  if (!carRes.ok) throw new Error(`Carousel container error: ${await carRes.text()}`);
+  const { id: carId } = await carRes.json();
 
-  if (!containerRes.ok) {
-    const err = await containerRes.text();
-    throw new Error(`Instagram container error: ${err}`);
-  }
-  const { id: containerId } = await containerRes.json();
+  // 3. Aguardar processamento
+  await new Promise(res => setTimeout(res, 5000));
 
-  // Aguardar 3s para container ser processado
-  await new Promise((r) => setTimeout(r, 3000));
-
-  const publishRes = await fetch(`${baseUrl}/media_publish`, {
+  // 4. Publicar
+  const pubRes = await fetch(`${base}/media_publish`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ creation_id: containerId, access_token: token }),
+    body: JSON.stringify({ creation_id: carId, access_token: token }),
   });
-
-  if (!publishRes.ok) {
-    const err = await publishRes.text();
-    throw new Error(`Instagram publish error: ${err}`);
-  }
-  const { id: postId } = await publishRes.json();
+  if (!pubRes.ok) throw new Error(`Carousel publish error: ${await pubRes.text()}`);
+  const { id: postId } = await pubRes.json();
   return postId;
 }
 
-// ─── Salvar no banco (Vercel Postgres) ────────────────────────────────────────
+// ─── Salvar no banco ──────────────────────────────────────────────────────────
 
 async function savePost(params: {
-  topic: string;
-  slot: Slot;
-  title: string;
-  body: string;
-  instagramCaption: string;
-  tags: string[];
-  instagramPostId: string | null;
-  publishedAt: Date;
+  topic: string; slot: Slot; title: string; body: string;
+  instagramCaption: string; tags: string[];
+  instagramPostId: string | null; publishedAt: Date;
 }): Promise<void> {
   const { sql } = await import("@vercel/postgres");
-
   await sql`
     INSERT INTO posts (
       topic, slot, title, content, body, instagram_caption,
       tags, instagram_post_id, published_at
     ) VALUES (
-      ${params.topic},
-      ${params.slot},
-      ${params.title},
-      ${params.body},
-      ${params.body},
-      ${params.instagramCaption},
+      ${params.topic}, ${params.slot}, ${params.title},
+      ${params.body}, ${params.body}, ${params.instagramCaption},
       ${"{" + params.tags.join(",") + "}"},
-      ${params.instagramPostId},
-      ${params.publishedAt.toISOString()}
+      ${params.instagramPostId}, ${params.publishedAt.toISOString()}
     )
   `;
 }
@@ -202,73 +229,80 @@ async function savePost(params: {
 // ─── Handler principal ────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  // Proteção: só aceita chamadas com o secret correto
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  // Tema do dia
-  const topic =
-    req.nextUrl.searchParams.get("topic") ??
-    process.env.DAILY_TOPIC ??
-    "ansiedad moderna y cómo la atención se convirtió en el nuevo recurso escaso";
-
-  // Se ?slot= for informado, publica apenas aquele slot; caso contrário, publica os 3
   const slotParam = req.nextUrl.searchParams.get("slot") as Slot | null;
-  const slots: Slot[] = slotParam && ["manha", "tarde", "noite"].includes(slotParam)
+  const topicOverride = req.nextUrl.searchParams.get("topic");
+  const slots: Slot[] = slotParam && ["manha","tarde","noite"].includes(slotParam)
     ? [slotParam]
-    : ["manha", "tarde", "noite"];
+    : ["manha","tarde","noite"];
+
   const results = [];
 
   try {
-    // Pesquisa feita uma única vez — compartilhada pelos 3 posts
-    const searchResults = await searchTopic(topic);
-
     for (const slot of slots) {
-      const slotLog: Record<string, unknown> = { slot, topic };
+      const slotLog: Record<string, unknown> = { slot };
 
       try {
-        // Gerar conteúdo com ângulo específico do slot
+        const now   = new Date();
+        const topic = topicOverride ?? getTopicForSlot(slot, now);
+        slotLog.topic = topic;
+
+        // Pesquisa e geração
+        const searchResults = await searchTopic(topic);
         const content = await generateContent(topic, searchResults, slot);
         slotLog.title = content.postTitle;
 
-        // Publicar no Instagram
+        // Construir URLs dos slides
+        const base = process.env.PRODUCTION_URL ?? "https://www.drlibertad.com";
+        const enc  = (s: string) => encodeURIComponent(s.slice(0, 120));
+        const totalSlides = 2 + content.slides.length; // capa + insights + cta
+
+        const slideUrls: string[] = [
+          // Slide 1: capa
+          `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}`,
+          // Slides internos: insights
+          ...content.slides.map((text, i) =>
+            `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text)}&num=${i + 2}&total=${totalSlides}`
+          ),
+          // Slide final: CTA invertido
+          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}`,
+        ];
+
+        // Publicar carrossel
         let instagramPostId: string | null = null;
         try {
-          // Gerar URL da imagem com o template editorial
-          // Sempre usa produção — Instagram rejeita URLs de preview
-          const baseUrl = process.env.PRODUCTION_URL ?? "https://www.drlibertad.com";
-          const shortTitle = content.postTitle.slice(0, 60);
-          const ogUrl = `${baseUrl}/api/og?slot=${slot}&title=${encodeURIComponent(shortTitle)}`;
-          instagramPostId = await publishInstagram(content.instagramCaption, ogUrl);
+          instagramPostId = await publishCarousel(content.instagramCaption, slideUrls);
           slotLog.instagramPostId = instagramPostId;
+          slotLog.slides = slideUrls.length;
         } catch (igErr) {
           slotLog.instagramError = String(igErr);
         }
 
         // Salvar no banco
         await savePost({
-          topic,
-          slot,
+          topic, slot,
           title: content.postTitle,
           body: content.postBody,
           instagramCaption: content.instagramCaption,
           tags: content.tags,
           instagramPostId,
-          publishedAt: new Date(),
+          publishedAt: now,
         });
 
         slotLog.ok = true;
       } catch (slotErr) {
-        slotLog.ok = false;
+        slotLog.ok    = false;
         slotLog.error = String(slotErr);
       }
 
       results.push(slotLog);
     }
 
-    return NextResponse.json({ ok: true, topic, posts: results });
+    return NextResponse.json({ ok: true, posts: results });
   } catch (err) {
     console.error("[publish] erro geral:", err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
