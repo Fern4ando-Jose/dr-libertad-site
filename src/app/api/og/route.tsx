@@ -59,17 +59,18 @@ function titleSize(text: string): number {
 // ─── PosterFace: replica o componente do site ─────────────────────────────────
 // mood: "red" | "ink" (alterna entre edições, igual ao EditorialGrid)
 function PosterFace({
-  kw, issue, mood, title, subtitle, tag, showSlideNum, slideNum, total,
+  kw, issue, mood, title, subtitle, tag, showSlideNum, slideNum, total, prominentTag = false,
 }: {
   kw:           string;
   issue:        string;
   mood:         "red" | "ink";
-  title:        string;         // já em UPPERCASE
+  title:        string;
   subtitle:     string;
   tag:          string;
   showSlideNum: boolean;
   slideNum:     number;
   total:        number;
+  prominentTag?: boolean;
 }) {
   const accentColor = mood === "red" ? RED   : INK_22;
   const badgeColor  = mood === "red" ? RED   : INK_65;
@@ -201,11 +202,12 @@ function PosterFace({
 
           {/* Subtítulo: max-w-[26ch] text-[0.95rem] text-black/70 */}
           <div style={{
-            fontSize:   `${Math.round(15.2 * F * 0.65)}px`,   // ~27px
+            fontSize:   `${Math.round(15.2 * F * 0.78)}px`,   // ~33px
             lineHeight: 1.55,
             color:      INK_70,
             fontWeight: 400,
-            maxWidth:   `${26 * Math.round(15.2 * F * 0.65) * 0.6}px`,
+            maxWidth:   `${CW - PAD * 2}px`,
+            overflow:   "hidden",
           }}>
             {subtitle}
           </div>
@@ -220,10 +222,11 @@ function PosterFace({
         }}>
           {/* Tag */}
           <span style={{
-            fontSize:      `${Math.round(10 * F * 0.7)}px`,   // ~19px
-            letterSpacing: "0.26em",
+            fontSize:      prominentTag ? `${Math.round(10 * F * 0.95)}px` : `${Math.round(10 * F * 0.7)}px`,
+            letterSpacing: prominentTag ? "0.12em" : "0.26em",
             textTransform: "uppercase",
-            color:         INK_55,
+            color:         prominentTag ? accentColor : INK_55,
+            fontWeight:    prominentTag ? 700 : 400,
           }}>
             {tag}
           </span>
@@ -403,10 +406,11 @@ function CTASlide({
         mood={mood}
         title={text.toUpperCase()}
         subtitle=""
-        tag="👇 Comenta abajo"
+        tag="👇 COMENTA ABAJO"
         showSlideNum={true}
         slideNum={total}
         total={total}
+        prominentTag={true}
       />
       <CaptionBar issue={issue} />
     </Frame>

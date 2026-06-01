@@ -262,6 +262,17 @@ export async function GET(req: NextRequest) {
         const topic = topicOverride ?? getTopicForSlot(slot, now);
         slotLog.topic = topic;
 
+        // Verificar se tópico já foi publicado hoje
+        try {
+          const { sql } = await import("@vercel/postgres");
+          const existing = await sql`SELECT id FROM posts WHERE topic = ${topic} AND published_at > NOW() - INTERVAL '24 hours' LIMIT 1`;
+          if (existing.rows.length > 0) {
+            slotLog.skipped = true;
+            slotLog.reason = "Tópico já publicado nas últimas 24h";
+            continue;
+          }
+        } catch { /* ignora erro de banco */ }
+
         // Pesquisa e geração
         const searchResults = await searchTopic(topic);
         const content = await generateContent(topic, searchResults, slot);
@@ -292,7 +303,7 @@ export async function GET(req: NextRequest) {
           ...content.slides.map((text, i) =>
             `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text)}&num=${i + 2}&total=${totalSlides}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}`
           ),
-          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}`,
+          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&num=${totalSlides}&total=${totalSlides}`,
         ];
 
         // Publicar carrossel
