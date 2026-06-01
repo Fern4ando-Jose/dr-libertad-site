@@ -48,12 +48,12 @@ function loadFraunces(): ArrayBuffer {
 // ─── Tamanho da fonte do título ───────────────────────────────────────────────
 function titleSize(text: string): number {
   const l = text.length;
-  if (l <= 16) return 120;
-  if (l <= 24) return 104;
-  if (l <= 34) return 88;
-  if (l <= 46) return 74;
-  if (l <= 60) return 62;
-  return 52;
+  if (l <= 16) return 134;
+  if (l <= 24) return 116;
+  if (l <= 34) return 98;
+  if (l <= 46) return 82;
+  if (l <= 60) return 70;
+  return 58;
 }
 
 // ─── PosterFace: replica o componente do site ─────────────────────────────────
@@ -230,18 +230,16 @@ function PosterFace({
 
           {/* Progress: linha + dot */}
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div style={{
-              width:      `${Math.round(48 * F * 0.5)}px`,   // ~66px
-              height:     "1px",
-              background: INK_20,
-            }} />
-            <div style={{
-              width:        `${Math.round(10 * F * 0.5)}px`,
-              height:       `${Math.round(10 * F * 0.5)}px`,
-              borderRadius: "50%",
-              background:   dotColor,
-              opacity:      0.8,
-            }} />
+            {Array.from({ length: total }).map((_, i) => (
+              <div key={i} style={{
+                width:        i + 1 === slideNum ? `${Math.round(10 * F * 0.5)}px` : `${Math.round(8 * F * 0.5)}px`,
+                height:       i + 1 === slideNum ? `${Math.round(10 * F * 0.5)}px` : `${Math.round(8 * F * 0.5)}px`,
+                borderRadius: "50%",
+                background:   i + 1 === slideNum ? dotColor : INK_20,
+                opacity:      i + 1 === slideNum ? 0.85 : 1,
+                marginRight:  `${Math.round(6 * F * 0.5)}px`,
+              }} />
+            ))}
           </div>
         </div>
       </div>
@@ -269,6 +267,13 @@ function CaptionBar({ issue }: { issue: string }) {
         color:         "rgba(0,0,0,0.65)",
       }}>
         DR. LIBERTAD
+      </span>
+      <span style={{
+        fontSize:      `${Math.round(11 * F * 0.5)}px`,
+        letterSpacing: "0.12em",
+        color:         "rgba(0,0,0,0.30)",
+      }}>
+        www.drlibertad.com
       </span>
       <span style={{
         fontSize:      `${Math.round(11 * F * 0.6)}px`,
@@ -382,8 +387,8 @@ function InsightSlide({
 
 // ─── SLIDE FINAL: CTA ─────────────────────────────────────────────────────────
 function CTASlide({
-  slot, text, kw, issue, mood, tag,
-}: { slot: string; text: string; kw: string; issue: string; mood: "red" | "ink"; tag: string }) {
+  slot, text, kw, issue, mood, tag, total,
+}: { slot: string; text: string; kw: string; issue: string; mood: "red" | "ink"; tag: string; total: number }) {
   const SLOT_CTA_TAG: Record<string, string> = {
     manha: "Responde en los comentarios",
     tarde: "Responde en los comentarios",
@@ -397,11 +402,11 @@ function CTASlide({
         issue={issue}
         mood={mood}
         title={text.toUpperCase()}
-        subtitle="Comenta abajo 👇"
-        tag={SLOT_CTA_TAG[slot] ?? tag}
-        showSlideNum={false}
-        slideNum={1}
-        total={1}
+        subtitle=""
+        tag="👇 Comenta abajo"
+        showSlideNum={true}
+        slideNum={total}
+        total={total}
       />
       <CaptionBar issue={issue} />
     </Frame>
@@ -427,7 +432,7 @@ export async function GET(req: NextRequest) {
 
     let node;
     if (slide === "cta") {
-      node = <CTASlide slot={slot} text={text || title} kw={kw} issue={issue} mood={mood} tag={tag} />;
+      node = <CTASlide slot={slot} text={text || title} kw={kw} issue={issue} mood={mood} tag={tag} total={total} />;
     } else if (slide === "insight") {
       node = <InsightSlide slot={slot} text={text} num={num} total={total} kw={kw} issue={issue} mood={mood} tag={tag} />;
     } else {
