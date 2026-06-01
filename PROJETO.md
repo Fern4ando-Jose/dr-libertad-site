@@ -70,8 +70,14 @@
 | Noite | 23:00 | 20:00 | `/api/publish?slot=noite` |
 
 Para testar manualmente (com `?topic=` opcional):
+```powershell
+# PowerShell:
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha&topic=seu+tema+aqui" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" }
 ```
-curl -H "Authorization: Bearer {CRON_SECRET}" "https://www.drlibertad.com/api/publish?slot=manha&topic=seu+tema+aqui"
+
+```cmd
+:: Prompt de Comando (cmd.exe):
+curl -H "Authorization: Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" "https://www.drlibertad.com/api/publish?slot=manha&topic=seu+tema+aqui"
 ```
 
 ---
