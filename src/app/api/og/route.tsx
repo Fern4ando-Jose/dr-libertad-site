@@ -230,13 +230,13 @@ function PosterFace({
 
           {/* Progress: linha + dot */}
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {Array.from({ length: total }).map((_, i) => (
-              <div key={i} style={{
-                width:        i + 1 === slideNum ? `${Math.round(10 * F * 0.5)}px` : `${Math.round(8 * F * 0.5)}px`,
-                height:       i + 1 === slideNum ? `${Math.round(10 * F * 0.5)}px` : `${Math.round(8 * F * 0.5)}px`,
+            {[1,2,3,4,5].slice(0, total).map((n) => (
+              <div key={n} style={{
+                width:        n === slideNum ? `${Math.round(10 * F * 0.5)}px` : `${Math.round(8 * F * 0.5)}px`,
+                height:       n === slideNum ? `${Math.round(10 * F * 0.5)}px` : `${Math.round(8 * F * 0.5)}px`,
                 borderRadius: "50%",
-                background:   i + 1 === slideNum ? dotColor : INK_20,
-                opacity:      i + 1 === slideNum ? 0.85 : 1,
+                background:   n === slideNum ? dotColor : INK_20,
+                opacity:      n === slideNum ? 0.85 : 1,
                 marginRight:  `${Math.round(6 * F * 0.5)}px`,
               }} />
             ))}
