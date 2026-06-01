@@ -193,7 +193,7 @@ function PosterFace({
             color:         INK,
             lineHeight:    0.92,
             letterSpacing: "-0.04em",
-            display:       "block",
+            display:       "flex",
             marginBottom:  `${Math.round(16 * F * 0.5)}px`,
           }}>
             {title}
