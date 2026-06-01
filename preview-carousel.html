@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dr. Libertad — Preview Carrossel</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0B0B0C;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    color: #444;
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .meta {
+    color: #333;
+    font-size: 10px;
+    text-align: center;
+    margin-bottom: 40px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .carousel {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    scroll-snap-type: x mandatory;
+  }
+  .carousel::-webkit-scrollbar { height: 3px; }
+  .carousel::-webkit-scrollbar-track { background: #111; }
+  .carousel::-webkit-scrollbar-thumb { background: #2a2a2a; }
+
+  /* Frame: bg-ink = #0B0B0C, proporção 1080x1350 → 270x338 */
+  .frame {
+    flex-shrink: 0;
+    width: 270px;
+    height: 338px;
+    background: #0B0B0C;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    scroll-snap-align: start;
+    border-radius: 4px;
+  }
+
+  /* Card: poster QUADRADO (248×248) + caption (22px) = 270px total
+     Largura = 248px, centrado no frame */
+  .card {
+    width: 248px;
+    height: 270px; /* 248 poster + 22 caption */
+    background: rgba(244,240,232,0.95);
+    border-radius: 18px;
+    border: 1px solid rgba(185,176,162,0.20);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* PosterFace: QUADRADO = 248×248 */
+  .poster {
+    width: 248px;
+    height: 248px;
+    flex-shrink: 0;
+    position: relative;
+    padding: 17px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Gradiente warm paper */
+  .poster::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(220px circle at 22% 18%, rgba(231,221,204,0.55), transparent 60%),
+      radial-gradient(180px circle at 70% 72%, rgba(0,0,0,0.10), transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Red rule: absolute top-7 left-7 right-7 h-[1px] */
+  .rule {
+    position: absolute;
+    top: 19px;
+    left: 19px;
+    right: 19px;
+    height: 1px;
+  }
+  .rule.red { background: #A45A5A; }
+  .rule.ink { background: rgba(11,11,12,0.22); }
+
+  /* Conteúdo relativo (sobre o ::before) */
+  .poster-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    z-index: 1;
+  }
+
+  /* Header: kicker + badge */
+  .poster-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .kicker {
+    font-size: 7.5px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(11,11,12,0.70);
+    font-family: -apple-system, sans-serif;
+    font-weight: 400;
+  }
+  .badge {
+    border-radius: 9999px;
+    border: 1px solid rgba(164,90,90,0.45);
+    background: rgba(255,255,255,0.45);
+    padding: 2px 7px;
+    font-size: 6.5px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: #A45A5A;
+    font-family: -apple-system, sans-serif;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .badge.ink {
+    border-color: rgba(11,11,12,0.22);
+    color: rgba(11,11,12,0.65);
+  }
+
+  /* Slide num */
+  .slide-num {
+    text-align: right;
+    font-size: 6px;
+    color: rgba(11,11,12,0.20);
+    letter-spacing: 0.15em;
+    margin-top: 3px;
+    font-family: -apple-system, sans-serif;
+  }
+
+  /* Título + subtítulo: área central */
+  .poster-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .title {
+    font-family: 'Fraunces', ui-serif, Georgia, serif;
+    font-weight: 700;
+    color: #0B0B0C;
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    margin-bottom: 8px;
+  }
+  .title.s1 { font-size: 21px; }
+  .title.s2 { font-size: 18px; }
+  .title.s3 { font-size: 15px; }
+
+  .subtitle {
+    font-family: -apple-system, sans-serif;
+    font-size: 8.5px;
+    line-height: 1.55;
+    color: rgba(11,11,12,0.70);
+    font-weight: 400;
+    max-width: 24ch;
+  }
+
+  /* Bottom: tag + progress (absolute no original, aqui como flex bottom) */
+  .poster-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 6px;
+  }
+  .tag {
+    font-size: 6.5px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: rgba(11,11,12,0.55);
+    font-family: -apple-system, sans-serif;
+  }
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .progress-line {
+    width: 18px;
+    height: 1px;
+    background: rgba(11,11,12,0.20);
+  }
+  .progress-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    opacity: 0.8;
+  }
+  .progress-dot.red { background: #A45A5A; }
+  .progress-dot.ink { background: #0B0B0C; }
+
+  /* Caption bar: border-t border-black/10 — fora do poster */
+  .caption {
+    height: 22px;
+    border-top: 1px solid rgba(11,11,12,0.10);
+    padding: 0 19px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .caption span {
+    font-size: 6.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(11,11,12,0.55);
+    font-family: -apple-system, sans-serif;
+  }
+
+  /* Labels */
+  .labels {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .label-item {
+    width: 270px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .label-item span {
+    font-size: 9px;
+    color: #2a2a2a;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<h1>Dr. Libertad</h1>
+<p class="meta">Preview Carrossel · Dopamina · ED. 07 · Mood: red</p>
+
+<div class="carousel">
+
+  <!-- SLIDE 1: CAPA -->
+  <div class="frame"><div class="card">
+    <div class="poster">
+      <div class="rule red"></div>
+      <div class="poster-inner">
+        <div class="poster-header">
+          <span class="kicker">DOPAMINA</span>
+          <span class="badge">ED. 07</span>
+        </div>
+        <div class="poster-body">
+          <div class="title s1">TU CEREBRO ESTÁ SIENDO SECUESTRADO.</div>
+          <div class="subtitle">Empieza aquí tu claridad mental.</div>
+        </div>
+        <div class="poster-footer">
+          <span class="tag">DOPAMINE DETOX</span>
+          <div class="progress">
+            <div class="progress-line"></div>
+            <div class="progress-dot red"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <span>DR. LIBERTAD</span>
+      <span>ED. 07</span>
+    </div>
+  </div></div>
+
+  <!-- SLIDE 2: INSIGHT 1 -->
+  <div class="frame"><div class="card">
+    <div class="poster">
+      <div class="rule red"></div>
+      <div class="poster-inner">
+        <div class="poster-header">
+          <span class="kicker">DOPAMINA</span>
+          <span class="badge">ED. 07</span>
+        </div>
+        <div class="slide-num">02 / 05</div>
+        <div class="poster-body">
+          <div class="title s2">CADA NOTIFICACIÓN DISPARA DOPAMINA.</div>
+          <div class="subtitle">Tu cerebro aprende a depender del scroll como si fuera una droga de baja intensidad.</div>
+        </div>
+        <div class="poster-footer">
+          <span class="tag">DOPAMINE DETOX</span>
+          <div class="progress">
+            <div class="progress-line"></div>
+            <div class="progress-dot red"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <span>DR. LIBERTAD</span>
+      <span>ED. 07</span>
+    </div>
+  </div></div>
+
+  <!-- SLIDE 3: INSIGHT 2 -->
+  <div class="frame"><div class="card">
+    <div class="poster">
+      <div class="rule red"></div>
+      <div class="poster-inner">
+        <div class="poster-header">
+          <span class="kicker">DOPAMINA</span>
+          <span class="badge">ED. 07</span>
+        </div>
+        <div class="slide-num">03 / 05</div>
+        <div class="poster-body">
+          <div class="title s2">EL ABURRIMIENTO ES EL ANTÍDOTO.</div>
+          <div class="subtitle">Cuando toleras el vacío sin llenarlo con estímulos, recuperas el acceso a tu propio pensamiento.</div>
+        </div>
+        <div class="poster-footer">
+          <span class="tag">DOPAMINE DETOX</span>
+          <div class="progress">
+            <div class="progress-line"></div>
+            <div class="progress-dot red"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <span>DR. LIBERTAD</span>
+      <span>ED. 07</span>
+    </div>
+  </div></div>
+
+  <!-- SLIDE 4: INSIGHT 3 -->
+  <div class="frame"><div class="card">
+    <div class="poster">
+      <div class="rule red"></div>
+      <div class="poster-inner">
+        <div class="poster-header">
+          <span class="kicker">DOPAMINA</span>
+          <span class="badge">ED. 07</span>
+        </div>
+        <div class="slide-num">04 / 05</div>
+        <div class="poster-body">
+          <div class="title s2">NO ERES DÉBIL. ESTÁS DISEÑADO PARA ESTO.</div>
+          <div class="subtitle">La evolución programó tu cerebro para buscar recompensas. Las apps solo explotaron ese circuito.</div>
+        </div>
+        <div class="poster-footer">
+          <span class="tag">DOPAMINE DETOX</span>
+          <div class="progress">
+            <div class="progress-line"></div>
+            <div class="progress-dot red"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <span>DR. LIBERTAD</span>
+      <span>ED. 07</span>
+    </div>
+  </div></div>
+
+  <!-- SLIDE 5: CTA -->
+  <div class="frame"><div class="card">
+    <div class="poster">
+      <div class="rule red"></div>
+      <div class="poster-inner">
+        <div class="poster-header">
+          <span class="kicker">DOPAMINA</span>
+          <span class="badge">ED. 07</span>
+        </div>
+        <div class="poster-body">
+          <div class="title s2">¿CUÁNDO FUE LA ÚLTIMA VEZ QUE TE ABURRISTE SIN BUSCAR EL TELÉFONO?</div>
+          <div class="subtitle">Comenta abajo 👇</div>
+        </div>
+        <div class="poster-footer">
+          <span class="tag">RESPONDE EN LOS COMENTARIOS</span>
+          <div class="progress">
+            <div class="progress-line"></div>
+            <div class="progress-dot red"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <span>DR. LIBERTAD</span>
+      <span>ED. 07</span>
+    </div>
+  </div></div>
+
+</div>
+
+<div class="labels">
+  <div class="label-item"><span>01 · Capa</span></div>
+  <div class="label-item"><span>02 · Insight 1</span></div>
+  <div class="label-item"><span>03 · Insight 2</span></div>
+  <div class="label-item"><span>04 · Insight 3</span></div>
+  <div class="label-item"><span>05 · CTA</span></div>
+</div>
+
+</body>
+</html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
