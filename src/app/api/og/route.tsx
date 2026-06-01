@@ -48,12 +48,12 @@ function loadFraunces(): ArrayBuffer {
 // ─── Tamanho da fonte do título ───────────────────────────────────────────────
 function titleSize(text: string): number {
   const l = text.length;
-  if (l <= 16) return 134;
-  if (l <= 24) return 116;
-  if (l <= 34) return 98;
-  if (l <= 46) return 82;
-  if (l <= 60) return 70;
-  return 58;
+  if (l <= 16) return 148;
+  if (l <= 24) return 128;
+  if (l <= 34) return 108;
+  if (l <= 46) return 90;
+  if (l <= 60) return 76;
+  return 64;
 }
 
 // ─── PosterFace: replica o componente do site ─────────────────────────────────
@@ -202,14 +202,13 @@ function PosterFace({
 
           {/* Subtítulo: max-w-[26ch] text-[0.95rem] text-black/70 */}
           <div style={{
-            fontSize:   `${Math.round(15.2 * F * 0.78)}px`,   // ~33px
-            lineHeight: 1.55,
+            fontSize:   `${Math.round(15.2 * F * 0.68)}px`,
+            lineHeight: 1.5,
             color:      INK_70,
             fontWeight: 400,
             maxWidth:   `${CW - PAD * 2}px`,
-            overflow:   "hidden",
           }}>
-            {subtitle}
+            {subtitle.length > 90 ? subtitle.slice(0, 87) + '...' : subtitle}
           </div>
         </div>
 
@@ -233,16 +232,18 @@ function PosterFace({
 
           {/* Progress: linha + dot */}
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {[1,2,3,4,5].slice(0, total).map((n) => (
-              <div key={n} style={{
-                width:        n === slideNum ? `${Math.round(10 * F * 0.5)}px` : `${Math.round(8 * F * 0.5)}px`,
-                height:       n === slideNum ? `${Math.round(10 * F * 0.5)}px` : `${Math.round(8 * F * 0.5)}px`,
-                borderRadius: "50%",
-                background:   n === slideNum ? dotColor : INK_20,
-                opacity:      n === slideNum ? 0.85 : 1,
-                marginRight:  `${Math.round(6 * F * 0.5)}px`,
-              }} />
-            ))}
+            <div style={{
+              width:      `${Math.round(48 * F * 0.5)}px`,
+              height:     "1px",
+              background: INK_20,
+            }} />
+            <div style={{
+              width:        `${Math.round(10 * F * 0.5)}px`,
+              height:       `${Math.round(10 * F * 0.5)}px`,
+              borderRadius: "50%",
+              background:   dotColor,
+              opacity:      0.85,
+            }} />
           </div>
         </div>
       </div>
