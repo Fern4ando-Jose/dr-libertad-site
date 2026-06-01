@@ -123,9 +123,9 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
   "postTitle": "título impactante máx 55 chars, en español",
   "postBody": "artículo en markdown mín 300 palabras, TODO EN ESPAÑOL",
   "slides": [
-    "insight 1 — frase contundente de 60-120 chars que desarrolla el tema",
-    "insight 2 — frase contundente de 60-120 chars que profundiza",
-    "insight 3 — frase contundente de 60-120 chars que remata"
+    "insight 1 — frase contundente de MÁXIMO 80 chars que desarrolla el tema",
+    "insight 2 — frase contundente de MÁXIMO 80 chars que profundiza",
+    "insight 3 — frase contundente de MÁXIMO 80 chars que remata"
   ],
   "cta": "pregunta provocadora de 60-100 chars que genere comentarios, en español",
   "instagramCaption": "leyenda IG máx 2200 chars, gancho fuerte + texto + 4-5 hashtags en español",
