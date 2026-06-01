@@ -37,23 +37,13 @@ const PAD = Math.round(28 * F);
 // ─── Carregar fonte Fraunces ──────────────────────────────────────────────────
 async function loadFraunces(weight: 700): Promise<ArrayBuffer | null> {
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 4000);
-
     const css = await fetch(
       `https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,${weight}&display=swap`,
-      { headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot)" }, signal: ctrl.signal }
+      { headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot)" } }
     ).then(r => r.text());
-    clearTimeout(timer);
-
     const match = css.match(/src: url\(([^)]+\.woff2)\)/);
     if (!match) return null;
-
-    const ctrl2 = new AbortController();
-    const timer2 = setTimeout(() => ctrl2.abort(), 4000);
-    const buf = await fetch(match[1], { signal: ctrl2.signal }).then(r => r.arrayBuffer());
-    clearTimeout(timer2);
-    return buf;
+    return fetch(match[1]).then(r => r.arrayBuffer());
   } catch {
     return null;
   }
