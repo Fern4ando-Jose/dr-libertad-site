@@ -290,7 +290,7 @@ function Frame({
     <div style={{
       width:          `${W}px`,
       height:         `${H}px`,
-      background:     INK,
+      background:     OFFWHITE,
       display:        "flex",
       alignItems:     "center",
       justifyContent: "center",
