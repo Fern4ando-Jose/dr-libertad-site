@@ -49,9 +49,9 @@ export async function GET(req: NextRequest) {
     const token = process.env.META_ACCESS_TOKEN;
     if (token) {
       await sql`
-        INSERT INTO config (key, value)
-        VALUES ('meta_access_token', ${token})
-        ON CONFLICT (key) DO NOTHING
+        INSERT INTO config (key, value, updated_at)
+        VALUES ('meta_access_token', ${token}, NOW())
+        ON CONFLICT (key) DO UPDATE SET value = ${token}, updated_at = NOW()
       `;
       results.push("config seed token: ok");
     } else {

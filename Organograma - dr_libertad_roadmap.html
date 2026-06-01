@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  body { background: transparent; padding: 16px; }
+
+  .phase { border-radius: 12px; margin-bottom: 16px; overflow: hidden; border: 1.5px solid var(--border, #e2e8f0); }
+  .phase-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; font-weight: 700; font-size: 14px; }
+  .phase-body { padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 8px; }
+
+  .phase-1 .phase-header { background: #1a1a2e; color: #fff; }
+  .phase-2 .phase-header { background: #e2e8f0; color: #1a1a2e; }
+  .phase-3 .phase-header { background: #e2e8f0; color: #1a1a2e; }
+
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+  .badge-active { background: #22c55e; color: #fff; }
+  .badge-pending { background: #94a3b8; color: #fff; }
+
+  .step { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 8px; }
+  .step-done { background: #f0fdf4; }
+  .step-current { background: #fff7ed; border: 1.5px solid #f97316; }
+  .step-todo { background: #f8fafc; }
+
+  .step-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; font-weight: 700; margin-top: 1px; }
+  .icon-done { background: #22c55e; color: #fff; }
+  .icon-current { background: #f97316; color: #fff; }
+  .icon-todo { background: #cbd5e1; color: #fff; }
+
+  .step-text { flex: 1; }
+  .step-title { font-size: 13px; font-weight: 600; color: #1e293b; line-height: 1.3; }
+  .step-sub { font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.4; }
+  .step-current .step-title { color: #c2410c; }
+
+  .arrow { text-align: center; font-size: 18px; color: #94a3b8; margin: -6px 0; }
+  .phase-label { font-size: 11px; opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<!-- FASE 1 -->
+<div class="phase phase-1">
+  <div class="phase-header">
+    <span>🤖 FASE 1 — Automação Instagram</span>
+    <span class="badge badge-active">EM ANDAMENTO</span>
+  </div>
+  <div class="phase-body">
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">Projeto Next.js criado e no GitHub</div>
+      </div>
+    </div>
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">Site online no Vercel</div>
+      </div>
+    </div>
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">API de publicação criada (route.ts)</div>
+        <div class="step-sub">Gera 3 posts/dia: manhã · tarde · noite</div>
+      </div>
+    </div>
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">Banco Vercel Postgres + schema.sql</div>
+      </div>
+    </div>
+
+    <div class="step step-done">
+      <div class="step-icon icon-done">✓</div>
+      <div class="step-text">
+        <div class="step-title">Variáveis de ambiente (Anthropic, Tavily, Cron)</div>
+      </div>
+    </div>
+
+    <div class="step step-current">
+      <div class="step-icon icon-current">►</div>
+      <div class="step-text">
+        <div class="step-title">Configurar Instagram Graph API</div>
+        <div class="step-sub">App no Facebook Developers · token longa duração · Account ID</div>
+      </div>
+    </div>
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">6</div>
+      <div class="step-text">
+        <div class="step-title">Gerar CRON_SECRET e adicionar ao Vercel</div>
+      </div>
+    </div>
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">7</div>
+      <div class="step-text">
+        <div class="step-title">Deploy final + testar cron manualmente</div>
+        <div class="step-sub">curl com ?topic= e verificar os 3 posts no Instagram</div>
+      </div>
+    </div>
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">8</div>
+      <div class="step-text">
+        <div class="step-title">Definir imagem padrão dos posts (META_DEFAULT_IMAGE_URL)</div>
+        <div class="step-sub">Todo post precisa de imagem — hospedar uma imagem da marca</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="arrow">↓</div>
+
+<!-- FASE 2 -->
+<div class="phase phase-2">
+  <div class="phase-header">
+    <span>🌐 FASE 2 — Finalizar o Site</span>
+    <span class="badge badge-pending">AGUARDANDO FASE 1</span>
+  </div>
+  <div class="phase-body">
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">1</div>
+      <div class="step-text">
+        <div class="step-title">Levantar e corrigir problemas de configuração do site</div>
+      </div>
+    </div>
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">2</div>
+      <div class="step-text">
+        <div class="step-title">Página de blog — exibir posts gerados automaticamente</div>
+        <div class="step-sub">Busca do banco Postgres e listagem no site</div>
+      </div>
+    </div>
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">3</div>
+      <div class="step-text">
+        <div class="step-title">Revisão visual e de conteúdo</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="arrow">↓</div>
+
+<!-- FASE 3 -->
+<div class="phase phase-3">
+  <div class="phase-header">
+    <span>📚 FASE 3 — Infoprodutos</span>
+    <span class="badge badge-pending">AGUARDANDO FASE 2</span>
+  </div>
+  <div class="phase-body">
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">1</div>
+      <div class="step-text">
+        <div class="step-title">Publicar livros / infoprodutos no site</div>
+      </div>
+    </div>
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">2</div>
+      <div class="step-text">
+        <div class="step-title">Integração de pagamento</div>
+        <div class="step-sub">Stripe, Hotmart ou similar</div>
+      </div>
+    </div>
+
+    <div class="step step-todo">
+      <div class="step-icon icon-todo">3</div>
+      <div class="step-text">
+        <div class="step-title">Funil de vendas via Instagram → site</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

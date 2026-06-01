@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Aumenta o limite de execução para 60s (Vercel Hobby permite até 60s)
-export const maxDuration = 60;
+// Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
+export const maxDuration = 300;
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -274,23 +274,25 @@ export async function GET(req: NextRequest) {
           const countResult = await sql`SELECT COUNT(*) as n FROM posts`;
           editionNum = (parseInt(countResult.rows[0]?.n ?? "0") || 0) + 1;
         } catch { /* fallback silencioso */ }
-        const ed  = String(editionNum).padStart(2, "0");
-        const kw  = extractKeyword(topic);
+        const ed   = String(editionNum).padStart(2, "0");
+        const kw   = extractKeyword(topic);
+        // mood alterna: red para ímpares, ink para pares (igual ao EditorialGrid do site)
+        const mood = editionNum % 2 === 0 ? "ink" : "red";
 
         // Construir URLs dos slides
         const base = process.env.PRODUCTION_URL ?? "https://www.drlibertad.com";
         const enc  = (s: string) => encodeURIComponent(s.slice(0, 120));
         const totalSlides = 2 + content.slides.length; // capa + insights + cta
 
+        // Primeira tag como categoria do rodapé
+        const tag = enc(content.tags[0] ?? kw);
+
         const slideUrls: string[] = [
-          // Slide 1: capa
-          `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}&kw=${enc(kw)}&ed=${ed}`,
-          // Slides internos: insights
+          `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}`,
           ...content.slides.map((text, i) =>
-            `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text)}&num=${i + 2}&total=${totalSlides}&kw=${enc(kw)}&ed=${ed}`
+            `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text)}&num=${i + 2}&total=${totalSlides}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}`
           ),
-          // Slide final: CTA invertido
-          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}&kw=${enc(kw)}&ed=${ed}`,
+          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}`,
         ];
 
         // Publicar carrossel
