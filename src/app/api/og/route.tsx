@@ -35,18 +35,10 @@ const F = CW / 394; // ≈ 2.52
 const PAD = Math.round(28 * F);
 
 // ─── Carregar fonte Fraunces ──────────────────────────────────────────────────
-async function loadFraunces(weight: 700): Promise<ArrayBuffer | null> {
-  try {
-    const css = await fetch(
-      `https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,${weight}&display=swap`,
-      { headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot)" } }
-    ).then(r => r.text());
-    const match = css.match(/src: url\(([^)]+\.woff2)\)/);
-    if (!match) return null;
-    return fetch(match[1]).then(r => r.arrayBuffer());
-  } catch {
-    return null;
-  }
+async function loadFraunces(req: NextRequest): Promise<ArrayBuffer> {
+  const origin = new URL(req.url).origin;
+  const res = await fetch(`${origin}/fonts/fraunces-700.woff2`);
+  return res.arrayBuffer();
 }
 
 // ─── Tamanho da fonte do título ───────────────────────────────────────────────
@@ -427,7 +419,7 @@ export async function GET(req: NextRequest) {
     const num   = parseInt(searchParams.get("num")   ?? "2");
     const total = parseInt(searchParams.get("total") ?? "4");
 
-    const fontBold = await loadFraunces(700);
+    const fontBold = await loadFraunces(req);
 
     let node;
     if (slide === "cta") {
@@ -438,9 +430,7 @@ export async function GET(req: NextRequest) {
       node = <CoverSlide slot={slot} title={title} kw={kw} issue={issue} mood={mood} tag={tag} />;
     }
 
-    const fonts = fontBold
-      ? [{ name: "Fraunces", data: fontBold, weight: 700 as const, style: "normal" as const }]
-      : [];
+    const fonts = [{ name: "Fraunces", data: fontBold, weight: 700 as const, style: "normal" as const }];
 
     return new ImageResponse(node, { width: W, height: H, fonts });
   } catch (err: unknown) {
