@@ -127,10 +127,11 @@ export default function Page() {
 
                 <div className="mt-7" data-gsap="stagger" data-gsap-stagger="0.07">
                   <h1
-                    className="font-serif text-[clamp(2.5rem,5.4vw,5.1rem)] leading-[0.92] tracking-[-0.05em] text-balance"
+                    className="max-w-[18ch] font-serif text-[clamp(2.5rem,5.4vw,5.1rem)] leading-[0.96] tracking-[-0.05em] text-pretty"
                     data-gsap-child="line"
                   >
-                    {t.hero.title}
+                    {t.hero.title}{" "}
+                    <em className="italic text-muted-red">{t.hero.titleAccent}</em>
                   </h1>
                 </div>
 
