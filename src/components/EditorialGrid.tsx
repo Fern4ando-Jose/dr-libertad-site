@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 
 type EditorialPost = {
@@ -92,6 +93,20 @@ export default function EditorialGrid() {
   const { t } = useLang();
   const [posts, setPosts] = useState<EditorialPost[] | null>(null);
   const [active, setActive] = useState<EditorialPost | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Só renderiza o portal no cliente (document.body só existe no browser).
+  useEffect(() => setMounted(true), []);
+
+  // Bloqueia a rolagem do fundo enquanto o modal está aberto.
+  useEffect(() => {
+    if (!active) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [active]);
 
   useEffect(() => {
     let alive = true;
@@ -108,8 +123,9 @@ export default function EditorialGrid() {
     };
   }, []);
 
-  // Mostra apenas os 6 posts mais recentes (melhor equilíbrio visual: 2 fileiras de 3).
-  const cards = (posts ?? []).slice(0, 6);
+  // Mostra apenas os 3 posts mais recentes — uma fileira limpa no desktop,
+  // curta no mobile, sempre as últimas edições do Instagram.
+  const cards = (posts ?? []).slice(0, 3);
 
   if (posts === null) {
     return <LoadingState label={t.gallery.loading} />;
@@ -139,10 +155,12 @@ export default function EditorialGrid() {
         ))}
       </div>
 
-      <AnimatePresence>
-        {active && (
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {active && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4"
             role="dialog"
             aria-modal="true"
             initial={{ opacity: 0 }}
@@ -251,8 +269,10 @@ export default function EditorialGrid() {
               </div>
             </motion.div>
           </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </>
   );
 }
@@ -262,7 +282,7 @@ function LoadingState({ label }: { label: string }) {
     <div>
       <div className="mb-6 h-3 w-40 animate-pulse rounded bg-warm-gray/15" />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
+        {[0, 1, 2].map((i) => (
           <div
             key={i}
             className="aspect-square animate-pulse rounded-3xl border border-warm-gray/15 bg-white/[0.03]"
