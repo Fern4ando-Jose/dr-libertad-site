@@ -32,10 +32,12 @@ export default function HeroFloatingDeck({ children }: { children: ReactNode }) 
 
   return (
     <div className="relative">
-      {/* Back layers */}
+      {/* Back layers — quadrados decorativos que dão profundidade atrás do card.
+          O transform de parallax fica na camada externa; a flutuação contínua
+          numa camada interna, para os dois efeitos comporem sem conflito. */}
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-6 top-10 hidden lg:block"
+        className="pointer-events-none absolute -left-8 top-4 hidden lg:block"
         style={{
           x: tx,
           y: ty,
@@ -47,19 +49,25 @@ export default function HeroFloatingDeck({ children }: { children: ReactNode }) 
         animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }}
         transition={{ duration: 0.7, ease: "easeOut" }}
       >
-        <div className="h-[210px] w-[210px] rounded-3xl border border-warm-gray/10 bg-white/3 shadow-soft backdrop-blur [filter:blur(0px)]" />
-        <div
-          className="absolute -inset-2 rounded-3xl opacity-60"
-          style={{
-            background:
-              "radial-gradient(220px circle at 30% 30%, rgba(164,90,90,0.22), transparent 60%)",
-          }}
-        />
+        <motion.div
+          className="relative"
+          animate={{ y: [0, -14, 0], rotate: [0, -1.5, 0] }}
+          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <div className="h-[200px] w-[200px] rounded-3xl border border-warm-gray/10 bg-white/3 shadow-soft backdrop-blur [filter:blur(0px)]" />
+          <div
+            className="absolute -inset-2 rounded-3xl opacity-60"
+            style={{
+              background:
+                "radial-gradient(220px circle at 30% 30%, rgba(164,90,90,0.22), transparent 60%)",
+            }}
+          />
+        </motion.div>
       </motion.div>
 
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-10 -bottom-10 hidden lg:block"
+        className="pointer-events-none absolute -right-5 -bottom-4 hidden lg:block"
         style={{
           x: tx,
           y: ty,
@@ -71,14 +79,20 @@ export default function HeroFloatingDeck({ children }: { children: ReactNode }) 
         animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
         transition={{ duration: 0.7, ease: "easeOut", delay: 0.08 }}
       >
-        <div className="h-[250px] w-[250px] rounded-3xl border border-warm-gray/10 bg-ink/20 shadow-soft backdrop-blur" />
-        <div
-          className="absolute inset-0 rounded-3xl opacity-70"
-          style={{
-            background:
-              "radial-gradient(260px circle at 70% 40%, rgba(231,221,204,0.20), transparent 60%)",
-          }}
-        />
+        <motion.div
+          className="relative"
+          animate={{ y: [0, 12, 0], rotate: [0, 1.5, 0] }}
+          transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
+        >
+          <div className="h-[210px] w-[210px] rounded-3xl border border-warm-gray/10 bg-ink/20 shadow-soft backdrop-blur" />
+          <div
+            className="absolute inset-0 rounded-3xl opacity-70"
+            style={{
+              background:
+                "radial-gradient(260px circle at 70% 40%, rgba(231,221,204,0.20), transparent 60%)",
+            }}
+          />
+        </motion.div>
       </motion.div>
 
       {/* Main card (slot) */}

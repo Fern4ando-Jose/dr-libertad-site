@@ -181,10 +181,23 @@ export default function EditorialGrid() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 14, scale: 0.99 }}
               transition={{ type: "spring", stiffness: 260, damping: 26 }}
-              className="relative flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-warm-gray/20 bg-[#121214]/97 backdrop-blur"
+              className="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-warm-gray/20 bg-[#121214]/97 backdrop-blur sm:max-h-[86vh] sm:flex-row"
             >
-              <div className="relative shrink-0">
-                <div className="aspect-[4/5] max-h-[42vh] w-full overflow-hidden bg-offwhite/95 sm:aspect-[16/9]">
+              {/* Fechar — botão flutuante, sempre acessível em qualquer layout */}
+              <button
+                type="button"
+                onClick={() => setActive(null)}
+                aria-label={t.gallery.close}
+                className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-warm-gray/20 bg-black/45 text-warm-gray/85 backdrop-blur transition hover:bg-black/65 hover:text-offwhite"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+
+              {/* Imagem: topo no mobile, coluna esquerda no desktop (spread de revista) */}
+              <div className="relative shrink-0 sm:w-[42%]">
+                <div className="aspect-[16/10] max-h-[32vh] w-full overflow-hidden bg-offwhite/95 sm:aspect-auto sm:h-full sm:max-h-none">
                   {active.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -198,74 +211,68 @@ export default function EditorialGrid() {
                 </div>
               </div>
 
-              {/* Cabeçalho fixo: título + ação do Instagram sempre visível, sem rolar */}
-              <div className="shrink-0 border-b border-warm-gray/12 px-6 pt-5 pb-4">
-                <div className="flex items-center justify-between gap-4">
+              {/* Conteúdo rolável: título, ação e artigo visíveis de imediato */}
+              <div className="flex min-h-0 flex-1 flex-col">
+                <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-8">
                   <div className="text-[11px] tracking-[0.22em] text-warm-gray/70 uppercase">
                     {active.kicker} · {active.issue}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setActive(null)}
-                    aria-label={t.gallery.close}
-                    className="rounded-full border border-warm-gray/20 bg-white/5 px-3 py-1.5 text-xs text-warm-gray/80 transition hover:bg-white/10 hover:text-offwhite"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="mt-3 font-serif text-[1.55rem] leading-[1.08] tracking-[-0.03em] text-offwhite">
-                  {active.title}
-                </div>
-                {active.permalink && (
-                  <a
-                    href={active.permalink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 inline-flex items-center gap-2 rounded-full bg-muted-red px-5 py-2.5 text-sm font-semibold text-offwhite transition hover:bg-muted-red/85"
-                  >
-                    {t.gallery.viewInstagram}
-                    <span aria-hidden="true">↗</span>
-                  </a>
-                )}
-              </div>
+                  <h3 className="mt-3 font-serif text-[1.5rem] leading-[1.1] tracking-[-0.03em] text-offwhite sm:text-[1.7rem]">
+                    {active.title}
+                  </h3>
 
-              {/* Corpo rolável: artigo completo, formatado de forma limpa */}
-              <div className="overflow-y-auto px-6 py-5">
-                {active.tags.length > 0 && (
-                  <div className="mb-4 flex flex-wrap gap-2">
-                    {active.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-warm-gray/15 bg-white/5 px-3 py-1 text-[11px] tracking-[0.12em] text-warm-gray/80 uppercase"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                  {active.permalink && (
+                    <a
+                      href={active.permalink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 inline-flex items-center gap-2 rounded-full bg-muted-red px-5 py-2.5 text-sm font-medium text-offwhite transition hover:bg-muted-red/85"
+                    >
+                      {t.gallery.viewInstagram}
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M7 17L17 7M9 7h8v8" />
+                      </svg>
+                    </a>
+                  )}
 
-                {active.body ? (
-                  <article className="space-y-3.5">
-                    {renderArticleBlocks(active.body, active.title).map((block, i) =>
-                      block.type === "h" ? (
-                        <h4 key={i} className="pt-2 font-serif text-[1.1rem] leading-snug text-offwhite/95">
-                          {block.text}
-                        </h4>
-                      ) : block.type === "li" ? (
-                        <div key={i} className="flex gap-3 text-sm leading-[1.8] text-warm-gray/90">
-                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-red/80" />
-                          <span>{block.text}</span>
-                        </div>
-                      ) : (
-                        <p key={i} className="text-sm leading-[1.85] text-warm-gray/90">
-                          {block.text}
-                        </p>
-                      )
-                    )}
-                  </article>
-                ) : (
-                  <p className="text-sm text-warm-gray/70">{t.gallery.empty}</p>
-                )}
+                  {active.tags.length > 0 && (
+                    <div className="mt-6 flex flex-wrap gap-2">
+                      {active.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full border border-warm-gray/15 bg-white/5 px-3 py-1 text-[11px] tracking-[0.12em] text-warm-gray/80 uppercase"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-6 h-px w-full bg-warm-gray/12" />
+
+                  {active.body ? (
+                    <article className="mt-6 space-y-3.5">
+                      {renderArticleBlocks(active.body, active.title).map((block, i) =>
+                        block.type === "h" ? (
+                          <h4 key={i} className="pt-2 font-serif text-[1.1rem] leading-snug text-offwhite/95">
+                            {block.text}
+                          </h4>
+                        ) : block.type === "li" ? (
+                          <div key={i} className="flex gap-3 text-sm leading-[1.8] text-warm-gray/90">
+                            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-red/80" />
+                            <span>{block.text}</span>
+                          </div>
+                        ) : (
+                          <p key={i} className="text-sm leading-[1.85] text-warm-gray/90">
+                            {block.text}
+                          </p>
+                        )
+                      )}
+                    </article>
+                  ) : (
+                    <p className="mt-6 text-sm text-warm-gray/70">{t.gallery.empty}</p>
+                  )}
+                </div>
               </div>
             </motion.div>
           </motion.div>
