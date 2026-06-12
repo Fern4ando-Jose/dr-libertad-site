@@ -20,7 +20,8 @@ export const pt = {
   },
   hero: {
     chips: ["filosofia aplicada", "psicologia", "atenção"],
-    title: "A liberdade começa quando você entende quem controla sua mente.",
+    title: "A liberdade começa quando você entende",
+    titleAccent: "quem controla sua mente.",
     lead: "Um estúdio editorial de ideias: desintoxicação digital, ansiedade moderna e inteligência emocional — com estética cinematográfica e prática diária.",
     ctaPrimary: "Entrar no manifesto",
     ctaSecondary: "Ver editorial",
@@ -164,7 +165,8 @@ export const es: Dict = {
   },
   hero: {
     chips: ["filosofía aplicada", "psicología", "atención"],
-    title: "La libertad empieza cuando entiendes quién controla tu mente.",
+    title: "La libertad empieza cuando entiendes",
+    titleAccent: "quién controla tu mente.",
     lead: "Un estudio editorial de ideas: desintoxicación digital, ansiedad moderna e inteligencia emocional — con estética cinematográfica y práctica diaria.",
     ctaPrimary: "Entrar al manifiesto",
     ctaSecondary: "Ver editorial",
