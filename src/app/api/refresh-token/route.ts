@@ -3,12 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * GET /api/refresh-token
  *
- * Renova o token de longa duração da Meta Instagram automaticamente.
- * Chame este endpoint via cron mensal (antes dos 60 dias expirarem).
+ * Renova o token de longa duração da Instagram (Instagram API with Instagram Login).
+ * Chame via cron mensal (antes dos 60 dias expirarem).
+ *
+ * Fluxo correto para tokens "IGAF..." (graph.instagram.com):
+ *   GET https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=...
+ * Não usa app_id/app_secret (esse é o fluxo do Facebook Login, que não se aplica aqui).
+ *
+ * Requisito da Meta: o token precisa ter pelo menos 24h e ainda estar válido.
  *
  * Fluxo:
- *  1. Lê o token atual do banco (tabela config)
- *  2. Chama a API da Meta para trocar por um novo token de 60 dias
+ *  1. Lê o token atual do banco (tabela config) com fallback para a env var
+ *  2. Chama o endpoint de refresh do Instagram para obter um novo token de 60 dias
  *  3. Salva o novo token no banco
  *
  * O publish/route.ts sempre lê o token do banco — sem intervenção manual.
@@ -21,19 +27,21 @@ export async function GET(req: NextRequest) {
 
   const { sql } = await import("@vercel/postgres");
 
-  // 1. Ler token atual do banco
+  // 1. Ler token atual do banco (fallback para env var)
   const rows = await sql`SELECT value FROM config WHERE key = 'meta_access_token'`;
   const currentToken = rows.rows[0]?.value ?? process.env.META_ACCESS_TOKEN;
 
   if (!currentToken) {
-    return NextResponse.json({ ok: false, error: "Nenhum token encontrado no banco nem no env var" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "Nenhum token encontrado no banco nem no env var" },
+      { status: 500 }
+    );
   }
 
-  // 2. Chamar API Meta para renovar
-  const appId = process.env.META_APP_ID!;
-  const appSecret = process.env.META_APP_SECRET!;
-
-  const refreshUrl = `https://graph.facebook.com/v25.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${currentToken}`;
+  // 2. Renovar via fluxo do Instagram Login (ig_refresh_token)
+  const refreshUrl =
+    `https://graph.instagram.com/refresh_access_token` +
+    `?grant_type=ig_refresh_token&access_token=${currentToken}`;
 
   const res = await fetch(refreshUrl);
   const data = await res.json();
