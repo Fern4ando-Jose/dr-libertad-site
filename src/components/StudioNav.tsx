@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
+import { useLang } from "@/lib/i18n/LanguageProvider";
 
 function scrollToSection(id: string) {
   const el = document.getElementById(id);
@@ -12,17 +13,10 @@ function scrollToSection(id: string) {
 }
 
 export default function StudioNav() {
+  const { t, lang, setLang } = useLang();
   const { scrollYProgress } = useScroll();
   const bg = useTransform(scrollYProgress, [0, 0.12], ["rgba(11,11,12,0)", "rgba(11,11,12,0.72)"]);
   const border = useTransform(scrollYProgress, [0, 0.12], ["rgba(185,176,162,0)", "rgba(185,176,162,0.14)"]);
-
-  const items: Array<{ id: string; label: string }> = [
-    { id: "manifesto", label: "Manifesto" },
-    { id: "topics", label: "Temas" },
-    { id: "gallery", label: "Editorial" },
-    { id: "quotes", label: "Citações" },
-    { id: "newsletter", label: "Newsletter" },
-  ];
 
   return (
     <motion.header
@@ -37,8 +31,9 @@ export default function StudioNav() {
         >
           DR. LIBERTAD
         </button>
+
         <nav className="hidden items-center gap-6 md:flex">
-          {items.map((it) => (
+          {t.nav.items.map((it) => (
             <button
               key={it.id}
               type="button"
@@ -49,13 +44,15 @@ export default function StudioNav() {
             </button>
           ))}
         </nav>
+
         <div className="flex items-center gap-3">
+          <LangToggle lang={lang} setLang={setLang} />
           <button
             type="button"
             onClick={() => scrollToSection("newsletter")}
             className="rounded-full border border-warm-gray/20 bg-white/5 px-4 py-2 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:bg-white/10 transition"
           >
-            Entrar na lista
+            {t.nav.cta}
           </button>
         </div>
       </div>
@@ -63,3 +60,36 @@ export default function StudioNav() {
   );
 }
 
+function LangToggle({ lang, setLang }: { lang: "pt" | "es"; setLang: (l: "pt" | "es") => void }) {
+  return (
+    <div
+      role="group"
+      aria-label="Idioma / Idioma"
+      className="relative flex items-center rounded-full border border-warm-gray/20 bg-white/5 p-0.5 text-[11px] tracking-[0.18em] uppercase"
+    >
+      {(["pt", "es"] as const).map((code) => {
+        const activeOn = lang === code;
+        return (
+          <button
+            key={code}
+            type="button"
+            onClick={() => setLang(code)}
+            aria-pressed={activeOn}
+            className={`relative z-10 rounded-full px-2.5 py-1 transition-colors ${
+              activeOn ? "text-offwhite" : "text-warm-gray/70 hover:text-offwhite"
+            }`}
+          >
+            {activeOn && (
+              <motion.span
+                layoutId="lang-pill"
+                className="absolute inset-0 -z-10 rounded-full bg-muted-red/80"
+                transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              />
+            )}
+            {code}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
