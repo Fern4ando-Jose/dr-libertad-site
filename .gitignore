@@ -4,8 +4,23 @@ node_modules/
 # Build do Next.js
 .next/
 out/
+*.tsbuildinfo
 
 # Arquivos de log e outros
 .env*.local
 .DS_Store
 *.log
+
+# Ferramentas locais do editor / Claude Code
+.claude/
+
+# Notas e rascunhos locais (não versionados)
+_notas/
+public_tmp/
+*.docx
+*.bck
+
+# Imagens soltas na raiz (screenshots, exports temporários)
+/*.jpg
+/*.jpeg
+/*.png
