@@ -1,12 +1,13 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import HeroFloatingDeck from "@/components/HeroFloatingDeck";
 import EditorialGrid from "@/components/EditorialGrid";
 import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
 import Marquee from "@/components/ui/Marquee";
+import { useLang } from "@/lib/i18n/LanguageProvider";
 
 function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
@@ -38,6 +39,8 @@ function ScrollHint() {
 }
 
 export default function Page() {
+  const { t } = useLang();
+
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -46,44 +49,6 @@ export default function Page() {
     if (lenis?.scrollTo) lenis.scrollTo(y);
     else window.scrollTo({ top: y, behavior: "smooth" });
   };
-
-  const quotes = useMemo(
-    () => [
-      {
-        id: "q1",
-        quote:
-          "Você não precisa vencer o mundo. Precisa parar de ser vencido pelo seu próprio feed.",
-        meta: "DR. LIBERTAD · nota editorial 01",
-      },
-      {
-        id: "q2",
-        quote:
-          "A mente é um palco. Se ninguém entra, você finalmente ouve o que sempre esteve lá.",
-        meta: "DR. LIBERTAD · nota editorial 02",
-      },
-      {
-        id: "q3",
-        quote:
-          "Liberdade não é ausência de estímulo; é habilidade de escolher a resposta.",
-        meta: "DR. LIBERTAD · nota editorial 03",
-      },
-    ],
-    []
-  );
-
-  const topics = useMemo(
-    () => [
-      { title: "Desintoxicação digital", desc: "Redesenhe seus incentivos para recuperar desejo e presença." },
-      { title: "Psicologia do hábito", desc: "Compreenda o ciclo de gatilho, rotina e recompensa." },
-      { title: "Ansiedade moderna", desc: "Ruído social + previsão excessiva = tensão constante." },
-      { title: "Vício em redes", desc: "Quando o scroll vira regulação emocional." },
-      { title: "Masculinidade consciente", desc: "Força, vulnerabilidade e disciplina com inteligência afetiva." },
-      { title: "Liberdade", desc: "Escolha deliberada sobre impulsos e recompensas rápidas." },
-      { title: "Inteligência emocional", desc: "Nomeie, processe e transforme emoção em ação." },
-      { title: "Comportamento humano", desc: "Biologia + aprendizado + contexto. Sem moralismo." },
-    ],
-    []
-  );
 
   const { scrollYProgress } = useScroll();
   const heroParallax = useTransform(scrollYProgress, [0, 0.8], [0, -70]);
@@ -152,9 +117,11 @@ export default function Page() {
               <div className="lg:col-span-7">
                 <div data-gsap="stagger" data-gsap-stagger="0.06">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="dl-chip" data-gsap-child="line">filosofia aplicada</span>
-                    <span className="dl-chip" data-gsap-child="line">psicologia</span>
-                    <span className="dl-chip" data-gsap-child="line">atenção</span>
+                    {t.hero.chips.map((chip) => (
+                      <span key={chip} className="dl-chip" data-gsap-child="line">
+                        {chip}
+                      </span>
+                    ))}
                   </div>
                 </div>
 
@@ -163,14 +130,13 @@ export default function Page() {
                     className="font-serif text-[clamp(2.5rem,5.4vw,5.1rem)] leading-[0.92] tracking-[-0.05em] text-balance"
                     data-gsap-child="line"
                   >
-                    A liberdade começa quando você entende quem controla sua mente.
+                    {t.hero.title}
                   </h1>
                 </div>
 
                 <div className="mt-6" data-gsap="reveal">
                   <p className="max-w-xl text-[1.05rem] leading-[1.85] text-warm-gray/90">
-                    Um estúdio editorial de ideias: desintoxicação digital, ansiedade moderna e inteligência emocional
-                    — com estética cinematográfica e prática diária.
+                    {t.hero.lead}
                   </p>
                 </div>
 
@@ -179,7 +145,7 @@ export default function Page() {
                     href="#manifesto"
                     className="group inline-flex items-center rounded-full border border-warm-gray/20 bg-white/5 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:bg-white/10 transition"
                   >
-                    Entrar no manifesto
+                    {t.hero.ctaPrimary}
                     <span className="ml-3 text-muted-red transition group-hover:translate-x-0.5">
                       {String.fromCharCode(8594)}
                     </span>
@@ -188,7 +154,7 @@ export default function Page() {
                     href="#gallery"
                     className="inline-flex items-center rounded-full border border-warm-gray/20 px-6 py-3 text-xs tracking-[0.22em] uppercase text-warm-gray/80 hover:text-offwhite hover:border-warm-gray/35 transition"
                   >
-                    Ver editorial
+                    {t.hero.ctaSecondary}
                   </a>
                 </div>
 
@@ -207,28 +173,22 @@ export default function Page() {
                     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] to-transparent pointer-events-none" />
                     <div className="relative z-10">
                       <div className="text-[10px] uppercase tracking-[0.35em] text-warm-gray/70">
-                        Ritual Diário
+                        {t.hero.deckEyebrow}
                       </div>
                       <h3 className="mt-4 text-3xl leading-[1.15] font-light text-offwhite">
-                        90 segundos de silêncio antes da reação automática.
+                        {t.hero.deckTitle}
                       </h3>
                       <p className="mt-4 text-sm leading-relaxed text-warm-gray/80">
-                        Entre o impulso e a resposta existe um espaço. É ali que a liberdade começa.
+                        {t.hero.deckLead}
                       </p>
                       <div className="mt-8 flex items-center gap-3">
                         <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.25em] text-warm-gray/75">
-                          foco
+                          {t.hero.deckTag}
                         </div>
-                        <div className="text-2xl font-semibold text-offwhite">
-                          90s
-                        </div>
+                        <div className="text-2xl font-semibold text-offwhite">90s</div>
                       </div>
                       <div className="mt-8 space-y-3">
-                        {[
-                          "Nomeie a emoção",
-                          "Observe o impulso",
-                          "Escolha conscientemente",
-                        ].map((item, i) => (
+                        {t.hero.deckSteps.map((item, i) => (
                           <div
                             key={i}
                             className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3"
@@ -252,20 +212,7 @@ export default function Page() {
       {/* MARQUEE */}
       <section className="border-b border-warm-gray/10">
         <StudioContainer>
-          <Marquee
-            className="py-5"
-            items={[
-              "CINEMATOGRÁFICO",
-              "EDITORIAL",
-              "FILOSOFIA",
-              "PSICOLOGIA",
-              "DESINTOXICAÇÃO DIGITAL",
-              "ATENÇÃO",
-              "LIBERDADE",
-              "MASCULINIDADE",
-              "INTELIGÊNCIA EMOCIONAL",
-            ]}
-          />
+          <Marquee className="py-5" items={t.marquee} />
         </StudioContainer>
       </section>
 
@@ -273,34 +220,17 @@ export default function Page() {
       <section id="manifesto" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
-            <SectionHeading eyebrow="MANIFESTO" title="Um manifesto de ritmo emocional: menos estímulo, mais escolha." />
+            <SectionHeading eyebrow={t.manifesto.eyebrow} title={t.manifesto.title} />
           </Reveal>
 
           <div className="mt-10 grid gap-6 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <div className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur">
                 <div className="text-sm tracking-[0.18em] text-warm-gray/80 uppercase">
-                  princípios
+                  {t.manifesto.principlesLabel}
                 </div>
                 <div className="mt-5 space-y-4">
-                  {[
-                    {
-                      t: "Você não tem falta de disciplina. Você tem falta de contexto.",
-                      d: "Tecnologia e ambiente foram projetados para capturar atenção. Seu trabalho é recuperar a arquitetura interna.",
-                    },
-                    {
-                      t: "A mente escolhe — mesmo quando parece automática.",
-                      d: "Impulsos são sinais. Você pode observar antes de agir.",
-                    },
-                    {
-                      t: "Ansiedade não é destino. É informação.",
-                      d: "Nomear a sensação reduz a força do ruído e aumenta a precisão da decisão.",
-                    },
-                    {
-                      t: "Masculinidade é presença emocional, não performance.",
-                      d: "Inteligência afetiva constrói liberdade real.",
-                    },
-                  ].map((item, idx) => (
+                  {t.manifesto.principles.map((item, idx) => (
                     <motion.div
                       key={item.t}
                       initial={{ opacity: 0, y: 14 }}
@@ -315,9 +245,7 @@ export default function Page() {
                         </span>
                         {item.t}
                       </div>
-                      <div className="mt-2 text-sm leading-[1.6] text-warm-gray/90">
-                        {item.d}
-                      </div>
+                      <div className="mt-2 text-sm leading-[1.6] text-warm-gray/90">{item.d}</div>
                     </motion.div>
                   ))}
                 </div>
@@ -333,15 +261,10 @@ export default function Page() {
                 className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur h-full"
               >
                 <div className="text-sm tracking-[0.18em] text-warm-gray/80 uppercase">
-                  uma promessa
+                  {t.manifesto.promiseLabel}
                 </div>
-                <h3 className="mt-4 text-[1.55rem] leading-[1.15]">
-                  Menos estímulo. Mais clareza. Decisões com alma.
-                </h3>
-                <p className="mt-4 text-sm leading-[1.7] text-warm-gray/90">
-                  A estética é silenciosa — mas a mudança é radical. Você vai aprender a
-                  reconhecer gatilhos, reduzir compulsão e fortalecer a relação com o próprio pensamento.
-                </p>
+                <h3 className="mt-4 text-[1.55rem] leading-[1.15]">{t.manifesto.promiseTitle}</h3>
+                <p className="mt-4 text-sm leading-[1.7] text-warm-gray/90">{t.manifesto.promiseLead}</p>
 
                 <div className="mt-6 flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full border border-warm-gray/20 bg-white/5 flex items-center justify-center text-muted-red">
@@ -349,23 +272,16 @@ export default function Page() {
                   </div>
                   <div>
                     <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
-                      ritmo
+                      {t.manifesto.rhythmLabel}
                     </div>
-                    <div className="text-sm text-offwhite/95">Ciclos curtos. Transformação contínua.</div>
+                    <div className="text-sm text-offwhite/95">{t.manifesto.rhythmValue}</div>
                   </div>
                 </div>
 
                 <div className="mt-8 grid grid-cols-2 gap-3">
-                  {[
-                    { k: "atenção", v: "projetada" },
-                    { k: "emoção", v: "nomeada" },
-                    { k: "impulso", v: "observado" },
-                    { k: "ação", v: "escolhida" },
-                  ].map((s) => (
+                  {t.manifesto.stats.map((s) => (
                     <div key={s.k} className="rounded-2xl border border-warm-gray/10 bg-ink/25 px-4 py-3">
-                      <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
-                        {s.k}
-                      </div>
+                      <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">{s.k}</div>
                       <div className="mt-1 text-sm text-offwhite/95">{s.v}</div>
                     </div>
                   ))}
@@ -380,12 +296,12 @@ export default function Page() {
       <section id="topics" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
-            <SectionHeading eyebrow="TEMAS" title="Pilares editoriais com ritmo de estúdio." />
+            <SectionHeading eyebrow={t.topics.eyebrow} title={t.topics.title} />
           </Reveal>
           <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {topics.map((t, idx) => (
+            {t.topics.items.map((topic, idx) => (
               <motion.article
-                key={t.title}
+                key={topic.title}
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
@@ -394,10 +310,10 @@ export default function Page() {
                 className="group rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur transition-colors"
               >
                 <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
-                  tema {String(idx + 1).padStart(2, "0")}
+                  {t.topics.label} {String(idx + 1).padStart(2, "0")}
                 </div>
-                <h3 className="mt-3 text-[1.25rem] leading-[1.1]">{t.title}</h3>
-                <p className="mt-3 text-sm leading-[1.7] text-warm-gray/90">{t.desc}</p>
+                <h3 className="mt-3 text-[1.25rem] leading-[1.1]">{topic.title}</h3>
+                <p className="mt-3 text-sm leading-[1.7] text-warm-gray/90">{topic.desc}</p>
                 <div className="mt-5 h-[1px] w-14 bg-warm-gray/25 group-hover:bg-muted-red transition-colors" />
               </motion.article>
             ))}
@@ -409,7 +325,7 @@ export default function Page() {
       <section id="gallery" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
-            <SectionHeading eyebrow="EDITORIAL" title="Cartazes filosóficos, capas de luxo, psicologia em alto contraste." />
+            <SectionHeading eyebrow={t.gallery.eyebrow} title={t.gallery.title} />
           </Reveal>
           <div className="mt-10">
             <EditorialGrid />
@@ -421,31 +337,25 @@ export default function Page() {
       <section id="quotes" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
-            <SectionHeading eyebrow="CITAÇÕES" title="Ideias curtas. Impacto longo." />
+            <SectionHeading eyebrow={t.quotes.eyebrow} title={t.quotes.title} />
           </Reveal>
 
           <div className="mt-10 space-y-6">
-            {quotes.map((q, idx) => (
+            {t.quotes.items.map((q, idx) => (
               <motion.blockquote
-                key={q.id}
+                key={q.meta}
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.6, delay: idx * 0.04 }}
-                className={
-                  idx % 2 === 0
-                    ? "rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur"
-                    : "rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur text-offwhite/95"
-                }
+                className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
-                      nota
+                      {t.quotes.noteLabel}
                     </div>
-                    <p className="mt-3 text-[1.35rem] leading-[1.4]">
-                      &ldquo;{q.quote}&rdquo;
-                    </p>
+                    <p className="mt-3 text-[1.35rem] leading-[1.4]">&ldquo;{q.quote}&rdquo;</p>
                   </div>
                   <div className="hidden sm:block text-muted-red text-5xl leading-none font-serif">
                     &ldquo;
@@ -464,12 +374,9 @@ export default function Page() {
           <div className="grid gap-8 lg:grid-cols-12 lg:items-center">
             <div className="lg:col-span-7">
               <Reveal>
-                <SectionHeading eyebrow="NEWSLETTER" title="Cartas curtas. Verdades longas." />
+                <SectionHeading eyebrow={t.newsletter.eyebrow} title={t.newsletter.title} />
               </Reveal>
-              <p className="mt-4 text-sm leading-[1.8] text-warm-gray/90">
-                Receba ensaios editoriais sobre atenção, desintoxicação digital, psicologia e liberdade interna.
-                Sem ruído. Só direção.
-              </p>
+              <p className="mt-4 text-sm leading-[1.8] text-warm-gray/90">{t.newsletter.lead}</p>
               <NewsletterForm />
             </div>
 
@@ -482,14 +389,10 @@ export default function Page() {
                 className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur"
               >
                 <div className="text-sm tracking-[0.18em] text-warm-gray/80 uppercase">
-                  o que você recebe
+                  {t.newsletter.benefitsLabel}
                 </div>
                 <div className="mt-5 space-y-3">
-                  {[
-                    { t: "Reflexões curtas", d: "Para quebrar o ciclo de reação e reacender a escolha." },
-                    { t: "Rituais práticos", d: "Micro-hábitos para reduzir compulsão e recuperar desejo." },
-                    { t: "Psicologia aplicada", d: "Entenda o porquê antes do como." },
-                  ].map((row, idx) => (
+                  {t.newsletter.benefits.map((row, idx) => (
                     <div key={row.t} className="rounded-2xl border border-warm-gray/10 bg-ink/25 px-5 py-4">
                       <div className="text-base">{row.t}</div>
                       <div className="mt-1 text-sm text-warm-gray/90 leading-[1.6]">{row.d}</div>
@@ -512,15 +415,10 @@ export default function Page() {
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-sm tracking-[0.22em] text-warm-gray/80 uppercase">DR. LIBERTAD</div>
-              <div className="mt-2 text-sm text-warm-gray/90">Filosofia aplicada à atenção e ao comportamento.</div>
+              <div className="mt-2 text-sm text-warm-gray/90">{t.footer.tagline}</div>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-warm-gray/90">
-              {[
-                { label: "Manifesto", id: "manifesto" },
-                { label: "Tópicos", id: "topics" },
-                { label: "Galeria", id: "gallery" },
-                { label: "Newsletter", id: "newsletter" },
-              ].map((link) => (
+              {t.footer.links.map((link) => (
                 <a
                   key={link.id}
                   className="hover:text-offwhite transition"
@@ -542,8 +440,33 @@ export default function Page() {
 }
 
 function NewsletterForm() {
+  const { t, lang } = useLang();
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "ok">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [msg, setMsg] = useState("");
+
+  const submit = async () => {
+    const value = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setStatus("error");
+      setMsg(t.newsletter.errorInvalid);
+      return;
+    }
+    setStatus("loading");
+    setMsg("");
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: value, lang }),
+      });
+      if (!res.ok) throw new Error();
+      setStatus("ok");
+    } catch {
+      setStatus("error");
+      setMsg(t.newsletter.errorGeneric);
+    }
+  };
 
   return (
     <div className="mt-7 rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur">
@@ -552,28 +475,30 @@ function NewsletterForm() {
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
-            setStatus("idle");
+            if (status !== "idle") setStatus("idle");
           }}
-          placeholder="Seu e-mail"
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          placeholder={t.newsletter.placeholder}
           type="email"
-          className="w-full rounded-2xl border border-warm-gray/15 bg-ink/35 px-4 py-3 text-offwhite placeholder:text-warm-gray/50 outline-none focus:border-muted-red/60"
+          disabled={status === "loading" || status === "ok"}
+          className="w-full rounded-2xl border border-warm-gray/15 bg-ink/35 px-4 py-3 text-offwhite placeholder:text-warm-gray/50 outline-none focus:border-muted-red/60 disabled:opacity-60"
         />
         <button
           type="button"
-          onClick={() => {
-            if (!email.trim()) return;
-            setStatus("ok");
-          }}
-          className="rounded-2xl bg-muted-red px-5 py-3 text-sm font-semibold text-offwhite transition hover:bg-muted-red/85"
+          onClick={submit}
+          disabled={status === "loading" || status === "ok"}
+          className="rounded-2xl bg-muted-red px-5 py-3 text-sm font-semibold text-offwhite transition hover:bg-muted-red/85 disabled:opacity-70"
         >
-          {status === "ok" ? "Inscrito ✓" : "Inscrever"}
+          {status === "ok"
+            ? t.newsletter.success
+            : status === "loading"
+            ? t.newsletter.submitting
+            : t.newsletter.submit}
         </button>
       </div>
       <div className="mt-3 text-xs leading-[1.6] text-warm-gray/80">
-        Ao se inscrever, você recebe conteúdo editorial. Sem spam. (Este formulário é uma demonstração visual.)
+        {status === "error" ? <span className="text-muted-red">{msg}</span> : t.newsletter.disclaimer}
       </div>
     </div>
   );
 }
-
-
