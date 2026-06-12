@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 
 type EditorialPost = {
@@ -40,6 +40,54 @@ const FALLBACK: EditorialPost[] = [
   },
 ];
 
+type Block = { type: "p" | "h" | "li"; text: string };
+
+// Converte o corpo (markdown/legenda) em blocos limpos para leitura:
+// remove #/##/**, trata listas e descarta linhas que são só hashtags.
+function renderArticleBlocks(raw: string, title: string): Block[] {
+  const lines = raw.replace(/\r/g, "").split("\n");
+  const blocks: Block[] = [];
+  let para: string[] = [];
+
+  const strip = (s: string) => s.replace(/\*\*/g, "").replace(/`/g, "").trim();
+  const flush = () => {
+    if (para.length) {
+      const text = strip(para.join(" "));
+      if (text) blocks.push({ type: "p", text });
+      para = [];
+    }
+  };
+
+  for (const line of lines) {
+    const tline = line.trim();
+    if (!tline) {
+      flush();
+      continue;
+    }
+    // Linha composta apenas de hashtags (#tag #tag) — já viram chips de tag, ignora.
+    if (/^(#[\wÁÉÍÓÚÜÑáéíóúüñ]+\s*)+$/.test(tline)) continue;
+    // Subtítulo markdown (# / ## / ###)
+    const h = tline.match(/^#{1,4}\s+(.*)/);
+    if (h) {
+      flush();
+      const ht = strip(h[1]);
+      if (ht && ht.toUpperCase() !== title.toUpperCase()) blocks.push({ type: "h", text: ht });
+      continue;
+    }
+    // Item de lista
+    const li = tline.match(/^[-*•]\s+(.*)/);
+    if (li) {
+      flush();
+      const lt = strip(li[1]);
+      if (lt) blocks.push({ type: "li", text: lt });
+      continue;
+    }
+    para.push(tline);
+  }
+  flush();
+  return blocks;
+}
+
 export default function EditorialGrid() {
   const { t } = useLang();
   const [posts, setPosts] = useState<EditorialPost[] | null>(null);
@@ -60,7 +108,8 @@ export default function EditorialGrid() {
     };
   }, []);
 
-  const cards = posts ?? [];
+  // Mostra apenas os 6 posts mais recentes (melhor equilíbrio visual: 2 fileiras de 3).
+  const cards = (posts ?? []).slice(0, 6);
 
   if (posts === null) {
     return <LoadingState label={t.gallery.loading} />;
@@ -131,57 +180,74 @@ export default function EditorialGrid() {
                 </div>
               </div>
 
-              <div className="overflow-y-auto p-6">
-                <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
-                  {active.tags.length ? active.tags.join(" · ") : active.kicker}
-                </div>
-
-                <div className="mt-4 flex items-start justify-between gap-6">
-                  <div className="font-serif text-[1.7rem] leading-[1.08] tracking-[-0.03em] text-offwhite">
-                    {active.title}
+              {/* Cabeçalho fixo: título + ação do Instagram sempre visível, sem rolar */}
+              <div className="shrink-0 border-b border-warm-gray/12 px-6 pt-5 pb-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="text-[11px] tracking-[0.22em] text-warm-gray/70 uppercase">
+                    {active.kicker} · {active.issue}
                   </div>
-                  <div className="shrink-0 rounded-2xl border border-warm-gray/15 bg-white/5 px-4 py-3 text-right">
-                    <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
-                      {t.gallery.issue}
-                    </div>
-                    <div className="mt-1 text-sm text-offwhite/95">{active.issue}</div>
-                  </div>
-                </div>
-
-                {active.body && (
-                  <div className="mt-5 space-y-3 text-sm leading-[1.85] text-warm-gray/90">
-                    {active.body
-                      .replace(/\*\*/g, "")
-                      .split(/\n{2,}/)
-                      .slice(0, 14)
-                      .map((para, i) => (
-                        <p key={i}>{para.trim()}</p>
-                      ))}
-                  </div>
-                )}
-
-                <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
-                  {active.permalink ? (
-                    <a
-                      href={active.permalink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-full bg-muted-red px-5 py-3 text-sm font-semibold text-offwhite transition hover:bg-muted-red/85"
-                    >
-                      {t.gallery.viewInstagram}
-                      <span aria-hidden="true">↗</span>
-                    </a>
-                  ) : (
-                    <span />
-                  )}
                   <button
                     type="button"
                     onClick={() => setActive(null)}
-                    className="rounded-full border border-warm-gray/20 bg-white/5 px-5 py-3 text-sm text-offwhite/95 transition hover:bg-white/10"
+                    aria-label={t.gallery.close}
+                    className="rounded-full border border-warm-gray/20 bg-white/5 px-3 py-1.5 text-xs text-warm-gray/80 transition hover:bg-white/10 hover:text-offwhite"
                   >
-                    {t.gallery.close}
+                    ✕
                   </button>
                 </div>
+                <div className="mt-3 font-serif text-[1.55rem] leading-[1.08] tracking-[-0.03em] text-offwhite">
+                  {active.title}
+                </div>
+                {active.permalink && (
+                  <a
+                    href={active.permalink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex items-center gap-2 rounded-full bg-muted-red px-5 py-2.5 text-sm font-semibold text-offwhite transition hover:bg-muted-red/85"
+                  >
+                    {t.gallery.viewInstagram}
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                )}
+              </div>
+
+              {/* Corpo rolável: artigo completo, formatado de forma limpa */}
+              <div className="overflow-y-auto px-6 py-5">
+                {active.tags.length > 0 && (
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {active.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-warm-gray/15 bg-white/5 px-3 py-1 text-[11px] tracking-[0.12em] text-warm-gray/80 uppercase"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {active.body ? (
+                  <article className="space-y-3.5">
+                    {renderArticleBlocks(active.body, active.title).map((block, i) =>
+                      block.type === "h" ? (
+                        <h4 key={i} className="pt-2 font-serif text-[1.1rem] leading-snug text-offwhite/95">
+                          {block.text}
+                        </h4>
+                      ) : block.type === "li" ? (
+                        <div key={i} className="flex gap-3 text-sm leading-[1.8] text-warm-gray/90">
+                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-red/80" />
+                          <span>{block.text}</span>
+                        </div>
+                      ) : (
+                        <p key={i} className="text-sm leading-[1.85] text-warm-gray/90">
+                          {block.text}
+                        </p>
+                      )
+                    )}
+                  </article>
+                ) : (
+                  <p className="text-sm text-warm-gray/70">{t.gallery.empty}</p>
+                )}
               </div>
             </motion.div>
           </motion.div>
