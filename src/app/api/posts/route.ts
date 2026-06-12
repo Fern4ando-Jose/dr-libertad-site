@@ -111,8 +111,27 @@ async function fetchDbPosts(): Promise<DbPost[]> {
   }
 }
 
+// Total real de edições publicadas — usado para numerar "ED. NN" de forma honesta
+// (o Instagram só devolve as 24 mais recentes, então o array não reflete o total real).
+async function fetchTotalCount(): Promise<number> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql<{ n: number }>`SELECT COUNT(*)::int AS n FROM posts`;
+    return r.rows[0]?.n ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function GET() {
-  const [igMedia, dbPosts] = await Promise.all([fetchInstagram(), fetchDbPosts()]);
+  const [igMedia, dbPosts, totalCount] = await Promise.all([
+    fetchInstagram(),
+    fetchDbPosts(),
+    fetchTotalCount(),
+  ]);
+
+  // Base de numeração: o total real do banco (ou o tamanho do array como fallback).
+  const editionBase = Math.max(totalCount, igMedia.length, dbPosts.length);
 
   // Mapa instagram_post_id -> registro do banco (título + corpo completos).
   const dbById = new Map<string, DbPost>();
@@ -132,7 +151,7 @@ export async function GET() {
       const kicker = (tags[0] ?? deriveKicker(title)).toUpperCase().slice(0, 14);
       return {
         id: m.id,
-        issue: `ED. ${String(igMedia.length - idx).padStart(2, "0")}`,
+        issue: `ED. ${String(editionBase - idx).padStart(2, "0")}`,
         kicker,
         title: title.toUpperCase(),
         subtitle: firstSentence(caption.replace(title, "")) || firstSentence(caption),
@@ -150,16 +169,16 @@ export async function GET() {
       const tags = normalizeTags(p.tags);
       return {
         id: p.instagram_post_id ?? `db-${idx}`,
-        issue: `ED. ${String(dbPosts.length - idx).padStart(2, "0")}`,
+        issue: `ED. ${String(editionBase - idx).padStart(2, "0")}`,
         kicker: (tags[0] ?? deriveKicker(p.title)).toUpperCase().slice(0, 14),
         title: p.title.toUpperCase(),
         subtitle: firstSentence(p.instagram_caption),
         tags,
         mood: idx % 2 === 0 ? "red" : "ink",
         image: null,
-        permalink: p.instagram_post_id
-          ? `https://www.instagram.com/p/${p.instagram_post_id}/`
-          : null,
+        // Sem permalink real do Instagram aqui: o id numérico não é o shortcode (/p/CODE/),
+        // então geraria 404. Deixamos null para não exibir um botão quebrado.
+        permalink: null,
         body: p.body,
         publishedAt: p.published_at,
       } satisfies EditorialPost;
