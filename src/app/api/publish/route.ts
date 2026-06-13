@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { generateIllustration } from "@/lib/illustration";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -76,6 +77,60 @@ const TOPIC_CAT: Record<string, string> = {
   "Desintoxicación digital": "dopamine",
   "Amor propio vs. autoexigencia": "self",
   "El ego y el miedo": "self",
+};
+
+// Desenho (motif) por TEMA — 1:1, espelha os MOTIF_IDS de /api/og.
+// A cor vem da categoria (TOPIC_CAT); o DESENHO é único por tema.
+// Mantenha em sincronia com og/route.tsx (type MotifId / MOTIF_IDS).
+const TOPIC_MOTIF: Record<string, string> = {
+  "Libertad mental": "gateway",
+  "Autoconocimiento profundo": "iris",
+  "Redes sociales y el impacto negativo en las relaciones": "web",
+  "Adicción a las redes sociales": "spiral",
+  "Dopamina y recompensa inmediata": "burst",
+  "Mucha elección, poca libertad": "branches",
+  "Ansiedad moderna": "waves",
+  "La trampa de la comparación social": "bars",
+  "Soledad en la era hiperconectada": "isolation",
+  "La validación externa como droga": "ripple",
+  "El miedo al fracaso como parálisis": "descent",
+  "Límites sanos y relaciones": "boundary",
+  "Procrastinación y culpa": "clock",
+  "Neuroplasticidad: puedes cambiar": "synapse",
+  "Perfeccionismo y ansiedad": "squares",
+  "El poder del aburrimiento": "orbit",
+  "Burnout emocional": "decay",
+  "La máscara social y el yo real": "masks",
+  "Desintoxicación digital": "unplug",
+  "Amor propio vs. autoexigencia": "embrace",
+  "El ego y el miedo": "mirror",
+};
+
+// Subject (metáfora visual, em inglês p/ melhor aderência do Flux) por TEMA.
+// Vira o slot {SUBJECT} do prompt de marca em src/lib/illustration.ts.
+// Colado a TOPIC_CAT/TOPIC_MOTIF — adicionar tema = atualizar os três.
+const TOPIC_SUBJECT: Record<string, string> = {
+  "Libertad mental": "an open birdcage with its door ajar and a single bird flying out toward open sky",
+  "Autoconocimiento profundo": "a human head in profile that opens like a door, a tiny figure exploring the inner landscape",
+  "Redes sociales y el impacto negativo en las relaciones": "two figures tethered by tangled threads to glowing phones, drifting apart",
+  "Adicción a las redes sociales": "a hand reaching into an endless downward spiral emerging from a phone screen",
+  "Dopamina y recompensa inmediata": "a brain with a few glowing reward receptors and a single bright spark",
+  "Mucha elección, poca libertad": "a small figure frozen before a wall of many identical doors",
+  "Ansiedad moderna": "a human head wrapped and entangled in a chaotic ball of yarn",
+  "La trampa de la comparación social": "two figures standing on uneven balance scales, measuring themselves",
+  "Soledad en la era hiperconectada": "a tiny solitary figure in vast empty space, surrounded by distant glowing screens",
+  "La validación externa como droga": "a figure reaching up for floating heart-shaped fruits just out of reach",
+  "El miedo al fracaso como parálisis": "a small figure frozen at the foot of an impossibly tall ladder",
+  "Límites sanos y relaciones": "a calm figure inside a clear circular garden wall, others gently kept outside",
+  "Procrastinación y culpa": "a figure pushing a heavy boulder made of melting clocks uphill",
+  "Neuroplasticidad: puedes cambiar": "a brain growing like a young tree, roots rewiring into new pathways",
+  "Perfeccionismo y ansiedad": "a figure endlessly polishing a cracked marble sculpture of itself",
+  "El poder del aburrimiento": "a lone figure gazing at a vast empty horizon, a single seed sprouting nearby",
+  "Burnout emocional": "a burnt-down candle shaped like a human figure, last wisp of smoke",
+  "La máscara social y el yo real": "a figure slowly lifting an expressionless mask away from its real face",
+  "Desintoxicación digital": "a smartphone dissolving into a flock of small birds flying free",
+  "Amor propio vs. autoexigencia": "a figure tenderly embracing itself, watering its own roots",
+  "El ego y el miedo": "a small fearful figure casting an enormous grandiose shadow on the wall",
 };
 
 // runIndex 0..5 → um dos 6 horários do dia. Garante 6 tópicos DISTINTOS por dia
@@ -346,15 +401,21 @@ export async function GET(req: NextRequest) {
 
         // Primeira tag como categoria do rodapé
         const tag = enc(content.tags[0] ?? kw);
-        // Categoria de direção de arte (cor + motivo) do slide
-        const cat = TOPIC_CAT[topic] ?? "freedom";
+        // Direção de arte do slide: cor (categoria) + desenho (motivo por tema)
+        const cat   = TOPIC_CAT[topic] ?? "freedom";
+        const motif = TOPIC_MOTIF[topic] ?? "gateway";
+
+        // Ilustração por IA (fal/Flux) na CAPA. null em falha → og usa o motivo abstrato.
+        const illustration = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat);
+        slotLog.illustration = illustration ? "ia" : "fallback-motivo";
+        const imgParam = illustration ? `&img=${encodeURIComponent(illustration)}` : "";
 
         const slideUrls: string[] = [
-          `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&total=${totalSlides}`,
+          `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}${imgParam}&total=${totalSlides}`,
           ...content.slides.map((text, i) =>
-            `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text)}&num=${i + 2}&total=${totalSlides}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}`
+            `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text)}&num=${i + 2}&total=${totalSlides}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}`
           ),
-          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&num=${totalSlides}&total=${totalSlides}`,
+          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}&num=${totalSlides}&total=${totalSlides}`,
         ];
 
         // Publicar carrossel

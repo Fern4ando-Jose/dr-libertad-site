@@ -87,17 +87,37 @@ function mulberry32(a: number): () => number {
 const M = 88; // margem interna (full-bleed)
 
 type Cat = "freedom" | "self" | "network" | "dopamine" | "anxiety" | "mind";
-type MotifKind = "gateway" | "masks" | "network" | "rings" | "waves" | "grid";
 
-interface CatStyle { accent: string; label: string; motif: MotifKind }
+// 21 motivos distintos — um por TEMA (não por categoria). A cor segue a
+// categoria (coesão de marca); o DESENHO é único por tema.
+type MotifId =
+  | "gateway" | "iris" | "web" | "spiral" | "burst" | "branches"
+  | "waves" | "bars" | "isolation" | "ripple" | "descent" | "boundary"
+  | "clock" | "synapse" | "squares" | "orbit" | "decay" | "masks"
+  | "unplug" | "embrace" | "mirror";
+
+const MOTIF_IDS: readonly MotifId[] = [
+  "gateway", "iris", "web", "spiral", "burst", "branches",
+  "waves", "bars", "isolation", "ripple", "descent", "boundary",
+  "clock", "synapse", "squares", "orbit", "decay", "masks",
+  "unplug", "embrace", "mirror",
+];
+
+interface CatStyle { accent: string; label: string }
 
 const CATS: Record<Cat, CatStyle> = {
-  freedom:  { accent: "#A45A5A", label: "LIBERTAD",   motif: "gateway" },
-  dopamine: { accent: "#BE7A2A", label: "RECOMPENSA", motif: "rings"   },
-  anxiety:  { accent: "#3D6360", label: "ANSIEDAD",   motif: "waves"   },
-  network:  { accent: "#3F5E78", label: "CONEXIÓN",   motif: "network" },
-  self:     { accent: "#835A6E", label: "EL YO",      motif: "masks"   },
-  mind:     { accent: "#5B6B3C", label: "LA MENTE",   motif: "grid"    },
+  freedom:  { accent: "#A45A5A", label: "LIBERTAD"   },
+  dopamine: { accent: "#BE7A2A", label: "RECOMPENSA" },
+  anxiety:  { accent: "#3D6360", label: "ANSIEDAD"   },
+  network:  { accent: "#3F5E78", label: "CONEXIÓN"   },
+  self:     { accent: "#835A6E", label: "EL YO"      },
+  mind:     { accent: "#5B6B3C", label: "LA MENTE"   },
+};
+
+// Motivo padrão por categoria (fallback quando ?motif= não vem)
+const CAT_DEFAULT_MOTIF: Record<Cat, MotifId> = {
+  freedom: "gateway", dopamine: "burst", anxiety: "waves",
+  network: "web", self: "masks", mind: "synapse",
 };
 
 // Deriva a categoria a partir do tópico/keyword (heurística por palavras-chave)
@@ -120,80 +140,231 @@ function rgba(hex: string, a: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
-// ─── Camada de motivo procedural — desenhada POR POST (seed) e inspirada no tema ─
-// Cada publicação tem um seed estável → desenho único, mas o "tipo" de motivo
-// segue o tema (anéis = recompensa, ondas = ansiedade, rede = conexão, etc.).
-function MotifLayer({ kind, accent, dark, seed }: {
-  kind: MotifKind; accent: string; dark: boolean; seed: number;
+// ─── Camada de motivo procedural — desenhada POR POST (seed) e POR TEMA ────────
+// SVG inline (curvas/espirais/ramos reais). 21 motivos distintos; cada post tem
+// seed estável → o mesmo tema sempre desenha igual, temas diferentes diferem.
+function MotifLayer({ motif, accent, dark, seed }: {
+  motif: MotifId; accent: string; dark: boolean; seed: number;
 }) {
   const rng = mulberry32(seed);
   const rnd = (a: number, b: number) => a + rng() * (b - a);
   const ri  = (a: number, b: number) => Math.floor(rnd(a, b + 1));
-  const ink = (op: number) => rgba(accent, (dark ? 1 : 0.6) * op);
-  const els: React.ReactNode[] = [];
+  // satori serializa <svg> inline para string e NÃO aceita filhos montados
+  // dinamicamente (array/fragment) → emitimos o SVG como string e renderizamos
+  // via <img> data-URI. Cor = accent; opacidade separada (rgba inline é frágil).
+  const a = (op: number) => ((dark ? 1 : 0.62) * op).toFixed(3);
+  const TAU = Math.PI * 2;
+  const parts: string[] = [];
+  const f = (n: number) => n.toFixed(1);
 
-  if (kind === "rings") {
-    // Recompensa / dopamina: laços concêntricos
-    const cx = rnd(0.58, 0.86) * W, cy = rnd(0.10, 0.30) * H;
-    const n = ri(4, 7), step = rnd(48, 74), r0 = rnd(22, 50), bw = rnd(3, 6);
-    for (let i = 0; i < n; i++) {
-      const r = r0 + i * step;
-      els.push(<div key={i} style={{ position: "absolute", left: cx - r, top: cy - r, width: r * 2, height: r * 2, borderRadius: "50%", border: `${bw}px solid ${ink(0.85 - i * 0.07)}`, display: "flex" }} />);
+  const ring = (cx: number, cy: number, r: number, op: number, w: number) =>
+    parts.push(`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(Math.max(1, r))}" fill="none" stroke="${accent}" stroke-opacity="${a(op)}" stroke-width="${w}"/>`);
+  const dot = (cx: number, cy: number, r: number, op: number) =>
+    parts.push(`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(Math.max(1, r))}" fill="${accent}" fill-opacity="${a(op)}"/>`);
+  const seg = (x1: number, y1: number, x2: number, y2: number, op: number, w: number) =>
+    parts.push(`<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="${accent}" stroke-opacity="${a(op)}" stroke-width="${w}" stroke-linecap="round"/>`);
+  const pline = (pts: [number, number][], op: number, w: number) =>
+    parts.push(`<polyline points="${pts.map(p => `${f(p[0])},${f(p[1])}`).join(" ")}" fill="none" stroke="${accent}" stroke-opacity="${a(op)}" stroke-width="${w}" stroke-linecap="round"/>`);
+  const pth = (d: string, op: number, w: number) =>
+    parts.push(`<path d="${d}" fill="none" stroke="${accent}" stroke-opacity="${a(op)}" stroke-width="${w}" stroke-linecap="round"/>`);
+
+  switch (motif) {
+    case "gateway": { // Libertad mental — portal/arco + raios de luz
+      const cx = rnd(0.46, 0.64) * W, top = rnd(0.16, 0.24) * H;
+      let w = rnd(0.44, 0.56) * W;
+      for (let i = 0, n = ri(2, 3); i < n; i++) {
+        const x1 = cx - w / 2, x2 = cx + w / 2, sh = w * 0.5;
+        pth(`M ${x1} ${H} L ${x1} ${top + sh} C ${x1} ${top}, ${x2} ${top}, ${x2} ${top + sh} L ${x2} ${H}`, 0.72 - i * 0.22, rnd(7, 11));
+        w *= rnd(0.6, 0.72);
+      }
+      for (let i = 0, n = ri(3, 5); i < n; i++) {
+        const rx = cx + rnd(-0.12, 0.12) * W;
+        seg(rx, top - rnd(20, 60), rx, top - rnd(140, 260), 0.4, 3);
+      }
+      break;
     }
-  } else if (kind === "masks") {
-    // El yo / máscaras: círculos sobrepostos
-    const n = ri(2, 3);
-    for (let i = 0; i < n; i++) {
-      const d = rnd(0.36, 0.56) * W, cx = rnd(0.34, 0.74) * W, cy = rnd(0.08, 0.32) * H;
-      els.push(<div key={i} style={{ position: "absolute", left: cx - d / 2, top: cy, width: d, height: d, borderRadius: "50%", border: `${rnd(6, 9)}px solid ${ink(0.72 - i * 0.16)}`, display: "flex" }} />);
+    case "iris": { // Autoconocimiento — olho / íris (mirar para dentro)
+      const cx = rnd(0.44, 0.66) * W, cy = rnd(0.16, 0.30) * H;
+      const ew = rnd(300, 420), eh = ew * rnd(0.46, 0.56);
+      pth(`M ${cx - ew / 2} ${cy} Q ${cx} ${cy - eh}, ${cx + ew / 2} ${cy}`, 0.7, 5);
+      pth(`M ${cx - ew / 2} ${cy} Q ${cx} ${cy + eh}, ${cx + ew / 2} ${cy}`, 0.7, 5);
+      for (let i = 0, n = ri(3, 5); i < n; i++) ring(cx, cy, eh * 0.72 * (1 - i / (n + 1)), 0.6 - i * 0.08, i === 0 ? 5 : 3);
+      dot(cx, cy, rnd(10, 16), 0.85);
+      break;
     }
-  } else if (kind === "gateway") {
-    // Libertad: arco / portal
-    const n = ri(1, 2);
-    for (let i = 0; i < n; i++) {
-      const w = rnd(0.5, 0.66) * W, x = rnd(0.40, 0.72) * W, top = rnd(0.12, 0.22) * H;
-      els.push(<div key={i} style={{ position: "absolute", left: x, top, width: w, height: H, border: `${rnd(8, 12)}px solid ${ink(0.7 - i * 0.32)}`, borderRadius: `${w / 2}px ${w / 2}px 0 0`, display: "flex" }} />);
+    case "web": { // Redes sociales — teia densa
+      const kk = ri(9, 13);
+      const pts: [number, number][] = [];
+      for (let i = 0; i < kk; i++) pts.push([rnd(0.08, 0.92) * W, rnd(0.05, 0.46) * H]);
+      for (let i = 0; i < kk; i++) {
+        const near = pts.map((p, j) => ({ j, dd: (p[0] - pts[i][0]) ** 2 + (p[1] - pts[i][1]) ** 2 }))
+          .filter(o => o.j !== i).sort((a, b) => a.dd - b.dd).slice(0, 2);
+        for (const o of near) seg(pts[i][0], pts[i][1], pts[o.j][0], pts[o.j][1], 0.3, 1.5);
+      }
+      pts.forEach(p => dot(p[0], p[1], rnd(5, 8), 0.85));
+      break;
     }
-  } else if (kind === "network") {
-    // Conexión / redes: nós ligados
-    const k = ri(6, 9);
-    const pts: [number, number][] = [];
-    for (let i = 0; i < k; i++) pts.push([rnd(0.10, 0.92) * W, rnd(0.06, 0.50) * H]);
-    for (let i = 0; i < k - 1; i++) {
-      const [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
-      const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
-      const ang = Math.atan2(dy, dx) * 180 / Math.PI;
-      els.push(<div key={"l" + i} style={{ position: "absolute", left: (x1 + x2) / 2 - len / 2, top: (y1 + y2) / 2, width: len, height: 2, background: ink(0.45), transform: `rotate(${ang}deg)`, display: "flex" }} />);
+    case "spiral": { // Adicción — espiral (scroll infinito que puxa pra dentro)
+      const cx = rnd(0.5, 0.72) * W, cy = rnd(0.16, 0.30) * H;
+      const turns = rnd(3.2, 4.6), maxR = rnd(180, 260), steps = 160;
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= steps; i++) { const t = i / steps, r = t * maxR, a = t * turns * TAU; pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); }
+      pline(pts, 0.65, 3.5);
+      dot(cx, cy, rnd(6, 10), 0.9);
+      break;
     }
-    pts.forEach(([x, y], i) => els.push(<div key={"n" + i} style={{ position: "absolute", left: x - 6, top: y - 6, width: 12, height: 12, borderRadius: "50%", background: ink(0.9), display: "flex" }} />));
-  } else if (kind === "waves") {
-    // Ansiedad: bandas de interferência
-    const n = ri(8, 13), ang = rnd(-22, -8), gap = (H * 0.92) / n;
-    for (let i = 0; i < n; i++) {
-      els.push(<div key={i} style={{ position: "absolute", left: -W * 0.1, top: rnd(0.02, 0.08) * H + i * gap, width: W * 1.3, height: rnd(2, 3), background: ink(0.5 - (i % 3) * 0.08), transform: `rotate(${ang}deg)`, display: "flex" }} />);
+    case "burst": { // Dopamina — explosão/raios de recompensa
+      const cx = rnd(0.5, 0.74) * W, cy = rnd(0.14, 0.28) * H;
+      const n = ri(18, 28), r0 = rnd(26, 46), r1 = rnd(150, 240);
+      for (let i = 0; i < n; i++) { const a = (i / n) * TAU + rnd(-0.05, 0.05), rr = r1 * rnd(0.7, 1); seg(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0, cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, 0.5, 2.5); }
+      ring(cx, cy, r0, 0.8, 3); dot(cx, cy, rnd(5, 8), 0.9);
+      break;
     }
-  } else {
-    // La mente / neuroplasticidad: grade + nós
-    const cell = Math.round(rnd(46, 66));
-    els.push(<div key="g" style={{ position: "absolute", inset: 0, display: "flex", background: `repeating-linear-gradient(0deg, ${rgba(accent, dark ? 0.16 : 0.10)} 0 1px, transparent 1px ${cell}px), repeating-linear-gradient(90deg, ${rgba(accent, dark ? 0.16 : 0.10)} 0 1px, transparent 1px ${cell}px)` }} />);
-    const k = ri(4, 8);
-    for (let i = 0; i < k; i++) {
-      const gx = ri(2, Math.max(3, Math.floor(W / cell) - 1)) * cell;
-      const gy = ri(1, Math.max(2, Math.floor((H * 0.45) / cell))) * cell;
-      els.push(<div key={"d" + i} style={{ position: "absolute", left: gx - 6, top: gy - 6, width: 12, height: 12, borderRadius: "50%", background: ink(0.8), display: "flex" }} />);
+    case "branches": { // Mucha elección — árvore de bifurcações
+      const grow = (x: number, y: number, ang: number, len: number, d: number) => {
+        if (d <= 0 || len < 9) return;
+        const x2 = x + Math.cos(ang) * len, y2 = y - Math.sin(ang) * len;
+        seg(x, y, x2, y2, 0.28 + 0.07 * d, Math.max(1.5, d * 0.9));
+        const sp = rnd(0.4, 0.7);
+        grow(x2, y2, ang + sp, len * rnd(0.62, 0.74), d - 1);
+        grow(x2, y2, ang - sp, len * rnd(0.62, 0.74), d - 1);
+      };
+      grow(rnd(0.4, 0.6) * W, H * rnd(0.46, 0.52), Math.PI / 2, rnd(150, 200), ri(4, 5));
+      break;
+    }
+    case "waves": { // Ansiedad — ondas de interferência
+      const n = ri(6, 9), top = rnd(0.08, 0.16) * H, gap = rnd(40, 64);
+      for (let i = 0; i < n; i++) {
+        const y = top + i * gap, amp = rnd(14, 30), wl = rnd(140, 220), ph = rnd(0, TAU);
+        const pts: [number, number][] = [];
+        for (let x = -40; x <= W + 40; x += 18) pts.push([x, y + Math.sin(x / wl * TAU + ph) * amp]);
+        pline(pts, 0.42 - (i % 3) * 0.06, 2.5);
+      }
+      break;
+    }
+    case "bars": { // Comparación social — barras desiguais
+      const n = ri(5, 8), bx = rnd(0.16, 0.26) * W, bw = rnd(48, 70), top = rnd(0.10, 0.18) * H, maxH = rnd(220, 320);
+      seg(bx - 20, top + maxH, bx + n * bw, top + maxH, 0.3, 2);
+      for (let i = 0; i < n; i++) { const h = maxH * rnd(0.3, 1), x = bx + i * bw; seg(x, top + maxH, x, top + maxH - h, 0.5, rnd(8, 12)); }
+      break;
+    }
+    case "isolation": { // Soledad — um nó isolado longe do grupo conectado
+      const cxg = rnd(0.6, 0.78) * W, cyg = rnd(0.14, 0.28) * H, kk = ri(5, 7);
+      const pts: [number, number][] = [];
+      for (let i = 0; i < kk; i++) pts.push([cxg + rnd(-130, 130), cyg + rnd(-110, 110)]);
+      for (let i = 0; i < kk; i++) for (let j = i + 1; j < kk; j++) if (rng() < 0.5) seg(pts[i][0], pts[i][1], pts[j][0], pts[j][1], 0.3, 1.5);
+      pts.forEach(p => dot(p[0], p[1], rnd(5, 8), 0.8));
+      const lx = rnd(0.12, 0.24) * W, ly = rnd(0.30, 0.42) * H;
+      ring(lx, ly, rnd(12, 18), 0.8, 3); dot(lx, ly, 4, 0.8);
+      break;
+    }
+    case "ripple": { // Validación — ondas de notificação a partir de um ponto
+      const cx = rnd(0.66, 0.84) * W, cy = rnd(0.10, 0.20) * H, n = ri(4, 6), step = rnd(46, 66);
+      for (let i = 0; i < n; i++) ring(cx, cy, (i + 1) * step, 0.6 - i * 0.1, 3 - i * 0.2);
+      dot(cx, cy, rnd(8, 12), 0.9);
+      break;
+    }
+    case "descent": { // Miedo al fracaso — queda em escada
+      const pts: [number, number][] = []; let x = rnd(0.08, 0.16) * W, y = rnd(0.10, 0.16) * H;
+      const n = ri(6, 9), dx = (W * 0.78) / n;
+      for (let i = 0; i < n; i++) { pts.push([x, y]); x += dx; y += rnd(20, 70); }
+      pline(pts, 0.55, 4);
+      pts.forEach((p, i) => { if (i % 2 === 0) dot(p[0], p[1], 4, 0.6); });
+      break;
+    }
+    case "boundary": { // Límites sanos — dois círculos e a fronteira
+      const cy = rnd(0.16, 0.28) * H, gap = rnd(60, 110), r = rnd(120, 170);
+      ring(W * 0.5 - gap / 2 - r, cy, r, 0.6, 5); ring(W * 0.5 + gap / 2 + r, cy, r, 0.6, 5);
+      seg(W * 0.5, cy - r - 30, W * 0.5, cy + r + 30, 0.55, 3);
+      break;
+    }
+    case "clock": { // Procrastinación — relógio / atraso
+      const cx = rnd(0.46, 0.64) * W, cy = rnd(0.16, 0.28) * H, R = rnd(130, 180);
+      ring(cx, cy, R, 0.6, 4);
+      for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; seg(cx + Math.cos(a) * (R - 14), cy + Math.sin(a) * (R - 14), cx + Math.cos(a) * R, cy + Math.sin(a) * R, 0.4, 2); }
+      const a1 = rnd(0, TAU), a2 = rnd(0, TAU);
+      seg(cx, cy, cx + Math.cos(a1) * R * 0.5, cy + Math.sin(a1) * R * 0.5, 0.7, 4);
+      seg(cx, cy, cx + Math.cos(a2) * R * 0.78, cy + Math.sin(a2) * R * 0.78, 0.7, 3);
+      dot(cx, cy, 6, 0.8);
+      break;
+    }
+    case "synapse": { // Neuroplasticidad — religar (novas vias)
+      const cols = ri(5, 7), rows = ri(3, 4), gx = (W * 0.7) / (cols - 1), gy = (H * 0.34) / (rows - 1), ox = W * 0.15, oy = H * 0.08;
+      const nodes: [number, number][] = [];
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { const x = ox + c * gx + rnd(-8, 8), y = oy + r * gy + rnd(-8, 8); nodes.push([x, y]); dot(x, y, 3, 0.4); }
+      for (let i = 0, m = ri(4, 6); i < m; i++) {
+        const a = nodes[ri(0, nodes.length - 1)], b = nodes[ri(0, nodes.length - 1)];
+        pth(`M ${a[0]} ${a[1]} Q ${(a[0] + b[0]) / 2 + rnd(-60, 60)} ${(a[1] + b[1]) / 2 + rnd(-50, 50)}, ${b[0]} ${b[1]}`, 0.5, 2.5);
+      }
+      break;
+    }
+    case "squares": { // Perfeccionismo — quadrados concêntricos rígidos
+      const cx = rnd(0.46, 0.62) * W, cy = rnd(0.16, 0.28) * H; let s = rnd(220, 300);
+      for (let i = 0, n = ri(5, 7); i < n; i++) {
+        const h = s / 2;
+        pline([[cx - h, cy - h], [cx + h, cy - h], [cx + h, cy + h], [cx - h, cy + h], [cx - h, cy - h]], 0.55 - i * 0.05, 3);
+        s *= rnd(0.74, 0.82);
+      }
+      break;
+    }
+    case "orbit": { // Aburrimiento — uma órbita mínima (vazio fértil)
+      const cx = rnd(0.46, 0.62) * W, cy = rnd(0.18, 0.30) * H, R = rnd(150, 210);
+      ring(cx, cy, R, 0.45, 2.5);
+      const a = rnd(0, TAU); dot(cx + Math.cos(a) * R, cy + Math.sin(a) * R, rnd(8, 12), 0.8);
+      dot(cx, cy, rnd(5, 8), 0.6);
+      break;
+    }
+    case "decay": { // Burnout — barras que decaem (energia drenando)
+      const n = ri(7, 11), bx = rnd(0.12, 0.18) * W, bw = (W * 0.7) / n, base = rnd(0.30, 0.40) * H, maxH = rnd(180, 260);
+      for (let i = 0; i < n; i++) { const t = 1 - i / n, h = maxH * t * rnd(0.85, 1), x = bx + i * bw; seg(x, base, x, base - h, 0.55 * t + 0.12, rnd(6, 9)); }
+      break;
+    }
+    case "masks": { // Máscara social vs. yo real — duas faces sobrepostas
+      const cy = rnd(0.14, 0.26) * H, d = rnd(150, 200), off = rnd(70, 120);
+      ring(W * 0.5 - off, cy, d, 0.6, 6); ring(W * 0.5 + off, cy, d * rnd(0.85, 1.05), 0.5, 6);
+      break;
+    }
+    case "unplug": { // Desintoxicación digital — laço quebrado/aberto
+      const cx = rnd(0.5, 0.66) * W, cy = rnd(0.18, 0.30) * H, R = rnd(130, 180);
+      const gap = rnd(0.6, 1.0), a0 = gap / 2, a1 = TAU - gap / 2, steps = 80;
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= steps; i++) { const a = a0 + (a1 - a0) * i / steps; pts.push([cx + Math.cos(a) * R, cy + Math.sin(a) * R]); }
+      pline(pts, 0.6, 4);
+      const ex = cx + Math.cos(a0) * R, ey = cy + Math.sin(a0) * R;
+      pth(`M ${ex} ${ey} Q ${ex + 40} ${ey - 40}, ${ex + 10} ${ey - 90}`, 0.5, 3);
+      break;
+    }
+    case "embrace": { // Amor propio — círculos aninhados em equilíbrio
+      const cx = rnd(0.46, 0.6) * W, cy = rnd(0.18, 0.30) * H;
+      ring(cx, cy, rnd(160, 200), 0.5, 4); ring(cx, cy, rnd(90, 130), 0.6, 4);
+      pth(`M ${cx - 210} ${cy} A 210 210 0 0 1 ${cx + 210} ${cy}`, 0.4, 3);
+      dot(cx, cy, rnd(6, 10), 0.7);
+      break;
+    }
+    case "mirror": { // El ego y el miedo — espelho partido
+      const cy = rnd(0.16, 0.28) * H, cx = W * 0.5, off = rnd(120, 170), R = rnd(110, 150);
+      seg(cx, cy - R - 40, cx, cy + R + 40, 0.5, 2);
+      ring(cx - off, cy, R, 0.6, 5);
+      for (let i = 0, segs = ri(5, 7); i < segs; i++) {
+        const a0 = i / segs * TAU, a1 = (i + 1) / segs * TAU, jit = rnd(-8, 8), pts: [number, number][] = [];
+        for (let s = 0; s <= 10; s++) { const a = a0 + (a1 - a0) * s / 10; pts.push([cx + off + jit + Math.cos(a) * R, cy + jit + Math.sin(a) * R]); }
+        pline(pts, 0.5, 4);
+      }
+      break;
     }
   }
 
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${parts.join("")}</svg>`;
   return (
-    <div style={{ position: "absolute", inset: 0, display: "flex", overflow: "hidden" }}>
-      {els}
+    <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex" }}>
+      <img src={`data:image/svg+xml;base64,${btoa(svg)}`} width={W} height={H} style={{ position: "absolute", top: 0, left: 0 }} />
     </div>
   );
 }
 
 // ─── Superfície full-bleed: fundo + atmosfera + motivo ────────────────────────
-function Surface({ dark, accent, motif, seed, children }: {
-  dark: boolean; accent: string; motif: MotifKind; seed: number; children: React.ReactNode;
+function Surface({ dark, accent, motif, seed, img, children }: {
+  dark: boolean; accent: string; motif: MotifId; seed: number; img?: string; children: React.ReactNode;
 }) {
   return (
     <div style={{
@@ -201,14 +372,27 @@ function Surface({ dark, accent, motif, seed, children }: {
       background: dark ? INK : OFFWHITE,
       color:      dark ? OFFWHITE : INK,
     }}>
-      {/* atmosfera */}
-      <div style={{
-        position: "absolute", inset: 0, display: "flex",
-        background: dark
-          ? `radial-gradient(circle at 78% 16%, ${rgba(accent, 0.34)}, transparent 58%), radial-gradient(circle at 18% 92%, rgba(0,0,0,0.55), transparent 55%)`
-          : `radial-gradient(circle at 20% 14%, rgba(231,221,204,0.65), transparent 58%), radial-gradient(circle at 84% 86%, ${rgba(accent, 0.12)}, transparent 55%)`,
-      }} />
-      <MotifLayer kind={motif} accent={accent} dark={dark} seed={seed} />
+      {img ? (
+        // Ilustração por IA full-bleed + scrim (contraste do texto ≥ 4.5:1)
+        <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex" }}>
+          <img src={img} width={W} height={H} style={{ width: W, height: H, objectFit: "cover" }} />
+          <div style={{
+            position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex",
+            background: `linear-gradient(180deg, rgba(11,11,12,0.48) 0%, rgba(11,11,12,0.10) 38%, rgba(11,11,12,0.82) 100%)`,
+          }} />
+        </div>
+      ) : (
+        <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex" }}>
+          {/* atmosfera */}
+          <div style={{
+            position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex",
+            background: dark
+              ? `radial-gradient(circle at 78% 16%, ${rgba(accent, 0.34)}, transparent 58%), radial-gradient(circle at 18% 92%, rgba(0,0,0,0.55), transparent 55%)`
+              : `radial-gradient(circle at 20% 14%, rgba(231,221,204,0.65), transparent 58%), radial-gradient(circle at 84% 86%, ${rgba(accent, 0.12)}, transparent 55%)`,
+          }} />
+          <MotifLayer motif={motif} accent={accent} dark={dark} seed={seed} />
+        </div>
+      )}
       {/* conteúdo */}
       <div style={{
         position: "relative", display: "flex", flexDirection: "column",
@@ -259,17 +443,18 @@ function Footer({ left, accent, dark, num, total }: {
 }
 
 // ─── SLIDE 1: Capa ────────────────────────────────────────────────────────────
-function CoverSlide({ title, kw, issue, mood, cat, total, seed }: {
-  title: string; kw: string; issue: string; mood: "red" | "ink"; cat: Cat; total: number; seed: number;
+function CoverSlide({ title, kw, issue, mood, cat, motif, total, seed, img }: {
+  title: string; kw: string; issue: string; mood: "red" | "ink"; cat: Cat; motif: MotifId; total: number; seed: number; img?: string;
 }) {
   const c    = CATS[cat];
-  const dark = mood === "ink";
+  // Sobre ilustração, o texto vai claro (scrim escuro garante contraste).
+  const dark = img ? true : mood === "ink";
   return (
-    <Surface dark={dark} accent={c.accent} motif={c.motif} seed={seed}>
+    <Surface dark={dark} accent={c.accent} motif={motif} seed={seed} img={img}>
       <Folio issue={issue} accent={c.accent} dark={dark} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
         <span style={{ fontFamily: SERIF, fontSize: 28, letterSpacing: "0.28em", color: c.accent, marginBottom: 30 }}>
-          {c.label}{kw ? ` · ${kw}` : ""}
+          {c.label}{kw && kw.toUpperCase() !== c.label.toUpperCase() ? ` · ${kw}` : ""}
         </span>
         <div style={{ fontFamily: SERIF, fontSize: fitTitleSize(title, W - 2 * M), lineHeight: 0.92, letterSpacing: "-0.035em", color: dark ? OFFWHITE : INK, maxWidth: W - 2 * M, display: "flex" }}>
           {title.toUpperCase()}
@@ -281,8 +466,8 @@ function CoverSlide({ title, kw, issue, mood, cat, total, seed }: {
 }
 
 // ─── SLIDE 2-N: Insight ───────────────────────────────────────────────────────
-function InsightSlide({ text, num, total, kw, issue, cat, seed }: {
-  text: string; num: number; total: number; kw: string; issue: string; cat: Cat; seed: number;
+function InsightSlide({ text, num, total, kw, issue, cat, motif, seed }: {
+  text: string; num: number; total: number; kw: string; issue: string; cat: Cat; motif: MotifId; seed: number;
 }) {
   const c = CATS[cat];
   // Dividir: última frase vira subtítulo
@@ -301,7 +486,7 @@ function InsightSlide({ text, num, total, kw, issue, cat, seed }: {
   }
 
   return (
-    <Surface dark={false} accent={c.accent} motif={c.motif} seed={seed}>
+    <Surface dark={false} accent={c.accent} motif={motif} seed={seed}>
       <Folio issue={issue} accent={c.accent} dark={false} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <span style={{ fontFamily: SERIF, fontSize: 132, lineHeight: 0.8, letterSpacing: "-0.04em", color: rgba(c.accent, 0.92), marginBottom: 18, display: "flex" }}>
@@ -322,12 +507,12 @@ function InsightSlide({ text, num, total, kw, issue, cat, seed }: {
 }
 
 // ─── SLIDE FINAL: CTA ─────────────────────────────────────────────────────────
-function CTASlide({ text, issue, cat, total, seed }: {
-  text: string; issue: string; cat: Cat; total: number; seed: number;
+function CTASlide({ text, issue, cat, motif, total, seed }: {
+  text: string; issue: string; cat: Cat; motif: MotifId; total: number; seed: number;
 }) {
   const c = CATS[cat];
   return (
-    <Surface dark={true} accent={c.accent} motif={c.motif} seed={seed}>
+    <Surface dark={true} accent={c.accent} motif={motif} seed={seed}>
       <Folio issue={issue} accent={c.accent} dark={true} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <span style={{ fontFamily: SERIF, fontSize: 28, letterSpacing: "0.30em", color: c.accent, marginBottom: 32, display: "flex" }}>
@@ -367,19 +552,28 @@ export async function GET(req: NextRequest) {
     const catParam = searchParams.get("cat");
     const cat: Cat = catParam && (catParam in CATS) ? (catParam as Cat) : detectCat(`${title} ${text} ${kw} ${tag}`);
 
+    // Motivo (desenho) por TEMA: vem de ?motif= ou cai no padrão da categoria
+    const motifParam = searchParams.get("motif");
+    const motif: MotifId = motifParam && (MOTIF_IDS as readonly string[]).includes(motifParam)
+      ? (motifParam as MotifId)
+      : CAT_DEFAULT_MOTIF[cat];
+
     // Seed estável por POST (mesmo em todas as slides do carrossel) → desenho único
     const seedParam = searchParams.get("seed");
-    const seed = seedParam ? hashStr(seedParam) : hashStr(`${issue}|${kw}|${cat}`);
+    const seed = seedParam ? hashStr(seedParam) : hashStr(`${issue}|${kw}|${cat}|${motif}`);
+
+    // Ilustração por IA (capa): URL pública vinda do /api/publish. Ausente → motivo.
+    const img = searchParams.get("img") || undefined;
 
     const fontBold = loadFraunces();
 
     let node;
     if (slide === "cta") {
-      node = <CTASlide text={text || title} issue={issue} cat={cat} total={total} seed={seed} />;
+      node = <CTASlide text={text || title} issue={issue} cat={cat} motif={motif} total={total} seed={seed} />;
     } else if (slide === "insight") {
-      node = <InsightSlide text={text} num={num} total={total} kw={kw} issue={issue} cat={cat} seed={seed} />;
+      node = <InsightSlide text={text} num={num} total={total} kw={kw} issue={issue} cat={cat} motif={motif} seed={seed} />;
     } else {
-      node = <CoverSlide title={title} kw={kw} issue={issue} mood={mood} cat={cat} total={total} seed={seed} />;
+      node = <CoverSlide title={title} kw={kw} issue={issue} mood={mood} cat={cat} motif={motif} total={total} seed={seed} img={img} />;
     }
 
     const fonts = [{ name: "Fraunces", data: fontBold, weight: 700 as const, style: "normal" as const }];
