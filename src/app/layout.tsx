@@ -6,7 +6,9 @@ import SmoothScroll from "@/components/SmoothScroll";
 import ScrollProgress from "@/components/ScrollProgress";
 import StudioNav from "@/components/StudioNav";
 import GsapOrchestrator from "@/components/GsapOrchestrator";
+import JsonLd from "@/components/JsonLd";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -84,6 +86,11 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
+  // Verificação do Google Search Console: defina GOOGLE_SITE_VERIFICATION no
+  // ambiente (Vercel) com o código que o Search Console fornecer.
+  ...(process.env.GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+    : {}),
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -102,6 +109,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${inter.variable} ${fraunces.variable} dark`} suppressHydrationWarning>
       <body className="bg-ink text-offwhite antialiased">
+        <JsonLd />
         <LanguageProvider>
           <Spotlight />
           <SmoothScroll />
@@ -110,6 +118,7 @@ export default function RootLayout({
           <GsapOrchestrator />
           {children}
         </LanguageProvider>
+        <Analytics />
       </body>
     </html>
   );
