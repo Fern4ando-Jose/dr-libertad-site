@@ -146,6 +146,8 @@ async function generateContent(
 Tema: "${topic}"
 ${SLOT_INSTRUCTIONS[slot]}
 
+REGLA DE MARCA (Dr. Libertad): aborda CUALQUIER tema desde el ángulo de la LIBERTAD mental — recuperar el control, la atención y la autonomía frente a lo que nos esclaviza (algoritmos, validación, miedo, hábitos). El título y al menos uno de los insights deben conectar explícitamente con esa idea de libertad/liberación. Nada de psicología genérica: siempre remite a la marca.
+
 Contexto investigado:
 ${context}
 

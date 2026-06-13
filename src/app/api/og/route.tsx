@@ -59,6 +59,30 @@ function titleSize(text: string): number {
   return 54;
 }
 
+// Garante que o título caiba na largura: limita pela palavra MAIS LONGA
+// (Fraunces 700 em caixa-alta ≈ 0.66·fontSize por caractere). Evita corte.
+function fitTitleSize(text: string, maxWidth: number): number {
+  const base = titleSize(text);
+  const longest = text.split(/\s+/).reduce((m, w) => Math.max(m, w.length), 0);
+  const byWord = Math.floor(maxWidth / Math.max(longest, 1) / 0.66);
+  return Math.max(40, Math.min(base, byWord));
+}
+
+// RNG determinístico por post: mesmo seed → mesmo desenho (estável entre renders)
+function hashStr(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(a: number): () => number {
+  return () => {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 // ─── Direção de arte por tema (sem IA: cor de tinta + motivo procedural) ──────
 const M = 88; // margem interna (full-bleed)
 
@@ -96,55 +120,80 @@ function rgba(hex: string, a: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
-// ─── Camada de motivo procedural (fundo, atrás do conteúdo) ───────────────────
-function MotifLayer({ kind, accent, dark }: { kind: MotifKind; accent: string; dark: boolean }) {
-  const a    = dark ? 0.55 : 0.20;
-  const line = dark ? rgba("#F4F0E8", 0.10) : rgba("#0B0B0C", 0.07);
+// ─── Camada de motivo procedural — desenhada POR POST (seed) e inspirada no tema ─
+// Cada publicação tem um seed estável → desenho único, mas o "tipo" de motivo
+// segue o tema (anéis = recompensa, ondas = ansiedade, rede = conexão, etc.).
+function MotifLayer({ kind, accent, dark, seed }: {
+  kind: MotifKind; accent: string; dark: boolean; seed: number;
+}) {
+  const rng = mulberry32(seed);
+  const rnd = (a: number, b: number) => a + rng() * (b - a);
+  const ri  = (a: number, b: number) => Math.floor(rnd(a, b + 1));
+  const ink = (op: number) => rgba(accent, (dark ? 1 : 0.6) * op);
+  const els: React.ReactNode[] = [];
 
-  let bg = "transparent";
   if (kind === "rings") {
-    bg = `repeating-radial-gradient(circle at 82% 20%, ${rgba(accent, a)} 0 2px, transparent 2px 56px)`;
-  } else if (kind === "waves") {
-    bg = `repeating-linear-gradient(98deg, ${rgba(accent, a * 0.8)} 0 2px, transparent 2px 30px)`;
-  } else if (kind === "grid") {
-    bg = `repeating-linear-gradient(0deg, ${line} 0 1px, transparent 1px 54px), repeating-linear-gradient(90deg, ${line} 0 1px, transparent 1px 54px)`;
+    // Recompensa / dopamina: laços concêntricos
+    const cx = rnd(0.58, 0.86) * W, cy = rnd(0.10, 0.30) * H;
+    const n = ri(4, 7), step = rnd(48, 74), r0 = rnd(22, 50), bw = rnd(3, 6);
+    for (let i = 0; i < n; i++) {
+      const r = r0 + i * step;
+      els.push(<div key={i} style={{ position: "absolute", left: cx - r, top: cy - r, width: r * 2, height: r * 2, borderRadius: "50%", border: `${bw}px solid ${ink(0.85 - i * 0.07)}`, display: "flex" }} />);
+    }
+  } else if (kind === "masks") {
+    // El yo / máscaras: círculos sobrepostos
+    const n = ri(2, 3);
+    for (let i = 0; i < n; i++) {
+      const d = rnd(0.36, 0.56) * W, cx = rnd(0.34, 0.74) * W, cy = rnd(0.08, 0.32) * H;
+      els.push(<div key={i} style={{ position: "absolute", left: cx - d / 2, top: cy, width: d, height: d, borderRadius: "50%", border: `${rnd(6, 9)}px solid ${ink(0.72 - i * 0.16)}`, display: "flex" }} />);
+    }
+  } else if (kind === "gateway") {
+    // Libertad: arco / portal
+    const n = ri(1, 2);
+    for (let i = 0; i < n; i++) {
+      const w = rnd(0.5, 0.66) * W, x = rnd(0.40, 0.72) * W, top = rnd(0.12, 0.22) * H;
+      els.push(<div key={i} style={{ position: "absolute", left: x, top, width: w, height: H, border: `${rnd(8, 12)}px solid ${ink(0.7 - i * 0.32)}`, borderRadius: `${w / 2}px ${w / 2}px 0 0`, display: "flex" }} />);
+    }
   } else if (kind === "network") {
-    bg = `repeating-radial-gradient(circle at 16% 16%, ${rgba(accent, a)} 0 4px, transparent 4px 92px)`;
+    // Conexión / redes: nós ligados
+    const k = ri(6, 9);
+    const pts: [number, number][] = [];
+    for (let i = 0; i < k; i++) pts.push([rnd(0.10, 0.92) * W, rnd(0.06, 0.50) * H]);
+    for (let i = 0; i < k - 1; i++) {
+      const [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+      const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
+      const ang = Math.atan2(dy, dx) * 180 / Math.PI;
+      els.push(<div key={"l" + i} style={{ position: "absolute", left: (x1 + x2) / 2 - len / 2, top: (y1 + y2) / 2, width: len, height: 2, background: ink(0.45), transform: `rotate(${ang}deg)`, display: "flex" }} />);
+    }
+    pts.forEach(([x, y], i) => els.push(<div key={"n" + i} style={{ position: "absolute", left: x - 6, top: y - 6, width: 12, height: 12, borderRadius: "50%", background: ink(0.9), display: "flex" }} />));
+  } else if (kind === "waves") {
+    // Ansiedad: bandas de interferência
+    const n = ri(8, 13), ang = rnd(-22, -8), gap = (H * 0.92) / n;
+    for (let i = 0; i < n; i++) {
+      els.push(<div key={i} style={{ position: "absolute", left: -W * 0.1, top: rnd(0.02, 0.08) * H + i * gap, width: W * 1.3, height: rnd(2, 3), background: ink(0.5 - (i % 3) * 0.08), transform: `rotate(${ang}deg)`, display: "flex" }} />);
+    }
+  } else {
+    // La mente / neuroplasticidad: grade + nós
+    const cell = Math.round(rnd(46, 66));
+    els.push(<div key="g" style={{ position: "absolute", inset: 0, display: "flex", background: `repeating-linear-gradient(0deg, ${rgba(accent, dark ? 0.16 : 0.10)} 0 1px, transparent 1px ${cell}px), repeating-linear-gradient(90deg, ${rgba(accent, dark ? 0.16 : 0.10)} 0 1px, transparent 1px ${cell}px)` }} />);
+    const k = ri(4, 8);
+    for (let i = 0; i < k; i++) {
+      const gx = ri(2, Math.max(3, Math.floor(W / cell) - 1)) * cell;
+      const gy = ri(1, Math.max(2, Math.floor((H * 0.45) / cell))) * cell;
+      els.push(<div key={"d" + i} style={{ position: "absolute", left: gx - 6, top: gy - 6, width: 12, height: 12, borderRadius: "50%", background: ink(0.8), display: "flex" }} />);
+    }
   }
 
   return (
-    <div style={{ position: "absolute", inset: 0, display: "flex", background: bg }}>
-      {kind === "gateway" && (
-        <div style={{
-          position: "absolute",
-          top:    Math.round(H * 0.16),
-          right:  -Math.round(W * 0.16),
-          width:  Math.round(W * 0.62),
-          height: Math.round(H * 0.74),
-          border: `10px solid ${rgba(accent, dark ? 0.8 : 0.5)}`,
-          borderRadius: `${Math.round(W * 0.31)}px ${Math.round(W * 0.31)}px 0 0`,
-          display: "flex",
-        }} />
-      )}
-      {kind === "masks" && (
-        <div style={{ position: "absolute", inset: 0, display: "flex" }}>
-          <div style={{ position: "absolute", top: Math.round(H * 0.10), left: Math.round(W * 0.30), width: Math.round(W * 0.52), height: Math.round(W * 0.52), borderRadius: "50%", border: `8px solid ${rgba(accent, dark ? 0.75 : 0.40)}`, display: "flex" }} />
-          <div style={{ position: "absolute", top: Math.round(H * 0.20), left: Math.round(W * 0.50), width: Math.round(W * 0.52), height: Math.round(W * 0.52), borderRadius: "50%", border: `8px solid ${rgba(accent, dark ? 0.55 : 0.26)}`, display: "flex" }} />
-        </div>
-      )}
-      {kind === "network" && (
-        <div style={{ position: "absolute", inset: 0, display: "flex" }}>
-          <div style={{ position: "absolute", top: Math.round(H * 0.20), left: Math.round(W * 0.12), width: Math.round(W * 0.66), height: 2, background: rgba(accent, dark ? 0.5 : 0.28), transform: "rotate(28deg)", display: "flex" }} />
-          <div style={{ position: "absolute", top: Math.round(H * 0.42), left: Math.round(W * 0.08), width: Math.round(W * 0.5), height: 2, background: rgba(accent, dark ? 0.4 : 0.20), transform: "rotate(-16deg)", display: "flex" }} />
-        </div>
-      )}
+    <div style={{ position: "absolute", inset: 0, display: "flex", overflow: "hidden" }}>
+      {els}
     </div>
   );
 }
 
 // ─── Superfície full-bleed: fundo + atmosfera + motivo ────────────────────────
-function Surface({ dark, accent, motif, children }: {
-  dark: boolean; accent: string; motif: MotifKind; children: React.ReactNode;
+function Surface({ dark, accent, motif, seed, children }: {
+  dark: boolean; accent: string; motif: MotifKind; seed: number; children: React.ReactNode;
 }) {
   return (
     <div style={{
@@ -159,7 +208,7 @@ function Surface({ dark, accent, motif, children }: {
           ? `radial-gradient(circle at 78% 16%, ${rgba(accent, 0.34)}, transparent 58%), radial-gradient(circle at 18% 92%, rgba(0,0,0,0.55), transparent 55%)`
           : `radial-gradient(circle at 20% 14%, rgba(231,221,204,0.65), transparent 58%), radial-gradient(circle at 84% 86%, ${rgba(accent, 0.12)}, transparent 55%)`,
       }} />
-      <MotifLayer kind={motif} accent={accent} dark={dark} />
+      <MotifLayer kind={motif} accent={accent} dark={dark} seed={seed} />
       {/* conteúdo */}
       <div style={{
         position: "relative", display: "flex", flexDirection: "column",
@@ -210,19 +259,19 @@ function Footer({ left, accent, dark, num, total }: {
 }
 
 // ─── SLIDE 1: Capa ────────────────────────────────────────────────────────────
-function CoverSlide({ title, kw, issue, mood, cat, total }: {
-  title: string; kw: string; issue: string; mood: "red" | "ink"; cat: Cat; total: number;
+function CoverSlide({ title, kw, issue, mood, cat, total, seed }: {
+  title: string; kw: string; issue: string; mood: "red" | "ink"; cat: Cat; total: number; seed: number;
 }) {
   const c    = CATS[cat];
   const dark = mood === "ink";
   return (
-    <Surface dark={dark} accent={c.accent} motif={c.motif}>
+    <Surface dark={dark} accent={c.accent} motif={c.motif} seed={seed}>
       <Folio issue={issue} accent={c.accent} dark={dark} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
         <span style={{ fontFamily: SERIF, fontSize: 28, letterSpacing: "0.28em", color: c.accent, marginBottom: 30 }}>
           {c.label}{kw ? ` · ${kw}` : ""}
         </span>
-        <div style={{ fontFamily: SERIF, fontSize: titleSize(title), lineHeight: 0.92, letterSpacing: "-0.035em", color: dark ? OFFWHITE : INK, display: "flex" }}>
+        <div style={{ fontFamily: SERIF, fontSize: fitTitleSize(title, W - 2 * M), lineHeight: 0.92, letterSpacing: "-0.035em", color: dark ? OFFWHITE : INK, maxWidth: W - 2 * M, display: "flex" }}>
           {title.toUpperCase()}
         </div>
       </div>
@@ -232,8 +281,8 @@ function CoverSlide({ title, kw, issue, mood, cat, total }: {
 }
 
 // ─── SLIDE 2-N: Insight ───────────────────────────────────────────────────────
-function InsightSlide({ text, num, total, kw, issue, cat }: {
-  text: string; num: number; total: number; kw: string; issue: string; cat: Cat;
+function InsightSlide({ text, num, total, kw, issue, cat, seed }: {
+  text: string; num: number; total: number; kw: string; issue: string; cat: Cat; seed: number;
 }) {
   const c = CATS[cat];
   // Dividir: última frase vira subtítulo
@@ -252,13 +301,13 @@ function InsightSlide({ text, num, total, kw, issue, cat }: {
   }
 
   return (
-    <Surface dark={false} accent={c.accent} motif={c.motif}>
+    <Surface dark={false} accent={c.accent} motif={c.motif} seed={seed}>
       <Folio issue={issue} accent={c.accent} dark={false} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <span style={{ fontFamily: SERIF, fontSize: 132, lineHeight: 0.8, letterSpacing: "-0.04em", color: rgba(c.accent, 0.92), marginBottom: 18, display: "flex" }}>
           {String(num).padStart(2, "0")}
         </span>
-        <div style={{ fontFamily: SERIF, fontSize: titleSize(mainText), lineHeight: 0.96, letterSpacing: "-0.03em", color: INK, display: "flex" }}>
+        <div style={{ fontFamily: SERIF, fontSize: fitTitleSize(mainText, W - 2 * M), lineHeight: 0.96, letterSpacing: "-0.03em", color: INK, maxWidth: W - 2 * M, display: "flex" }}>
           {mainText.toUpperCase()}
         </div>
         {subText ? (
@@ -273,18 +322,18 @@ function InsightSlide({ text, num, total, kw, issue, cat }: {
 }
 
 // ─── SLIDE FINAL: CTA ─────────────────────────────────────────────────────────
-function CTASlide({ text, issue, cat, total }: {
-  text: string; issue: string; cat: Cat; total: number;
+function CTASlide({ text, issue, cat, total, seed }: {
+  text: string; issue: string; cat: Cat; total: number; seed: number;
 }) {
   const c = CATS[cat];
   return (
-    <Surface dark={true} accent={c.accent} motif={c.motif}>
+    <Surface dark={true} accent={c.accent} motif={c.motif} seed={seed}>
       <Folio issue={issue} accent={c.accent} dark={true} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <span style={{ fontFamily: SERIF, fontSize: 28, letterSpacing: "0.30em", color: c.accent, marginBottom: 32, display: "flex" }}>
           UNA PREGUNTA
         </span>
-        <div style={{ fontFamily: SERIF, fontSize: titleSize(text), lineHeight: 0.98, letterSpacing: "-0.03em", color: OFFWHITE, display: "flex" }}>
+        <div style={{ fontFamily: SERIF, fontSize: fitTitleSize(text, W - 2 * M), lineHeight: 0.98, letterSpacing: "-0.03em", color: OFFWHITE, maxWidth: W - 2 * M, display: "flex" }}>
           {text.toUpperCase()}
         </div>
         <div style={{ display: "flex", marginTop: 46 }}>
@@ -318,15 +367,19 @@ export async function GET(req: NextRequest) {
     const catParam = searchParams.get("cat");
     const cat: Cat = catParam && (catParam in CATS) ? (catParam as Cat) : detectCat(`${title} ${text} ${kw} ${tag}`);
 
+    // Seed estável por POST (mesmo em todas as slides do carrossel) → desenho único
+    const seedParam = searchParams.get("seed");
+    const seed = seedParam ? hashStr(seedParam) : hashStr(`${issue}|${kw}|${cat}`);
+
     const fontBold = loadFraunces();
 
     let node;
     if (slide === "cta") {
-      node = <CTASlide text={text || title} issue={issue} cat={cat} total={total} />;
+      node = <CTASlide text={text || title} issue={issue} cat={cat} total={total} seed={seed} />;
     } else if (slide === "insight") {
-      node = <InsightSlide text={text} num={num} total={total} kw={kw} issue={issue} cat={cat} />;
+      node = <InsightSlide text={text} num={num} total={total} kw={kw} issue={issue} cat={cat} seed={seed} />;
     } else {
-      node = <CoverSlide title={title} kw={kw} issue={issue} mood={mood} cat={cat} total={total} />;
+      node = <CoverSlide title={title} kw={kw} issue={issue} mood={mood} cat={cat} total={total} seed={seed} />;
     }
 
     const fonts = [{ name: "Fraunces", data: fontBold, weight: 700 as const, style: "normal" as const }];
