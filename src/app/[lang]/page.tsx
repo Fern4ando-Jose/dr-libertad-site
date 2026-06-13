@@ -415,8 +415,11 @@ export default function Page() {
         <StudioContainer>
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-sm tracking-[0.22em] text-warm-gray/80 uppercase">DR. LIBERTAD</div>
-              <div className="mt-2 text-sm text-warm-gray/90">{t.footer.tagline}</div>
+              <div className="font-serif text-[1.75rem] font-semibold leading-none tracking-[-0.01em] text-offwhite">
+                Dr. Libertad
+              </div>
+              <div className="mt-4 h-[2px] w-11 bg-muted-red" />
+              <div className="mt-4 text-sm tracking-[0.02em] text-warm-gray/90">{t.footer.tagline}</div>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-warm-gray/90">
               {t.footer.links.map((link) => (
