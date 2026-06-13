@@ -324,12 +324,17 @@ function CoverCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.25 }}
       transition={{ duration: 0.65, delay: (idx % 6) * 0.04, ease: "easeOut" }}
-      whileHover={{ y: -9, scale: 1.02 }}
-      whileTap={{ scale: 0.99 }}
+      // Só o lift (translateY) — sem escalar a moldura arredondada (que cintila)
+      // e SEM data-gsap="hover" (o GSAP também escalava este nó, brigando com o
+      // framer-motion pelo transform e causando o tremor). O "ampliar" fica por
+      // conta do zoom da imagem abaixo, dentro da moldura estável.
+      whileHover={{ y: -9 }}
+      whileTap={{ y: -4 }}
       className="group relative overflow-hidden rounded-3xl border border-warm-gray/20 bg-offwhite/95 text-left shadow-soft"
-      data-gsap="hover"
     >
-      <div className="relative aspect-square">
+      {/* Proporção 4:5 — igual ao slide publicado (1080×1350) — para a capa
+          aparecer inteira, sem cortar o título no rodapé. */}
+      <div className="relative aspect-[4/5]">
         {card.image ? (
           // A capa publicada já é um slide editorial completo (kicker, título e
           // marca embutidos na arte). Mostramos a imagem limpa — sem sobrepor
@@ -339,7 +344,7 @@ function CoverCard({
             src={card.image}
             alt={card.title}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05] transform-gpu [backface-visibility:hidden] will-change-transform"
           />
         ) : (
           <PosterFace card={card} />
