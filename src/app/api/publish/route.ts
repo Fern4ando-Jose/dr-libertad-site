@@ -282,6 +282,7 @@ export async function GET(req: NextRequest) {
   const slotParam = sp.get("slot") as Slot | null;
   const runParam = sp.get("run");
   const topicOverride = sp.get("topic");
+  const force = sp.get("force") === "1"; // ignora a trava anti-duplicata de 24h (re-publicação/backfill manual)
 
   // Quais "runs" (0..5) processar nesta chamada:
   // • ?run=N  → exatamente esse horário (caminho do cron, 1 post distinto por horário)
@@ -308,16 +309,18 @@ export async function GET(req: NextRequest) {
         const topic = topicOverride ?? getTopicForRun(now, runIndex);
         slotLog.topic = topic;
 
-        // Verificar se tópico já foi publicado hoje
-        try {
-          const { sql } = await import("@vercel/postgres");
-          const existing = await sql`SELECT id FROM posts WHERE topic = ${topic} AND published_at > NOW() - INTERVAL '24 hours' LIMIT 1`;
-          if (existing.rows.length > 0) {
-            slotLog.skipped = true;
-            slotLog.reason = "Tópico já publicado nas últimas 24h";
-            continue;
-          }
-        } catch { /* ignora erro de banco */ }
+        // Verificar se tópico já foi publicado hoje (a menos que force=1)
+        if (!force) {
+          try {
+            const { sql } = await import("@vercel/postgres");
+            const existing = await sql`SELECT id FROM posts WHERE topic = ${topic} AND published_at > NOW() - INTERVAL '24 hours' LIMIT 1`;
+            if (existing.rows.length > 0) {
+              slotLog.skipped = true;
+              slotLog.reason = "Tópico já publicado nas últimas 24h";
+              continue;
+            }
+          } catch { /* ignora erro de banco */ }
+        }
 
         // Pesquisa e geração
         const searchResults = await searchTopic(topic);
