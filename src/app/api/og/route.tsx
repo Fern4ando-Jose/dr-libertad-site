@@ -46,274 +46,124 @@ function loadFraunces(): ArrayBuffer {
 }
 
 // ─── Tamanho da fonte do título ───────────────────────────────────────────────
+const SERIF = '"Fraunces", ui-serif, Georgia, serif';
+
 function titleSize(text: string): number {
   const l = text.length;
-  if (l <= 16) return 134;
-  if (l <= 24) return 116;
-  if (l <= 34) return 98;
-  if (l <= 46) return 82;
-  if (l <= 60) return 70;
-  return 58;
+  if (l <= 14) return 150;
+  if (l <= 22) return 128;
+  if (l <= 32) return 108;
+  if (l <= 44) return 92;
+  if (l <= 58) return 78;
+  if (l <= 76) return 64;
+  return 54;
 }
 
-// ─── PosterFace: replica o componente do site ─────────────────────────────────
-// mood: "red" | "ink" (alterna entre edições, igual ao EditorialGrid)
-function PosterFace({
-  kw, issue, mood, title, subtitle, tag, showSlideNum, slideNum, total, prominentTag = false,
-}: {
-  kw:           string;
-  issue:        string;
-  mood:         "red" | "ink";
-  title:        string;
-  subtitle:     string;
-  tag:          string;
-  showSlideNum: boolean;
-  slideNum:     number;
-  total:        number;
-  prominentTag?: boolean;
+// ─── Direção de arte por tema (sem IA: cor de tinta + motivo procedural) ──────
+const M = 88; // margem interna (full-bleed)
+
+type Cat = "freedom" | "self" | "network" | "dopamine" | "anxiety" | "mind";
+type MotifKind = "gateway" | "masks" | "network" | "rings" | "waves" | "grid";
+
+interface CatStyle { accent: string; label: string; motif: MotifKind }
+
+const CATS: Record<Cat, CatStyle> = {
+  freedom:  { accent: "#A45A5A", label: "LIBERTAD",   motif: "gateway" },
+  dopamine: { accent: "#BE7A2A", label: "RECOMPENSA", motif: "rings"   },
+  anxiety:  { accent: "#3D6360", label: "ANSIEDAD",   motif: "waves"   },
+  network:  { accent: "#3F5E78", label: "CONEXIÓN",   motif: "network" },
+  self:     { accent: "#835A6E", label: "EL YO",      motif: "masks"   },
+  mind:     { accent: "#5B6B3C", label: "LA MENTE",   motif: "grid"    },
+};
+
+// Deriva a categoria a partir do tópico/keyword (heurística por palavras-chave)
+function detectCat(s: string): Cat {
+  const t = (s || "").toLowerCase();
+  if (/dopamin|recompens|validac|aplauso|like|adicc|desintox|casino|tragamoned|tel[eé]fono|atenci|pantalla|trafican/.test(t)) return "dopamine";
+  if (/ansied|miedo|fracaso|perfeccion|burnout|procrastin|culpa|paraliz|estr[eé]s|sabote/.test(t)) return "anxiety";
+  if (/red|social|comparaci|soledad|amigo|conect|relacion/.test(t)) return "network";
+  if (/ego|m[aá]scar|autoconoc|amor propio|autoexig|l[ií]mite|yo real|espejo|conscien/.test(t)) return "self";
+  if (/mente|neuroplast|aburr|cambiar|cerebro|reprogram/.test(t)) return "mind";
+  if (/libert|elecc|elegir|decis/.test(t)) return "freedom";
+  return "freedom";
+}
+
+function rgba(hex: string, a: number): string {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ─── Camada de motivo procedural (fundo, atrás do conteúdo) ───────────────────
+function MotifLayer({ kind, accent, dark }: { kind: MotifKind; accent: string; dark: boolean }) {
+  const a    = dark ? 0.55 : 0.20;
+  const line = dark ? rgba("#F4F0E8", 0.10) : rgba("#0B0B0C", 0.07);
+
+  let bg = "transparent";
+  if (kind === "rings") {
+    bg = `repeating-radial-gradient(circle at 82% 20%, ${rgba(accent, a)} 0 2px, transparent 2px 56px)`;
+  } else if (kind === "waves") {
+    bg = `repeating-linear-gradient(98deg, ${rgba(accent, a * 0.8)} 0 2px, transparent 2px 30px)`;
+  } else if (kind === "grid") {
+    bg = `repeating-linear-gradient(0deg, ${line} 0 1px, transparent 1px 54px), repeating-linear-gradient(90deg, ${line} 0 1px, transparent 1px 54px)`;
+  } else if (kind === "network") {
+    bg = `repeating-radial-gradient(circle at 16% 16%, ${rgba(accent, a)} 0 4px, transparent 4px 92px)`;
+  }
+
+  return (
+    <div style={{ position: "absolute", inset: 0, display: "flex", background: bg }}>
+      {kind === "gateway" && (
+        <div style={{
+          position: "absolute",
+          top:    Math.round(H * 0.16),
+          right:  -Math.round(W * 0.16),
+          width:  Math.round(W * 0.62),
+          height: Math.round(H * 0.74),
+          border: `10px solid ${rgba(accent, dark ? 0.8 : 0.5)}`,
+          borderRadius: `${Math.round(W * 0.31)}px ${Math.round(W * 0.31)}px 0 0`,
+          display: "flex",
+        }} />
+      )}
+      {kind === "masks" && (
+        <div style={{ position: "absolute", inset: 0, display: "flex" }}>
+          <div style={{ position: "absolute", top: Math.round(H * 0.10), left: Math.round(W * 0.30), width: Math.round(W * 0.52), height: Math.round(W * 0.52), borderRadius: "50%", border: `8px solid ${rgba(accent, dark ? 0.75 : 0.40)}`, display: "flex" }} />
+          <div style={{ position: "absolute", top: Math.round(H * 0.20), left: Math.round(W * 0.50), width: Math.round(W * 0.52), height: Math.round(W * 0.52), borderRadius: "50%", border: `8px solid ${rgba(accent, dark ? 0.55 : 0.26)}`, display: "flex" }} />
+        </div>
+      )}
+      {kind === "network" && (
+        <div style={{ position: "absolute", inset: 0, display: "flex" }}>
+          <div style={{ position: "absolute", top: Math.round(H * 0.20), left: Math.round(W * 0.12), width: Math.round(W * 0.66), height: 2, background: rgba(accent, dark ? 0.5 : 0.28), transform: "rotate(28deg)", display: "flex" }} />
+          <div style={{ position: "absolute", top: Math.round(H * 0.42), left: Math.round(W * 0.08), width: Math.round(W * 0.5), height: 2, background: rgba(accent, dark ? 0.4 : 0.20), transform: "rotate(-16deg)", display: "flex" }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Superfície full-bleed: fundo + atmosfera + motivo ────────────────────────
+function Surface({ dark, accent, motif, children }: {
+  dark: boolean; accent: string; motif: MotifKind; children: React.ReactNode;
 }) {
-  const accentColor = mood === "red" ? RED   : INK_22;
-  const badgeColor  = mood === "red" ? RED   : INK_65;
-  const badgeBorder = mood === "red" ? RED_45 : INK_22;
-  const dotColor    = mood === "red" ? RED   : INK;
-  const fSize       = titleSize(title);
-
-  // PosterFace é QUADRADO = CW × CW (aspect-square como no site)
-  const PH = CW;
-
   return (
     <div style={{
-      width:    `${CW}px`,
-      height:   `${PH}px`,
-      position: "relative",
-      padding:  `${PAD}px`,
-      display:  "flex",
-      flexDirection: "column",
-      overflow: "hidden",
+      width: W, height: H, position: "relative", display: "flex",
+      background: dark ? INK : OFFWHITE,
+      color:      dark ? OFFWHITE : INK,
     }}>
-
-      {/* ── Gradiente warm paper (idêntico ao PosterFace do site) ── */}
+      {/* atmosfera */}
       <div style={{
-        position: "absolute",
-        top:      0,
-        right:    0,
-        bottom:   0,
-        left:     0,
-        background:
-          "radial-gradient(900px circle at 22% 18%, rgba(231,221,204,0.55), transparent 60%)," +
-          "radial-gradient(700px circle at 70% 72%, rgba(0,0,0,0.10), transparent 60%)",
-        display:  "flex",
+        position: "absolute", inset: 0, display: "flex",
+        background: dark
+          ? `radial-gradient(circle at 78% 16%, ${rgba(accent, 0.34)}, transparent 58%), radial-gradient(circle at 18% 92%, rgba(0,0,0,0.55), transparent 55%)`
+          : `radial-gradient(circle at 20% 14%, rgba(231,221,204,0.65), transparent 58%), radial-gradient(circle at 84% 86%, ${rgba(accent, 0.12)}, transparent 55%)`,
       }} />
-
-      {/* ── Linha vermelha horizontal (absolute, igual ao site: top-7 left-7 right-7) ── */}
+      <MotifLayer kind={motif} accent={accent} dark={dark} />
+      {/* conteúdo */}
       <div style={{
-        position:   "absolute",
-        top:        `${PAD}px`,
-        left:       `${PAD}px`,
-        right:      `${PAD}px`,
-        height:     "1px",
-        background: accentColor,
-      }} />
-
-      {/* ── Conteúdo relativo ── */}
-      <div style={{
-        position:      "relative",
-        display:       "flex",
-        flexDirection: "column",
-        height:        "100%",
-      }}>
-
-        {/* Kicker + Badge (igual ao site) */}
-        <div style={{
-          display:        "flex",
-          justifyContent: "space-between",
-          alignItems:     "flex-start",
-          gap:            "16px",
-        }}>
-          <span style={{
-            fontSize:      `${Math.round(11 * F)}px`,   // ~30px
-            letterSpacing: "0.28em",
-            textTransform: "uppercase",
-            color:         INK_70,
-            fontWeight:    400,
-          }}>
-            {kw}
-          </span>
-
-          {/* Badge pill — exato como no PosterFace */}
-          <div style={{
-            borderRadius: "9999px",
-            border:       `1px solid ${badgeBorder}`,
-            background:   "rgba(255,255,255,0.45)",
-            padding:      `${Math.round(4 * F)}px ${Math.round(12 * F)}px`,
-            display:      "flex",
-            alignItems:   "center",
-            flexShrink:   0,
-          }}>
-            <span style={{
-              fontSize:      `${Math.round(10 * F)}px`,   // ~28px
-              letterSpacing: "0.26em",
-              textTransform: "uppercase",
-              color:         badgeColor,
-              fontWeight:    400,
-            }}>
-              {issue}
-            </span>
-          </div>
-        </div>
-
-        {/* Número do slide (nos insights) */}
-        {showSlideNum && (
-          <div style={{
-            display:        "flex",
-            justifyContent: "flex-end",
-            marginTop:      "8px",
-          }}>
-            <span style={{
-              fontSize:      `${Math.round(9 * F)}px`,
-              color:         INK_20,
-              letterSpacing: "0.15em",
-            }}>
-              {String(slideNum).padStart(2, "0")} / {String(total).padStart(2, "0")}
-            </span>
-          </div>
-        )}
-
-        {/* Título grande — font-serif leading-[0.92] tracking-[-0.04em] */}
-        <div style={{
-          marginTop: `${Math.round(40 * F * 0.55)}px`,    // ~61px
-          flex:      1,
-          display:   "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-        }}>
-          <div style={{
-            fontFamily:    '"Fraunces", ui-serif, Georgia, serif',
-            fontSize:      `${fSize}px`,
-            fontWeight:    700,
-            color:         INK,
-            lineHeight:    0.92,
-            letterSpacing: "-0.04em",
-            display:       "flex",
-            marginBottom:  `${Math.round(16 * F * 0.5)}px`,
-          }}>
-            {title}
-          </div>
-
-          {/* Subtítulo: max-w-[26ch] text-[0.95rem] text-black/70 */}
-          <div style={{
-            fontSize:   `${Math.round(15.2 * F * 0.80)}px`,
-            lineHeight: 1.5,
-            color:      INK_70,
-            fontWeight: 400,
-            maxWidth:   `${CW - PAD * 2}px`,
-          }}>
-            {subtitle.length > 90 ? subtitle.slice(0, 87) + '...' : subtitle}
-          </div>
-        </div>
-
-        {/* ── Labels de rodapé: absolute bottom-7 left-0 right-0 (dentro do padding) ── */}
-        <div style={{
-          display:        "flex",
-          justifyContent: "space-between",
-          alignItems:     "flex-end",
-          gap:            "16px",
-        }}>
-          {/* Tag */}
-          <span style={{
-            fontSize:      prominentTag ? `${Math.round(10 * F * 0.95)}px` : `${Math.round(10 * F * 0.7)}px`,
-            letterSpacing: prominentTag ? "0.12em" : "0.26em",
-            textTransform: "uppercase",
-            color:         prominentTag ? accentColor : INK_55,
-            fontWeight:    prominentTag ? 700 : 400,
-          }}>
-            {tag}
-          </span>
-
-          {/* Progress: linha + dot */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {[1,2,3,4,5].slice(0, total).map((n) => (
-              <div key={n} style={{
-                width:        n === slideNum ? `${Math.round(10 * F * 0.5)}px` : `${Math.round(7 * F * 0.5)}px`,
-                height:       n === slideNum ? `${Math.round(10 * F * 0.5)}px` : `${Math.round(7 * F * 0.5)}px`,
-                borderRadius: "50%",
-                background:   n === slideNum ? dotColor : INK_20,
-                opacity:      n === slideNum ? 0.85 : 1,
-                marginRight:  `${Math.round(5 * F * 0.5)}px`,
-              }} />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Caption bar (fora do PosterFace, igual ao CoverCard do site) ─────────────
-function CaptionBar({ issue }: { issue: string }) {
-  return (
-    <div style={{
-      height:         `${CAPTION_H}px`,
-      borderTop:      `1px solid ${INK_10}`,
-      padding:        `0 ${PAD}px`,
-      display:        "flex",
-      alignItems:     "center",
-      justifyContent: "space-between",
-      gap:            "16px",
-      flexShrink:     0,
-    }}>
-      <span style={{
-        fontSize:      `${Math.round(11 * F * 0.6)}px`,
-        letterSpacing: "0.22em",
-        textTransform: "uppercase",
-        color:         "rgba(0,0,0,0.65)",
-      }}>
-        DR. LIBERTAD
-      </span>
-      <span style={{
-        fontSize:      `${Math.round(11 * F * 0.5)}px`,
-        letterSpacing: "0.12em",
-        color:         "rgba(0,0,0,0.30)",
-      }}>
-        www.drlibertad.com
-      </span>
-      <span style={{
-        fontSize:      `${Math.round(11 * F * 0.6)}px`,
-        letterSpacing: "0.22em",
-        textTransform: "uppercase",
-        color:         "rgba(0,0,0,0.55)",
-      }}>
-        {issue}
-      </span>
-    </div>
-  );
-}
-
-// ─── Frame completo: ink background + card flutuante ─────────────────────────
-function Frame({
-  children, mood,
-}: { children: React.ReactNode; mood: "red" | "ink" }) {
-  return (
-    <div style={{
-      width:          `${W}px`,
-      height:         `${H}px`,
-      background:     OFFWHITE,
-      display:        "flex",
-      alignItems:     "center",
-      justifyContent: "center",
-    }}>
-      {/* Card: rounded-3xl border border-warm-gray/20 bg-offwhite/95 shadow
-          Proporção: poster quadrado (992×992) + caption bar (88) = 1080 total */}
-      <div style={{
-        width:         `${CW}px`,
-        height:        `${CH}px`,
-        background:    `rgba(244,240,232,0.95)`,
-        borderRadius:  "32px",
-        border:        `1px solid rgba(185,176,162,0.20)`,
-        boxShadow:     "0 20px 80px rgba(0,0,0,0.45)",
-        display:       "flex",
-        flexDirection: "column",
-        overflow:      "hidden",
+        position: "relative", display: "flex", flexDirection: "column",
+        width: "100%", height: "100%", padding: M,
       }}>
         {children}
       </div>
@@ -321,39 +171,71 @@ function Frame({
   );
 }
 
-// ─── SLIDE 1: Capa ────────────────────────────────────────────────────────────
-function CoverSlide({
-  slot, title, kw, issue, mood, tag,
-}: { slot: string; title: string; kw: string; issue: string; mood: "red" | "ink"; tag: string }) {
-  const SLOT_SUBTITLE: Record<string, string> = {
-    manha: "Empieza aquí tu claridad mental.",
-    tarde: "El mundo compite por ella.",
-    noite: "¿Qué elegirás mañana?",
-  };
-  const subtitle = SLOT_SUBTITLE[slot] ?? "Empieza aquí tu claridad mental.";
-
+// ─── Cabeçalho editorial (folio + régua de acento) ────────────────────────────
+function Folio({ issue, accent, dark }: { issue: string; accent: string; dark: boolean }) {
+  const dim = dark ? rgba("#F4F0E8", 0.6) : INK_70;
   return (
-    <Frame mood={mood}>
-      <PosterFace
-        kw={kw || "EDITORIAL"}
-        issue={issue}
-        mood={mood}
-        title={title.toUpperCase()}
-        subtitle={subtitle}
-        tag={tag}
-        showSlideNum={false}
-        slideNum={1}
-        total={5}
-      />
-      <CaptionBar issue={issue} />
-    </Frame>
+    <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <span style={{ fontFamily: SERIF, fontSize: 30, letterSpacing: "0.30em", color: dim }}>DR. LIBERTAD</span>
+        <span style={{ fontFamily: SERIF, fontSize: 30, letterSpacing: "0.18em", color: accent }}>{issue}</span>
+      </div>
+      <div style={{ marginTop: 22, height: 2, width: "100%", background: accent, display: "flex" }} />
+    </div>
+  );
+}
+
+// ─── Rodapé: etiqueta + progresso ─────────────────────────────────────────────
+function Footer({ left, accent, dark, num, total }: {
+  left: string; accent: string; dark: boolean; num: number; total: number;
+}) {
+  const dim = dark ? rgba("#F4F0E8", 0.5) : INK_55;
+  const dot = dark ? rgba("#F4F0E8", 0.25) : INK_20;
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+      <span style={{ fontFamily: SERIF, fontSize: 24, letterSpacing: "0.26em", textTransform: "uppercase", color: dim }}>{left}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {[1, 2, 3, 4, 5, 6].slice(0, Math.max(total, 1)).map((n) => (
+          <div key={n} style={{
+            width:  n === num ? 16 : 9,
+            height: n === num ? 16 : 9,
+            borderRadius: "50%",
+            background:   n === num ? accent : dot,
+            display: "flex",
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── SLIDE 1: Capa ────────────────────────────────────────────────────────────
+function CoverSlide({ title, kw, issue, mood, cat, total }: {
+  title: string; kw: string; issue: string; mood: "red" | "ink"; cat: Cat; total: number;
+}) {
+  const c    = CATS[cat];
+  const dark = mood === "ink";
+  return (
+    <Surface dark={dark} accent={c.accent} motif={c.motif}>
+      <Folio issue={issue} accent={c.accent} dark={dark} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+        <span style={{ fontFamily: SERIF, fontSize: 28, letterSpacing: "0.28em", color: c.accent, marginBottom: 30 }}>
+          {c.label}{kw ? ` · ${kw}` : ""}
+        </span>
+        <div style={{ fontFamily: SERIF, fontSize: titleSize(title), lineHeight: 0.92, letterSpacing: "-0.035em", color: dark ? OFFWHITE : INK, display: "flex" }}>
+          {title.toUpperCase()}
+        </div>
+      </div>
+      <Footer left="Desliza para leer" accent={c.accent} dark={dark} num={1} total={total} />
+    </Surface>
   );
 }
 
 // ─── SLIDE 2-N: Insight ───────────────────────────────────────────────────────
-function InsightSlide({
-  slot, text, num, total, kw, issue, mood, tag,
-}: { slot: string; text: string; num: number; total: number; kw: string; issue: string; mood: "red" | "ink"; tag: string }) {
+function InsightSlide({ text, num, total, kw, issue, cat }: {
+  text: string; num: number; total: number; kw: string; issue: string; cat: Cat;
+}) {
+  const c = CATS[cat];
   // Dividir: última frase vira subtítulo
   const sentences = text.split(/[.!?]\s+/).map(s => s.trim()).filter(Boolean);
   let mainText: string;
@@ -364,55 +246,57 @@ function InsightSlide({
     mainText = sentences.join(" ");
   } else {
     const words = text.split(" ");
-    const half  = Math.ceil(words.length * 0.6);
+    const half  = Math.ceil(words.length * 0.62);
     mainText = words.slice(0, half).join(" ");
     subText  = words.slice(half).join(" ");
   }
 
   return (
-    <Frame mood={mood}>
-      <PosterFace
-        kw={kw || "EDITORIAL"}
-        issue={issue}
-        mood={mood}
-        title={mainText.toUpperCase()}
-        subtitle={subText}
-        tag={tag}
-        showSlideNum={true}
-        slideNum={num}
-        total={total}
-      />
-      <CaptionBar issue={issue} />
-    </Frame>
+    <Surface dark={false} accent={c.accent} motif={c.motif}>
+      <Folio issue={issue} accent={c.accent} dark={false} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <span style={{ fontFamily: SERIF, fontSize: 132, lineHeight: 0.8, letterSpacing: "-0.04em", color: rgba(c.accent, 0.92), marginBottom: 18, display: "flex" }}>
+          {String(num).padStart(2, "0")}
+        </span>
+        <div style={{ fontFamily: SERIF, fontSize: titleSize(mainText), lineHeight: 0.96, letterSpacing: "-0.03em", color: INK, display: "flex" }}>
+          {mainText.toUpperCase()}
+        </div>
+        {subText ? (
+          <div style={{ fontSize: 30, lineHeight: 1.5, color: INK_70, marginTop: 30, maxWidth: 780, display: "flex" }}>
+            {subText}
+          </div>
+        ) : null}
+      </div>
+      <Footer left={kw || c.label} accent={c.accent} dark={false} num={num} total={total} />
+    </Surface>
   );
 }
 
 // ─── SLIDE FINAL: CTA ─────────────────────────────────────────────────────────
-function CTASlide({
-  slot, text, kw, issue, mood, tag, total,
-}: { slot: string; text: string; kw: string; issue: string; mood: "red" | "ink"; tag: string; total: number }) {
-  const SLOT_CTA_TAG: Record<string, string> = {
-    manha: "Responde en los comentarios",
-    tarde: "Responde en los comentarios",
-    noite: "Responde en los comentarios",
-  };
-
+function CTASlide({ text, issue, cat, total }: {
+  text: string; issue: string; cat: Cat; total: number;
+}) {
+  const c = CATS[cat];
   return (
-    <Frame mood={mood}>
-      <PosterFace
-        kw={kw || "EDITORIAL"}
-        issue={issue}
-        mood={mood}
-        title={text.toUpperCase()}
-        subtitle=""
-        tag="👇 COMENTA ABAJO"
-        showSlideNum={true}
-        slideNum={total}
-        total={total}
-        prominentTag={true}
-      />
-      <CaptionBar issue={issue} />
-    </Frame>
+    <Surface dark={true} accent={c.accent} motif={c.motif}>
+      <Folio issue={issue} accent={c.accent} dark={true} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <span style={{ fontFamily: SERIF, fontSize: 28, letterSpacing: "0.30em", color: c.accent, marginBottom: 32, display: "flex" }}>
+          UNA PREGUNTA
+        </span>
+        <div style={{ fontFamily: SERIF, fontSize: titleSize(text), lineHeight: 0.98, letterSpacing: "-0.03em", color: OFFWHITE, display: "flex" }}>
+          {text.toUpperCase()}
+        </div>
+        <div style={{ display: "flex", marginTop: 46 }}>
+          <div style={{ border: `2px solid ${c.accent}`, borderRadius: 9999, padding: "18px 42px", background: rgba(c.accent, 0.16), display: "flex" }}>
+            <span style={{ fontFamily: SERIF, fontSize: 26, letterSpacing: "0.20em", textTransform: "uppercase", color: OFFWHITE }}>
+              Responde en los comentarios
+            </span>
+          </div>
+        </div>
+      </div>
+      <Footer left="Dr. Libertad" accent={c.accent} dark={true} num={total} total={total} />
+    </Surface>
   );
 }
 
@@ -421,7 +305,6 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl;
     const slide = searchParams.get("slide") ?? "cover";
-    const slot  = searchParams.get("slot")  ?? "tarde";
     const title = searchParams.get("title") ?? "La mente necesita silencio";
     const text  = searchParams.get("text")  ?? "";
     const kw    = searchParams.get("kw")    ?? "";
@@ -429,17 +312,21 @@ export async function GET(req: NextRequest) {
     const issue = `ED. ${searchParams.get("ed") ?? "01"}`;
     const mood  = (searchParams.get("mood") ?? "red") as "red" | "ink";
     const num   = parseInt(searchParams.get("num")   ?? "2");
-    const total = parseInt(searchParams.get("total") ?? "4");
+    const total = parseInt(searchParams.get("total") ?? "5");
+
+    // Categoria (direção de arte): vem de ?cat= ou é derivada do tema
+    const catParam = searchParams.get("cat");
+    const cat: Cat = catParam && (catParam in CATS) ? (catParam as Cat) : detectCat(`${title} ${text} ${kw} ${tag}`);
 
     const fontBold = loadFraunces();
 
     let node;
     if (slide === "cta") {
-      node = <CTASlide slot={slot} text={text || title} kw={kw} issue={issue} mood={mood} tag={tag} total={total} />;
+      node = <CTASlide text={text || title} issue={issue} cat={cat} total={total} />;
     } else if (slide === "insight") {
-      node = <InsightSlide slot={slot} text={text} num={num} total={total} kw={kw} issue={issue} mood={mood} tag={tag} />;
+      node = <InsightSlide text={text} num={num} total={total} kw={kw} issue={issue} cat={cat} />;
     } else {
-      node = <CoverSlide slot={slot} title={title} kw={kw} issue={issue} mood={mood} tag={tag} />;
+      node = <CoverSlide title={title} kw={kw} issue={issue} mood={mood} cat={cat} total={total} />;
     }
 
     const fonts = [{ name: "Fraunces", data: fontBold, weight: 700 as const, style: "normal" as const }];
