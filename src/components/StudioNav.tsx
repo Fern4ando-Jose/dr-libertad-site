@@ -28,12 +28,12 @@ export default function StudioNav() {
           type="button"
           onClick={() => scrollToSection("top")}
           aria-label="Dr. Libertad"
-          className="group flex items-center gap-1.5 font-serif text-[1.1rem] font-semibold leading-none tracking-[-0.01em] text-offwhite/95 hover:text-offwhite transition"
+          className="group inline-flex flex-col items-start gap-1.5 font-serif text-[1.1rem] font-semibold leading-none tracking-[-0.01em] text-offwhite/95 hover:text-offwhite transition"
         >
-          Dr. Libertad
+          <span>Dr. Libertad</span>
           <span
             aria-hidden="true"
-            className="h-[5px] w-[5px] translate-y-[1px] rounded-full bg-muted-red transition-transform group-hover:scale-125"
+            className="h-[2px] w-7 bg-muted-red transition-all duration-300 group-hover:w-11"
           />
         </button>
 
