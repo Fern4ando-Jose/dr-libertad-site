@@ -1,9 +1,9 @@
 name: Instagram — publicar posts
 
 # Agendamento gratuito via GitHub Actions (substitui os crons do Vercel).
-# 6 publicações/dia espalhadas. Os horários são em UTC.
+# 6 publicações/dia, cada uma com um tópico DISTINTO (run=0..5 derivado da hora UTC).
 #   00:00 UTC = 21:00 BRT (noite anterior) · 12:00 UTC = 09:00 BRT
-# O slot (manha/tarde/noite) é derivado da hora UTC em que o workflow roda.
+# run = hora/4 (0..5); o slot/tom (manha/tarde/noite) = run % 3.
 on:
   schedule:
     - cron: "0 0 * * *"
@@ -28,30 +28,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Determinar slot pelo horário
-        id: slot
+      - name: Determinar parâmetros pelo horário
+        id: params
         run: |
-          if [ -n "${{ github.event.inputs.slot }}" ]; then
-            echo "value=${{ github.event.inputs.slot }}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Disparo manual: respeita o slot informado; vazio = publica os 3 slots base.
+            if [ -n "${{ github.event.inputs.slot }}" ]; then
+              echo "query=slot=${{ github.event.inputs.slot }}" >> "$GITHUB_OUTPUT"
+            else
+              echo "query=" >> "$GITHUB_OUTPUT"
+            fi
           else
+            # Agendado: run = hora/4 → 0..5 (00,04,08,12,16,20 UTC). 6 tópicos DISTINTOS/dia.
             HOUR=$(date -u +%H)
-            # 00/12 -> manha · 04/16 -> tarde · 08/20 -> noite
-            IDX=$(( (10#$HOUR / 4) % 3 ))
-            case $IDX in
-              0) SLOT=manha ;;
-              1) SLOT=tarde ;;
-              2) SLOT=noite ;;
-            esac
-            echo "value=$SLOT" >> "$GITHUB_OUTPUT"
+            RUN=$(( 10#$HOUR / 4 ))
+            echo "query=run=$RUN" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Chamar endpoint de publicação
         run: |
-          SLOT="${{ steps.slot.outputs.value }}"
-          echo "Publicando slot: ${SLOT:-todos}"
+          Q="${{ steps.params.outputs.query }}"
+          echo "Publicando: ${Q:-todos os slots}"
           HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.SITE_URL }}/api/publish?slot=${SLOT}")
+            "${{ secrets.SITE_URL }}/api/publish?${Q}")
           echo "HTTP $HTTP_CODE"
           echo "--- resposta ---"
           cat response.json

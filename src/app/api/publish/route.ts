@@ -52,12 +52,39 @@ function extractKeyword(topic: string): string {
   return word.toUpperCase().replace(/[^A-ZÁÉÍÓÚÜÑ]/g, "");
 }
 
-function getTopicForSlot(slot: Slot, date: Date): string {
-  const start = new Date(date.getFullYear(), 0, 0);
+// Categoria de direção de arte por tópico (espelha CATS em /api/og).
+// Define cor + motivo procedural do slide. Mantenha em sincronia com og/route.tsx.
+const TOPIC_CAT: Record<string, string> = {
+  "Libertad mental": "freedom",
+  "Autoconocimiento profundo": "self",
+  "Redes sociales y el impacto negativo en las relaciones": "network",
+  "Adicción a las redes sociales": "dopamine",
+  "Dopamina y recompensa inmediata": "dopamine",
+  "Mucha elección, poca libertad": "freedom",
+  "Ansiedad moderna": "anxiety",
+  "La trampa de la comparación social": "network",
+  "Soledad en la era hiperconectada": "network",
+  "La validación externa como droga": "dopamine",
+  "El miedo al fracaso como parálisis": "anxiety",
+  "Límites sanos y relaciones": "self",
+  "Procrastinación y culpa": "anxiety",
+  "Neuroplasticidad: puedes cambiar": "mind",
+  "Perfeccionismo y ansiedad": "anxiety",
+  "El poder del aburrimiento": "mind",
+  "Burnout emocional": "anxiety",
+  "La máscara social y el yo real": "self",
+  "Desintoxicación digital": "dopamine",
+  "Amor propio vs. autoexigencia": "self",
+  "El ego y el miedo": "self",
+};
+
+// runIndex 0..5 → um dos 6 horários do dia. Garante 6 tópicos DISTINTOS por dia
+// (o esquema antigo, por dia-da-semana+slot, repetia o tópico nos 2 crons do mesmo
+//  slot e o 2º era barrado pela checagem de duplicata → só 3 posts/dia de fato).
+function getTopicForRun(date: Date, runIndex: number): string {
+  const start     = new Date(date.getFullYear(), 0, 0);
   const dayOfYear = Math.floor((date.getTime() - start.getTime()) / 86400000);
   const weekNum   = Math.floor(dayOfYear / 7);
-  const dayOfWeek = date.getDay();
-  const slotIdx   = { manha: 0, tarde: 1, noite: 2 }[slot];
 
   // Embaralha deterministicamente por semana
   const arr = [...TOPICS];
@@ -68,9 +95,13 @@ function getTopicForSlot(slot: Slot, date: Date): string {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
 
-  const idx = (dayOfWeek * 3 + slotIdx) % arr.length;
+  // 6 índices consecutivos por dia (distintos mod TOPICS.length); avança a cada dia.
+  const idx = (dayOfYear * 6 + runIndex) % arr.length;
   return arr[idx];
 }
+
+// Tom editorial derivado do horário (3 slots), independente do tópico.
+const SLOT_FOR_RUN: Slot[] = ["manha", "tarde", "noite", "manha", "tarde", "noite"];
 
 // ─── Instruções por slot ──────────────────────────────────────────────────────
 
@@ -245,21 +276,34 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const slotParam = req.nextUrl.searchParams.get("slot") as Slot | null;
-  const topicOverride = req.nextUrl.searchParams.get("topic");
-  const slots: Slot[] = slotParam && ["manha","tarde","noite"].includes(slotParam)
-    ? [slotParam]
-    : ["manha","tarde","noite"];
+  const sp = req.nextUrl.searchParams;
+  const slotParam = sp.get("slot") as Slot | null;
+  const runParam = sp.get("run");
+  const topicOverride = sp.get("topic");
+
+  // Quais "runs" (0..5) processar nesta chamada:
+  // • ?run=N  → exatamente esse horário (caminho do cron, 1 post distinto por horário)
+  // • ?slot=  → um horário representativo daquele slot (1 post)
+  // • vazio   → os 3 slots base (compatível com o disparo manual antigo)
+  let runs: number[];
+  if (runParam !== null && /^[0-5]$/.test(runParam)) {
+    runs = [parseInt(runParam, 10)];
+  } else if (slotParam && ["manha", "tarde", "noite"].includes(slotParam)) {
+    runs = [{ manha: 0, tarde: 1, noite: 2 }[slotParam]];
+  } else {
+    runs = [0, 1, 2];
+  }
 
   const results = [];
 
   try {
-    for (const slot of slots) {
-      const slotLog: Record<string, unknown> = { slot };
+    for (const runIndex of runs) {
+      const slot = SLOT_FOR_RUN[runIndex];
+      const slotLog: Record<string, unknown> = { slot, run: runIndex };
 
       try {
         const now   = new Date();
-        const topic = topicOverride ?? getTopicForSlot(slot, now);
+        const topic = topicOverride ?? getTopicForRun(now, runIndex);
         slotLog.topic = topic;
 
         // Verificar se tópico já foi publicado hoje
@@ -297,13 +341,15 @@ export async function GET(req: NextRequest) {
 
         // Primeira tag como categoria do rodapé
         const tag = enc(content.tags[0] ?? kw);
+        // Categoria de direção de arte (cor + motivo) do slide
+        const cat = TOPIC_CAT[topic] ?? "freedom";
 
         const slideUrls: string[] = [
-          `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}`,
+          `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&total=${totalSlides}`,
           ...content.slides.map((text, i) =>
-            `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text)}&num=${i + 2}&total=${totalSlides}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}`
+            `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text)}&num=${i + 2}&total=${totalSlides}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}`
           ),
-          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&num=${totalSlides}&total=${totalSlides}`,
+          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&num=${totalSlides}&total=${totalSlides}`,
         ];
 
         // Publicar carrossel
