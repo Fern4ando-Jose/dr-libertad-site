@@ -331,49 +331,31 @@ function CoverCard({
     >
       <div className="relative aspect-square">
         {card.image ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={card.image}
-              alt={card.title}
-              loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-            />
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-black/10"
-            />
-            <div className="absolute left-5 right-5 top-5 flex items-center justify-between">
-              <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] tracking-[0.26em] text-offwhite/90 uppercase backdrop-blur">
-                {card.kicker}
-              </span>
-              <span
-                className="rounded-full px-3 py-1 text-[10px] tracking-[0.24em] uppercase backdrop-blur"
-                style={{
-                  background: "rgba(0,0,0,0.45)",
-                  color: card.mood === "red" ? "#E7A9A9" : "#F4F0E8",
-                }}
-              >
-                {card.issue}
-              </span>
-            </div>
-            <div className="absolute inset-x-5 bottom-5">
-              <div className="font-serif text-[1.15rem] leading-[1.05] tracking-[-0.02em] text-offwhite drop-shadow">
-                {card.title.slice(0, 60)}
-              </div>
-            </div>
-          </>
+          // A capa publicada já é um slide editorial completo (kicker, título e
+          // marca embutidos na arte). Mostramos a imagem limpa — sem sobrepor
+          // texto, que antes duplicava/cortava o que já está no slide.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={card.image}
+            alt={card.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+          />
         ) : (
           <PosterFace card={card} />
         )}
       </div>
 
-      <div className="relative border-t border-black/10 bg-offwhite/95 px-5 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="text-[11px] tracking-[0.22em] text-black/65 uppercase">DR. LIBERTAD</div>
-          <div className="text-[11px] tracking-[0.22em] text-black/55 uppercase">{card.issue}</div>
+      {/* Rodapé-moldura só para cards sem imagem; o slide publicado já traz
+          marca e edição embutidos, então evitamos repetir. */}
+      {!card.image && (
+        <div className="relative border-t border-black/10 bg-offwhite/95 px-5 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-[11px] tracking-[0.22em] text-black/65 uppercase">DR. LIBERTAD</div>
+            <div className="text-[11px] tracking-[0.22em] text-black/55 uppercase">{card.issue}</div>
+          </div>
         </div>
-      </div>
+      )}
     </motion.button>
   );
 }
