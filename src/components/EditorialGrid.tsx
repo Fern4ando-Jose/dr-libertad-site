@@ -163,6 +163,9 @@ export default function EditorialGrid() {
             className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4"
             role="dialog"
             aria-modal="true"
+            // Impede o Lenis (smooth scroll) de capturar o wheel: assim o fundo
+            // fica travado e a roda do mouse rola o conteúdo do modal nativamente.
+            data-lenis-prevent
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
