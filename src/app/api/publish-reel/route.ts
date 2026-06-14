@@ -25,7 +25,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function publishReel(videoUrl: string, caption: string): Promise<string> {
   const accountId = process.env.META_INSTAGRAM_ACCOUNT_ID!;
   const token = await getAccessToken();
-  const base = `https://graph.instagram.com/v25.0/${accountId}`;
+  const graphRoot = "https://graph.instagram.com/v25.0";
+  const base = `${graphRoot}/${accountId}`;
 
   // 1. Criar container do reel
   const createRes = await fetch(`${base}/media`, {
@@ -49,8 +50,9 @@ async function publishReel(videoUrl: string, caption: string): Promise<string> {
   let lastStatus = "?";
   for (let attempt = 1; attempt <= 50; attempt++) {
     await sleep(5000);
+    // O container é consultado pelo seu ID na RAIZ do graph (NÃO sob o accountId).
     const statusRes = await fetch(
-      `${base}/${creationId}?fields=status_code&access_token=${token}`
+      `${graphRoot}/${creationId}?fields=status_code&access_token=${token}`
     );
     if (!statusRes.ok) {
       // erro transitório — segue tentando dentro do limite
