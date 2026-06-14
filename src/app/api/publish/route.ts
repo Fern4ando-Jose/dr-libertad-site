@@ -368,6 +368,11 @@ export async function GET(req: NextRequest) {
       falVarNames: Object.keys(process.env).filter((k) => k.toUpperCase().includes("FAL")),
       // controles de scope: vars que sabemos existir, p/ comparar ambiente
       hasAnthropic: !!process.env.ANTHROPIC_API_KEY,
+      // qual ambiente/deploy o site realmente está rodando
+      vercelEnv: process.env.VERCEL_ENV ?? null,
+      gitRef: process.env.VERCEL_GIT_COMMIT_REF ?? null,
+      gitSha: (process.env.VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || null,
+      totalEnvKeys: Object.keys(process.env).length,
     };
     return NextResponse.json({ dryrun: true, run: r, topic, cat, subject, illustration: ill, envDiag });
   }
