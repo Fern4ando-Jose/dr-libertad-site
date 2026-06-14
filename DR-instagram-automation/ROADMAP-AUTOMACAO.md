@@ -58,4 +58,6 @@ Eu dou suporte quando solicitado.
 
 - Automação Instagram (carrossel) publicando 3 posts/dia — GitHub Actions.
 - Ilustração por IA (fal/Flux) na capa — 1 imagem/post.
+- QA de imagem por visão (Claude) — reprova defeito anatômico (mão/dedo/membro
+  extra), regera até 3x; se esgota, usa o motivo abstrato (nunca publica defeito).
 - Reorganização da pasta `DR-instagram-automation/` + higiene de git.
