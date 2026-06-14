@@ -364,6 +364,10 @@ export async function GET(req: NextRequest) {
       falKeyLen: (process.env.FAL_KEY || "").length,
       hasCronSecret: !!process.env.CRON_SECRET, // controle: sabemos que funciona
       runtime: process.env.NEXT_RUNTIME || "nodejs",
+      // nomes (não valores) de env vars contendo "FAL" — revela typo/espaço no nome
+      falVarNames: Object.keys(process.env).filter((k) => k.toUpperCase().includes("FAL")),
+      // controles de scope: vars que sabemos existir, p/ comparar ambiente
+      hasAnthropic: !!process.env.ANTHROPIC_API_KEY,
     };
     return NextResponse.json({ dryrun: true, run: r, topic, cat, subject, illustration: ill, envDiag });
   }
