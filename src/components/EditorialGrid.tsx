@@ -14,6 +14,7 @@ type EditorialPost = {
   tags: string[];
   mood: "red" | "ink";
   image: string | null;
+  video: string | null;
   permalink: string | null;
   body: string | null;
   publishedAt: string | null;
@@ -25,19 +26,19 @@ const FALLBACK: EditorialPost[] = [
     id: "f1", issue: "ED. 01", kicker: "DOPAMINA",
     title: "VOCÊ NÃO ESTÁ CANSADO.", subtitle: "Você está saturado de estímulo.",
     tags: ["dopamine detox", "attention"], mood: "red",
-    image: null, permalink: null, body: null, publishedAt: null,
+    image: null, video: null, permalink: null, body: null, publishedAt: null,
   },
   {
     id: "f2", issue: "ED. 02", kicker: "ANSIEDADE",
     title: "O MEDO NÃO SOME.", subtitle: "Ele muda de forma quando você aprende a observar.",
     tags: ["modern anxiety", "self-awareness"], mood: "ink",
-    image: null, permalink: null, body: null, publishedAt: null,
+    image: null, video: null, permalink: null, body: null, publishedAt: null,
   },
   {
     id: "f3", issue: "ED. 03", kicker: "HÁBITO",
     title: "IMPULSO NÃO É ORDEM.", subtitle: "É informação. Você escolhe a resposta.",
     tags: ["psychology", "habits"], mood: "red",
-    image: null, permalink: null, body: null, publishedAt: null,
+    image: null, video: null, permalink: null, body: null, publishedAt: null,
   },
 ];
 
@@ -198,10 +199,26 @@ export default function EditorialGrid() {
                 </svg>
               </button>
 
-              {/* Imagem: topo no mobile, coluna esquerda no desktop (spread de revista) */}
+              {/* Mídia: topo no mobile, coluna esquerda no desktop (spread de revista).
+                  Reel → player de vídeo (object-contain p/ não cortar o 9:16);
+                  carrossel → imagem da capa; sem mídia → poster gerado. */}
               <div className="relative shrink-0 sm:w-[42%]">
-                <div className="aspect-[16/10] max-h-[32vh] w-full overflow-hidden bg-offwhite/95 sm:aspect-auto sm:h-full sm:max-h-none">
-                  {active.image ? (
+                <div
+                  className={`max-h-[42vh] w-full overflow-hidden sm:aspect-auto sm:h-full sm:max-h-none ${
+                    active.video ? "aspect-[9/16] bg-black" : "aspect-[16/10] max-h-[32vh] bg-offwhite/95"
+                  }`}
+                >
+                  {active.video ? (
+                    <video
+                      src={active.video}
+                      poster={active.image ?? undefined}
+                      controls
+                      autoPlay
+                      playsInline
+                      loop
+                      className="h-full w-full object-contain"
+                    />
+                  ) : active.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={active.image}
@@ -348,6 +365,17 @@ function CoverCard({
           />
         ) : (
           <PosterFace card={card} />
+        )}
+
+        {/* Selo de vídeo: Reels ganham um ▶ central para sinalizar que tocam ao abrir. */}
+        {card.video && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 backdrop-blur-sm ring-1 ring-white/30 transition-transform duration-300 group-hover:scale-110">
+              <svg viewBox="0 0 24 24" className="ml-0.5 h-6 w-6 text-white" fill="currentColor">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          </div>
         )}
       </div>
 

@@ -11,7 +11,8 @@ export type EditorialPost = {
   subtitle: string;     // gancho curto
   tags: string[];
   mood: "red" | "ink";
-  image: string | null; // imagem real do post no Instagram
+  image: string | null; // imagem/capa real do post no Instagram (thumbnail p/ vídeo)
+  video: string | null; // URL do .mp4 quando o post é um Reel/vídeo (senão null)
   permalink: string | null;
   body: string | null;  // artigo completo (do banco) para o modal
   publishedAt: string | null;
@@ -22,6 +23,7 @@ type IgMedia = {
   caption?: string;
   media_type?: string;
   media_url?: string;
+  thumbnail_url?: string; // só vem em VIDEO/REELS — é a capa do vídeo
   permalink?: string;
   timestamp?: string;
 };
@@ -84,7 +86,7 @@ async function fetchInstagram(): Promise<IgMedia[]> {
   const token = process.env.META_ACCESS_TOKEN;
   if (!accountId || !token) return [];
 
-  const fields = "id,caption,media_type,media_url,permalink,timestamp";
+  const fields = "id,caption,media_type,media_url,thumbnail_url,permalink,timestamp";
   const url = `https://graph.instagram.com/v25.0/${accountId}/media?fields=${fields}&limit=24&access_token=${token}`;
   try {
     const res = await fetch(url, { next: { revalidate: 3600 } });
@@ -149,6 +151,9 @@ export async function GET() {
       const title = db?.title ?? firstSentence(caption) ?? "DR. LIBERTAD";
       const tags = db ? normalizeTags(db.tags) : tagsFromCaption(caption);
       const kicker = (tags[0] ?? deriveKicker(title)).toUpperCase().slice(0, 14);
+      // Reels/vídeos: media_url é o .mp4 (não dá pra exibir em <img>). A capa é
+      // o thumbnail_url; o .mp4 vai no campo `video` para o player do modal.
+      const isVideo = m.media_type === "VIDEO" || m.media_type === "REELS";
       return {
         id: m.id,
         issue: `ED. ${String(editionBase - idx).padStart(2, "0")}`,
@@ -157,7 +162,8 @@ export async function GET() {
         subtitle: firstSentence(caption.replace(title, "")) || firstSentence(caption),
         tags,
         mood: idx % 2 === 0 ? "red" : "ink",
-        image: m.media_url ?? null,
+        image: isVideo ? (m.thumbnail_url ?? null) : (m.media_url ?? null),
+        video: isVideo ? (m.media_url ?? null) : null,
         permalink: m.permalink ?? null,
         body: db?.body ?? caption ?? null,
         publishedAt: m.timestamp ?? db?.published_at ?? null,
@@ -176,6 +182,7 @@ export async function GET() {
         tags,
         mood: idx % 2 === 0 ? "red" : "ink",
         image: null,
+        video: null,
         // Sem permalink real do Instagram aqui: o id numérico não é o shortcode (/p/CODE/),
         // então geraria 404. Deixamos null para não exibir um botão quebrado.
         permalink: null,
