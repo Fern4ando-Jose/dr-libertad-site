@@ -18,6 +18,15 @@ on:
         description: "Slot a publicar (manha | tarde | noite). Vazio = publica os 3."
         required: false
         default: ""
+      topic:
+        description: "Forçar um tópico específico (override). Vazio = tópico do dia. Use com 1 slot p/ não publicar 3x."
+        required: false
+        default: ""
+      force:
+        description: "Ignorar a trava anti-duplicata de 24h (republicar/backfill)."
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: instagram-posts
@@ -30,28 +39,46 @@ jobs:
     steps:
       - name: Determinar parâmetros pelo horário
         id: params
+        env:
+          EVENT: ${{ github.event_name }}
+          IN_SLOT: ${{ github.event.inputs.slot }}
+          IN_TOPIC: ${{ github.event.inputs.topic }}
+          IN_FORCE: ${{ github.event.inputs.force }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Disparo manual: respeita o slot informado; vazio = publica os 3 slots base.
-            if [ -n "${{ github.event.inputs.slot }}" ]; then
-              echo "query=slot=${{ github.event.inputs.slot }}" >> "$GITHUB_OUTPUT"
-            else
-              echo "query=" >> "$GITHUB_OUTPUT"
-            fi
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            # Disparo manual: slot/topic/force conforme informado (slot vazio = 3 slots base).
+            echo "run=" >> "$GITHUB_OUTPUT"
+            echo "slot=$IN_SLOT" >> "$GITHUB_OUTPUT"
+            echo "topic=$IN_TOPIC" >> "$GITHUB_OUTPUT"
+            echo "force=$IN_FORCE" >> "$GITHUB_OUTPUT"
           else
             # Agendado: run = hora/4 → 0..5 (00,04,08,12,16,20 UTC). 6 tópicos DISTINTOS/dia.
             HOUR=$(date -u +%H)
             RUN=$(( 10#$HOUR / 4 ))
-            echo "query=run=$RUN" >> "$GITHUB_OUTPUT"
+            echo "run=$RUN" >> "$GITHUB_OUTPUT"
+            echo "slot=" >> "$GITHUB_OUTPUT"
+            echo "topic=" >> "$GITHUB_OUTPUT"
+            echo "force=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Chamar endpoint de publicação
+        env:
+          AUTH: ${{ secrets.CRON_SECRET }}
+          SITE: ${{ secrets.SITE_URL }}
+          RUN: ${{ steps.params.outputs.run }}
+          SLOT: ${{ steps.params.outputs.slot }}
+          TOPIC: ${{ steps.params.outputs.topic }}
+          FORCE: ${{ steps.params.outputs.force }}
         run: |
-          Q="${{ steps.params.outputs.query }}"
-          echo "Publicando: ${Q:-todos os slots}"
-          HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.SITE_URL }}/api/publish?${Q}")
+          # Monta a query com -G --data-urlencode (lida com espaços no tópico).
+          ARGS=(-sS -o response.json -w "%{http_code}" -G)
+          ARGS+=(-H "Authorization: Bearer $AUTH")
+          [ -n "$RUN" ]   && ARGS+=(--data-urlencode "run=$RUN")
+          [ -n "$SLOT" ]  && ARGS+=(--data-urlencode "slot=$SLOT")
+          [ -n "$TOPIC" ] && ARGS+=(--data-urlencode "topic=$TOPIC")
+          [ "$FORCE" = "true" ] && ARGS+=(--data-urlencode "force=1")
+          echo "Publicando: run='${RUN}' slot='${SLOT}' topic='${TOPIC}' force='${FORCE}'"
+          HTTP_CODE=$(curl "${ARGS[@]}" "$SITE/api/publish")
           echo "HTTP $HTTP_CODE"
           echo "--- resposta ---"
           cat response.json
