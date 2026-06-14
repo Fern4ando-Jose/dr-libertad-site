@@ -89,9 +89,11 @@ Também confirmar a **URL de produção** do Dr. Libertad na Vercel (ex.: `dr-li
 
 ## Plano passo a passo (um por vez, com confirmação entre eles)
 
-1. ✅ **`?preview=1`** no `/api/publish` — devolve `{ title, slides, cta, caption, kw, ed, illustration }` sem publicar. Typecheck limpo. *(falta deploy verde p/ usar em produção)*
-2. ⬜ **Engine Remotion** no Dr. Libertad: deps no `package.json`, `remotion/` (Reel/Root/index) com Fraunces, marca e **ilustração de IA na capa**, `scripts/` (render + upload).
-3. ⬜ **`/api/publish-reel`** (copiar e validar) + deploy verde.
-4. ⬜ **Blob store + secret** `BLOB_READ_WRITE_TOKEN` (passo do usuário no painel).
-5. ⬜ **Workflow** `instagram-reels.yml` (21h UTC, slot noite) + teste manual → primeiro Reel.
+1. ✅ **`?preview=1`** no `/api/publish` — devolve `{ title, slides, cta, caption, kw, ed, illustration }` sem publicar. **No ar (deploy verde, responde 401 sem auth).**
+2. ✅ **Engine Remotion**: deps no `package.json`, **`video/`** (Reel/Root/index — renomeado de `remotion/` p/ evitar colisão com o pacote por `baseUrl`) com Fraunces, marca e ilustração de IA na capa, `scripts/` (render + upload). Typecheck limpo + build Vercel verde.
+3. ✅ **`/api/publish-reel`** — no ar (deploy verde, responde 401 sem auth).
+4. ⬜ **Blob store + secret** `BLOB_READ_WRITE_TOKEN` (passo do usuário no painel). ← **bloqueio atual**
+5. 🟡 **Workflow** `instagram-reels.yml` (21h UTC, slot noite) — **escrito localmente, aguardando o secret p/ commitar e disparar**.
 6. ⬜ **Acertos finais** de design/duração após ver o primeiro vídeo real.
+
+> Commits no ar: `bd79e05` (feature) sobre `main`.

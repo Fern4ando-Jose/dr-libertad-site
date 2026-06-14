@@ -1,0 +1,106 @@
+name: Instagram Reels — Dr. Libertad
+
+# Pipeline GRÁTIS de Reels (vídeo) para o @drlibertad.
+# Renderiza um Reel com Remotion no GitHub Actions (tem Chromium + ffmpeg),
+# sobe o mp4 para o Vercel Blob (URL pública) e publica via /api/publish-reel.
+#
+# Roda 1x/dia às 21:00 UTC (18:00 BRT) + disparo manual (workflow_dispatch).
+
+on:
+  schedule:
+    - cron: "0 21 * * *" # 21:00 UTC = 18:00 BRT
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "Slot usado para buscar o conteúdo (preview)"
+        required: false
+        default: "noite"
+        type: choice
+        options: [manha, tarde, noite]
+
+jobs:
+  reel:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Baixa o código do repositório
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      # 2. Configura Node 20 com cache de npm
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      # 3. Instala dependências (inclui Remotion). O Remotion baixa o Chromium
+      #    Headless Shell automaticamente no primeiro render.
+      - name: Instalar dependências
+        run: npm install --no-audit --no-fund
+
+      # 4. Define o slot (do input manual ou "noite" no agendamento)
+      - name: Definir slot
+        id: slot
+        run: |
+          SLOT="${{ github.event.inputs.slot }}"
+          SLOT="${SLOT:-noite}"
+          echo "slot=$SLOT" >> "$GITHUB_OUTPUT"
+          echo "Slot escolhido: $SLOT"
+
+      # 5. Busca o conteúdo em /api/publish?preview=1 (gera título/slides/cta + a
+      #    ilustração da capa via Claude/fal, SEM publicar) e monta o REEL_PROPS.
+      - name: Obter conteúdo (preview) e montar REEL_PROPS
+        id: content
+        run: |
+          curl -fsS --max-time 180 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://www.drlibertad.com/api/publish?preview=1&slot=${{ steps.slot.outputs.slot }}" \
+            -o preview.json
+          echo "Prévia recebida:"
+          cat preview.json | head -c 400; echo
+
+          node -e '
+            const fs = require("fs");
+            const p = JSON.parse(fs.readFileSync("preview.json", "utf8"));
+            const props = {
+              title: p.title || "Dr. Libertad",
+              slides: Array.isArray(p.slides) ? p.slides : [],
+              accentWords: Array.isArray(p.accentWords) ? p.accentWords : [],
+              cta: p.cta || "",
+              kw: p.kw || "LIBERTAD",
+              ed: p.ed || "000",
+              img: p.illustration || undefined,
+              cat: p.cat || "freedom"
+            };
+            // Caption do reel: usa a legenda gerada pelo Claude (mesma do carrossel)
+            fs.writeFileSync("caption.txt", p.caption || p.title || "");
+            fs.writeFileSync("reel-props.json", JSON.stringify(props));
+            console.log("REEL_PROPS montado:", JSON.stringify(props).slice(0, 300));
+          '
+
+      # 6. Renderiza o Reel para out/reel.mp4
+      - name: Renderizar Reel (Remotion)
+        run: node scripts/render-reel.mjs --props=reel-props.json
+
+      # 7. Sobe o mp4 para o Vercel Blob e captura a URL pública (stdout)
+      - name: Upload do mp4 para o Vercel Blob
+        id: upload
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: |
+          URL=$(node scripts/upload-blob.mjs)
+          echo "URL do vídeo: $URL"
+          echo "video_url=$URL" >> "$GITHUB_OUTPUT"
+
+      # 8. Publica o Reel no Instagram via /api/publish-reel (faz o polling de status)
+      - name: Publicar Reel no Instagram
+        run: |
+          curl -fsS --max-time 240 -G \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            --data-urlencode "video=${{ steps.upload.outputs.video_url }}" \
+            --data-urlencode "caption@caption.txt" \
+            --data-urlencode "slot=${{ steps.slot.outputs.slot }}" \
+            "https://www.drlibertad.com/api/publish-reel"
+          echo
+          echo "Reel publicado."
