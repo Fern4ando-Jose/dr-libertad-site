@@ -363,6 +363,46 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ dryrun: true, run: r, topic, cat, subject, illustration: ill, falKeyPresent: !!process.env.FAL_KEY });
   }
 
+  // Prévia: gera o conteúdo do dia (e a ilustração da capa) e devolve SEM publicar.
+  // Usado pelo pipeline de Reels — o vídeo é renderizado a partir deste mesmo
+  // conteúdo, com a ilustração da fal como fundo da capa.
+  if (sp.get("preview") === "1") {
+    const r = runs[0];
+    const slot = SLOT_FOR_RUN[r];
+    const now = new Date();
+    const topic = topicOverride ?? getTopicForRun(now, r);
+    const cat = TOPIC_CAT[topic] ?? "freedom";
+
+    const searchResults = await searchTopic(topic);
+    const content = await generateContent(topic, searchResults, slot);
+
+    // Número de edição (mesma conta do fluxo de publicação)
+    let editionNum = 1;
+    try {
+      const { sql } = await import("@vercel/postgres");
+      const countResult = await sql`SELECT COUNT(*) as n FROM posts`;
+      editionNum = (parseInt(countResult.rows[0]?.n ?? "0") || 0) + 1;
+    } catch { /* fallback silencioso */ }
+    const ed = String(editionNum).padStart(2, "0");
+    const kw = extractKeyword(topic);
+
+    // Mesma ilustração da capa do carrossel — serve de fundo da capa do Reel.
+    const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat);
+
+    return NextResponse.json({
+      preview: true,
+      slot, run: r, topic, cat,
+      title: content.postTitle,
+      slides: content.slides,
+      accentWords: [],
+      cta: content.cta,
+      caption: content.instagramCaption,
+      kw, ed,
+      illustration: ill.url ?? null,
+      illustrationError: ill.error ?? null,
+    });
+  }
+
   const results = [];
 
   try {

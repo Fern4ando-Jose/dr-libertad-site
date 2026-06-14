@@ -6,6 +6,11 @@ node_modules/
 out/
 *.tsbuildinfo
 
+# Artefatos do pipeline de Reels (render + dados temporários do CI)
+/reel-props.json
+/caption.txt
+/preview.json
+
 # Arquivos de log e outros
 .env*.local
 .DS_Store
