@@ -100,5 +100,5 @@ Também confirmar a **URL de produção** do Dr. Libertad na Vercel (ex.: `dr-li
 
 ### Bugs corrigidos durante o bring-up
 - token do Blob: aceitava bloco `.env` colado → extrai `vercel_blob_rw_...`.
-- **status do container era consultado em `.../{accountId}/{creationId}` (erro) → corrigido p/ raiz `.../{creationId}`.** ⚠️ **Mesmo bug existe no AnamnesisMed** — corrigir lá também.
+- **status do container era consultado em `.../{accountId}/{creationId}` (erro) → corrigido p/ raiz `.../{creationId}`.** ✅ **Mesmo bug corrigido no AnamnesisMed** (push direto na `main`, 2026-06-14, via worktree isolado p/ não tocar na sessão da branch de UI; polling lá também subiu 12→50).
 - janela de polling 60s → ~250s.
