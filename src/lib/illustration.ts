@@ -30,9 +30,13 @@ function buildPrompt(subject: string, accentWord: string, accentHex: string): st
   ].join(" ");
 }
 
-// Retorna a URL pública da ilustração (validada) ou null em qualquer falha.
-export async function generateIllustration(subject: string, cat: string): Promise<string | null> {
-  if (!FAL_KEY || !subject) return null;
+export interface IllustrationResult { url: string | null; error?: string; model?: string }
+
+// Gera a ilustração. Retorna { url } em sucesso ou { url:null, error } em falha
+// (o erro alimenta o diagnóstico do dryrun e o log; o publish usa só a url).
+export async function generateIllustration(subject: string, cat: string): Promise<IllustrationResult> {
+  if (!FAL_KEY) return { url: null, error: "FAL_KEY ausente no runtime" };
+  if (!subject)  return { url: null, error: "subject vazio" };
   const accent = ACCENTS[cat] ?? ACCENTS.freedom;
   const prompt = buildPrompt(subject, accent.word, accent.hex);
   try {
@@ -47,24 +51,16 @@ export async function generateIllustration(subject: string, cat: string): Promis
       }),
     });
     if (!res.ok) {
-      console.error("[fal] HTTP", res.status, await res.text().catch(() => ""));
-      return null;
+      const body = await res.text().catch(() => "");
+      return { url: null, error: `fal HTTP ${res.status}: ${body.slice(0, 220)}`, model: FAL_MODEL };
     }
     const data = await res.json();
     const url: string | undefined = data?.images?.[0]?.url;
-    if (!url) {
-      console.error("[fal] resposta sem images[0].url");
-      return null;
-    }
-    // Valida alcançabilidade antes de usar — evita 500 do /api/og por imagem morta.
-    const check = await fetch(url, { method: "GET" }).catch(() => null);
-    if (!check || !check.ok) {
-      console.error("[fal] url gerada não responde:", url);
-      return null;
-    }
-    return url;
+    if (!url) return { url: null, error: `fal resposta sem images[0].url: ${JSON.stringify(data).slice(0, 220)}`, model: FAL_MODEL };
+    const check = await fetch(url, { method: "GET" }).catch((e) => ({ ok: false, status: String(e) } as Response));
+    if (!check.ok) return { url: null, error: `url gerada não responde (${check.status})`, model: FAL_MODEL };
+    return { url, model: FAL_MODEL };
   } catch (e) {
-    console.error("[fal] erro na geração:", e);
-    return null;
+    return { url: null, error: `exceção: ${e instanceof Error ? e.message : String(e)}`, model: FAL_MODEL };
   }
 }
