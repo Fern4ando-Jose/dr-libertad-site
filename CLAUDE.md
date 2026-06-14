@@ -21,6 +21,17 @@ Site Next.js que gera e publica carrosséis no Instagram (@drlibertad) de forma 
 - **Agendamento roda no GitHub Actions**, não no Vercel (limite de crons do Hobby). Não recriar crons no `vercel.json`.
 - Antes de publicar em produção: confirmar **deploy Vercel verde** no commit.
 
+## Camadas: Automação × Criação (separar SEMPRE)
+
+O projeto tem **duas camadas que não se misturam**:
+
+- **Automação** = a infraestrutura que roda sozinha 1x/dia (gerar conteúdo → renderizar → subir → publicar). É **base estável**: não desestabilizar durante experimento de criação. Mexer aqui só com verificação ponta a ponta.
+- **Criação** = o que o post/vídeo **É** visualmente (motor `video/Reel.tsx`, copy, ilustração). Camada **iterável**; ajusta-se por cima sem tocar na automação.
+
+**Régua de criação de vídeo: "vídeo de verdade, não slide animado".** Tipografia/transição/grão sobre fundo estático = slide (o IG faz isso fácil). Para sair disso é preciso **imagem em movimento no quadro** — footage de banco grátis (Pexels/Pixabay) **ou** image-to-video por IA (fal) — com texto/voz como **camada por cima**, não como conteúdo principal. Direção de criação é discutida e aprovada **antes** de codar.
+
+**Limite do ambiente local:** esta máquina **não renderiza Remotion localmente** (o `chrome-headless-shell` cai em quarentena/não extrai). Para ver resultado: **Remotion Studio** (`npx remotion studio video/index.ts` — renderiza no navegador do usuário) ou **render no CI**. Não insistir em render headless local.
+
 ## Stack
 
 - Next.js 16 (Turbopack) · edge runtime · `next/og` (satori) para imagens.
