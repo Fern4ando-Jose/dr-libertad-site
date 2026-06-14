@@ -17,7 +17,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, ".."); // raiz do projeto
 
 async function main() {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  // .trim() remove quebras de linha/espaços que entram ao colar o token no
+  // secret — sem isso o fetch lança "invalid header value".
+  const token = (process.env.BLOB_READ_WRITE_TOKEN || "").trim();
+  if (!token) {
     console.error("[upload] faltando BLOB_READ_WRITE_TOKEN no ambiente");
     process.exit(1);
   }
@@ -37,7 +40,7 @@ async function main() {
   const blob = await put(key, data, {
     access: "public",
     contentType: "video/mp4",
-    token: process.env.BLOB_READ_WRITE_TOKEN,
+    token,
   });
 
   // Logs de diagnóstico vão para stderr; a URL limpa vai para stdout.
