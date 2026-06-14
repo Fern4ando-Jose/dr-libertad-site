@@ -8,16 +8,15 @@ Legenda: 🔴 alta · 🟡 média · ⚪ futuro · ✅ feito
 
 ---
 
-## 🎬 1. Vídeo diário — TAREFA PRINCIPAL 🔴
+## 🎬 1. Vídeo diário — TAREFA PRINCIPAL ✅ (no ar 2026-06-14)
 
-Gerar e publicar **ao menos 1 vídeo por dia** (Reels).
+Gera e publica **1 Reel/dia** no @drlibertad, 1x/dia às 21h UTC (18h BRT),
+via GitHub Actions (render Remotion → Vercel Blob → `/api/publish-reel`).
+Capa com ilustração de IA. Ver [`ORGANOGRAMA-VIDEO.md`](ORGANOGRAMA-VIDEO.md).
+Primeiro Reel: postId `18105694460054846`.
 
-- **Base de referência:** o **AnamnesisMed já tem Reels** via Remotion
-  (`publish-reel`, `scripts/render-reel.mjs`, `upload-blob.mjs`) — reaproveitar
-  a arquitetura para o Dr. Libertad em vez de começar do zero.
-- Subpassos prováveis: roteiro/copy do vídeo → render (Remotion) → upload pro
-  Blob → publicação como Reel → registro no banco + trava anti-duplicata.
-- Decidir cadência e horário do cron (GitHub Actions, como os posts).
+> Pendente (refino, não bloqueia): review visual; opcionalmente registrar o
+> Reel no banco + trava anti-duplicata (hoje o `?preview=1` não grava post).
 
 ## 🔐 2. Rotacionar a `FAL_KEY` ⚪ (adiado)
 

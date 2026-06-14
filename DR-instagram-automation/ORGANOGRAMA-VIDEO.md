@@ -92,8 +92,13 @@ Também confirmar a **URL de produção** do Dr. Libertad na Vercel (ex.: `dr-li
 1. ✅ **`?preview=1`** no `/api/publish` — devolve `{ title, slides, cta, caption, kw, ed, illustration }` sem publicar. **No ar (deploy verde, responde 401 sem auth).**
 2. ✅ **Engine Remotion**: deps no `package.json`, **`video/`** (Reel/Root/index — renomeado de `remotion/` p/ evitar colisão com o pacote por `baseUrl`) com Fraunces, marca e ilustração de IA na capa, `scripts/` (render + upload). Typecheck limpo + build Vercel verde.
 3. ✅ **`/api/publish-reel`** — no ar (deploy verde, responde 401 sem auth).
-4. ⬜ **Blob store + secret** `BLOB_READ_WRITE_TOKEN` (passo do usuário no painel). ← **bloqueio atual**
-5. 🟡 **Workflow** `instagram-reels.yml` (21h UTC, slot noite) — **escrito localmente, aguardando o secret p/ commitar e disparar**.
-6. ⬜ **Acertos finais** de design/duração após ver o primeiro vídeo real.
+4. ✅ **Blob store + secret** `BLOB_READ_WRITE_TOKEN` criados.
+5. ✅ **Workflow** `instagram-reels.yml` no ar (21h UTC, slot noite) — **primeiro Reel publicado** (postId `18105694460054846`, run verde 2026-06-14).
+6. 🟡 **Acertos finais** de design/duração — aguardando review visual do usuário no @drlibertad.
 
-> Commits no ar: `bd79e05` (feature) sobre `main`.
+> **Pipeline LIVE.** Roda sozinho 1x/dia às 21h UTC. Disparo manual: aba Actions → "Instagram Reels — Dr. Libertad" → Run workflow.
+
+### Bugs corrigidos durante o bring-up
+- token do Blob: aceitava bloco `.env` colado → extrai `vercel_blob_rw_...`.
+- **status do container era consultado em `.../{accountId}/{creationId}` (erro) → corrigido p/ raiz `.../{creationId}`.** ⚠️ **Mesmo bug existe no AnamnesisMed** — corrigir lá também.
+- janela de polling 60s → ~250s.
