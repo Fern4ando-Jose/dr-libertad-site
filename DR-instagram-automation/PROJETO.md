@@ -2,6 +2,11 @@
 
 > **Objetivo:** Automatizar publicações diárias no Instagram para crescer seguidores, finalizar o site e lançar infoprodutos (livros).
 
+> **Pendências (fonte ativa):** este arquivo guarda a origem/histórico. O que
+> falta fazer vive separado em dois roadmaps:
+> - Automação → [`ROADMAP-AUTOMACAO.md`](ROADMAP-AUTOMACAO.md)
+> - Site → [`../ROADMAP-SITE.md`](../ROADMAP-SITE.md)
+
 ---
 
 ## Metodologia de trabalho
