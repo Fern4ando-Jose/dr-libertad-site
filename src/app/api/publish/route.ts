@@ -352,6 +352,16 @@ export async function GET(req: NextRequest) {
     runs = [0, 1, 2];
   }
 
+  // Diagnóstico: roda só a geração da fal e devolve o resultado SEM publicar.
+  if (sp.get("dryrun") === "1") {
+    const r = runs[0];
+    const topic = topicOverride ?? getTopicForRun(new Date(), r);
+    const cat = TOPIC_CAT[topic] ?? "freedom";
+    const subject = TOPIC_SUBJECT[topic] ?? "";
+    const ill = await generateIllustration(subject, cat);
+    return NextResponse.json({ dryrun: true, run: r, topic, cat, subject, illustration: ill });
+  }
+
   const results = [];
 
   try {
@@ -405,10 +415,10 @@ export async function GET(req: NextRequest) {
         const cat   = TOPIC_CAT[topic] ?? "freedom";
         const motif = TOPIC_MOTIF[topic] ?? "gateway";
 
-        // Ilustração por IA (fal/Flux) na CAPA. null em falha → og usa o motivo abstrato.
-        const illustration = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat);
-        slotLog.illustration = illustration ? "ia" : "fallback-motivo";
-        const imgParam = illustration ? `&img=${encodeURIComponent(illustration)}` : "";
+        // Ilustração por IA (fal/Flux) na CAPA. Falha → og usa o motivo abstrato.
+        const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat);
+        slotLog.illustration = ill.url ? "ia" : `fallback: ${ill.error ?? "?"}`;
+        const imgParam = ill.url ? `&img=${encodeURIComponent(ill.url)}` : "";
 
         const slideUrls: string[] = [
           `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}${imgParam}&total=${totalSlides}`,
