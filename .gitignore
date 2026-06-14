@@ -13,6 +13,8 @@ out/
 
 # Ferramentas locais do editor / Claude Code
 .claude/
+.agents/
+skills-lock.json
 
 # Notas e rascunhos locais (não versionados)
 _notas/
