@@ -19,11 +19,19 @@ const ROOT = resolve(__dirname, ".."); // raiz do projeto
 async function main() {
   // .trim() remove quebras de linha/espaços que entram ao colar o token no
   // secret — sem isso o fetch lança "invalid header value".
-  const token = (process.env.BLOB_READ_WRITE_TOKEN || "").trim();
+  const raw = process.env.BLOB_READ_WRITE_TOKEN || "";
+  const token = raw.trim();
   if (!token) {
     console.error("[upload] faltando BLOB_READ_WRITE_TOKEN no ambiente");
     process.exit(1);
   }
+  // Diagnóstico seguro do formato do token (NÃO imprime o segredo).
+  console.error(
+    `[diag] len(raw)=${raw.length} len(trim)=${token.length} ` +
+      `prefixOK=${token.startsWith("vercel_blob_rw_")} segments=${token.split("_").length} ` +
+      `hasNL=${/\n/.test(raw)} hasCR=${/\r/.test(raw)} hasInnerSpace=${/\s/.test(token)} ` +
+      `head="${token.slice(0, 15)}"`
+  );
 
   const fileArg = process.argv[2];
   const filePath = fileArg
