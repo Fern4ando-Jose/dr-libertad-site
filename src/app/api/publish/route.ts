@@ -359,7 +359,13 @@ export async function GET(req: NextRequest) {
     const cat = TOPIC_CAT[topic] ?? "freedom";
     const subject = TOPIC_SUBJECT[topic] ?? "";
     const ill = await generateIllustration(subject, cat);
-    return NextResponse.json({ dryrun: true, run: r, topic, cat, subject, illustration: ill });
+    const envDiag = {
+      hasFalKey: !!process.env.FAL_KEY,
+      falKeyLen: (process.env.FAL_KEY || "").length,
+      hasCronSecret: !!process.env.CRON_SECRET, // controle: sabemos que funciona
+      runtime: process.env.NEXT_RUNTIME || "nodejs",
+    };
+    return NextResponse.json({ dryrun: true, run: r, topic, cat, subject, illustration: ill, envDiag });
   }
 
   const results = [];

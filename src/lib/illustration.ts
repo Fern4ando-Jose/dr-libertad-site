@@ -4,10 +4,6 @@
 // falha retorna null → o /api/og cai no motivo abstrato (nunca quebra o post).
 // Direção de arte: memória `art-direction-ia`.
 
-const FAL_KEY = process.env.FAL_KEY;
-// Flux dev = boa qualidade/custo; trocável por env (ex.: fal-ai/flux/schnell p/ mais barato)
-const FAL_MODEL = process.env.FAL_MODEL || "fal-ai/flux/dev";
-
 // Acento por categoria — espelha CATS de /api/og (cor) + nome p/ o prompt.
 const ACCENTS: Record<string, { word: string; hex: string }> = {
   freedom:  { word: "oxblood wine red",  hex: "#A45A5A" },
@@ -35,6 +31,9 @@ export interface IllustrationResult { url: string | null; error?: string; model?
 // Gera a ilustração. Retorna { url } em sucesso ou { url:null, error } em falha
 // (o erro alimenta o diagnóstico do dryrun e o log; o publish usa só a url).
 export async function generateIllustration(subject: string, cat: string): Promise<IllustrationResult> {
+  // Lê no momento da chamada (igual CRON_SECRET) — evita leitura em hora errada do build.
+  const FAL_KEY = process.env.FAL_KEY;
+  const FAL_MODEL = process.env.FAL_MODEL || "fal-ai/flux/dev";
   if (!FAL_KEY) return { url: null, error: "FAL_KEY ausente no runtime" };
   if (!subject)  return { url: null, error: "subject vazio" };
   const accent = ACCENTS[cat] ?? ACCENTS.freedom;
