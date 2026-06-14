@@ -24,3 +24,7 @@ public_tmp/
 /*.jpg
 /*.jpeg
 /*.png
+
+# Automação: snapshots de referência (duplicam código de src/) e preview local
+DR-instagram-automation/files/
+DR-instagram-automation/preview-carousel.html
