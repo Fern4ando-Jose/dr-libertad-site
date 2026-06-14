@@ -43,9 +43,9 @@ async function publishReel(videoUrl: string, caption: string): Promise<string> {
   if (!creationId) throw new Error("Reel container sem creation_id");
 
   // 2. Polling do status — o vídeo precisa ser processado antes de publicar
-  //    (pode levar 30–60s). Aborta em ERROR ou após ~12 tentativas (~60s).
+  //    (pode levar 1–2 min). Aborta em ERROR ou após ~24 tentativas (~120s).
   let finished = false;
-  for (let attempt = 1; attempt <= 12; attempt++) {
+  for (let attempt = 1; attempt <= 24; attempt++) {
     await sleep(5000);
     const statusRes = await fetch(
       `${base}/${creationId}?fields=status_code&access_token=${token}`

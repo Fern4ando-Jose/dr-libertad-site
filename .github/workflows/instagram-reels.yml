@@ -96,11 +96,14 @@ jobs:
       # 8. Publica o Reel no Instagram via /api/publish-reel (faz o polling de status)
       - name: Publicar Reel no Instagram
         run: |
-          curl -fsS --max-time 240 -G \
+          RESP=$(curl -sS --max-time 280 -G \
+            -w $'\nHTTP_CODE:%{http_code}' \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             --data-urlencode "video=${{ steps.upload.outputs.video_url }}" \
             --data-urlencode "caption@caption.txt" \
             --data-urlencode "slot=${{ steps.slot.outputs.slot }}" \
-            "https://www.drlibertad.com/api/publish-reel"
-          echo
+            "https://www.drlibertad.com/api/publish-reel")
+          echo "Resposta do servidor:"
+          echo "$RESP"
+          echo "$RESP" | grep -q '"ok":true' || { echo "::error::Publicação falhou"; exit 1; }
           echo "Reel publicado."
