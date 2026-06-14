@@ -57,8 +57,11 @@ export async function generateIllustration(subject: string, cat: string): Promis
     const data = await res.json();
     const url: string | undefined = data?.images?.[0]?.url;
     if (!url) return { url: null, error: `fal resposta sem images[0].url: ${JSON.stringify(data).slice(0, 220)}`, model: FAL_MODEL };
-    const check = await fetch(url, { method: "GET" }).catch((e) => ({ ok: false, status: String(e) } as Response));
-    if (!check.ok) return { url: null, error: `url gerada não responde (${check.status})`, model: FAL_MODEL };
+    let check: Response | null = null;
+    try { check = await fetch(url, { method: "GET" }); } catch (e) {
+      return { url: null, error: `url gerada não responde (fetch falhou: ${e instanceof Error ? e.message : String(e)})`, model: FAL_MODEL };
+    }
+    if (!check.ok) return { url: null, error: `url gerada não responde (HTTP ${check.status})`, model: FAL_MODEL };
     return { url, model: FAL_MODEL };
   } catch (e) {
     return { url: null, error: `exceção: ${e instanceof Error ? e.message : String(e)}`, model: FAL_MODEL };
