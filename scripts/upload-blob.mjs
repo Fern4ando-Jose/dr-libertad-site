@@ -19,19 +19,19 @@ const ROOT = resolve(__dirname, ".."); // raiz do projeto
 async function main() {
   // .trim() remove quebras de linha/espaços que entram ao colar o token no
   // secret — sem isso o fetch lança "invalid header value".
+  // Aceita tanto o token puro quanto um bloco .env colado do painel da Vercel
+  // (ex.: BLOB_READ_WRITE_TOKEN="vercel_blob_rw_..."): extrai o token de dentro.
   const raw = process.env.BLOB_READ_WRITE_TOKEN || "";
-  const token = raw.trim();
+  const match = raw.match(/vercel_blob_rw_[A-Za-z0-9_-]+/);
+  const token = match ? match[0] : raw.trim();
   if (!token) {
     console.error("[upload] faltando BLOB_READ_WRITE_TOKEN no ambiente");
     process.exit(1);
   }
-  // Diagnóstico seguro do formato do token (NÃO imprime o segredo).
-  console.error(
-    `[diag] len(raw)=${raw.length} len(trim)=${token.length} ` +
-      `prefixOK=${token.startsWith("vercel_blob_rw_")} segments=${token.split("_").length} ` +
-      `hasNL=${/\n/.test(raw)} hasCR=${/\r/.test(raw)} hasInnerSpace=${/\s/.test(token)} ` +
-      `head="${token.slice(0, 15)}"`
-  );
+  if (!token.startsWith("vercel_blob_rw_")) {
+    console.error("[upload] BLOB_READ_WRITE_TOKEN não parece um token válido (esperado prefixo vercel_blob_rw_)");
+    process.exit(1);
+  }
 
   const fileArg = process.argv[2];
   const filePath = fileArg
