@@ -17,6 +17,12 @@ on:
         default: "noite"
         type: choice
         options: [manha, tarde, noite]
+      publish:
+        description: "Publicar no Instagram? (no = só renderiza p/ preview)"
+        required: false
+        default: "no"
+        type: choice
+        options: [no, "yes"]
 
 jobs:
   reel:
@@ -71,13 +77,27 @@ jobs:
               kw: p.kw || "LIBERTAD",
               ed: p.ed || "000",
               img: p.illustration || undefined,
-              cat: p.cat || "freedom"
+              cat: p.cat || "freedom",
+              // Trilha royalty-free embutida — só se o arquivo existir no repo
+              // (camada de criação opcional; sem ele o Reel renderiza mudo).
+              music: fs.existsSync("public/music/bed.mp3") ? "music/bed.mp3" : undefined
             };
             // Caption do reel: usa a legenda gerada pelo Claude (mesma do carrossel)
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("reel-props.json", JSON.stringify(props));
             console.log("REEL_PROPS montado:", JSON.stringify(props).slice(0, 300));
           '
+
+      # 5b. Anima a ilustração do dia (image-to-video / fal) → clipe de fundo.
+      #     NÃO-FATAL: se faltar FAL_KEY ou a fal falhar, segue sem clipe e o
+      #     Reel usa a ilustração estática (Ken Burns). Não derruba o pipeline.
+      - name: Animar capa (i2v fal) → clipe de fundo
+        env:
+          FAL_KEY: ${{ secrets.FAL_KEY }}
+          FAL_VIDEO_MODEL: fal-ai/ltx-2/image-to-video/fast
+          FAL_VIDEO_DURATION: "6"
+          FAL_VIDEO_RESOLUTION: "1080p"
+        run: node scripts/animate-clip.mjs --props=reel-props.json
 
       # 6. Renderiza o Reel para out/reel.mp4
       - name: Renderizar Reel (Remotion)
@@ -93,8 +113,19 @@ jobs:
           echo "URL do vídeo: $URL"
           echo "video_url=$URL" >> "$GITHUB_OUTPUT"
 
-      # 8. Publica o Reel no Instagram via /api/publish-reel (faz o polling de status)
+      # 7b. Modo preview: no disparo manual com publish=no, NÃO publica — só
+      #     expõe a URL do mp4 p/ você revisar a criação antes de ir pro ar.
+      #     O cron (schedule) sempre publica.
+      - name: Preview (sem publicar)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'yes' }}
+        run: |
+          echo "::notice title=Reel pronto (preview, não publicado)::${{ steps.upload.outputs.video_url }}"
+          echo "Preview do Reel (NÃO publicado): ${{ steps.upload.outputs.video_url }}"
+
+      # 8. Publica o Reel no Instagram via /api/publish-reel (faz o polling de status).
+      #     Roda no cron (schedule) ou no disparo manual com publish=yes.
       - name: Publicar Reel no Instagram
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.publish == 'yes' }}
         run: |
           RESP=$(curl -sS --max-time 280 -G \
             -w $'\nHTTP_CODE:%{http_code}' \
