@@ -42,10 +42,12 @@ async function publishReel(videoUrl: string, caption: string): Promise<string> {
   const { id: creationId } = await createRes.json();
   if (!creationId) throw new Error("Reel container sem creation_id");
 
-  // 2. Polling do status — o vídeo precisa ser processado antes de publicar
-  //    (pode levar 1–2 min). Aborta em ERROR ou após ~24 tentativas (~120s).
+  // 2. Polling do status — o vídeo precisa ser processado antes de publicar.
+  //    Reels podem levar alguns minutos; espera até ~250s (a função permite 300s).
+  //    Aborta em ERROR.
   let finished = false;
-  for (let attempt = 1; attempt <= 24; attempt++) {
+  let lastStatus = "?";
+  for (let attempt = 1; attempt <= 50; attempt++) {
     await sleep(5000);
     const statusRes = await fetch(
       `${base}/${creationId}?fields=status_code&access_token=${token}`
@@ -55,6 +57,7 @@ async function publishReel(videoUrl: string, caption: string): Promise<string> {
       continue;
     }
     const { status_code } = await statusRes.json();
+    lastStatus = status_code ?? "(sem status_code)";
     if (status_code === "FINISHED") {
       finished = true;
       break;
@@ -64,7 +67,7 @@ async function publishReel(videoUrl: string, caption: string): Promise<string> {
     }
     // IN_PROGRESS / PUBLISHED / EXPIRED → continua o loop
   }
-  if (!finished) throw new Error("Timeout: reel não finalizou o processamento a tempo");
+  if (!finished) throw new Error(`Timeout: reel não finalizou (último status=${lastStatus})`);
 
   // 3. Publicar
   const pubRes = await fetch(`${base}/media_publish`, {
