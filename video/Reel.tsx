@@ -56,11 +56,12 @@ const GRADE_FILTER = "saturate(0.18) contrast(1.1) brightness(0.92)";
 // ─── Tempos (fonte única; Root.tsx importa reelDurations) ─────────────────────
 export const FPS = 30;
 
-// "Texto mínimo": no máximo 2 insights entre capa e CTA — Reel curto (~14s).
+// "Texto mínimo": no máximo 2 insights entre capa e CTA. Cenas mais longas →
+// Reel ~20s (capa 5s + 2×5,2s + CTA 4,6s).
 export function reelDurations(slidesCount: number) {
-  const COVER = Math.round(FPS * 3.8);
-  const INSIGHT = Math.round(FPS * 3.6);
-  const CTA = Math.round(FPS * 3.0);
+  const COVER = Math.round(FPS * 5.0);
+  const INSIGHT = Math.round(FPS * 5.2);
+  const CTA = Math.round(FPS * 4.6);
   const n = Math.min(Math.max(slidesCount || 1, 1), 2);
   return { COVER, INSIGHT, CTA, n, total: COVER + INSIGHT * n + CTA };
 }

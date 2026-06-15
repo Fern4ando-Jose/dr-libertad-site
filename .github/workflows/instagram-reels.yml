@@ -96,7 +96,7 @@ jobs:
       - name: Buscar footage (Pexels) → clipes de fundo
         env:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          FOOTAGE_NUM_CLIPS: "3"
+          FOOTAGE_NUM_CLIPS: "4"
         run: node scripts/fetch-footage.mjs --props=reel-props.json
 
       # 6. Renderiza o Reel para out/reel.mp4
