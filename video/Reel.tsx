@@ -1,19 +1,29 @@
 // ─── Composição do Reel Dr. Libertad ─────────────────────────────────────────
-// Vídeo vertical 1080x1920 (9:16), 30fps, sem áudio. Sequência de cenas:
-//   1. Capa  → ilustração de IA (fal) full-bleed + scrim, gancho `title` (Fraunces)
-//   2. Slides → fundo papel, número grande, palavra de destaque no acento da categoria
-//   3. CTA   → "Siga @drlibertad" sobre INK
-// Fonte: Fraunces (mesma da marca) via @remotion/google-fonts.
-// Obs.: aqui o render roda no Chromium do CI (não no edge do /api/og), então
-// carregar a fonte por google-fonts não infla o bundle edge — regra respeitada.
+// Vídeo vertical 1080x1920 (9:16), 30fps. Régua: "vídeo de verdade, não slide
+// animado". O fundo é FOOTAGE REAL (vídeo filmado de banco / Pexels), um clipe
+// por cena (2-3 cenas distintas), com COLOR GRADE da marca por cima p/ unificar
+// (duotone ink/paper dessaturado + acento da categoria). O texto entra mínimo,
+// como camada. Footage = movimento real + custo zero.
+//
+// Camadas por cena (de baixo p/ cima):
+//   1. Footage graded  → <OffthreadVideo> do clipe, cover-crop 9:16, push-in lento
+//      + filtro (dessatura/contraste) + wash do acento. Fallback: ilustração
+//      estática → watermark.
+//   2. Scrim           → contraste do texto.
+//   3. Grão + vinheta  → textura da marca.
+//   4. Texto           → Capa (gancho) → Insight(s) → CTA. Mínimo.
+//   5. Música          → trilha royalty-free opcional (prop `music`).
 
 import React from "react";
 import {
   AbsoluteFill,
+  Audio,
   Img,
+  OffthreadVideo,
   Sequence,
   interpolate,
   spring,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
@@ -27,7 +37,6 @@ const PAPER = "#F4F0E8";
 const WHITE = "#ffffff";
 const RED = "#A45A5A"; // acento default (freedom)
 
-// Acento por categoria — espelha CATS de /api/og.
 const CAT_ACCENT: Record<string, string> = {
   freedom: "#A45A5A",
   dopamine: "#BE7A2A",
@@ -37,21 +46,38 @@ const CAT_ACCENT: Record<string, string> = {
   mind: "#5B6B3C",
 };
 
-// Scrim da capa sobre a ilustração (mesma ideia do /api/og, reforçado embaixo
-// onde fica o título). Garante contraste do texto claro.
-const COVER_SCRIM =
-  "linear-gradient(180deg, rgba(11,11,12,0.35) 0%, rgba(11,11,12,0.12) 34%, rgba(11,11,12,0.92) 100%)";
+// Scrim sobre o footage — escurece topo e (forte) a base, onde mora o texto.
+const SCRIM =
+  "linear-gradient(180deg, rgba(11,11,12,0.58) 0%, rgba(11,11,12,0.20) 30%, rgba(11,11,12,0.22) 58%, rgba(11,11,12,0.90) 100%)";
+
+// Grade da marca aplicado ao próprio vídeo (quase B&W, levemente contrastado).
+const GRADE_FILTER = "saturate(0.18) contrast(1.1) brightness(0.92)";
+
+// ─── Tempos (fonte única; Root.tsx importa reelDurations) ─────────────────────
+export const FPS = 30;
+
+// "Texto mínimo": no máximo 2 insights entre capa e CTA. Cenas mais longas →
+// Reel ~20s (capa 5s + 2×5,2s + CTA 4,6s).
+export function reelDurations(slidesCount: number) {
+  const COVER = Math.round(FPS * 5.0);
+  const INSIGHT = Math.round(FPS * 5.2);
+  const CTA = Math.round(FPS * 4.6);
+  const n = Math.min(Math.max(slidesCount || 1, 1), 2);
+  return { COVER, INSIGHT, CTA, n, total: COVER + INSIGHT * n + CTA };
+}
 
 // ─── Props de entrada (inputProps) ────────────────────────────────────────────
-// type (não interface) para satisfazer o constraint do Remotion Composition.
 export type ReelProps = {
   title: string; // gancho da capa
-  slides: string[]; // frases dos slides internos
-  accentWords: string[]; // palavra de destaque por slide (pode vir vazio)
+  slides: string[]; // frases dos insights (usamos só as 2 primeiras)
+  accentWords: string[]; // palavra de destaque por insight (pode vir vazio)
   cta: string; // pergunta/chamada (cena final)
-  kw: string; // keyword curta — watermark gigante (quando não há ilustração)
+  kw: string; // keyword curta — watermark gigante (fallback sem mídia)
   ed: string; // número da edição (ex.: "012")
-  img?: string; // URL da ilustração de IA (fundo da capa)
+  img?: string; // URL da ilustração estática (fallback do fundo)
+  clips?: string[]; // URLs de footage (Pexels) — 1 por cena (preferido)
+  clip?: string; // compat: 1 clipe único (i2v antigo) — fallback se não houver clips
+  music?: string; // caminho staticFile (ex.: "music/bed.mp3") ou URL — opcional
   cat?: string; // categoria → cor de acento
 };
 
@@ -60,19 +86,20 @@ export const reelDefaultProps: ReelProps = {
   slides: [
     "O algoritmo decide por você quando você não decide",
     "Atenção é a moeda; recupere o controle dela",
-    "Liberdade mental é hábito, não sorte",
   ],
-  accentWords: ["liberdade", "controle", "hábito"],
+  accentWords: ["liberdade", "controle"],
   cta: "O que mais rouba a sua atenção hoje?",
   kw: "LIBERTAD",
   ed: "001",
   img: undefined,
+  clips: undefined,
+  clip: undefined,
+  music: undefined,
   cat: "freedom",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Realça `accent` dentro de `text` pintando-a na cor de destaque.
 function Highlighted({ text, accent, color }: { text: string; accent: string; color: string }) {
   if (!accent) return <>{text}</>;
   const idx = text.toLowerCase().indexOf(accent.toLowerCase());
@@ -89,114 +116,153 @@ function Highlighted({ text, accent, color }: { text: string; accent: string; co
   );
 }
 
-// Assinatura (handle) usada nos rodapés
-function Handle({ color = INK }: { color?: string }) {
+function Handle({ color = PAPER }: { color?: string }) {
   return (
-    <div
-      style={{
-        fontFamily: FRAUNCES,
-        fontSize: 38,
-        fontWeight: 600,
-        letterSpacing: 2,
-        color,
-        opacity: 0.85,
-      }}
-    >
+    <div style={{ fontFamily: FRAUNCES, fontSize: 38, fontWeight: 600, letterSpacing: 2, color, opacity: 0.85 }}>
       @drlibertad
     </div>
   );
 }
 
-// ─── Cena 1 — Capa ────────────────────────────────────────────────────────────
-function CoverScene({ title, kw, ed, img, accent }: { title: string; kw: string; ed: string; img?: string; accent: string }) {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
-  const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 30 });
-  const titleY = interpolate(entry, [0, 1], [60, 0]);
-  const titleOpacity = interpolate(entry, [0, 1], [0, 1]);
-
-  // Zoom lento ("Ken Burns") na ilustração
-  const zoom = interpolate(frame, [0, 90], [1.06, 1.12], { extrapolateRight: "clamp" });
-  // Drift do watermark (só quando não há ilustração)
-  const drift = interpolate(frame, [0, 90], [-20, 20], { extrapolateRight: "clamp" });
-
+// Grão de filme + vinheta — textura sutil da marca por cima do footage.
+function Texture() {
   return (
-    <AbsoluteFill style={{ backgroundColor: INK }}>
-      {img ? (
-        <>
-          <AbsoluteFill style={{ transform: `scale(${zoom})` }}>
-            <Img src={img} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          </AbsoluteFill>
-          <AbsoluteFill style={{ background: COVER_SCRIM }} />
-        </>
-      ) : (
-        // Sem ilustração: watermark gigante translúcido no acento
-        <AbsoluteFill
-          style={{
-            justifyContent: "center",
-            alignItems: "center",
-            transform: `translateX(${drift}px) rotate(-8deg)`,
-          }}
-        >
-          <div
-            style={{
-              fontFamily: FRAUNCES,
-              fontWeight: 900,
-              fontSize: 320,
-              color: accent,
-              opacity: 0.14,
-              whiteSpace: "nowrap",
-              letterSpacing: -8,
-            }}
-          >
-            {kw}
-          </div>
-        </AbsoluteFill>
-      )}
+    <>
+      <AbsoluteFill
+        style={{ background: "radial-gradient(120% 80% at 50% 42%, rgba(0,0,0,0) 52%, rgba(11,11,12,0.5) 100%)" }}
+      />
+      <AbsoluteFill style={{ opacity: 0.07, mixBlendMode: "overlay" }}>
+        <svg width="100%" height="100%">
+          <filter id="reelGrain">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#reelGrain)" />
+        </svg>
+      </AbsoluteFill>
+    </>
+  );
+}
 
-      {/* Cabeçalho: edição */}
+// ─── Fundo graded de UMA cena ─────────────────────────────────────────────────
+// Footage (preferido) → ilustração estática → watermark. Push-in lento + grade
+// da marca (dessatura no vídeo + wash do acento) p/ unificar clipes diversos.
+function SceneBg({
+  clip,
+  img,
+  kw,
+  accent,
+  dur,
+}: {
+  clip?: string;
+  img?: string;
+  kw: string;
+  accent: string;
+  dur: number;
+}) {
+  const frame = useCurrentFrame();
+  const zoom = interpolate(frame, [0, dur], [1.06, 1.16], { extrapolateRight: "clamp" });
+  const driftX = interpolate(frame, [0, dur], [0, -28], { extrapolateRight: "clamp" });
+
+  if (clip) {
+    return (
+      <AbsoluteFill style={{ backgroundColor: INK, overflow: "hidden" }}>
+        <AbsoluteFill style={{ transform: `scale(${zoom}) translateX(${driftX}px)` }}>
+          <OffthreadVideo
+            src={clip}
+            muted
+            style={{ width: "100%", height: "100%", objectFit: "cover", filter: GRADE_FILTER }}
+          />
+        </AbsoluteFill>
+        {/* wash do acento — funde o footage na paleta da marca */}
+        <AbsoluteFill style={{ backgroundColor: accent, opacity: 0.16, mixBlendMode: "soft-light" }} />
+        {/* leve duotone: reforço de ink nas sombras */}
+        <AbsoluteFill style={{ backgroundColor: INK, opacity: 0.14, mixBlendMode: "multiply" }} />
+      </AbsoluteFill>
+    );
+  }
+
+  if (img) {
+    return (
+      <AbsoluteFill style={{ backgroundColor: INK, overflow: "hidden" }}>
+        <AbsoluteFill style={{ transform: `scale(${zoom}) translateX(${driftX}px)` }}>
+          <Img src={img} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        </AbsoluteFill>
+      </AbsoluteFill>
+    );
+  }
+
+  const drift = interpolate(frame, [0, dur], [-20, 20], { extrapolateRight: "clamp" });
+  return (
+    <AbsoluteFill style={{ backgroundColor: INK, justifyContent: "center", alignItems: "center" }}>
       <div
         style={{
-          position: "absolute",
-          top: 90,
-          left: 90,
           fontFamily: FRAUNCES,
-          fontSize: 34,
-          letterSpacing: 6,
-          color: PAPER,
-          opacity: 0.7,
+          fontWeight: 900,
+          fontSize: 320,
+          color: accent,
+          opacity: 0.14,
+          whiteSpace: "nowrap",
+          letterSpacing: -8,
+          transform: `translateX(${drift}px) rotate(-8deg)`,
         }}
+      >
+        {kw}
+      </div>
+    </AbsoluteFill>
+  );
+}
+
+// Envelope comum de cena: fundo graded + scrim + textura + conteúdo (texto).
+function Scene({
+  clip,
+  img,
+  kw,
+  accent,
+  dur,
+  children,
+}: {
+  clip?: string;
+  img?: string;
+  kw: string;
+  accent: string;
+  dur: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <AbsoluteFill>
+      <SceneBg clip={clip} img={img} kw={kw} accent={accent} dur={dur} />
+      <AbsoluteFill style={{ background: SCRIM }} />
+      <Texture />
+      {children}
+    </AbsoluteFill>
+  );
+}
+
+// ─── Texto: Capa ──────────────────────────────────────────────────────────────
+function CoverText({ title, ed, accent }: { title: string; ed: string; accent: string }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 28 });
+  const y = interpolate(entry, [0, 1], [60, 0]);
+  const o = interpolate(entry, [0, 1], [0, 1]);
+  return (
+    <AbsoluteFill>
+      <div
+        style={{ position: "absolute", top: 90, left: 90, fontFamily: FRAUNCES, fontSize: 34, letterSpacing: 6, color: PAPER, opacity: 0.7 }}
       >
         DR. LIBERTAD · Nº {ed}
       </div>
-
-      {/* Título/gancho — ancorado embaixo (onde o scrim é mais escuro) */}
-      <AbsoluteFill
-        style={{
-          justifyContent: "flex-end",
-          alignItems: "flex-start",
-          padding: "0 90px 150px",
-        }}
-      >
-        <div style={{ transform: `translateY(${titleY}px)`, opacity: titleOpacity }}>
+      <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: "0 90px 150px" }}>
+        <div style={{ transform: `translateY(${y}px)`, opacity: o }}>
           <div style={{ width: 110, height: 8, backgroundColor: accent, marginBottom: 40, borderRadius: 4 }} />
           <div
-            style={{
-              fontFamily: FRAUNCES,
-              fontWeight: 800,
-              fontSize: 104,
-              lineHeight: 1.05,
-              color: WHITE,
-              textShadow: "0 2px 24px rgba(0,0,0,0.45)",
-            }}
+            style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 100, lineHeight: 1.05, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}
           >
             {title}
           </div>
         </div>
       </AbsoluteFill>
-
-      {/* Rodapé com handle */}
       <div style={{ position: "absolute", bottom: 80, left: 90 }}>
         <Handle color={PAPER} />
       </div>
@@ -204,169 +270,74 @@ function CoverScene({ title, kw, ed, img, accent }: { title: string; kw: string;
   );
 }
 
-// ─── Cena de slide (insight) ──────────────────────────────────────────────────
-function SlideScene({
-  text,
-  accent,
-  accentColor,
-  index,
-  total,
-}: {
-  text: string;
-  accent: string;
-  accentColor: string;
-  index: number;
-  total: number;
-}) {
+// ─── Texto: Insight ───────────────────────────────────────────────────────────
+function InsightText({ text, accent, accentColor, index, total }: { text: string; accent: string; accentColor: string; index: number; total: number }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-
-  const numEntry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 25 });
-  const numScale = interpolate(numEntry, [0, 1], [0.6, 1]);
-  const numOpacity = interpolate(numEntry, [0, 1], [0, 1]);
-
-  const textEntry = spring({ frame: frame - 6, fps, config: { damping: 200 }, durationInFrames: 28 });
-  const textX = interpolate(textEntry, [0, 1], [-60, 0]);
-  const textOpacity = interpolate(textEntry, [0, 1], [0, 1]);
-
+  const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 26 });
+  const x = interpolate(entry, [0, 1], [-50, 0]);
+  const o = interpolate(entry, [0, 1], [0, 1]);
   return (
-    <AbsoluteFill style={{ backgroundColor: PAPER }}>
-      {/* Número grande de fundo */}
+    <AbsoluteFill>
       <div
-        style={{
-          position: "absolute",
-          top: 120,
-          right: 70,
-          fontFamily: FRAUNCES,
-          fontWeight: 900,
-          fontSize: 420,
-          color: INK,
-          opacity: 0.08,
-          transform: `scale(${numScale})`,
-        }}
-      >
-        {index}
-      </div>
-
-      {/* Indicador de progresso */}
-      <div
-        style={{
-          position: "absolute",
-          top: 100,
-          left: 90,
-          fontFamily: FRAUNCES,
-          fontSize: 40,
-          fontWeight: 700,
-          color: accentColor,
-          opacity: numOpacity,
-        }}
+        style={{ position: "absolute", top: 100, left: 90, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 700, color: accentColor, opacity: o }}
       >
         {String(index).padStart(2, "0")} / {String(total).padStart(2, "0")}
       </div>
-
-      {/* Texto do insight */}
-      <AbsoluteFill style={{ justifyContent: "center", alignItems: "flex-start", padding: "0 90px" }}>
+      <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: "0 90px 200px" }}>
         <div
-          style={{
-            transform: `translateX(${textX}px)`,
-            opacity: textOpacity,
-            fontFamily: FRAUNCES,
-            fontWeight: 700,
-            fontSize: 86,
-            lineHeight: 1.15,
-            color: INK,
-          }}
+          style={{ transform: `translateX(${x}px)`, opacity: o, fontFamily: FRAUNCES, fontWeight: 800, fontSize: 88, lineHeight: 1.12, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}
         >
           <Highlighted text={text} accent={accent} color={accentColor} />
         </div>
       </AbsoluteFill>
-
-      {/* Rodapé */}
       <div style={{ position: "absolute", bottom: 80, left: 90 }}>
-        <Handle color={INK} />
+        <Handle color={PAPER} />
       </div>
     </AbsoluteFill>
   );
 }
 
-// ─── Cena final — CTA ─────────────────────────────────────────────────────────
-function CtaScene({ cta, accent }: { cta: string; accent: string }) {
+// ─── Texto: CTA ───────────────────────────────────────────────────────────────
+function CtaText({ cta, accent }: { cta: string; accent: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-
   const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 30 });
   const scale = interpolate(entry, [0, 1], [0.85, 1]);
-  const opacity = interpolate(entry, [0, 1], [0, 1]);
+  const o = interpolate(entry, [0, 1], [0, 1]);
   const pulse = 1 + 0.02 * Math.sin((frame / fps) * Math.PI * 2);
-
   return (
-    <AbsoluteFill style={{ backgroundColor: INK }}>
-      <AbsoluteFill
-        style={{
-          justifyContent: "center",
-          alignItems: "center",
-          padding: "0 90px",
-          textAlign: "center",
-          transform: `scale(${scale})`,
-          opacity,
-        }}
-      >
+    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", padding: "0 90px", textAlign: "center" }}>
+      <div style={{ transform: `scale(${scale})`, opacity: o, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{ width: 110, height: 8, backgroundColor: accent, marginBottom: 50, borderRadius: 4 }} />
         <div
-          style={{
-            fontFamily: FRAUNCES,
-            fontWeight: 800,
-            fontSize: 92,
-            lineHeight: 1.1,
-            color: WHITE,
-            transform: `scale(${pulse})`,
-          }}
+          style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 92, lineHeight: 1.1, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", transform: `scale(${pulse})` }}
         >
           Siga <span style={{ color: accent }}>@drlibertad</span>
         </div>
-
         <div
-          style={{
-            marginTop: 50,
-            fontFamily: FRAUNCES,
-            fontWeight: 400,
-            fontSize: 52,
-            lineHeight: 1.3,
-            color: PAPER,
-            opacity: 0.9,
-            maxWidth: 880,
-          }}
+          style={{ marginTop: 50, fontFamily: FRAUNCES, fontWeight: 400, fontSize: 50, lineHeight: 1.3, color: PAPER, opacity: 0.92, maxWidth: 880, textShadow: "0 2px 20px rgba(0,0,0,0.55)" }}
         >
           {cta}
         </div>
-
-        <div
-          style={{
-            marginTop: 70,
-            fontFamily: FRAUNCES,
-            fontSize: 40,
-            fontWeight: 600,
-            letterSpacing: 2,
-            color: accent,
-          }}
-        >
+        <div style={{ marginTop: 60, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 600, letterSpacing: 2, color: accent }}>
           → Mais no link da bio
         </div>
-      </AbsoluteFill>
+      </div>
     </AbsoluteFill>
   );
 }
 
 // ─── Composição completa ──────────────────────────────────────────────────────
-export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, cat }) => {
-  const { fps } = useVideoConfig();
+export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, clips, clip, music, cat }) => {
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
+  const safeSlides = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 2);
+  const { COVER, INSIGHT, CTA, n, total } = reelDurations(safeSlides.length);
+  const usedSlides = safeSlides.slice(0, n);
 
-  const COVER = Math.round(fps * 2.8);
-  const SLIDE = Math.round(fps * 2.6);
-  const CTA = Math.round(fps * 3.0);
-
-  const safeSlides = slides && slides.length ? slides : reelDefaultProps.slides;
+  // Pool de clipes de footage; cicla por cena. Fallback p/ clipe único / img.
+  const pool = clips && clips.length ? clips : clip ? [clip] : [];
+  const sceneClip = (i: number) => (pool.length ? pool[i % pool.length] : undefined);
 
   let cursor = 0;
   const next = (dur: number) => {
@@ -375,27 +346,39 @@ export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw,
     return from;
   };
 
+  const musicSrc = music ? (/^https?:\/\//.test(music) ? music : staticFile(music)) : null;
+  let sceneIdx = 0;
+
   return (
     <AbsoluteFill style={{ backgroundColor: INK }}>
       <Sequence from={next(COVER)} durationInFrames={COVER}>
-        <CoverScene title={title} kw={kw} ed={ed} img={img} accent={accent} />
+        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER}>
+          <CoverText title={title} ed={ed} accent={accent} />
+        </Scene>
       </Sequence>
 
-      {safeSlides.map((text, i) => (
-        <Sequence key={i} from={next(SLIDE)} durationInFrames={SLIDE}>
-          <SlideScene
-            text={text}
-            accent={accentWords?.[i] ?? ""}
-            accentColor={accent}
-            index={i + 1}
-            total={safeSlides.length}
-          />
+      {usedSlides.map((text, i) => (
+        <Sequence key={i} from={next(INSIGHT)} durationInFrames={INSIGHT}>
+          <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={INSIGHT}>
+            <InsightText text={text} accent={accentWords?.[i] ?? ""} accentColor={accent} index={i + 1} total={n} />
+          </Scene>
         </Sequence>
       ))}
 
       <Sequence from={next(CTA)} durationInFrames={CTA}>
-        <CtaScene cta={cta} accent={accent} />
+        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={CTA}>
+          <CtaText cta={cta} accent={accent} />
+        </Scene>
       </Sequence>
+
+      {musicSrc && (
+        <Audio
+          src={musicSrc}
+          volume={(f) =>
+            interpolate(f, [0, 15, total - 24, total], [0, 0.7, 0.7, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+          }
+        />
+      )}
     </AbsoluteFill>
   );
 };
