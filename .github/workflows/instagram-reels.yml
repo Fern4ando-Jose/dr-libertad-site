@@ -88,16 +88,14 @@ jobs:
             console.log("REEL_PROPS montado:", JSON.stringify(props).slice(0, 300));
           '
 
-      # 5b. Anima a ilustração do dia (image-to-video / fal) → clipe de fundo.
-      #     NÃO-FATAL: se faltar FAL_KEY ou a fal falhar, segue sem clipe e o
-      #     Reel usa a ilustração estática (Ken Burns). Não derruba o pipeline.
-      - name: Animar capa (i2v fal) → clipe de fundo
+      # 5b. Busca footage REAL de banco (Pexels, grátis) p/ o tema do dia → clips
+      #     de fundo (movimento real, 2-3 cenas). NÃO-FATAL: sem PEXELS_API_KEY ou
+      #     sem match, segue sem clips e o Reel usa a ilustração estática.
+      - name: Buscar footage (Pexels) → clipes de fundo
         env:
-          FAL_KEY: ${{ secrets.FAL_KEY }}
-          FAL_VIDEO_MODEL: fal-ai/ltx-2/image-to-video/fast
-          FAL_VIDEO_DURATION: "6"
-          FAL_VIDEO_RESOLUTION: "1080p"
-        run: node scripts/animate-clip.mjs --props=reel-props.json
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          FOOTAGE_NUM_CLIPS: "3"
+        run: node scripts/fetch-footage.mjs --props=reel-props.json
 
       # 6. Renderiza o Reel para out/reel.mp4
       - name: Renderizar Reel (Remotion)
