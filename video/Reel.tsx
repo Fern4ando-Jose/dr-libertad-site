@@ -1,19 +1,18 @@
 // ─── Composição do Reel Dr. Libertad ─────────────────────────────────────────
 // Vídeo vertical 1080x1920 (9:16), 30fps. Régua: "vídeo de verdade, não slide
-// animado" — o fundo é IMAGEM EM MOVIMENTO real (clipe i2v da fal gerado a
-// partir da ilustração do dia), e o texto entra como CAMADA por cima, mínimo.
+// animado". O fundo é FOOTAGE REAL (vídeo filmado de banco / Pexels), um clipe
+// por cena (2-3 cenas distintas), com COLOR GRADE da marca por cima p/ unificar
+// (duotone ink/paper dessaturado + acento da categoria). O texto entra mínimo,
+// como camada. Footage = movimento real + custo zero.
 //
-// Camadas (de baixo p/ cima):
-//   1. Fundo em movimento  → <OffthreadVideo> do clipe i2v, cover-crop p/ 9:16,
-//      desacelerado p/ durar o Reel inteiro, com reframe sutil a cada batida.
-//      Fallback: ilustração estática (Ken Burns) → watermark gigante.
-//   2. Scrim                → contraste do texto claro.
-//   3. Grão + vinheta       → textura da marca.
-//   4. Texto (3 batidas)    → Capa (gancho) → Insight(s) → CTA. Mínimo.
-//   5. Música               → trilha royalty-free opcional (prop `music`).
-//
-// Fonte: Fraunces (mesma da marca) via @remotion/google-fonts. O render roda no
-// Chromium do CI (não no edge do /api/og), então google-fonts não infla o edge.
+// Camadas por cena (de baixo p/ cima):
+//   1. Footage graded  → <OffthreadVideo> do clipe, cover-crop 9:16, push-in lento
+//      + filtro (dessatura/contraste) + wash do acento. Fallback: ilustração
+//      estática → watermark.
+//   2. Scrim           → contraste do texto.
+//   3. Grão + vinheta  → textura da marca.
+//   4. Texto           → Capa (gancho) → Insight(s) → CTA. Mínimo.
+//   5. Música          → trilha royalty-free opcional (prop `music`).
 
 import React from "react";
 import {
@@ -47,14 +46,15 @@ const CAT_ACCENT: Record<string, string> = {
   mind: "#5B6B3C",
 };
 
-// Scrim global sobre o fundo em movimento — escurece topo e (forte) a base,
-// onde mora o texto. Garante leitura do texto claro sobre qualquer imagem.
+// Scrim sobre o footage — escurece topo e (forte) a base, onde mora o texto.
 const SCRIM =
-  "linear-gradient(180deg, rgba(11,11,12,0.55) 0%, rgba(11,11,12,0.18) 30%, rgba(11,11,12,0.20) 60%, rgba(11,11,12,0.88) 100%)";
+  "linear-gradient(180deg, rgba(11,11,12,0.58) 0%, rgba(11,11,12,0.20) 30%, rgba(11,11,12,0.22) 58%, rgba(11,11,12,0.90) 100%)";
+
+// Grade da marca aplicado ao próprio vídeo (quase B&W, levemente contrastado).
+const GRADE_FILTER = "saturate(0.18) contrast(1.1) brightness(0.92)";
 
 // ─── Tempos (fonte única; Root.tsx importa reelDurations) ─────────────────────
 export const FPS = 30;
-const CLIP_SECONDS = 6; // duração que pedimos ao i2v (animate-clip.mjs)
 
 // "Texto mínimo": no máximo 2 insights entre capa e CTA — Reel curto (~14s).
 export function reelDurations(slidesCount: number) {
@@ -71,10 +71,11 @@ export type ReelProps = {
   slides: string[]; // frases dos insights (usamos só as 2 primeiras)
   accentWords: string[]; // palavra de destaque por insight (pode vir vazio)
   cta: string; // pergunta/chamada (cena final)
-  kw: string; // keyword curta — watermark gigante (fallback sem imagem)
+  kw: string; // keyword curta — watermark gigante (fallback sem mídia)
   ed: string; // número da edição (ex.: "012")
   img?: string; // URL da ilustração estática (fallback do fundo)
-  clip?: string; // URL do clipe i2v (fundo em movimento — preferido)
+  clips?: string[]; // URLs de footage (Pexels) — 1 por cena (preferido)
+  clip?: string; // compat: 1 clipe único (i2v antigo) — fallback se não houver clips
   music?: string; // caminho staticFile (ex.: "music/bed.mp3") ou URL — opcional
   cat?: string; // categoria → cor de acento
 };
@@ -90,6 +91,7 @@ export const reelDefaultProps: ReelProps = {
   kw: "LIBERTAD",
   ed: "001",
   img: undefined,
+  clips: undefined,
   clip: undefined,
   music: undefined,
   cat: "freedom",
@@ -97,7 +99,6 @@ export const reelDefaultProps: ReelProps = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Realça `accent` dentro de `text` pintando-a na cor de destaque.
 function Highlighted({ text, accent, color }: { text: string; accent: string; color: string }) {
   if (!accent) return <>{text}</>;
   const idx = text.toLowerCase().indexOf(accent.toLowerCase());
@@ -116,81 +117,66 @@ function Highlighted({ text, accent, color }: { text: string; accent: string; co
 
 function Handle({ color = PAPER }: { color?: string }) {
   return (
-    <div
-      style={{
-        fontFamily: FRAUNCES,
-        fontSize: 38,
-        fontWeight: 600,
-        letterSpacing: 2,
-        color,
-        opacity: 0.85,
-      }}
-    >
+    <div style={{ fontFamily: FRAUNCES, fontSize: 38, fontWeight: 600, letterSpacing: 2, color, opacity: 0.85 }}>
       @drlibertad
     </div>
   );
 }
 
-// ─── Fundo em movimento ───────────────────────────────────────────────────────
-// Um único clipe i2v atravessa o Reel inteiro, desacelerado p/ durar tudo, com
-// reframe sutil a cada batida (sensação de corte/recadre sobre o mesmo material).
-// Sem clipe → ilustração estática (Ken Burns). Sem nada → watermark.
-function MovingBackground({
+// Grão de filme + vinheta — textura sutil da marca por cima do footage.
+function Texture() {
+  return (
+    <>
+      <AbsoluteFill
+        style={{ background: "radial-gradient(120% 80% at 50% 42%, rgba(0,0,0,0) 52%, rgba(11,11,12,0.5) 100%)" }}
+      />
+      <AbsoluteFill style={{ opacity: 0.07, mixBlendMode: "overlay" }}>
+        <svg width="100%" height="100%">
+          <filter id="reelGrain">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#reelGrain)" />
+        </svg>
+      </AbsoluteFill>
+    </>
+  );
+}
+
+// ─── Fundo graded de UMA cena ─────────────────────────────────────────────────
+// Footage (preferido) → ilustração estática → watermark. Push-in lento + grade
+// da marca (dessatura no vídeo + wash do acento) p/ unificar clipes diversos.
+function SceneBg({
   clip,
   img,
   kw,
   accent,
-  total,
-  cover,
-  insight,
-  beats,
+  dur,
 }: {
   clip?: string;
   img?: string;
   kw: string;
   accent: string;
-  total: number;
-  cover: number;
-  insight: number;
-  beats: number;
+  dur: number;
 }) {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const COVER = cover;
-  const INSIGHT = insight;
-  const n = beats;
-
-  // Push-in lento contínuo + deriva suave (Ken Burns sobre o vídeo).
-  const baseScale = interpolate(frame, [0, total], [1.05, 1.18], { extrapolateRight: "clamp" });
-  const driftX = interpolate(frame, [0, total], [0, -40]) + 22 * Math.sin(frame / (fps * 2.6));
-  const driftY = interpolate(frame, [0, total], [12, -28], { extrapolateRight: "clamp" });
-
-  // Reframe a cada batida: pequeno "assentar" (punch-in que relaxa) no início de
-  // cada cena → leitura de corte/recadre, mesmo sendo um clipe só.
-  const bounds = [0, COVER];
-  for (let i = 1; i < n; i++) bounds.push(COVER + INSIGHT * i);
-  bounds.push(COVER + INSIGHT * n); // início do CTA
-  let beatStart = 0;
-  for (const b of bounds) if (frame >= b) beatStart = b;
-  const settle = spring({ frame: frame - beatStart, fps, config: { damping: 200 }, durationInFrames: 20 });
-  const cutScale = interpolate(settle, [0, 1], [1.05, 1.0]);
-
-  const transform = `scale(${baseScale * cutScale}) translate(${driftX}px, ${driftY}px)`;
+  const zoom = interpolate(frame, [0, dur], [1.06, 1.16], { extrapolateRight: "clamp" });
+  const driftX = interpolate(frame, [0, dur], [0, -28], { extrapolateRight: "clamp" });
 
   if (clip) {
-    // Clipe 16:9 → cover-crop p/ 9:16 (objectFit cover). Desacelera p/ durar tudo.
-    const totalSec = total / fps;
-    const rate = Math.max(0.2, Math.min(1, CLIP_SECONDS / totalSec));
     return (
       <AbsoluteFill style={{ backgroundColor: INK, overflow: "hidden" }}>
-        <AbsoluteFill style={{ transform }}>
+        <AbsoluteFill style={{ transform: `scale(${zoom}) translateX(${driftX}px)` }}>
           <OffthreadVideo
             src={clip}
-            playbackRate={rate}
             muted
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            style={{ width: "100%", height: "100%", objectFit: "cover", filter: GRADE_FILTER }}
           />
         </AbsoluteFill>
+        {/* wash do acento — funde o footage na paleta da marca */}
+        <AbsoluteFill style={{ backgroundColor: accent, opacity: 0.16, mixBlendMode: "soft-light" }} />
+        {/* leve duotone: reforço de ink nas sombras */}
+        <AbsoluteFill style={{ backgroundColor: INK, opacity: 0.14, mixBlendMode: "multiply" }} />
       </AbsoluteFill>
     );
   }
@@ -198,15 +184,14 @@ function MovingBackground({
   if (img) {
     return (
       <AbsoluteFill style={{ backgroundColor: INK, overflow: "hidden" }}>
-        <AbsoluteFill style={{ transform }}>
+        <AbsoluteFill style={{ transform: `scale(${zoom}) translateX(${driftX}px)` }}>
           <Img src={img} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         </AbsoluteFill>
       </AbsoluteFill>
     );
   }
 
-  // Sem imagem: watermark gigante translúcido no acento.
-  const drift = interpolate(frame, [0, total], [-24, 24], { extrapolateRight: "clamp" });
+  const drift = interpolate(frame, [0, dur], [-20, 20], { extrapolateRight: "clamp" });
   return (
     <AbsoluteFill style={{ backgroundColor: INK, justifyContent: "center", alignItems: "center" }}>
       <div
@@ -227,75 +212,56 @@ function MovingBackground({
   );
 }
 
-// Grão + vinheta — textura sutil da marca por cima do fundo.
-function Texture() {
+// Envelope comum de cena: fundo graded + scrim + textura + conteúdo (texto).
+function Scene({
+  clip,
+  img,
+  kw,
+  accent,
+  dur,
+  children,
+}: {
+  clip?: string;
+  img?: string;
+  kw: string;
+  accent: string;
+  dur: number;
+  children: React.ReactNode;
+}) {
   return (
-    <>
-      {/* Vinheta */}
-      <AbsoluteFill
-        style={{
-          background:
-            "radial-gradient(120% 80% at 50% 42%, rgba(0,0,0,0) 55%, rgba(11,11,12,0.45) 100%)",
-        }}
-      />
-      {/* Grão de filme (feTurbulence determinístico) */}
-      <AbsoluteFill style={{ opacity: 0.07, mixBlendMode: "overlay" }}>
-        <svg width="100%" height="100%">
-          <filter id="reelGrain">
-            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" stitchTiles="stitch" />
-            <feColorMatrix type="saturate" values="0" />
-          </filter>
-          <rect width="100%" height="100%" filter="url(#reelGrain)" />
-        </svg>
-      </AbsoluteFill>
-    </>
+    <AbsoluteFill>
+      <SceneBg clip={clip} img={img} kw={kw} accent={accent} dur={dur} />
+      <AbsoluteFill style={{ background: SCRIM }} />
+      <Texture />
+      {children}
+    </AbsoluteFill>
   );
 }
 
-// ─── Batida 1 — Capa ──────────────────────────────────────────────────────────
+// ─── Texto: Capa ──────────────────────────────────────────────────────────────
 function CoverText({ title, ed, accent }: { title: string; ed: string; accent: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 28 });
   const y = interpolate(entry, [0, 1], [60, 0]);
   const o = interpolate(entry, [0, 1], [0, 1]);
-
   return (
     <AbsoluteFill>
       <div
-        style={{
-          position: "absolute",
-          top: 90,
-          left: 90,
-          fontFamily: FRAUNCES,
-          fontSize: 34,
-          letterSpacing: 6,
-          color: PAPER,
-          opacity: 0.7,
-        }}
+        style={{ position: "absolute", top: 90, left: 90, fontFamily: FRAUNCES, fontSize: 34, letterSpacing: 6, color: PAPER, opacity: 0.7 }}
       >
         DR. LIBERTAD · Nº {ed}
       </div>
-
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: "0 90px 150px" }}>
         <div style={{ transform: `translateY(${y}px)`, opacity: o }}>
           <div style={{ width: 110, height: 8, backgroundColor: accent, marginBottom: 40, borderRadius: 4 }} />
           <div
-            style={{
-              fontFamily: FRAUNCES,
-              fontWeight: 800,
-              fontSize: 100,
-              lineHeight: 1.05,
-              color: WHITE,
-              textShadow: "0 2px 28px rgba(0,0,0,0.5)",
-              maxWidth: 920,
-            }}
+            style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 100, lineHeight: 1.05, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}
           >
             {title}
           </div>
         </div>
       </AbsoluteFill>
-
       <div style={{ position: "absolute", bottom: 80, left: 90 }}>
         <Handle color={PAPER} />
       </div>
@@ -303,61 +269,27 @@ function CoverText({ title, ed, accent }: { title: string; ed: string; accent: s
   );
 }
 
-// ─── Batida de insight ────────────────────────────────────────────────────────
-function InsightText({
-  text,
-  accent,
-  accentColor,
-  index,
-  total,
-}: {
-  text: string;
-  accent: string;
-  accentColor: string;
-  index: number;
-  total: number;
-}) {
+// ─── Texto: Insight ───────────────────────────────────────────────────────────
+function InsightText({ text, accent, accentColor, index, total }: { text: string; accent: string; accentColor: string; index: number; total: number }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 26 });
   const x = interpolate(entry, [0, 1], [-50, 0]);
   const o = interpolate(entry, [0, 1], [0, 1]);
-
   return (
     <AbsoluteFill>
       <div
-        style={{
-          position: "absolute",
-          top: 100,
-          left: 90,
-          fontFamily: FRAUNCES,
-          fontSize: 40,
-          fontWeight: 700,
-          color: accentColor,
-          opacity: o,
-        }}
+        style={{ position: "absolute", top: 100, left: 90, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 700, color: accentColor, opacity: o }}
       >
         {String(index).padStart(2, "0")} / {String(total).padStart(2, "0")}
       </div>
-
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: "0 90px 200px" }}>
         <div
-          style={{
-            transform: `translateX(${x}px)`,
-            opacity: o,
-            fontFamily: FRAUNCES,
-            fontWeight: 800,
-            fontSize: 88,
-            lineHeight: 1.12,
-            color: WHITE,
-            textShadow: "0 2px 28px rgba(0,0,0,0.5)",
-            maxWidth: 920,
-          }}
+          style={{ transform: `translateX(${x}px)`, opacity: o, fontFamily: FRAUNCES, fontWeight: 800, fontSize: 88, lineHeight: 1.12, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}
         >
           <Highlighted text={text} accent={accent} color={accentColor} />
         </div>
       </AbsoluteFill>
-
       <div style={{ position: "absolute", bottom: 80, left: 90 }}>
         <Handle color={PAPER} />
       </div>
@@ -365,7 +297,7 @@ function InsightText({
   );
 }
 
-// ─── Batida final — CTA ───────────────────────────────────────────────────────
+// ─── Texto: CTA ───────────────────────────────────────────────────────────────
 function CtaText({ cta, accent }: { cta: string; accent: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -373,49 +305,21 @@ function CtaText({ cta, accent }: { cta: string; accent: string }) {
   const scale = interpolate(entry, [0, 1], [0.85, 1]);
   const o = interpolate(entry, [0, 1], [0, 1]);
   const pulse = 1 + 0.02 * Math.sin((frame / fps) * Math.PI * 2);
-
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", padding: "0 90px", textAlign: "center" }}>
       <div style={{ transform: `scale(${scale})`, opacity: o, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{ width: 110, height: 8, backgroundColor: accent, marginBottom: 50, borderRadius: 4 }} />
         <div
-          style={{
-            fontFamily: FRAUNCES,
-            fontWeight: 800,
-            fontSize: 92,
-            lineHeight: 1.1,
-            color: WHITE,
-            textShadow: "0 2px 28px rgba(0,0,0,0.5)",
-            transform: `scale(${pulse})`,
-          }}
+          style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 92, lineHeight: 1.1, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", transform: `scale(${pulse})` }}
         >
           Siga <span style={{ color: accent }}>@drlibertad</span>
         </div>
         <div
-          style={{
-            marginTop: 50,
-            fontFamily: FRAUNCES,
-            fontWeight: 400,
-            fontSize: 50,
-            lineHeight: 1.3,
-            color: PAPER,
-            opacity: 0.92,
-            maxWidth: 880,
-            textShadow: "0 2px 20px rgba(0,0,0,0.5)",
-          }}
+          style={{ marginTop: 50, fontFamily: FRAUNCES, fontWeight: 400, fontSize: 50, lineHeight: 1.3, color: PAPER, opacity: 0.92, maxWidth: 880, textShadow: "0 2px 20px rgba(0,0,0,0.55)" }}
         >
           {cta}
         </div>
-        <div
-          style={{
-            marginTop: 60,
-            fontFamily: FRAUNCES,
-            fontSize: 40,
-            fontWeight: 600,
-            letterSpacing: 2,
-            color: accent,
-          }}
-        >
+        <div style={{ marginTop: 60, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 600, letterSpacing: 2, color: accent }}>
           → Mais no link da bio
         </div>
       </div>
@@ -424,11 +328,15 @@ function CtaText({ cta, accent }: { cta: string; accent: string }) {
 }
 
 // ─── Composição completa ──────────────────────────────────────────────────────
-export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, clip, music, cat }) => {
+export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, clips, clip, music, cat }) => {
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
   const safeSlides = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 2);
   const { COVER, INSIGHT, CTA, n, total } = reelDurations(safeSlides.length);
   const usedSlides = safeSlides.slice(0, n);
+
+  // Pool de clipes de footage; cicla por cena. Fallback p/ clipe único / img.
+  const pool = clips && clips.length ? clips : clip ? [clip] : [];
+  const sceneClip = (i: number) => (pool.length ? pool[i % pool.length] : undefined);
 
   let cursor = 0;
   const next = (dur: number) => {
@@ -438,46 +346,35 @@ export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw,
   };
 
   const musicSrc = music ? (/^https?:\/\//.test(music) ? music : staticFile(music)) : null;
+  let sceneIdx = 0;
 
   return (
     <AbsoluteFill style={{ backgroundColor: INK }}>
-      {/* 1. Fundo em movimento (atravessa o Reel inteiro) */}
-      <MovingBackground clip={clip} img={img} kw={kw} accent={accent} total={total} cover={COVER} insight={INSIGHT} beats={n} />
-
-      {/* 2. Scrim + 3. textura */}
-      <AbsoluteFill style={{ background: SCRIM }} />
-      <Texture />
-
-      {/* 4. Texto — 3 batidas */}
       <Sequence from={next(COVER)} durationInFrames={COVER}>
-        <CoverText title={title} ed={ed} accent={accent} />
+        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER}>
+          <CoverText title={title} ed={ed} accent={accent} />
+        </Scene>
       </Sequence>
 
       {usedSlides.map((text, i) => (
         <Sequence key={i} from={next(INSIGHT)} durationInFrames={INSIGHT}>
-          <InsightText
-            text={text}
-            accent={accentWords?.[i] ?? ""}
-            accentColor={accent}
-            index={i + 1}
-            total={n}
-          />
+          <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={INSIGHT}>
+            <InsightText text={text} accent={accentWords?.[i] ?? ""} accentColor={accent} index={i + 1} total={n} />
+          </Scene>
         </Sequence>
       ))}
 
       <Sequence from={next(CTA)} durationInFrames={CTA}>
-        <CtaText cta={cta} accent={accent} />
+        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={CTA}>
+          <CtaText cta={cta} accent={accent} />
+        </Scene>
       </Sequence>
 
-      {/* 5. Música (opcional) com fade in/out */}
       {musicSrc && (
         <Audio
           src={musicSrc}
           volume={(f) =>
-            interpolate(f, [0, 15, total - 24, total], [0, 0.7, 0.7, 0], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            })
+            interpolate(f, [0, 15, total - 24, total], [0, 0.7, 0.7, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
           }
         />
       )}
