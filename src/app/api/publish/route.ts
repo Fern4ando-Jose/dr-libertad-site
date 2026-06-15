@@ -15,6 +15,7 @@ interface GeneratedContent {
   cta: string;        // pergunta para slide final
   instagramCaption: string;
   tags: string[];
+  videoQueries?: string[]; // termos EN p/ buscar footage do Reel (opcional)
 }
 
 type Slot = "manha" | "tarde" | "noite";
@@ -223,8 +224,15 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
   ],
   "cta": "pregunta de 60-100 chars que invite a comentar y a etiquetar/compartir con alguien, en español",
   "instagramCaption": "leyenda IG máx 2200 chars: gancho fuerte en la 1ª línea + desarrollo + cierre con CTA de guardar (🔖) y compartir (📩) + 4-5 hashtags, en español",
-  "tags": ["tag1", "tag2", "tag3", "tag4"]
-}`;
+  "tags": ["tag1", "tag2", "tag3", "tag4"],
+  "videoQueries": [
+    "término de búsqueda EN INGLÉS para video de stock que represente VISUALMENTE la escena/emoción de ESTE post — concreto y filmable (personas, gestos, objetos, lugares), NO metáfora abstracta. Ej: 'person scrolling phone in bed at night'",
+    "segundo término distinto EN INGLÉS, mismo criterio. Ej: 'tired woman staring at glowing screen'",
+    "tercer término distinto EN INGLÉS, mismo criterio. Ej: 'hands holding smartphone dark room'"
+  ]
+}
+
+Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmables (no ilustraciones ni metáforas). Deben poder encontrarse en un banco de video como Pexels y conectar con el tema del post.`;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -392,9 +400,9 @@ export async function GET(req: NextRequest) {
     const ed = String(editionNum).padStart(2, "0");
     const kw = extractKeyword(topic);
 
-    // Mesma ilustração da capa do carrossel — serve de fundo da capa do Reel.
-    const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat);
-
+    // O Reel usa FOOTAGE de banco (Pexels) como fundo — NÃO gera ilustração na
+    // fal aqui. Evita gasto à toa (o preview roda até 4x/dia e o Reel não usa
+    // mais a imagem). O reuso/caching holístico é tratado na governança de custo.
     return NextResponse.json({
       preview: true,
       slot, run: r, topic, cat,
@@ -404,8 +412,9 @@ export async function GET(req: NextRequest) {
       cta: content.cta,
       caption: content.instagramCaption,
       kw, ed,
-      illustration: ill.url ?? null,
-      illustrationError: ill.error ?? null,
+      videoQueries: Array.isArray(content.videoQueries) ? content.videoQueries : [],
+      illustration: null,
+      illustrationError: null,
     });
   }
 

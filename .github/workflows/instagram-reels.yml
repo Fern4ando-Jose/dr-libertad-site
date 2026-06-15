@@ -1,22 +1,37 @@
 name: Instagram Reels — Dr. Libertad
 
 # Pipeline GRÁTIS de Reels (vídeo) para o @drlibertad.
-# Renderiza um Reel com Remotion no GitHub Actions (tem Chromium + ffmpeg),
-# sobe o mp4 para o Vercel Blob (URL pública) e publica via /api/publish-reel.
+# Fundo = footage real de banco (Pexels) + grade da marca + música. Renderiza com
+# Remotion no GitHub Actions (Chromium + ffmpeg), sobe o mp4 pro Vercel Blob e
+# publica via /api/publish-reel.
 #
-# Roda 1x/dia às 21:00 UTC (18:00 BRT) + disparo manual (workflow_dispatch).
-
+# 4 Reels/dia em horários INTERCALADOS nos picos do IG (BRT), cada um com um tópico
+# DISTINTO. O `run` (0..3) é derivado da EXPRESSÃO cron que disparou
+# (github.event.schedule) — não da hora do relógio — pra atraso do cron não colidir
+# com o run vizinho (mesmo padrão do instagram-posts.yml). Slot/tom = SLOT_FOR_RUN[run].
 on:
   schedule:
-    - cron: "0 21 * * *" # 21:00 UTC = 18:00 BRT
+    - cron: "0 13 * * *" # 10:00 BRT — manhã (run 0)
+    - cron: "0 17 * * *" # 14:00 BRT — tarde (run 1)
+    - cron: "0 21 * * *" # 18:00 BRT — início da noite (run 2)
+    - cron: "0 23 * * *" # 20:00 BRT — noite, pico (run 3)
   workflow_dispatch:
     inputs:
-      slot:
-        description: "Slot usado para buscar o conteúdo (preview)"
+      run:
+        description: "Run 0..3 p/ escolher o tópico (vazio = run 2 / noite)"
         required: false
-        default: "noite"
+        default: ""
+      publish:
+        description: "Publicar no Instagram? (no = só renderiza p/ preview)"
+        required: false
+        default: "no"
         type: choice
-        options: [manha, tarde, noite]
+        options: ["no", "yes"]
+
+# Um Reel por horário roda isolado; horários diferentes não se cancelam.
+concurrency:
+  group: instagram-reels-${{ github.event.schedule || github.event.inputs.run || 'manual' }}
+  cancel-in-progress: false
 
 jobs:
   reel:
@@ -39,23 +54,36 @@ jobs:
       - name: Instalar dependências
         run: npm install --no-audit --no-fund
 
-      # 4. Define o slot (do input manual ou "noite" no agendamento)
-      - name: Definir slot
-        id: slot
+      # 4. Determina o `run` (0..3): da expressão cron (agendado) ou do input (manual).
+      - name: Determinar run pelo horário
+        id: params
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          IN_RUN: ${{ github.event.inputs.run }}
         run: |
-          SLOT="${{ github.event.inputs.slot }}"
-          SLOT="${SLOT:-noite}"
-          echo "slot=$SLOT" >> "$GITHUB_OUTPUT"
-          echo "Slot escolhido: $SLOT"
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            RUN="${IN_RUN:-2}"   # disparo manual: run informado ou 2 (noite)
+          else
+            case "$SCHEDULE" in
+              "0 13 * * *") RUN=0 ;;
+              "0 17 * * *") RUN=1 ;;
+              "0 21 * * *") RUN=2 ;;
+              "0 23 * * *") RUN=3 ;;
+              *) RUN=2 ;;  # fallback defensivo
+            esac
+          fi
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
+          echo "Run escolhido: $RUN"
 
-      # 5. Busca o conteúdo em /api/publish?preview=1 (gera título/slides/cta + a
-      #    ilustração da capa via Claude/fal, SEM publicar) e monta o REEL_PROPS.
+      # 5. Busca o conteúdo em /api/publish?preview=1&run=N (gera título/slides/cta +
+      #    videoQueries via Claude, SEM publicar) e monta o REEL_PROPS.
       - name: Obter conteúdo (preview) e montar REEL_PROPS
         id: content
         run: |
           curl -fsS --max-time 180 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://www.drlibertad.com/api/publish?preview=1&slot=${{ steps.slot.outputs.slot }}" \
+            "https://www.drlibertad.com/api/publish?preview=1&run=${{ steps.params.outputs.run }}" \
             -o preview.json
           echo "Prévia recebida:"
           cat preview.json | head -c 400; echo
@@ -71,13 +99,28 @@ jobs:
               kw: p.kw || "LIBERTAD",
               ed: p.ed || "000",
               img: p.illustration || undefined,
-              cat: p.cat || "freedom"
+              cat: p.cat || "freedom",
+              // Termos de busca de footage gerados pelo Claude (no tema do post).
+              videoQueries: Array.isArray(p.videoQueries) ? p.videoQueries : [],
+              // Trilha embutida — usa bed.wav ou bed.mp3 se existir no repo
+              // (camada de criação opcional; sem ela o Reel renderiza mudo).
+              music: fs.existsSync("public/music/bed.wav") ? "music/bed.wav"
+                   : fs.existsSync("public/music/bed.mp3") ? "music/bed.mp3" : undefined
             };
-            // Caption do reel: usa a legenda gerada pelo Claude (mesma do carrossel)
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
+            fs.writeFileSync("slot.txt", p.slot || "noite");
             fs.writeFileSync("reel-props.json", JSON.stringify(props));
-            console.log("REEL_PROPS montado:", JSON.stringify(props).slice(0, 300));
+            console.log("REEL_PROPS montado (run", "'"${{ steps.params.outputs.run }}"'", "):", JSON.stringify(props).slice(0, 280));
           '
+
+      # 5b. Busca footage REAL de banco (Pexels, grátis) no tema do post → clipes de
+      #     fundo (movimento real, 4 cenas). NÃO-FATAL: sem PEXELS_API_KEY ou sem
+      #     match, segue sem clips e o Reel usa a ilustração estática.
+      - name: Buscar footage (Pexels) → clipes de fundo
+        env:
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          FOOTAGE_NUM_CLIPS: "4"
+        run: node scripts/fetch-footage.mjs --props=reel-props.json
 
       # 6. Renderiza o Reel para out/reel.mp4
       - name: Renderizar Reel (Remotion)
@@ -93,15 +136,25 @@ jobs:
           echo "URL do vídeo: $URL"
           echo "video_url=$URL" >> "$GITHUB_OUTPUT"
 
-      # 8. Publica o Reel no Instagram via /api/publish-reel (faz o polling de status)
+      # 7b. Modo preview: no disparo manual com publish=no, NÃO publica — só expõe a
+      #     URL do mp4 p/ revisar a criação. O cron (schedule) sempre publica.
+      - name: Preview (sem publicar)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'yes' }}
+        run: |
+          echo "::notice title=Reel pronto (preview, não publicado)::${{ steps.upload.outputs.video_url }}"
+          echo "Preview do Reel (NÃO publicado): ${{ steps.upload.outputs.video_url }}"
+
+      # 8. Publica o Reel no Instagram via /api/publish-reel (polling de status).
+      #     Roda no cron (schedule) ou no disparo manual com publish=yes.
       - name: Publicar Reel no Instagram
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.publish == 'yes' }}
         run: |
           RESP=$(curl -sS --max-time 280 -G \
             -w $'\nHTTP_CODE:%{http_code}' \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             --data-urlencode "video=${{ steps.upload.outputs.video_url }}" \
             --data-urlencode "caption@caption.txt" \
-            --data-urlencode "slot=${{ steps.slot.outputs.slot }}" \
+            --data-urlencode "slot=$(cat slot.txt)" \
             "https://www.drlibertad.com/api/publish-reel")
           echo "Resposta do servidor:"
           echo "$RESP"
