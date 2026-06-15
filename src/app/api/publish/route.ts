@@ -394,9 +394,9 @@ export async function GET(req: NextRequest) {
     const ed = String(editionNum).padStart(2, "0");
     const kw = extractKeyword(topic);
 
-    // Mesma ilustração da capa do carrossel — serve de fundo da capa do Reel.
-    const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat);
-
+    // O Reel usa FOOTAGE de banco (Pexels) como fundo — NÃO gera ilustração na
+    // fal aqui. Evita gasto à toa (o preview roda até 4x/dia e o Reel não usa
+    // mais a imagem). O reuso/caching holístico é tratado na governança de custo.
     return NextResponse.json({
       preview: true,
       slot, run: r, topic, cat,
@@ -407,8 +407,8 @@ export async function GET(req: NextRequest) {
       caption: content.instagramCaption,
       kw, ed,
       videoQueries: Array.isArray(content.videoQueries) ? content.videoQueries : [],
-      illustration: ill.url ?? null,
-      illustrationError: ill.error ?? null,
+      illustration: null,
+      illustrationError: null,
     });
   }
 
