@@ -80,9 +80,10 @@ jobs:
               cat: p.cat || "freedom",
               // Termos de busca de footage gerados pelo Claude (no tema do post).
               videoQueries: Array.isArray(p.videoQueries) ? p.videoQueries : [],
-              // Trilha royalty-free embutida — só se o arquivo existir no repo
-              // (camada de criação opcional; sem ele o Reel renderiza mudo).
-              music: fs.existsSync("public/music/bed.mp3") ? "music/bed.mp3" : undefined
+              // Trilha embutida — usa bed.wav ou bed.mp3 se existir no repo
+              // (camada de criação opcional; sem ela o Reel renderiza mudo).
+              music: fs.existsSync("public/music/bed.wav") ? "music/bed.wav"
+                   : fs.existsSync("public/music/bed.mp3") ? "music/bed.mp3" : undefined
             };
             // Caption do reel: usa a legenda gerada pelo Claude (mesma do carrossel)
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
