@@ -22,7 +22,7 @@ on:
         required: false
         default: "no"
         type: choice
-        options: [no, "yes"]
+        options: ["no", "yes"]
 
 jobs:
   reel:
