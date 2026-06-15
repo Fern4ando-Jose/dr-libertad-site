@@ -62,7 +62,7 @@ async function main() {
       body: JSON.stringify({
         image_url: props.img,
         prompt: MOTION_PROMPT,
-        duration: DURATION,
+        duration: Number(DURATION), // a fal exige inteiro (6,8,10…), não string
         resolution: RESOLUTION,
         generate_audio: false, // áudio entra como trilha própria no Remotion
       }),
@@ -91,7 +91,10 @@ async function main() {
     }
 
     const r = await fetch(responseUrl, { headers: { Authorization: `Key ${FAL_KEY}` } });
-    if (!r.ok) return done(`result HTTP ${r.status} — sem clipe`);
+    if (!r.ok) {
+      const body = await r.text().catch(() => "");
+      return done(`result HTTP ${r.status}: ${body.slice(0, 300)} — sem clipe`);
+    }
     const data = await r.json().catch(() => ({}));
     const url = data?.video?.url || data?.video_url || data?.url;
     if (!url) return done(`resultado sem video.url: ${JSON.stringify(data).slice(0, 220)} — sem clipe`);
