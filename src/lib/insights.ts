@@ -235,7 +235,8 @@ export async function getInsights(): Promise<InsightsResult> {
         saved,
         shares,
         interactions,
-        avgWatchSec: avgWatchSec != null ? Math.round(avgWatchSec * 10) / 10 : null,
+        // ig_reels_avg_watch_time vem em MILISSEGUNDOS → converte p/ segundos.
+        avgWatchSec: avgWatchSec != null ? Math.round(avgWatchSec / 100) / 10 : null,
         viewsPerDay: Math.round(views / ageDivisor),
         engagementRate: reach > 0 ? interactions / reach : null,
         saveRate: reach > 0 ? saved / reach : null,
