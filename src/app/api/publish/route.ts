@@ -204,20 +204,26 @@ ${SLOT_INSTRUCTIONS[slot]}
 
 REGLA DE MARCA (Dr. Libertad): aborda CUALQUIER tema desde el ángulo de la LIBERTAD mental — recuperar el control, la atención y la autonomía frente a lo que nos esclaviza (algoritmos, validación, miedo, hábitos). El título y al menos uno de los insights deben conectar explícitamente con esa idea de libertad/liberación. Nada de psicología genérica: siempre remite a la marca.
 
+MOTOR DE ALCANCE (reglas basadas en datos reales del perfil — lo que más empuja el algoritmo es RETENCIÓN + GUARDADOS + COMPARTIDOS, hoy casi en cero):
+- GANCHO: el título y el PRIMER insight deben detener el scroll en 1-2 segundos. Háblale a "tú", abre una brecha de curiosidad o da un giro inesperado. Concreto y específico, nunca abstracto ni genérico (ej. "Revisas el móvil 144 veces al día" > "El uso del móvil es alto").
+- GUARDABLE: al menos UN insight debe ser un reencuadre o micro-método accionable que la persona quiera GUARDAR para releer (algo aplicable, no solo bonito).
+- COMPARTIBLE: el cta debe invitar a comentar Y a etiquetar/compartir con alguien ("¿Conoces a alguien que…?", "Etiqueta a quien…"), porque etiquetar = compartir.
+- La leyenda debe cerrar SIEMPRE con un llamado explícito a guardar (🔖) y a compartir (📩) antes de los hashtags.
+
 Contexto investigado:
 ${context}
 
 Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
 {
-  "postTitle": "título impactante máx 55 chars, en español",
+  "postTitle": "GANCHO que detiene el scroll, máx 55 chars, concreto y dirigido a 'tú', en español",
   "postBody": "artículo en markdown mín 300 palabras, TODO EN ESPAÑOL",
   "slides": [
-    "insight 1 — frase contundente de MÁXIMO 80 chars que desarrolla el tema",
+    "insight 1 — GANCHO contundente de MÁXIMO 80 chars que abre una brecha de curiosidad",
     "insight 2 — frase contundente de MÁXIMO 80 chars que profundiza",
-    "insight 3 — frase contundente de MÁXIMO 80 chars que remata"
+    "insight 3 — reencuadre o micro-método GUARDABLE de MÁXIMO 80 chars que remata"
   ],
-  "cta": "pregunta provocadora de 60-100 chars que genere comentarios, en español",
-  "instagramCaption": "leyenda IG máx 2200 chars, gancho fuerte + texto + 4-5 hashtags en español",
+  "cta": "pregunta de 60-100 chars que invite a comentar y a etiquetar/compartir con alguien, en español",
+  "instagramCaption": "leyenda IG máx 2200 chars: gancho fuerte en la 1ª línea + desarrollo + cierre con CTA de guardar (🔖) y compartir (📩) + 4-5 hashtags, en español",
   "tags": ["tag1", "tag2", "tag3", "tag4"],
   "videoQueries": [
     "término de búsqueda EN INGLÉS para video de stock que represente VISUALMENTE la escena/emoción de ESTE post — concreto y filmable (personas, gestos, objetos, lugares), NO metáfora abstracta. Ej: 'person scrolling phone in bed at night'",
