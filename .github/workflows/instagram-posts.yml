@@ -1,9 +1,12 @@
 name: Instagram — publicar posts
 
 # Agendamento gratuito via GitHub Actions (substitui os crons do Vercel).
-# 6 publicações/dia, cada uma com um tópico DISTINTO (run=0..5 derivado da hora UTC).
+# 6 publicações/dia, cada uma com um tópico DISTINTO (run=0..5).
 #   00:00 UTC = 21:00 BRT (noite anterior) · 12:00 UTC = 09:00 BRT
-# run = hora/4 (0..5); o slot/tom (manha/tarde/noite) = run % 3.
+# run é derivado da EXPRESSÃO cron que disparou (github.event.schedule), NÃO da
+# hora do relógio: o cron do GitHub atrasa/adianta e a fórmula hora/4 colidia com
+# o run vizinho (ex.: cron das 20h disparando às 19:45 → 19/4=4, duplicando run 4).
+# slot/tom (manha/tarde/noite) = run % 3.
 on:
   schedule:
     - cron: "0 0 * * *"
@@ -14,6 +17,10 @@ on:
     - cron: "0 20 * * *"
   workflow_dispatch:
     inputs:
+      run:
+        description: "Run específico 0..5 p/ backfill de um horário. Vazio = usa slot/topic."
+        required: false
+        default: ""
       slot:
         description: "Slot a publicar (manha | tarde | noite). Vazio = publica os 3."
         required: false
@@ -41,20 +48,31 @@ jobs:
         id: params
         env:
           EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          IN_RUN: ${{ github.event.inputs.run }}
           IN_SLOT: ${{ github.event.inputs.slot }}
           IN_TOPIC: ${{ github.event.inputs.topic }}
           IN_FORCE: ${{ github.event.inputs.force }}
         run: |
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            # Disparo manual: slot/topic/force conforme informado (slot vazio = 3 slots base).
-            echo "run=" >> "$GITHUB_OUTPUT"
+            # Disparo manual: run/slot/topic/force conforme informado.
+            # (run vazio + slot vazio = 3 slots base; run preenchido = backfill de 1 horário.)
+            echo "run=$IN_RUN" >> "$GITHUB_OUTPUT"
             echo "slot=$IN_SLOT" >> "$GITHUB_OUTPUT"
             echo "topic=$IN_TOPIC" >> "$GITHUB_OUTPUT"
             echo "force=$IN_FORCE" >> "$GITHUB_OUTPUT"
           else
-            # Agendado: run = hora/4 → 0..5 (00,04,08,12,16,20 UTC). 6 tópicos DISTINTOS/dia.
-            HOUR=$(date -u +%H)
-            RUN=$(( 10#$HOUR / 4 ))
+            # Agendado: run derivado da EXPRESSÃO cron que disparou (github.event.schedule),
+            # não da hora real — assim o atraso/adianto do cron não colide com o run vizinho.
+            case "$SCHEDULE" in
+              "0 0 * * *")  RUN=0 ;;
+              "0 4 * * *")  RUN=1 ;;
+              "0 8 * * *")  RUN=2 ;;
+              "0 12 * * *") RUN=3 ;;
+              "0 16 * * *") RUN=4 ;;
+              "0 20 * * *") RUN=5 ;;
+              *) RUN=$(( 10#$(date -u +%H) / 4 )) ;;  # fallback defensivo
+            esac
             echo "run=$RUN" >> "$GITHUB_OUTPUT"
             echo "slot=" >> "$GITHUB_OUTPUT"
             echo "topic=" >> "$GITHUB_OUTPUT"
