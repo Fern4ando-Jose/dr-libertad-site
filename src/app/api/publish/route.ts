@@ -15,6 +15,7 @@ interface GeneratedContent {
   cta: string;        // pergunta para slide final
   instagramCaption: string;
   tags: string[];
+  videoQueries?: string[]; // termos EN p/ buscar footage do Reel (opcional)
 }
 
 type Slot = "manha" | "tarde" | "noite";
@@ -217,8 +218,15 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
   ],
   "cta": "pregunta provocadora de 60-100 chars que genere comentarios, en español",
   "instagramCaption": "leyenda IG máx 2200 chars, gancho fuerte + texto + 4-5 hashtags en español",
-  "tags": ["tag1", "tag2", "tag3", "tag4"]
-}`;
+  "tags": ["tag1", "tag2", "tag3", "tag4"],
+  "videoQueries": [
+    "término de búsqueda EN INGLÉS para video de stock que represente VISUALMENTE la escena/emoción de ESTE post — concreto y filmable (personas, gestos, objetos, lugares), NO metáfora abstracta. Ej: 'person scrolling phone in bed at night'",
+    "segundo término distinto EN INGLÉS, mismo criterio. Ej: 'tired woman staring at glowing screen'",
+    "tercer término distinto EN INGLÉS, mismo criterio. Ej: 'hands holding smartphone dark room'"
+  ]
+}
+
+Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmables (no ilustraciones ni metáforas). Deben poder encontrarse en un banco de video como Pexels y conectar con el tema del post.`;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -398,6 +406,7 @@ export async function GET(req: NextRequest) {
       cta: content.cta,
       caption: content.instagramCaption,
       kw, ed,
+      videoQueries: Array.isArray(content.videoQueries) ? content.videoQueries : [],
       illustration: ill.url ?? null,
       illustrationError: ill.error ?? null,
     });

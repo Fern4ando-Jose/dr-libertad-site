@@ -19,15 +19,16 @@ const PER_PAGE = 20;
 const propsArg = process.argv.find((a) => a.startsWith("--props="));
 const PROPS_PATH = resolve(process.cwd(), propsArg ? propsArg.slice("--props=".length) : "reel-props.json");
 
-// Termos de busca (em inglês — a Pexels indexa melhor assim) por CATEGORIA da
-// marca. Mood cinematográfico, sóbrio, abstrato — combina com o grade ink/paper.
+// FALLBACK por CATEGORIA — só usado se o Claude não mandar videoQueries no tema.
+// Centrado em VIDA DIGITAL/pessoas/emoção (o assunto da marca), não cenas
+// literais. Em inglês (Pexels indexa melhor assim).
 const CAT_TERMS = {
-  freedom: ["open sky horizon", "bird flying silhouette", "ocean horizon calm", "walking open field"],
-  dopamine: ["city lights bokeh night", "neon lights motion", "abstract glowing particles", "fast city timelapse"],
-  anxiety: ["storm clouds moody", "rain on window", "blurred crowd walking", "dark waves ocean"],
-  network: ["city traffic timelapse night", "abstract network lines", "crowd street aerial", "data lights motion"],
-  self: ["silhouette window light", "lonely figure shadow", "portrait soft shadow", "candle flame dark"],
-  mind: ["fog forest morning", "ink in water abstract", "slow clouds timelapse", "smoke abstract dark"],
+  freedom: ["person arms open nature", "walking free open road", "person breathing calm outdoors", "putting phone away relief"],
+  dopamine: ["person scrolling phone in bed", "hand swiping smartphone screen", "phone notifications close up", "person addicted to phone night"],
+  anxiety: ["anxious person looking at phone", "stressed person screen night", "overwhelmed person dark room", "rain window sad mood"],
+  network: ["people on phones ignoring each other", "lonely person in crowd", "couple distracted by phones", "person alone looking at screen"],
+  self: ["person reflection window thinking", "alone silhouette window light", "thoughtful person low light", "person looking in mirror"],
+  mind: ["calm person meditating", "person thinking by window", "slow breathing calm light", "quiet moment without phone"],
 };
 
 function log(m) {
@@ -78,9 +79,13 @@ async function main() {
   }
   if (!PEXELS_API_KEY) return done("PEXELS_API_KEY ausente — sem footage (fallback ilustração estática)");
 
+  // Prioridade: termos no tema gerados pelo Claude (videoQueries) → fallback cat.
   const cat = props.cat || "freedom";
-  const terms = (CAT_TERMS[cat] || CAT_TERMS.freedom).slice();
-  log(`categoria "${cat}" → termos: ${terms.join(" | ")}`);
+  const fromClaude = Array.isArray(props.videoQueries) ? props.videoQueries.filter((t) => typeof t === "string" && t.trim()) : [];
+  const fallback = (CAT_TERMS[cat] || CAT_TERMS.freedom).slice();
+  // usa videoQueries; completa com fallback da categoria se vierem poucos
+  const terms = (fromClaude.length ? [...fromClaude, ...fallback] : fallback);
+  log(fromClaude.length ? `videoQueries do Claude: ${fromClaude.join(" | ")}` : `(sem videoQueries) fallback cat "${cat}": ${fallback.join(" | ")}`);
 
   try {
     const picked = [];
