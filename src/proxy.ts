@@ -31,8 +31,9 @@ export function proxy(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-// Exclui API, assets do Next e qualquer arquivo com extensão
-// (sitemap.xml, robots.txt, *.svg, og images etc. têm ponto → não redirecionam).
+// Exclui API, o dashboard utilitário /insights, assets do Next e qualquer arquivo
+// com extensão (sitemap.xml, robots.txt, *.svg, og images etc. têm ponto → não
+// redirecionam). /insights fica fora do i18n (página única, gate por chave).
 export const config = {
-  matcher: ["/((?!api|_next|.*\\..*).*)"],
+  matcher: ["/((?!api|insights|_next|.*\\..*).*)"],
 };
