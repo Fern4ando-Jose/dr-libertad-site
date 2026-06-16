@@ -119,7 +119,7 @@ function Highlighted({ text, accent, color }: { text: string; accent: string; co
 function Handle({ color = PAPER }: { color?: string }) {
   return (
     <div style={{ fontFamily: FRAUNCES, fontSize: 38, fontWeight: 600, letterSpacing: 2, color, opacity: 0.85 }}>
-      @drlibertad
+      @dr.liberdad
     </div>
   );
 }
@@ -313,7 +313,7 @@ function CtaText({ cta, accent }: { cta: string; accent: string }) {
         <div
           style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 92, lineHeight: 1.1, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", transform: `scale(${pulse})` }}
         >
-          Siga <span style={{ color: accent }}>@drlibertad</span>
+          Siga <span style={{ color: accent }}>@dr.liberdad</span>
         </div>
         <div
           style={{ marginTop: 50, fontFamily: FRAUNCES, fontWeight: 400, fontSize: 50, lineHeight: 1.3, color: PAPER, opacity: 0.92, maxWidth: 880, textShadow: "0 2px 20px rgba(0,0,0,0.55)" }}
