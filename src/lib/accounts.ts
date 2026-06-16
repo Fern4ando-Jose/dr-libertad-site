@@ -27,6 +27,13 @@ export interface AccountCfg {
   accountIdEnv: string;
   /** Chave no config (DB) do token — só ES tem (refresh automático). */
   dbTokenKey?: string;
+  /**
+   * Brief de MERCADO: instrução de criação NATIVA por país, injetada no topo do
+   * prompt do `generateContent`. NÃO é tradução — manda o Claude regenerar o
+   * roteiro pensando naquele público (gancho, referências, jeito de falar).
+   * Vazio (ES) = prompt atual inalterado → conta no ar não muda.
+   */
+  marketBrief?: string;
 }
 
 export const ACCOUNTS: Record<Lang, AccountCfg> = {
@@ -53,6 +60,11 @@ export const ACCOUNTS: Record<Lang, AccountCfg> = {
     // Refresh automático: 1ª rodada do cron lê a env META_ACCESS_TOKEN_PT,
     // renova e semeia esta chave no DB; daí em diante o DB é a fonte.
     dbTokenKey: "meta_access_token_pt",
+    marketBrief: `Você está criando conteúdo ORIGINAL para o público BRASILEIRO — NÃO está traduzindo nem adaptando material de outro idioma ou mercado. Pense, escreva e provoque como um editor brasileiro nativo de Instagram. O mesmo TEMA deve virar um post DIFERENTE do espanhol: outro gancho, outras referências, outro jeito de falar. Regenere, não traduza.
+- VOZ: português do Brasil coloquial e direto, como se fala no Instagram BR — caloroso, pessoal, tratando por "você". Zero espanholismos, zero estrutura traduzida, zero tom acadêmico ou de Portugal. Se soar "importado", está errado: refaça.
+- GANCHO no estilo BR: identificação imediata e cotidiana ("Você faz isso e nem percebe…"), provocação leve ou virada inesperada, número concreto do dia a dia brasileiro. Nada de frase genérica de autoajuda.
+- REFERÊNCIAS: ancore no cotidiano brasileiro quando couber (celular, WhatsApp, rolar o feed, notificação, grupo da família) — nunca termos neutros ou de outro país (ex.: "celular", nunca "móvel/móvil"). As cenas e exemplos devem soar Brasil.
+- Os exemplos em espanhol abaixo são só de FORMATO; não os copie nem traduza — crie equivalentes brasileiros.`,
   },
 };
 
