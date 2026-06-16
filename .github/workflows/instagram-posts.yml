@@ -1,20 +1,14 @@
 name: Instagram — publicar posts
 
 # Agendamento gratuito via GitHub Actions (substitui os crons do Vercel).
-# 6 publicações/dia, cada uma com um tópico DISTINTO (run=0..5).
-#   00:00 UTC = 21:00 BRT (noite anterior) · 12:00 UTC = 09:00 BRT
-# run é derivado da EXPRESSÃO cron que disparou (github.event.schedule), NÃO da
-# hora do relógio: o cron do GitHub atrasa/adianta e a fórmula hora/4 colidia com
-# o run vizinho (ex.: cron das 20h disparando às 19:45 → 19/4=4, duplicando run 4).
-# slot/tom (manha/tarde/noite) = run % 3.
+# 2 CARROSSÉIS/dia (runs 4 e 5 — tópicos distintos dos Reels, que usam 0..3).
+# Reduzido de 6 → 2: os dados do /insights mostram que Reel supera carrossel em
+# alcance; o foco diário passou a ser vídeo. run é derivado da EXPRESSÃO cron que
+# disparou (github.event.schedule), NÃO da hora do relógio. slot/tom = run % 3.
 on:
   schedule:
-    - cron: "0 0 * * *"
-    - cron: "0 4 * * *"
-    - cron: "0 8 * * *"
-    - cron: "0 12 * * *"
-    - cron: "0 16 * * *"
-    - cron: "0 20 * * *"
+    - cron: "0 12 * * *" # 09:00 BRT (run 4)
+    - cron: "0 17 * * *" # 14:00 BRT (run 5)
   workflow_dispatch:
     inputs:
       run:
@@ -65,13 +59,9 @@ jobs:
             # Agendado: run derivado da EXPRESSÃO cron que disparou (github.event.schedule),
             # não da hora real — assim o atraso/adianto do cron não colide com o run vizinho.
             case "$SCHEDULE" in
-              "0 0 * * *")  RUN=0 ;;
-              "0 4 * * *")  RUN=1 ;;
-              "0 8 * * *")  RUN=2 ;;
-              "0 12 * * *") RUN=3 ;;
-              "0 16 * * *") RUN=4 ;;
-              "0 20 * * *") RUN=5 ;;
-              *) RUN=$(( 10#$(date -u +%H) / 4 )) ;;  # fallback defensivo
+              "0 12 * * *") RUN=4 ;;
+              "0 17 * * *") RUN=5 ;;
+              *) RUN=4 ;;  # fallback defensivo
             esac
             echo "run=$RUN" >> "$GITHUB_OUTPUT"
             echo "slot=" >> "$GITHUB_OUTPUT"

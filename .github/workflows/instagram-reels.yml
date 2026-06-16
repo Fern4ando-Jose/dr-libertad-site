@@ -5,20 +5,20 @@ name: Instagram Reels — Dr. Libertad
 # Remotion no GitHub Actions (Chromium + ffmpeg), sobe o mp4 pro Vercel Blob e
 # publica via /api/publish-reel.
 #
-# 4 Reels/dia em horários INTERCALADOS nos picos do IG (BRT), cada um com um tópico
-# DISTINTO. O `run` (0..3) é derivado da EXPRESSÃO cron que disparou
-# (github.event.schedule) — não da hora do relógio — pra atraso do cron não colidir
-# com o run vizinho (mesmo padrão do instagram-posts.yml). Slot/tom = SLOT_FOR_RUN[run].
+# 3 Reels de VÍDEO/dia em horários INTERCALADOS nos picos do IG (BRT), cada um com
+# um tópico DISTINTO (runs 0..2). O Reel CLÁSSICO (slide animado) roda à parte em
+# instagram-reels-classic.yml (run 3, 19h BRT). O `run` é derivado da EXPRESSÃO cron
+# (github.event.schedule), não da hora do relógio — pra atraso do cron não colidir
+# com o run vizinho. Slot/tom = SLOT_FOR_RUN[run].
 on:
   schedule:
-    - cron: "0 13 * * *" # 10:00 BRT — manhã (run 0)
-    - cron: "0 17 * * *" # 14:00 BRT — tarde (run 1)
-    - cron: "0 21 * * *" # 18:00 BRT — início da noite (run 2)
-    - cron: "0 23 * * *" # 20:00 BRT — noite, pico (run 3)
+    - cron: "0 15 * * *" # 12:00 BRT (run 0)
+    - cron: "0 20 * * *" # 17:00 BRT (run 1)
+    - cron: "0 0 * * *"  # 21:00 BRT (run 2)
   workflow_dispatch:
     inputs:
       run:
-        description: "Run 0..3 p/ escolher o tópico (vazio = run 2 / noite)"
+        description: "Run 0..2 p/ escolher o tópico (vazio = run 2)"
         required: false
         default: ""
       publish:
@@ -66,10 +66,9 @@ jobs:
             RUN="${IN_RUN:-2}"   # disparo manual: run informado ou 2 (noite)
           else
             case "$SCHEDULE" in
-              "0 13 * * *") RUN=0 ;;
-              "0 17 * * *") RUN=1 ;;
-              "0 21 * * *") RUN=2 ;;
-              "0 23 * * *") RUN=3 ;;
+              "0 15 * * *") RUN=0 ;;
+              "0 20 * * *") RUN=1 ;;
+              "0 0 * * *")  RUN=2 ;;
               *) RUN=2 ;;  # fallback defensivo
             esac
           fi
