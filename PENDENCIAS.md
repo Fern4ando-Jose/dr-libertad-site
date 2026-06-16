@@ -19,8 +19,11 @@ Base **multi-idioma** (ES + PT-BR) inteira, validada por `tsc`, **nada no ar ain
 3. **Mergear** o PR `feat/multi-idioma` na `main` (você revisa primeiro).
 4. **Testar PT sem publicar**: Actions → "Instagram Reels … (PT-BR)" → Run workflow →
    `publish: no` → revisar o mp4 (copy PT + @dr.liberdade.br).
-5. **Refresh do token PT**: o ES renova sozinho (`refresh-token.yml`); o PT vai
-   precisar do mesmo tratamento (hoje usa só a env — token expira em ~60 dias).
+5. ✅ **Refresh do token PT**: feito (2026-06-16). `/api/refresh-token` agora itera
+   sobre toda conta com `dbTokenKey` (ES + PT). A 1ª rodada do cron lê a env
+   `META_ACCESS_TOKEN_PT`, renova e **semeia** `meta_access_token_pt` no DB; daí em
+   diante o DB é a fonte e renova sozinho mensalmente. Falhas isoladas por conta
+   (PT <24h não derruba o ES). Sem seed manual.
 
 ## 🔍 Validar (do que já está no ar)
 

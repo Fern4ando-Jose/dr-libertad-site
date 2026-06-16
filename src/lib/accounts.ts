@@ -50,7 +50,9 @@ export const ACCOUNTS: Record<Lang, AccountCfg> = {
     baseHashtags: ["#DrLiberdade", "#LiberdadeMental"],
     tokenEnv: "META_ACCESS_TOKEN_PT",
     accountIdEnv: "META_INSTAGRAM_ACCOUNT_ID_PT",
-    // PT ainda não tem refresh automático no DB — usa só a env.
+    // Refresh automático: 1ª rodada do cron lê a env META_ACCESS_TOKEN_PT,
+    // renova e semeia esta chave no DB; daí em diante o DB é a fonte.
+    dbTokenKey: "meta_access_token_pt",
   },
 };
 
