@@ -21,8 +21,10 @@ Base **multi-idioma** (ES + PT-BR) inteira, validada por `tsc`, **nada no ar ain
 3. **Mergear** o PR #8 `feat/multi-idioma` na `main` (você revisa primeiro). ← **falta isto** (será feito junto da automação)
 4. **Testar PT sem publicar**: Actions → "Instagram Reels … (PT-BR)" → Run workflow →
    `publish: no` → revisar o mp4 (copy PT + @dr.liberdade.br).
-5. **Refresh do token PT**: o ES renova sozinho (`refresh-token.yml`); o PT vai
-   precisar do mesmo tratamento (hoje usa só a env — token expira em ~60 dias).
+5. ✅ **Refresh do token PT** — feito em **PR #8** (entra no merge). `/api/refresh-token`
+   agora renova toda conta com `dbTokenKey` (ES + PT): a 1ª rodada do cron lê a env
+   `META_ACCESS_TOKEN_PT`, renova e **semeia** `meta_access_token_pt` no DB; daí o DB
+   é a fonte e renova sozinho mensalmente. Falhas isoladas por conta. Sem seed manual.
 
 ## 🔍 Validar (do que já está no ar)
 
@@ -53,8 +55,10 @@ rotação por `run` já está implementada (`scripts/pick-music.cjs`; ligada no
 
 ## 🧹 Melhorias / dívidas (não urgentes)
 
-- **og do carrossel em PT**: conferir se o template `/api/og` tem "DR. LIBERTAD"
-  hardcoded no rodapé; se sim, parametrizar p/ "DR. LIBERDADE" no PT.
+- ✅ **og do carrossel em PT** — feito em **PR #8**. `/api/og` lê `?lang=` (default `es`)
+  e o `publish` o repassa. Localizados: marca (Folio + rodapé do CTA), os 6 rótulos de
+  categoria, "Deslize para ler", "UMA PERGUNTA", "Responda nos comentários". Smoke test
+  HTTP 200 nos 3 slides ×2 idiomas. ES inalterado.
 - **Governança de custo**: sessão dedicada (chip "Painel de créditos") — inventário
   de gasto + teto/gate + reuso da ilustração do dia. fal já ficou sem saldo 1x.
 - **Grafia do @ ES**: `@dr.liberdad` é híbrido; se quiser simetria, `@dr.libertad.es`
