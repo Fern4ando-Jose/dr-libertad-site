@@ -69,7 +69,9 @@ Mesma máquina (footage, render, design); muda só a **copy**, o **@handle**, o
 - **ES** (atual): `@dr.liberdad`, "Dr. Libertad", envs `META_ACCESS_TOKEN` /
   `META_INSTAGRAM_ACCOUNT_ID` (+ token no DB com refresh). **Nada mudou.**
 - **PT-BR**: `@dr.liberdade.br`, "Dr. Liberdade", envs `META_ACCESS_TOKEN_PT` /
-  `META_INSTAGRAM_ACCOUNT_ID_PT` (a preencher quando o token chegar).
+  `META_INSTAGRAM_ACCOUNT_ID_PT` (no ar). Token também com **refresh automático**:
+  `/api/refresh-token` renova toda conta com `dbTokenKey` — a 1ª rodada semeia
+  `meta_access_token_pt` no DB a partir da env; depois o DB é a fonte.
 - **Como flui:** `/api/publish?...&lang=pt` → `generateContent` gera copy em PT;
   `preview` devolve `handle`/`brand` PT; o Reel renderiza com o @ certo; `publish`/
   `publish-reel?lang=pt` publicam na conta PT (token/account por idioma).
