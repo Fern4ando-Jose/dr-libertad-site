@@ -201,10 +201,14 @@ async function generateContent(
   const L = acc.langName; // "español" | "português do Brasil"
   const context = searchResults.map((r, i) => `[${i + 1}] ${r.title}\n${r.content}`).join("\n\n");
 
+  const marketSection = acc.marketBrief
+    ? `\nMERCADO / VOZ NATIVA — LEIA ANTES DE TUDO (vale mais que qualquer exemplo abaixo):\n${acc.marketBrief}\n`
+    : "";
+
   const prompt = `Eres el editor de ${acc.brand}, estudio editorial sobre psicología, atención y ${acc.freedom} mental.
 
 IMPORTANTE — IDIOMA: genera ABSOLUTAMENTE TODA la salida (postTitle, postBody, slides, cta, instagramCaption, tags) en ${L}. NO mezcles idiomas. (videoQueries es la ÚNICA excepción: va en inglés.)
-
+${marketSection}
 Tema: "${topic}"
 ${SLOT_INSTRUCTIONS[slot]}
 

@@ -64,8 +64,15 @@ Mesma máquina (footage, render, design); muda só a **copy**, o **@handle**, o
 **nome** e as **hashtags** por idioma. Tudo girando em torno de `?lang=` (default
 `es` → conta atual inalterada).
 
+> **Conteúdo é REGENERADO por mercado, não traduzido.** Cada conta tem um
+> `marketBrief` (`accounts.ts`) injetado no topo do prompt do `generateContent`. O
+> PT-BR manda criar conteúdo BR-nativo (gancho, referências, jeito de falar) e
+> proíbe tradução. ES não tem brief → prompt e saída inalterados. **Mercado novo =
+> nova entrada em `ACCOUNTS` com seu próprio `marketBrief`** (nunca reaproveitar o
+> roteiro de outro país).
+
 - **Registro:** `src/lib/accounts.ts` — `ACCOUNTS[lang]` com handle, brand, freedom,
-  hashtags, e as **envs do token/account-id** por conta.
+  hashtags, as **envs do token/account-id** e o **`marketBrief`** (voz nativa) por conta.
 - **ES** (atual): `@dr.liberdad`, "Dr. Libertad", envs `META_ACCESS_TOKEN` /
   `META_INSTAGRAM_ACCOUNT_ID` (+ token no DB com refresh). **Nada mudou.**
 - **PT-BR**: `@dr.liberdade.br`, "Dr. Liberdade", envs `META_ACCESS_TOKEN_PT` /
