@@ -1,6 +1,6 @@
 # DR Instagram Automation — índice
 
-Hub da automação de carrosséis do **@drlibertad**. Esta pasta reúne a
+Hub da automação do **@drlibertad** (6 posts/dia = 4 Reels + 2 carrosséis). Esta pasta reúne a
 **documentação e os snapshots de referência**. O código que roda em produção
 **continua em `src/` e `.github/`** porque o Next.js/Vercel exige essa estrutura
 — mover essas rotas quebra o deploy e o cron.

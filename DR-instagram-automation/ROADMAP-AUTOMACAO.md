@@ -82,7 +82,7 @@ reaproveitam esse texto via `?preview=1`).
 
 ## ✅ Concluído
 
-- Automação Instagram (carrossel) publicando 3 posts/dia — GitHub Actions.
+- Automação Instagram publicando **6 posts/dia (4 Reels + 2 carrosséis)** — GitHub Actions. (Era 3 carrosséis/dia até 2026-06-15; ver "Cadência" no `PROJETO.md`.)
 - Ilustração por IA (fal/Flux) na capa — 1 imagem/post.
 - QA de imagem por visão (Claude) — reprova defeito anatômico (mão/dedo/membro
   extra), regera até 3x; se esgota, usa o motivo abstrato (nunca publica defeito).
