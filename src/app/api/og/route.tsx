@@ -114,6 +114,24 @@ const CATS: Record<Cat, CatStyle> = {
   mind:     { accent: "#5B6B3C", label: "LA MENTE"   },
 };
 
+// ─── i18n do criativo (ES default / PT-BR) ───────────────────────────────────
+// Mantém o /api/og autossuficiente (edge): sem importar de @/lib/accounts.
+type OgLang = "es" | "pt";
+
+const BRAND: Record<OgLang, string> = { es: "Dr. Libertad", pt: "Dr. Liberdade" };
+
+// Rótulo da categoria por idioma (substitui CATS[cat].label, que era só ES).
+const CAT_LABEL: Record<OgLang, Record<Cat, string>> = {
+  es: { freedom: "LIBERTAD",  dopamine: "RECOMPENSA", anxiety: "ANSIEDAD",  network: "CONEXIÓN", self: "EL YO", mind: "LA MENTE" },
+  pt: { freedom: "LIBERDADE", dopamine: "RECOMPENSA", anxiety: "ANSIEDADE", network: "CONEXÃO",  self: "O EU",  mind: "A MENTE"  },
+};
+
+// Micro-copy fixa do criativo por idioma.
+const UI_TEXT: Record<OgLang, { swipe: string; question: string; answer: string }> = {
+  es: { swipe: "Desliza para leer", question: "UNA PREGUNTA", answer: "Responde en los comentarios" },
+  pt: { swipe: "Deslize para ler",  question: "UMA PERGUNTA", answer: "Responda nos comentários" },
+};
+
 // Motivo padrão por categoria (fallback quando ?motif= não vem)
 const CAT_DEFAULT_MOTIF: Record<Cat, MotifId> = {
   freedom: "gateway", dopamine: "burst", anxiety: "waves",
@@ -405,12 +423,12 @@ function Surface({ dark, accent, motif, seed, img, children }: {
 }
 
 // ─── Cabeçalho editorial (folio + régua de acento) ────────────────────────────
-function Folio({ issue, accent, dark }: { issue: string; accent: string; dark: boolean }) {
+function Folio({ issue, accent, dark, brand }: { issue: string; accent: string; dark: boolean; brand: string }) {
   const dim = dark ? rgba("#F4F0E8", 0.6) : INK_70;
   return (
     <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <span style={{ fontFamily: SERIF, fontSize: 30, letterSpacing: "0.30em", color: dim }}>DR. LIBERTAD</span>
+        <span style={{ fontFamily: SERIF, fontSize: 30, letterSpacing: "0.30em", color: dim }}>{brand.toUpperCase()}</span>
         <span style={{ fontFamily: SERIF, fontSize: 30, letterSpacing: "0.18em", color: accent }}>{issue}</span>
       </div>
       <div style={{ marginTop: 22, height: 2, width: "100%", background: accent, display: "flex" }} />
@@ -443,31 +461,32 @@ function Footer({ left, accent, dark, num, total }: {
 }
 
 // ─── SLIDE 1: Capa ────────────────────────────────────────────────────────────
-function CoverSlide({ title, kw, issue, mood, cat, motif, total, seed, img }: {
-  title: string; kw: string; issue: string; mood: "red" | "ink"; cat: Cat; motif: MotifId; total: number; seed: number; img?: string;
+function CoverSlide({ title, kw, issue, mood, cat, motif, total, seed, img, lang }: {
+  title: string; kw: string; issue: string; mood: "red" | "ink"; cat: Cat; motif: MotifId; total: number; seed: number; img?: string; lang: OgLang;
 }) {
-  const c    = CATS[cat];
+  const c     = CATS[cat];
+  const label = CAT_LABEL[lang][cat];
   // Sobre ilustração, o texto vai claro (scrim escuro garante contraste).
   const dark = img ? true : mood === "ink";
   return (
     <Surface dark={dark} accent={c.accent} motif={motif} seed={seed} img={img}>
-      <Folio issue={issue} accent={c.accent} dark={dark} />
+      <Folio issue={issue} accent={c.accent} dark={dark} brand={BRAND[lang]} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
         <span style={{ fontFamily: SERIF, fontSize: 28, letterSpacing: "0.28em", color: c.accent, marginBottom: 30 }}>
-          {c.label}{kw && kw.toUpperCase() !== c.label.toUpperCase() ? ` · ${kw}` : ""}
+          {label}{kw && kw.toUpperCase() !== label.toUpperCase() ? ` · ${kw}` : ""}
         </span>
         <div style={{ fontFamily: SERIF, fontSize: fitTitleSize(title, W - 2 * M), lineHeight: 0.92, letterSpacing: "-0.035em", color: dark ? OFFWHITE : INK, maxWidth: W - 2 * M, display: "flex" }}>
           {title.toUpperCase()}
         </div>
       </div>
-      <Footer left="Desliza para leer" accent={c.accent} dark={dark} num={1} total={total} />
+      <Footer left={UI_TEXT[lang].swipe} accent={c.accent} dark={dark} num={1} total={total} />
     </Surface>
   );
 }
 
 // ─── SLIDE 2-N: Insight ───────────────────────────────────────────────────────
-function InsightSlide({ text, num, total, kw, issue, cat, motif, seed }: {
-  text: string; num: number; total: number; kw: string; issue: string; cat: Cat; motif: MotifId; seed: number;
+function InsightSlide({ text, num, total, kw, issue, cat, motif, seed, lang }: {
+  text: string; num: number; total: number; kw: string; issue: string; cat: Cat; motif: MotifId; seed: number; lang: OgLang;
 }) {
   const c = CATS[cat];
   // Dividir: última frase vira subtítulo
@@ -487,7 +506,7 @@ function InsightSlide({ text, num, total, kw, issue, cat, motif, seed }: {
 
   return (
     <Surface dark={false} accent={c.accent} motif={motif} seed={seed}>
-      <Folio issue={issue} accent={c.accent} dark={false} />
+      <Folio issue={issue} accent={c.accent} dark={false} brand={BRAND[lang]} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <span style={{ fontFamily: SERIF, fontSize: 132, lineHeight: 0.8, letterSpacing: "-0.04em", color: rgba(c.accent, 0.92), marginBottom: 18, display: "flex" }}>
           {String(num).padStart(2, "0")}
@@ -501,22 +520,22 @@ function InsightSlide({ text, num, total, kw, issue, cat, motif, seed }: {
           </div>
         ) : null}
       </div>
-      <Footer left={kw || c.label} accent={c.accent} dark={false} num={num} total={total} />
+      <Footer left={kw || CAT_LABEL[lang][cat]} accent={c.accent} dark={false} num={num} total={total} />
     </Surface>
   );
 }
 
 // ─── SLIDE FINAL: CTA ─────────────────────────────────────────────────────────
-function CTASlide({ text, issue, cat, motif, total, seed }: {
-  text: string; issue: string; cat: Cat; motif: MotifId; total: number; seed: number;
+function CTASlide({ text, issue, cat, motif, total, seed, lang }: {
+  text: string; issue: string; cat: Cat; motif: MotifId; total: number; seed: number; lang: OgLang;
 }) {
   const c = CATS[cat];
   return (
     <Surface dark={true} accent={c.accent} motif={motif} seed={seed}>
-      <Folio issue={issue} accent={c.accent} dark={true} />
+      <Folio issue={issue} accent={c.accent} dark={true} brand={BRAND[lang]} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <span style={{ fontFamily: SERIF, fontSize: 28, letterSpacing: "0.30em", color: c.accent, marginBottom: 32, display: "flex" }}>
-          UNA PREGUNTA
+          {UI_TEXT[lang].question}
         </span>
         <div style={{ fontFamily: SERIF, fontSize: fitTitleSize(text, W - 2 * M), lineHeight: 0.98, letterSpacing: "-0.03em", color: OFFWHITE, maxWidth: W - 2 * M, display: "flex" }}>
           {text.toUpperCase()}
@@ -524,12 +543,12 @@ function CTASlide({ text, issue, cat, motif, total, seed }: {
         <div style={{ display: "flex", marginTop: 46 }}>
           <div style={{ border: `2px solid ${c.accent}`, borderRadius: 9999, padding: "18px 42px", background: rgba(c.accent, 0.16), display: "flex" }}>
             <span style={{ fontFamily: SERIF, fontSize: 26, letterSpacing: "0.20em", textTransform: "uppercase", color: OFFWHITE }}>
-              Responde en los comentarios
+              {UI_TEXT[lang].answer}
             </span>
           </div>
         </div>
       </div>
-      <Footer left="Dr. Libertad" accent={c.accent} dark={true} num={total} total={total} />
+      <Footer left={BRAND[lang]} accent={c.accent} dark={true} num={total} total={total} />
     </Surface>
   );
 }
@@ -547,6 +566,7 @@ export async function GET(req: NextRequest) {
     const mood  = (searchParams.get("mood") ?? "red") as "red" | "ink";
     const num   = parseInt(searchParams.get("num")   ?? "2");
     const total = parseInt(searchParams.get("total") ?? "5");
+    const lang: OgLang = searchParams.get("lang") === "pt" ? "pt" : "es";
 
     // Categoria (direção de arte): vem de ?cat= ou é derivada do tema
     const catParam = searchParams.get("cat");
@@ -569,11 +589,11 @@ export async function GET(req: NextRequest) {
 
     let node;
     if (slide === "cta") {
-      node = <CTASlide text={text || title} issue={issue} cat={cat} motif={motif} total={total} seed={seed} />;
+      node = <CTASlide text={text || title} issue={issue} cat={cat} motif={motif} total={total} seed={seed} lang={lang} />;
     } else if (slide === "insight") {
-      node = <InsightSlide text={text} num={num} total={total} kw={kw} issue={issue} cat={cat} motif={motif} seed={seed} />;
+      node = <InsightSlide text={text} num={num} total={total} kw={kw} issue={issue} cat={cat} motif={motif} seed={seed} lang={lang} />;
     } else {
-      node = <CoverSlide title={title} kw={kw} issue={issue} mood={mood} cat={cat} motif={motif} total={total} seed={seed} img={img} />;
+      node = <CoverSlide title={title} kw={kw} issue={issue} mood={mood} cat={cat} motif={motif} total={total} seed={seed} img={img} lang={lang} />;
     }
 
     const fonts = [{ name: "Fraunces", data: fontBold, weight: 700 as const, style: "normal" as const }];
