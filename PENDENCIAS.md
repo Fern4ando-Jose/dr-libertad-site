@@ -33,8 +33,10 @@ Base **multi-idioma** (ES + PT-BR) inteira, validada por `tsc`, **nada no ar ain
 
 ## 🧹 Melhorias / dívidas (não urgentes)
 
-- **og do carrossel em PT**: conferir se o template `/api/og` tem "DR. LIBERTAD"
-  hardcoded no rodapé; se sim, parametrizar p/ "DR. LIBERDADE" no PT.
+- ✅ **og do carrossel em PT**: feito (2026-06-16). `/api/og` agora recebe `?lang=`
+  e o `publish` o repassa. Localizados por idioma: marca (Folio + rodapé do CTA),
+  os 6 rótulos de categoria, "Deslize para ler", "UMA PERGUNTA" e "Responda nos
+  comentários". Default `es` → ES inalterado. Smoke test HTTP 200 nos 3 slides ×2 idiomas.
 - **Governança de custo**: sessão dedicada (chip "Painel de créditos") — inventário
   de gasto + teto/gate + reuso da ilustração do dia. fal já ficou sem saldo 1x.
 - **Grafia do @ ES**: `@dr.liberdad` é híbrido; se quiser simetria, `@dr.libertad.es`
