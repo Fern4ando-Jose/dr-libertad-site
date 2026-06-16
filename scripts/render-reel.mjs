@@ -39,8 +39,16 @@ function loadInputProps() {
   return undefined;
 }
 
+// Composição a renderizar: --composition=Reel|ReelClassic ou REEL_COMPOSITION.
+function loadComposition() {
+  const arg = process.argv.find((a) => a.startsWith("--composition="));
+  const id = arg ? arg.slice("--composition=".length) : process.env.REEL_COMPOSITION || "Reel";
+  return id === "ReelClassic" ? "ReelClassic" : "Reel";
+}
+
 async function main() {
   const inputProps = loadInputProps();
+  const compositionId = loadComposition();
 
   // ─── 2. Empacotar a composição Remotion ─────────────────────────────────────
   const entry = resolve(ROOT, "video", "index.ts");
@@ -52,11 +60,11 @@ async function main() {
     },
   });
 
-  // ─── 3. Selecionar a composição "Reel" (resolve calculateMetadata) ──────────
-  console.log("[render] selecionando composição Reel…");
+  // ─── 3. Selecionar a composição (resolve calculateMetadata) ─────────────────
+  console.log(`[render] selecionando composição ${compositionId}…`);
   const composition = await selectComposition({
     serveUrl,
-    id: "Reel",
+    id: compositionId,
     inputProps: inputProps ?? {},
   });
 
