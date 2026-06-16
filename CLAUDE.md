@@ -58,6 +58,27 @@ Igual, mas: `preview=1&illus=1&run=3` (gera a **ilustração** da fal de fundo),
 **sem** footage, e `render-reel.mjs --composition=ReelClassic` (slide animado).
 Preservado como estava — é o formato do melhor Reel até agora.
 
+## Multi-idioma (ES + PT-BR) — uma conta por idioma
+
+Mesma máquina (footage, render, design); muda só a **copy**, o **@handle**, o
+**nome** e as **hashtags** por idioma. Tudo girando em torno de `?lang=` (default
+`es` → conta atual inalterada).
+
+- **Registro:** `src/lib/accounts.ts` — `ACCOUNTS[lang]` com handle, brand, freedom,
+  hashtags, e as **envs do token/account-id** por conta.
+- **ES** (atual): `@dr.liberdad`, "Dr. Libertad", envs `META_ACCESS_TOKEN` /
+  `META_INSTAGRAM_ACCOUNT_ID` (+ token no DB com refresh). **Nada mudou.**
+- **PT-BR**: `@dr.liberdade.br`, "Dr. Liberdade", envs `META_ACCESS_TOKEN_PT` /
+  `META_INSTAGRAM_ACCOUNT_ID_PT` (a preencher quando o token chegar).
+- **Como flui:** `/api/publish?...&lang=pt` → `generateContent` gera copy em PT;
+  `preview` devolve `handle`/`brand` PT; o Reel renderiza com o @ certo; `publish`/
+  `publish-reel?lang=pt` publicam na conta PT (token/account por idioma).
+- **Workflows PT** (espelham os ES com `lang=pt`): `instagram-reels-pt.yml`,
+  `instagram-reels-classic-pt.yml`, `instagram-posts-pt.yml`. **Só ativam quando
+  mergeados + secrets PT setados** (ver `PENDENCIAS.md`).
+- **Handle no criativo:** `Reel.tsx`/`ReelClassic.tsx` recebem props `handle`/`brand`
+  (default `@dr.liberdad`/"Dr. Libertad"). Nunca mais hardcode.
+
 ## Criação de vídeo — régua
 
 **"Vídeo de verdade, não slide animado".** Movimento real no quadro = **footage de

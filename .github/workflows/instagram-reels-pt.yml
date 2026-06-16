@@ -1,4 +1,4 @@
-name: Instagram Reels — Dr. Libertad
+name: Instagram Reels — Dr. Liberdade (PT-BR)
 
 # Pipeline GRÁTIS de Reels (vídeo) para o @drlibertad.
 # Fundo = footage real de banco (Pexels) + grade da marca + música. Renderiza com
@@ -30,7 +30,7 @@ on:
 
 # Um Reel por horário roda isolado; horários diferentes não se cancelam.
 concurrency:
-  group: instagram-reels-${{ github.event.schedule || github.event.inputs.run || 'manual' }}
+  group: instagram-reels-pt-${{ github.event.schedule || github.event.inputs.run || 'manual' }}
   cancel-in-progress: false
 
 jobs:
@@ -75,14 +75,14 @@ jobs:
           echo "run=$RUN" >> "$GITHUB_OUTPUT"
           echo "Run escolhido: $RUN"
 
-      # 5. Busca o conteúdo em /api/publish?preview=1&run=N (gera título/slides/cta +
+      # 5. Busca o conteúdo em /api/publish?preview=1&lang=pt&run=N (gera título/slides/cta +
       #    videoQueries via Claude, SEM publicar) e monta o REEL_PROPS.
       - name: Obter conteúdo (preview) e montar REEL_PROPS
         id: content
         run: |
           curl -fsS --max-time 180 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://www.drlibertad.com/api/publish?preview=1&run=${{ steps.params.outputs.run }}" \
+            "https://www.drlibertad.com/api/publish?preview=1&lang=pt&run=${{ steps.params.outputs.run }}" \
             -o preview.json
           echo "Prévia recebida:"
           cat preview.json | head -c 400; echo
@@ -156,7 +156,7 @@ jobs:
             --data-urlencode "video=${{ steps.upload.outputs.video_url }}" \
             --data-urlencode "caption@caption.txt" \
             --data-urlencode "slot=$(cat slot.txt)" \
-            "https://www.drlibertad.com/api/publish-reel")
+            "https://www.drlibertad.com/api/publish-reel?lang=pt")
           echo "Resposta do servidor:"
           echo "$RESP"
           echo "$RESP" | grep -q '"ok":true' || { echo "::error::Publicação falhou"; exit 1; }
