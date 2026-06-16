@@ -83,7 +83,8 @@
 - Composição: **3 Reels vídeo** (12/17/21h) + **1 Reel clássico** (19h) + **2 carrosséis** (9/14h).
 - Decisão veio da análise de desempenho (Reel ~6× o alcance do carrossel; Reel campeão às 19h).
 - Agendamento roda no **GitHub Actions** (não Vercel); `force=1` burla a trava anti-duplicata de 24h.
-- ⚠️ **Pendência de código:** o `.github/workflows/instagram-posts.yml` ainda carrega o esquema antigo (6 carrosséis em 00/04/08/12/16/20 UTC). Alinhar ao mix acima.
+- ✅ **FEITO na `main` (PR #4, 2026-06-16):** `instagram-posts.yml` já roda **2 carrosséis** (12/17 UTC = 9/14h BRT, runs 4-5); `instagram-reels.yml` virou **3 Reels vídeo** (15/20/00 UTC); e `instagram-reels-classic.yml` (NOVO) faz **1 Reel clássico** (22 UTC = 19h BRT). Mix = 4 Reels + 2 carrosséis, exatamente o desta seção.
+- ⚠️ **Sincronizar branches:** a branch local `kiwi-weekly-publish` está ATRÁS da `main` e ainda mostra o esquema antigo — por isso o código local parece desatualizado. Precisa commitar o trabalho local e dar merge da `main` (ver abaixo).
 
 Teste manual — o segredo vive no cofre `.chaves/dr-libertad.env`, **NUNCA** colar o valor aqui:
 ```powershell
