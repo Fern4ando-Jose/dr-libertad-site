@@ -28,6 +28,27 @@ Base **multi-idioma** (ES + PT-BR) inteira, validada por `tsc`, **nada no ar ain
   Confirmar o mp4 antes de confiar no cron das 19h BRT.
 - Acompanhar os 4 primeiros crons reais (3 vídeo + 1 clássico) amanhã.
 
+## 🔜 Áudio variado nos Reels (mecânica pronta — faltam as faixas)
+
+Hoje há **1 só faixa** (`bed.wav`) → todos os Reels saem com o mesmo áudio. A
+rotação por `run` já está implementada (`scripts/pick-music.cjs`; ligada no
+`instagram-reels.yml`). Para ativar (opção escolhida: **royalty-free, grátis**):
+
+1. Largue 3–6 faixas em `public/music/` como `bed-0.wav` … `bed-5.wav`
+   (Pixabay Music / YouTube Audio Library "sem atribuição"), **ou** me passe URLs
+   diretas e eu baixo/committo.
+2. Pronto: cada `run` (0..5) pega uma faixa distinta; sem faixas numeradas continua
+   usando `bed.wav` (não quebra). Testar: `node scripts/pick-music.cjs --run=2`.
+3. ⚠️ Repo público: prefira faixas que você possa redistribuir (ver `public/music/README.md`).
+
+## ✅ Corrigido nesta sessão
+
+- **Footage "último clipe fora de contexto"** (`scripts/fetch-footage.mjs`): a coleta
+  era gulosa por termo e caía no fallback genérico de categoria, jogando um clipe
+  fora do tema na cena final (CTA). Agora faz **round-robin nas `videoQueries` do
+  Claude** (clipes no tema e diversos) e **só** usa o fallback genérico se o Claude
+  render ZERO clipes — senão o `Reel.tsx` cicla os clipes no tema (CTA reusa um deles).
+
 ## 🧹 Melhorias / dívidas (não urgentes)
 
 - **og do carrossel em PT**: conferir se o template `/api/og` tem "DR. LIBERTAD"
