@@ -54,10 +54,40 @@ Eu dou suporte quando solicitado.
 
 ---
 
+## 📐 Regras de copy dos posts diários ✅ (desde 2026-06-15)
+
+Geradas a partir dos **dados reais** do perfil (ver dashboard `/insights`): o que mais
+empurra o alcance é **retenção + guardados (saves) + compartilhamentos (shares)** — e
+hoje saves/shares estão **≈ 0** em quase tudo. As regras abaixo entram **automáticas**
+no prompt do `generateContent` (`src/app/api/publish/route.ts`), o gerador de **texto**
+dos posts — valem para todo conteúdo que passa por ele (carrossel e os Reels que
+reaproveitam esse texto via `?preview=1`).
+
+1. **Gancho que para o scroll** — título + 1º insight dirigidos a "tú", com brecha de
+   curiosidade ou giro inesperado; concretos e específicos, nunca genéricos
+   (ex.: *"Revisas el móvil 144 veces al día"* > *"El uso del móvil es alto"*).
+2. **Pelo menos 1 insight GUARDÁVEL** — um reencuadre ou micro-método acionável que
+   dê vontade de salvar para reler.
+3. **CTA que convida a comentar E compartilhar** — pergunta + *"Etiqueta a quien…"*
+   (etiquetar = compartilhar).
+4. **Legenda fecha sempre com CTA explícito** de guardar (🔖) e compartilhar (📩),
+   antes das hashtags.
+
+> Dado que embasou (2026-06-15, n=50): Reel alcança ~5x o carrossel (melhor Reel ~14x);
+> o Reel vencedor reteve **4,9s** de watch médio vs 3,9s do outro. Eng% até maior no
+> carrossel (1,6% vs 1,2%) — o gargalo do carrossel é **alcance**, não engajamento.
+> Direção paralela do usuário: **reduzir carrosséis e aumentar Reels**.
+
+---
+
 ## ✅ Concluído
 
 - Automação Instagram (carrossel) publicando 3 posts/dia — GitHub Actions.
 - Ilustração por IA (fal/Flux) na capa — 1 imagem/post.
 - QA de imagem por visão (Claude) — reprova defeito anatômico (mão/dedo/membro
   extra), regera até 3x; se esgota, usa o motivo abstrato (nunca publica defeito).
+- **Dashboard de Insights** (`/insights` + `/api/insights`) — métricas reais por
+  formato (alcance/views-dia/eng%/saves/shares/watch) para decidir o que replicar.
+- **Framework de copy** dos posts diários (gancho + guardável + CTA de save/share) —
+  ver seção acima.
 - Reorganização da pasta `DR-instagram-automation/` + higiene de git.
