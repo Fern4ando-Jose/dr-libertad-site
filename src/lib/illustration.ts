@@ -9,6 +9,8 @@
 // distorcido). Se reprovar, regera; se esgotar as tentativas, devolve null e o
 // /api/og usa o motivo abstrato — assim uma imagem com 3 mãos nunca é publicada.
 
+import { type Automation, falCost, anthropicCost, logSpend } from "@/lib/spend";
+
 // Acento por categoria — espelha CATS de /api/og (cor) + nome p/ o prompt.
 const ACCENTS: Record<string, { word: string; hex: string }> = {
   freedom:  { word: "oxblood wine red",  hex: "#A45A5A" },
@@ -39,16 +41,70 @@ export interface IllustrationResult {
   model?: string;
   attempts?: number;   // quantas gerações foram necessárias até aprovar (ou desistir)
   qaReason?: string;   // motivo do último veredito do QA (útil no dryrun/preview)
+  cached?: boolean;    // true quando a URL veio do cache de 24h (gasto fal = 0)
+}
+
+// Opções de geração — controlam o gasto na fal por caminho de chamada.
+export interface GenerateOpts {
+  maxTries?: number;        // tentativas no loop de QA (publish=3; dryrun/preview=1)
+  useCache?: boolean;       // reusar a ilustração aprovada do dia (default: true)
+  automation?: Automation;  // a quem atribuir o gasto no spend_log (default: "manual")
 }
 
 const MAX_TRIES = 3;        // gera no máx. 3 vezes tentando passar no QA
 const QA_MODEL = "claude-sonnet-4-6"; // visão confiável p/ contar mãos/dedos
 
+// ─── Cache de 24h da ilustração do dia ───────────────────────────────────────
+// Reusa a MESMA imagem aprovada para um (model, cat, subject) por 24h entre os
+// caminhos (publish/preview/dryrun) e entre carrossel e Reel — em vez de pagar
+// uma nova geração na fal a cada chamada. Best-effort: qualquer falha de banco é
+// fail-open (gera normalmente). Só URLs APROVADAS no QA entram no cache.
+
+function cacheKey(model: string, cat: string, subject: string): string {
+  return `${model}|${cat}|${subject}`;
+}
+
+async function readCachedIllustration(model: string, cat: string, subject: string): Promise<string | null> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const key = cacheKey(model, cat, subject);
+    const rows = await sql<{ url: string }>`
+      SELECT url FROM illustration_cache
+      WHERE cache_key = ${key} AND created_at > NOW() - INTERVAL '24 hours'
+      LIMIT 1
+    `;
+    const url = rows.rows[0]?.url;
+    if (!url) return null;
+    // URLs da fal podem expirar — confirma que ainda responde antes de reusar.
+    try {
+      const check = await fetch(url, { method: "GET" });
+      if (!check.ok) return null;
+    } catch { return null; }
+    return url;
+  } catch {
+    return null; // sem cache → segue para a geração normal
+  }
+}
+
+async function writeCachedIllustration(model: string, cat: string, subject: string, url: string): Promise<void> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const key = cacheKey(model, cat, subject);
+    await sql`
+      INSERT INTO illustration_cache (cache_key, url, subject, cat, model, created_at)
+      VALUES (${key}, ${url}, ${subject}, ${cat}, ${model}, NOW())
+      ON CONFLICT (cache_key) DO UPDATE SET url = ${url}, model = ${model}, created_at = NOW()
+    `;
+  } catch { /* cache é best-effort — nunca quebra o pipeline */ }
+}
+
 // Gera UMA imagem no fal e confirma que a URL responde. Sem QA aqui.
+// Loga o gasto na fal assim que a imagem é gerada (a fal cobra na geração).
 async function generateOnce(
   model: string,
   key: string,
   prompt: string,
+  automation: Automation,
 ): Promise<{ url: string | null; error?: string }> {
   try {
     const res = await fetch(`https://fal.run/${model}`, {
@@ -68,6 +124,8 @@ async function generateOnce(
     }
     const data = await res.json();
     const url: string | undefined = data?.images?.[0]?.url;
+    // Imagem gerada → fal cobrou. Loga independentemente do QA aprovar depois.
+    await logSpend({ automation, platform: "fal", operation: "illustration", model, units: 1, costUsd: falCost(model) });
     if (!url) return { url: null, error: `fal resposta sem images[0].url: ${JSON.stringify(data).slice(0, 220)}` };
     let check: Response | null = null;
     try { check = await fetch(url, { method: "GET" }); } catch (e) {
@@ -93,7 +151,7 @@ const QA_PROMPT =
 // Controle de qualidade por visão. Em erro de infra (API caída etc.) é
 // fail-open: aceita a imagem para não travar o pipeline (a Claude já é usada
 // antes, em generateContent — se estivesse fora, o publish nem chegaria aqui).
-async function checkAnatomy(imageUrl: string): Promise<{ ok: boolean; reason: string }> {
+async function checkAnatomy(imageUrl: string, automation: Automation): Promise<{ ok: boolean; reason: string }> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return { ok: true, reason: "QA pulado (sem ANTHROPIC_API_KEY)" };
   try {
@@ -120,6 +178,8 @@ async function checkAnatomy(imageUrl: string): Promise<{ ok: boolean; reason: st
     });
     if (!res.ok) return { ok: true, reason: `QA indisponível (HTTP ${res.status}) — aceitando` };
     const data = await res.json();
+    // Loga o gasto real do QA (tokens efetivos da resposta).
+    await logSpend({ automation, platform: "anthropic", operation: "qa-anatomy", model: QA_MODEL, units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0), costUsd: anthropicCost(QA_MODEL, data?.usage) });
     const raw: string = data?.content?.[0]?.text ?? "";
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) return { ok: true, reason: `QA sem JSON ("${raw.slice(0, 80)}") — aceitando` };
@@ -132,23 +192,36 @@ async function checkAnatomy(imageUrl: string): Promise<{ ok: boolean; reason: st
 
 // Gera a ilustração com QA. Retorna { url } aprovada, ou { url:null, error } se
 // nenhuma das tentativas passou no controle de qualidade (→ og usa o abstrato).
-export async function generateIllustration(subject: string, cat: string): Promise<IllustrationResult> {
+export async function generateIllustration(subject: string, cat: string, opts: GenerateOpts = {}): Promise<IllustrationResult> {
   // Lê no momento da chamada (igual CRON_SECRET) — evita leitura em hora errada do build.
   const FAL_KEY = process.env.FAL_KEY;
   const FAL_MODEL = process.env.FAL_MODEL || "fal-ai/flux/dev";
   if (!FAL_KEY) return { url: null, error: "FAL_KEY ausente no runtime" };
   if (!subject)  return { url: null, error: "subject vazio" };
+
+  const maxTries = Math.max(1, opts.maxTries ?? MAX_TRIES);
+  const useCache = opts.useCache ?? true;
+  const automation: Automation = opts.automation ?? "manual";
+
+  // Reuso da ilustração do dia: gasto fal = 0 quando há hit válido.
+  if (useCache) {
+    const hit = await readCachedIllustration(FAL_MODEL, cat, subject);
+    if (hit) return { url: hit, model: FAL_MODEL, attempts: 0, qaReason: "cache 24h", cached: true };
+  }
+
   const accent = ACCENTS[cat] ?? ACCENTS.freedom;
   const prompt = buildPrompt(subject, accent.word, accent.hex);
 
   let lastErr = "";
   let lastQa = "";
-  for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
-    const gen = await generateOnce(FAL_MODEL, FAL_KEY, prompt);
+  for (let attempt = 1; attempt <= maxTries; attempt++) {
+    const gen = await generateOnce(FAL_MODEL, FAL_KEY, prompt, automation);
     if (!gen.url) { lastErr = gen.error ?? "erro de geração"; continue; }
-    const qa = await checkAnatomy(gen.url);
+    const qa = await checkAnatomy(gen.url, automation);
     if (qa.ok) {
-      return { url: gen.url, model: FAL_MODEL, attempts: attempt, qaReason: qa.reason };
+      // Só imagens aprovadas entram no cache → reuso sempre devolve imagem boa.
+      if (useCache) await writeCachedIllustration(FAL_MODEL, cat, subject, gen.url);
+      return { url: gen.url, model: FAL_MODEL, attempts: attempt, qaReason: qa.reason, cached: false };
     }
     lastQa = qa.reason;
     lastErr = `QA reprovou na tentativa ${attempt}: ${qa.reason}`;
@@ -156,9 +229,9 @@ export async function generateIllustration(subject: string, cat: string): Promis
   }
   return {
     url: null,
-    error: `${MAX_TRIES} tentativas sem imagem aprovada. Último: ${lastErr}`,
+    error: `${maxTries} tentativa(s) sem imagem aprovada. Último: ${lastErr}`,
     model: FAL_MODEL,
-    attempts: MAX_TRIES,
+    attempts: maxTries,
     qaReason: lastQa,
   };
 }
