@@ -400,9 +400,16 @@ export async function GET(req: NextRequest) {
     const ed = String(editionNum).padStart(2, "0");
     const kw = extractKeyword(topic);
 
-    // O Reel usa FOOTAGE de banco (Pexels) como fundo — NÃO gera ilustração na
-    // fal aqui. Evita gasto à toa (o preview roda até 4x/dia e o Reel não usa
-    // mais a imagem). O reuso/caching holístico é tratado na governança de custo.
+    // O Reel de VÍDEO usa FOOTAGE de banco (Pexels) — NÃO gera ilustração na fal
+    // aqui (economia; o preview roda várias vezes/dia). EXCEÇÃO: ?illus=1 — o Reel
+    // CLÁSSICO (slide animado) usa a ilustração de fundo, então gera sob demanda.
+    let illustrationUrl: string | null = null;
+    let illustrationError: string | null = null;
+    if (sp.get("illus") === "1") {
+      const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat);
+      illustrationUrl = ill.url ?? null;
+      illustrationError = ill.error ?? null;
+    }
     return NextResponse.json({
       preview: true,
       slot, run: r, topic, cat,
@@ -413,8 +420,8 @@ export async function GET(req: NextRequest) {
       caption: content.instagramCaption,
       kw, ed,
       videoQueries: Array.isArray(content.videoQueries) ? content.videoQueries : [],
-      illustration: null,
-      illustrationError: null,
+      illustration: illustrationUrl,
+      illustrationError,
     });
   }
 
