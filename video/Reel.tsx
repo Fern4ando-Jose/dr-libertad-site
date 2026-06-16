@@ -79,6 +79,8 @@ export type ReelProps = {
   clip?: string; // compat: 1 clipe único (i2v antigo) — fallback se não houver clips
   music?: string; // caminho staticFile (ex.: "music/bed.mp3") ou URL — opcional
   cat?: string; // categoria → cor de acento
+  handle?: string; // @ da conta por idioma (ex.: "@dr.liberdad" | "@dr.liberdade.br")
+  brand?: string; // nome de exibição (ex.: "Dr. Libertad" | "Dr. Liberdade")
 };
 
 export const reelDefaultProps: ReelProps = {
@@ -96,6 +98,8 @@ export const reelDefaultProps: ReelProps = {
   clip: undefined,
   music: undefined,
   cat: "freedom",
+  handle: "@dr.liberdad",
+  brand: "Dr. Libertad",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -116,10 +120,10 @@ function Highlighted({ text, accent, color }: { text: string; accent: string; co
   );
 }
 
-function Handle({ color = PAPER }: { color?: string }) {
+function Handle({ color = PAPER, handle = "@dr.liberdad" }: { color?: string; handle?: string }) {
   return (
     <div style={{ fontFamily: FRAUNCES, fontSize: 38, fontWeight: 600, letterSpacing: 2, color, opacity: 0.85 }}>
-      @dr.liberdad
+      {handle}
     </div>
   );
 }
@@ -240,7 +244,7 @@ function Scene({
 }
 
 // ─── Texto: Capa ──────────────────────────────────────────────────────────────
-function CoverText({ title, ed, accent }: { title: string; ed: string; accent: string }) {
+function CoverText({ title, ed, accent, brand, handle }: { title: string; ed: string; accent: string; brand: string; handle: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 28 });
@@ -251,7 +255,7 @@ function CoverText({ title, ed, accent }: { title: string; ed: string; accent: s
       <div
         style={{ position: "absolute", top: 90, left: 90, fontFamily: FRAUNCES, fontSize: 34, letterSpacing: 6, color: PAPER, opacity: 0.7 }}
       >
-        DR. LIBERTAD · Nº {ed}
+        {brand.toUpperCase()} · Nº {ed}
       </div>
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: "0 90px 150px" }}>
         <div style={{ transform: `translateY(${y}px)`, opacity: o }}>
@@ -264,14 +268,14 @@ function CoverText({ title, ed, accent }: { title: string; ed: string; accent: s
         </div>
       </AbsoluteFill>
       <div style={{ position: "absolute", bottom: 80, left: 90 }}>
-        <Handle color={PAPER} />
+        <Handle color={PAPER} handle={handle} />
       </div>
     </AbsoluteFill>
   );
 }
 
 // ─── Texto: Insight ───────────────────────────────────────────────────────────
-function InsightText({ text, accent, accentColor, index, total }: { text: string; accent: string; accentColor: string; index: number; total: number }) {
+function InsightText({ text, accent, accentColor, index, total, handle }: { text: string; accent: string; accentColor: string; index: number; total: number; handle: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 26 });
@@ -292,14 +296,14 @@ function InsightText({ text, accent, accentColor, index, total }: { text: string
         </div>
       </AbsoluteFill>
       <div style={{ position: "absolute", bottom: 80, left: 90 }}>
-        <Handle color={PAPER} />
+        <Handle color={PAPER} handle={handle} />
       </div>
     </AbsoluteFill>
   );
 }
 
 // ─── Texto: CTA ───────────────────────────────────────────────────────────────
-function CtaText({ cta, accent }: { cta: string; accent: string }) {
+function CtaText({ cta, accent, handle }: { cta: string; accent: string; handle: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 30 });
@@ -313,7 +317,7 @@ function CtaText({ cta, accent }: { cta: string; accent: string }) {
         <div
           style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 92, lineHeight: 1.1, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", transform: `scale(${pulse})` }}
         >
-          Siga <span style={{ color: accent }}>@dr.liberdad</span>
+          Siga <span style={{ color: accent }}>{handle}</span>
         </div>
         <div
           style={{ marginTop: 50, fontFamily: FRAUNCES, fontWeight: 400, fontSize: 50, lineHeight: 1.3, color: PAPER, opacity: 0.92, maxWidth: 880, textShadow: "0 2px 20px rgba(0,0,0,0.55)" }}
@@ -329,7 +333,7 @@ function CtaText({ cta, accent }: { cta: string; accent: string }) {
 }
 
 // ─── Composição completa ──────────────────────────────────────────────────────
-export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, clips, clip, music, cat }) => {
+export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, clips, clip, music, cat, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
   const safeSlides = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 2);
   const { COVER, INSIGHT, CTA, n, total } = reelDurations(safeSlides.length);
@@ -353,21 +357,21 @@ export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw,
     <AbsoluteFill style={{ backgroundColor: INK }}>
       <Sequence from={next(COVER)} durationInFrames={COVER}>
         <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER}>
-          <CoverText title={title} ed={ed} accent={accent} />
+          <CoverText title={title} ed={ed} accent={accent} brand={brand} handle={handle} />
         </Scene>
       </Sequence>
 
       {usedSlides.map((text, i) => (
         <Sequence key={i} from={next(INSIGHT)} durationInFrames={INSIGHT}>
           <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={INSIGHT}>
-            <InsightText text={text} accent={accentWords?.[i] ?? ""} accentColor={accent} index={i + 1} total={n} />
+            <InsightText text={text} accent={accentWords?.[i] ?? ""} accentColor={accent} index={i + 1} total={n} handle={handle} />
           </Scene>
         </Sequence>
       ))}
 
       <Sequence from={next(CTA)} durationInFrames={CTA}>
         <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={CTA}>
-          <CtaText cta={cta} accent={accent} />
+          <CtaText cta={cta} accent={accent} handle={handle} />
         </Scene>
       </Sequence>
 

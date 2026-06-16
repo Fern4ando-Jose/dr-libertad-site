@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateIllustration } from "@/lib/illustration";
+import { Lang, accountFor, getLang } from "@/lib/accounts";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -193,16 +194,21 @@ async function searchTopic(topic: string): Promise<SearchResult[]> {
 async function generateContent(
   topic: string,
   searchResults: SearchResult[],
-  slot: Slot
+  slot: Slot,
+  lang: Lang = "es"
 ): Promise<GeneratedContent> {
+  const acc = accountFor(lang);
+  const L = acc.langName; // "español" | "português do Brasil"
   const context = searchResults.map((r, i) => `[${i + 1}] ${r.title}\n${r.content}`).join("\n\n");
 
-  const prompt = `Eres el editor de Dr. Libertad, estudio editorial sobre psicología, atención y libertad mental.
+  const prompt = `Eres el editor de ${acc.brand}, estudio editorial sobre psicología, atención y ${acc.freedom} mental.
+
+IMPORTANTE — IDIOMA: genera ABSOLUTAMENTE TODA la salida (postTitle, postBody, slides, cta, instagramCaption, tags) en ${L}. NO mezcles idiomas. (videoQueries es la ÚNICA excepción: va en inglés.)
 
 Tema: "${topic}"
 ${SLOT_INSTRUCTIONS[slot]}
 
-REGLA DE MARCA (Dr. Libertad): aborda CUALQUIER tema desde el ángulo de la LIBERTAD mental — recuperar el control, la atención y la autonomía frente a lo que nos esclaviza (algoritmos, validación, miedo, hábitos). El título y al menos uno de los insights deben conectar explícitamente con esa idea de libertad/liberación. Nada de psicología genérica: siempre remite a la marca.
+REGLA DE MARCA (${acc.brand}): aborda CUALQUIER tema desde el ángulo de la ${acc.freedom.toUpperCase()} mental — recuperar el control, la atención y la autonomía frente a lo que nos esclaviza (algoritmos, validación, miedo, hábitos). El título y al menos uno de los insights deben conectar explícitamente con esa idea de ${acc.freedom}/liberación. Nada de psicología genérica: siempre remite a la marca.
 
 MOTOR DE ALCANCE (reglas basadas en datos reales del perfil — lo que más empuja el algoritmo es RETENCIÓN + GUARDADOS + COMPARTIDOS, hoy casi en cero):
 - GANCHO: el título y el PRIMER insight deben detener el scroll en 1-2 segundos. Háblale a "tú", abre una brecha de curiosidad o da un giro inesperado. Concreto y específico, nunca abstracto ni genérico (ej. "Revisas el móvil 144 veces al día" > "El uso del móvil es alto").
@@ -215,15 +221,15 @@ ${context}
 
 Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
 {
-  "postTitle": "GANCHO que detiene el scroll, máx 55 chars, concreto y dirigido a 'tú', en español",
-  "postBody": "artículo en markdown mín 300 palabras, TODO EN ESPAÑOL",
+  "postTitle": "GANCHO que detiene el scroll, máx 55 chars, concreto y dirigido a 'tú', en ${L}",
+  "postBody": "artículo en markdown mín 300 palabras, TODO EN ${L}",
   "slides": [
     "insight 1 — GANCHO contundente de MÁXIMO 80 chars que abre una brecha de curiosidad",
     "insight 2 — frase contundente de MÁXIMO 80 chars que profundiza",
     "insight 3 — reencuadre o micro-método GUARDABLE de MÁXIMO 80 chars que remata"
   ],
-  "cta": "pregunta de 60-100 chars que invite a comentar y a etiquetar/compartir con alguien, en español",
-  "instagramCaption": "leyenda IG máx 2200 chars: gancho fuerte en la 1ª línea + desarrollo + cierre con CTA de guardar (🔖) y compartir (📩) + 4-5 hashtags, en español",
+  "cta": "pregunta de 60-100 chars que invite a comentar y a etiquetar/compartir con alguien, en ${L}",
+  "instagramCaption": "leyenda IG máx 2200 chars: gancho fuerte en la 1ª línea + desarrollo + cierre con CTA de guardar (🔖) y compartir (📩) + 4-5 hashtags, en ${L}",
   "tags": ["tag1", "tag2", "tag3", "tag4"],
   "videoQueries": [
     "término de búsqueda EN INGLÉS para video de stock que represente VISUALMENTE la escena/emoción de ESTE post — concreto y filmable (personas, gestos, objetos, lugares), NO metáfora abstracta. Ej: 'person scrolling phone in bed at night'",
@@ -257,13 +263,17 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
 
 // ─── Token do Instagram ───────────────────────────────────────────────────────
 
-async function getAccessToken(): Promise<string> {
-  try {
-    const { sql } = await import("@vercel/postgres");
-    const rows = await sql`SELECT value FROM config WHERE key = 'meta_access_token'`;
-    if (rows.rows[0]?.value) return rows.rows[0].value;
-  } catch { /* fallback */ }
-  return process.env.META_ACCESS_TOKEN!;
+async function getAccessToken(lang: Lang = "es"): Promise<string> {
+  const acc = accountFor(lang);
+  // ES: token no config do DB (refresh automático) → env. PT: só env.
+  if (acc.dbTokenKey) {
+    try {
+      const { sql } = await import("@vercel/postgres");
+      const rows = await sql`SELECT value FROM config WHERE key = ${acc.dbTokenKey}`;
+      if (rows.rows[0]?.value) return rows.rows[0].value;
+    } catch { /* fallback */ }
+  }
+  return process.env[acc.tokenEnv] ?? "";
 }
 
 // ─── Publicação como carrossel ────────────────────────────────────────────────
@@ -271,9 +281,11 @@ async function getAccessToken(): Promise<string> {
 async function publishCarousel(
   caption: string,
   imageUrls: string[],
+  lang: Lang = "es",
 ): Promise<string> {
-  const accountId = process.env.META_INSTAGRAM_ACCOUNT_ID!;
-  const token     = await getAccessToken();
+  const acc = accountFor(lang);
+  const accountId = process.env[acc.accountIdEnv] ?? "";
+  const token     = await getAccessToken(lang);
   const base      = `https://graph.instagram.com/v25.0/${accountId}`;
 
   // 1. Criar container para cada slide
@@ -352,6 +364,7 @@ export async function GET(req: NextRequest) {
   const runParam = sp.get("run");
   const topicOverride = sp.get("topic");
   const force = sp.get("force") === "1"; // ignora a trava anti-duplicata de 24h (re-publicação/backfill manual)
+  const lang = getLang(sp.get("lang")); // "es" (default, conta atual) | "pt"
 
   // Quais "runs" (0..5) processar nesta chamada:
   // • ?run=N  → exatamente esse horário (caminho do cron, 1 post distinto por horário)
@@ -388,7 +401,7 @@ export async function GET(req: NextRequest) {
     const cat = TOPIC_CAT[topic] ?? "freedom";
 
     const searchResults = await searchTopic(topic);
-    const content = await generateContent(topic, searchResults, slot);
+    const content = await generateContent(topic, searchResults, slot, lang);
 
     // Número de edição (mesma conta do fluxo de publicação)
     let editionNum = 1;
@@ -413,6 +426,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       preview: true,
       slot, run: r, topic, cat,
+      lang,
+      handle: accountFor(lang).handle, // @ correto por idioma (criativo do Reel)
+      brand: accountFor(lang).brand, // nome de exibição por idioma
       title: content.postTitle,
       slides: content.slides,
       accentWords: [],
@@ -452,7 +468,7 @@ export async function GET(req: NextRequest) {
 
         // Pesquisa e geração
         const searchResults = await searchTopic(topic);
-        const content = await generateContent(topic, searchResults, slot);
+        const content = await generateContent(topic, searchResults, slot, lang);
         slotLog.title = content.postTitle;
 
         // Número de edição: total de posts já publicados + 1
@@ -494,7 +510,7 @@ export async function GET(req: NextRequest) {
         // Publicar carrossel
         let instagramPostId: string | null = null;
         try {
-          instagramPostId = await publishCarousel(content.instagramCaption, slideUrls);
+          instagramPostId = await publishCarousel(content.instagramCaption, slideUrls, lang);
           slotLog.instagramPostId = instagramPostId;
           slotLog.slides = slideUrls.length;
         } catch (igErr) {
