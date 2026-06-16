@@ -44,6 +44,48 @@ export async function GET(req: NextRequest) {
     results.push("config table: " + String(e));
   }
 
+  // Tabela illustration_cache — reuso da ilustração do dia (corta gasto na fal).
+  // A mesma (model, cat, subject) gerada e aprovada no QA é reusada por 24h entre
+  // publish / preview / dryrun (e entre carrossel e Reel), em vez de regerar.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS illustration_cache (
+        cache_key  TEXT PRIMARY KEY,
+        url        TEXT NOT NULL,
+        subject    TEXT,
+        cat        TEXT,
+        model      TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    results.push("illustration_cache table: ok");
+  } catch (e) {
+    results.push("illustration_cache table: " + String(e));
+  }
+
+  // Tabela spend_log — contabiliza cada chamada paga (fal/Anthropic/Tavily) por
+  // automação, p/ a visão de /api/spend e o teto diário por automação (src/lib/spend.ts).
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS spend_log (
+        id         BIGSERIAL PRIMARY KEY,
+        ts         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        automation TEXT NOT NULL DEFAULT 'manual',
+        platform   TEXT NOT NULL,
+        operation  TEXT NOT NULL,
+        model      TEXT,
+        units      NUMERIC NOT NULL DEFAULT 0,
+        cost_usd   NUMERIC NOT NULL DEFAULT 0,
+        meta       JSONB
+      )
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS spend_log_ts_idx ON spend_log (ts)`;
+    await sql`CREATE INDEX IF NOT EXISTS spend_log_auto_ts_idx ON spend_log (automation, ts)`;
+    results.push("spend_log table: ok");
+  } catch (e) {
+    results.push("spend_log table: " + String(e));
+  }
+
   // Seed: insere o token atual do env var se a linha ainda não existe
   try {
     const token = process.env.META_ACCESS_TOKEN;
