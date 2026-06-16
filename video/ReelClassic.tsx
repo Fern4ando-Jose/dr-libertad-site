@@ -2,7 +2,7 @@
 // Vídeo vertical 1080x1920 (9:16), 30fps, sem áudio. Sequência de cenas:
 //   1. Capa  → ilustração de IA (fal) full-bleed + scrim, gancho `title` (Fraunces)
 //   2. Slides → fundo papel, número grande, palavra de destaque no acento da categoria
-//   3. CTA   → "Siga @drlibertad" sobre INK
+//   3. CTA   → "Siga @dr.liberdad" sobre INK
 // Fonte: Fraunces (mesma da marca) via @remotion/google-fonts.
 // Obs.: aqui o render roda no Chromium do CI (não no edge do /api/og), então
 // carregar a fonte por google-fonts não infla o bundle edge — regra respeitada.
@@ -102,7 +102,7 @@ function Handle({ color = INK }: { color?: string }) {
         opacity: 0.85,
       }}
     >
-      @drlibertad
+      @dr.liberdad
     </div>
   );
 }
@@ -322,7 +322,7 @@ function CtaScene({ cta, accent }: { cta: string; accent: string }) {
             transform: `scale(${pulse})`,
           }}
         >
-          Siga <span style={{ color: accent }}>@drlibertad</span>
+          Siga <span style={{ color: accent }}>@dr.liberdad</span>
         </div>
 
         <div
