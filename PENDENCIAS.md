@@ -12,11 +12,13 @@ Base **multi-idioma** (ES + PT-BR) inteira, validada por `tsc`, **nada no ar ain
 
 ## 🔜 Para ATIVAR o PT-BR (você + eu)
 
-1. **Conectar @dr.liberdade.br à API** (você): tornar Profissional → gerar token no
-   app da Meta → pegar account-id (`graph.instagram.com/me?fields=id,username`).
-2. **Setar credenciais PT** (você me passa, eu seto): secrets no GitHub **e** envs no
-   Vercel — `META_ACCESS_TOKEN_PT` e `META_INSTAGRAM_ACCOUNT_ID_PT`.
-3. **Mergear** o PR #8 `feat/multi-idioma` na `main` (você revisa primeiro).
+1. ✅ **Conectar @dr.liberdade.br à API** — feito (2026-06-16). Token gerado;
+   account-id `27810947805190407` confirmado via `graph.instagram.com/me`.
+2. ✅ **Credenciais PT no ar** — `META_ACCESS_TOKEN_PT` + `META_INSTAGRAM_ACCOUNT_ID_PT`
+   no cofre e setados como **env no Vercel (Production)** (2026-06-16). *(GitHub secret
+   não é necessário: o ES também só vive no Vercel — o token é lido por `process.env`
+   nas rotas de API, que rodam no servidor, não no CI.)*
+3. **Mergear** o PR #8 `feat/multi-idioma` na `main` (você revisa primeiro). ← **falta isto** (será feito junto da automação)
 4. **Testar PT sem publicar**: Actions → "Instagram Reels … (PT-BR)" → Run workflow →
    `publish: no` → revisar o mp4 (copy PT + @dr.liberdade.br).
 5. **Refresh do token PT**: o ES renova sozinho (`refresh-token.yml`); o PT vai
