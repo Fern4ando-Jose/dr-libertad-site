@@ -5,9 +5,10 @@ de obras clássicas (filmes e livros), respeitando sempre os créditos e a autor
 
 ## Pendências
 
-Fonte **única** de pendências = painel central `D:\Claude\.pendencias\dr-libertad.md`
-(controlo interno, fora do Git). Este projeto **não** mantém lista própria — só este ponteiro.
-As decisões em aberto de cada obra ficam na secção "Pontos a confirmar" do respetivo `ideia-inicial.md`.
+Fonte **única** de pendências (de TODOS os projetos) = painel central `D:\Claude\.pendencias\`
+(fora do Git). Este projeto **não** mantém lista própria — nem aqui nem nos `ideia-inicial.md`.
+Agente da nuvem que precise registar algo: acrescenta a `PENDENCIAS.inbox.md` na raiz do repo
+(fila temporária que a máquina local drena para o painel central e esvazia).
 
 ## Princípio inviolável
 
