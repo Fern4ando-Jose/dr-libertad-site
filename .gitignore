@@ -27,6 +27,9 @@ public_tmp/
 *.docx
 *.bck
 
+# Pendências: fonte única é o painel central D:\Claude\.pendencias\ (controle interno, fora do git)
+PENDENCIAS.md
+
 # Imagens soltas na raiz (screenshots, exports temporários)
 /*.jpg
 /*.jpeg
