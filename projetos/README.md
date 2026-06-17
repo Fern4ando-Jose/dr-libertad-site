@@ -3,6 +3,12 @@
 Vertente criativa: **pequenos vídeos** que destilam a **ideia central** e a **carga emocional**
 de obras clássicas (filmes e livros), respeitando sempre os créditos e a autoria original.
 
+## Pendências
+
+Fonte **única** de pendências = painel central `D:\Claude\.pendencias\dr-libertad.md`
+(controlo interno, fora do Git). Este projeto **não** mantém lista própria — só este ponteiro.
+As decisões em aberto de cada obra ficam na secção "Pontos a confirmar" do respetivo `ideia-inicial.md`.
+
 ## Princípio inviolável
 
 > **Só produzimos depois de o conteúdo emocional estar certo.**
