@@ -16,11 +16,18 @@ Base **multi-idioma** (ES + PT-BR) inteira, validada por `tsc`, **nada no ar ain
    app da Meta → pegar account-id (`graph.instagram.com/me?fields=id,username`).
 2. **Setar credenciais PT** (você me passa, eu seto): secrets no GitHub **e** envs no
    Vercel — `META_ACCESS_TOKEN_PT` e `META_INSTAGRAM_ACCOUNT_ID_PT`.
-3. **Mergear** o PR `feat/multi-idioma` na `main` (você revisa primeiro).
-4. **Testar PT sem publicar**: Actions → "Instagram Reels … (PT-BR)" → Run workflow →
-   `publish: no` → revisar o mp4 (copy PT + @dr.liberdade.br). **Conferir que a copy é
-   BR-NATIVA, não tradução do ES** — gancho, referências e jeito de falar brasileiros
-   (vem do `marketBrief` em `accounts.ts`). Se soar importado/traduzido, ajustar o brief.
+3. **Mergear** o PR `feat/multi-idioma` na `main` (você revisa primeiro). **SEGURO**:
+   os crons dos 3 workflows PT estão **comentados** (dispatch-only) — mergear NÃO
+   publica PT sozinho. ES intocado (lang default = es).
+4. **Validar a copy PT (sem publicar)** — chaves Anthropic/Tavily são *Sensitive* na
+   Vercel, só rodam em **produção**; por isso a validação é **pós-merge**:
+   - Eu rodo `/api/publish?preview=1&lang=pt&run=0` em produção e te mostro **PT vs ES**.
+   - **Conferir que a copy é BR-NATIVA, não tradução do ES** — gancho, referências e
+     jeito de falar brasileiros (vem do `marketBrief` em `accounts.ts`). Se soar
+     importado, ajustar o brief (campo de texto, sem mexer em lógica).
+   - Depois, opcional: dispatch manual do Reel PT com `publish: no` p/ ver o mp4.
+4b. **RELIGAR os crons PT** (commit mínimo: descomentar `schedule:` nos 3 `*-pt.yml`)
+   só **depois** de aprovar a voz. É o "go-live" do PT.
 5. ✅ **Refresh do token PT**: feito (2026-06-16). `/api/refresh-token` agora itera
    sobre toda conta com `dbTokenKey` (ES + PT). A 1ª rodada do cron lê a env
    `META_ACCESS_TOKEN_PT`, renova e **semeia** `meta_access_token_pt` no DB; daí em

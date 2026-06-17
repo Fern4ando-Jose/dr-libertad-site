@@ -11,10 +11,13 @@ name: Instagram Reels — Dr. Liberdade (PT-BR)
 # (github.event.schedule), não da hora do relógio — pra atraso do cron não colidir
 # com o run vizinho. Slot/tom = SLOT_FOR_RUN[run].
 on:
-  schedule:
-    - cron: "0 15 * * *" # 12:00 BRT (run 0)
-    - cron: "0 20 * * *" # 17:00 BRT (run 1)
-    - cron: "0 0 * * *"  # 21:00 BRT (run 2)
+  # ⛔ CRONS DESLIGADOS até validar a copy PT (BR-nativa) — ver PENDENCIAS.md.
+  # Mergear o PR #8 NÃO publica PT sozinho; só dispatch manual. RELIGAR (descomentar)
+  # após aprovar a voz no preview de produção.
+  # schedule:
+  #   - cron: "0 15 * * *" # 12:00 BRT (run 0)
+  #   - cron: "0 20 * * *" # 17:00 BRT (run 1)
+  #   - cron: "0 0 * * *"  # 21:00 BRT (run 2)
   workflow_dispatch:
     inputs:
       run:
