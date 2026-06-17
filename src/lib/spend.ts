@@ -33,7 +33,9 @@ const TAVILY_PRICE = 0.01;
 // sem precisar de deploy. Steady-state hoje: ig-posts ~0,45 · ig-reels ~0,02.
 const DEFAULT_BUDGETS: Record<Automation, number> = {
   "ig-posts": 0.5,
-  "ig-reels": 0.1,
+  // ES e PT dividem este balde (label "ig-reels", sem split por idioma). Cadência
+  // cheia = 4 reels ES + 4 PT/dia + testes manuais; custo real ~US$0,28/dia.
+  "ig-reels": 0.25,
   manual: 0.5, // testes manuais (dryrun &fresh=1) — cap evita o pico de dev (~US$10)
 };
 
