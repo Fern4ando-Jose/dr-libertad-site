@@ -7,8 +7,8 @@ name: Instagram — publicar posts
 # disparou (github.event.schedule), NÃO da hora do relógio. slot/tom = run % 3.
 on:
   schedule:
-    - cron: "0 12 * * *" # 09:00 BRT (run 4)
-    - cron: "0 17 * * *" # 14:00 BRT (run 5)
+    - cron: "17 12 * * *" # 09:17 BRT (run 4)
+    - cron: "17 17 * * *" # 14:17 BRT (run 5)
   workflow_dispatch:
     inputs:
       run:
@@ -59,8 +59,8 @@ jobs:
             # Agendado: run derivado da EXPRESSÃO cron que disparou (github.event.schedule),
             # não da hora real — assim o atraso/adianto do cron não colide com o run vizinho.
             case "$SCHEDULE" in
-              "0 12 * * *") RUN=4 ;;
-              "0 17 * * *") RUN=5 ;;
+              "17 12 * * *") RUN=4 ;;
+              "17 17 * * *") RUN=5 ;;
               *) RUN=4 ;;  # fallback defensivo
             esac
             echo "run=$RUN" >> "$GITHUB_OUTPUT"
