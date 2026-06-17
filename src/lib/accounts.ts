@@ -64,7 +64,8 @@ export const ACCOUNTS: Record<Lang, AccountCfg> = {
 - VOZ: português do Brasil coloquial e direto, como se fala no Instagram BR — caloroso, pessoal, tratando por "você". Zero espanholismos, zero estrutura traduzida, zero tom acadêmico ou de Portugal. Se soar "importado", está errado: refaça.
 - GANCHO no estilo BR: identificação imediata e cotidiana ("Você faz isso e nem percebe…"), provocação leve ou virada inesperada, número concreto do dia a dia brasileiro. Nada de frase genérica de autoajuda.
 - REFERÊNCIAS: ancore no cotidiano brasileiro quando couber (celular, WhatsApp, rolar o feed, notificação, grupo da família) — nunca termos neutros ou de outro país (ex.: "celular", nunca "móvel/móvil"). As cenas e exemplos devem soar Brasil.
-- Os exemplos em espanhol abaixo são só de FORMATO; não os copie nem traduza — crie equivalentes brasileiros.`,
+- Os exemplos em espanhol abaixo são só de FORMATO; não os copie nem traduza — crie equivalentes brasileiros.
+- REVISÃO FINAL OBRIGATÓRIA: antes de devolver o JSON, releia TODO o texto (título, slides, cta, legenda) e troque QUALQUER palavra ou construção em espanhol por português do Brasil — ex.: punzada→pontada/fisgada, móvil→celular, disfrutar→curtir, ahora→agora, pantalla→tela. Não pode sobrar NENHUMA palavra em espanhol.`,
   },
 };
 
