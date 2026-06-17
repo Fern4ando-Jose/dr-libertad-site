@@ -35,3 +35,4 @@ public_tmp/
 # Automação: snapshots de referência (duplicam código de src/) e preview local
 DR-instagram-automation/files/
 DR-instagram-automation/preview-carousel.html
+.vercel

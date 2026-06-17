@@ -83,26 +83,55 @@ async function main() {
   const cat = props.cat || "freedom";
   const fromClaude = Array.isArray(props.videoQueries) ? props.videoQueries.filter((t) => typeof t === "string" && t.trim()) : [];
   const fallback = (CAT_TERMS[cat] || CAT_TERMS.freedom).slice();
-  // usa videoQueries; completa com fallback da categoria se vierem poucos
-  const terms = (fromClaude.length ? [...fromClaude, ...fallback] : fallback);
   log(fromClaude.length ? `videoQueries do Claude: ${fromClaude.join(" | ")}` : `(sem videoQueries) fallback cat "${cat}": ${fallback.join(" | ")}`);
 
   try {
     const picked = [];
     const seenVideoIds = new Set();
-    // varre termos até juntar NUM_CLIPS clipes distintos
-    for (const term of terms) {
-      if (picked.length >= NUM_CLIPS) break;
-      const vids = await searchTerm(term);
-      for (const v of vids) {
+
+    // Round-robin entre os termos: pega 1 clipe de CADA termo por passada, depois
+    // volta ao 1º para a 2ª passada, etc. Mantém os clipes NO TEMA e DIVERSOS —
+    // em vez de esvaziar o 1º termo (4 clipes da mesma busca) ou cair no fallback
+    // genérico (o "último clipe fora de contexto"). Só usa o fallback de categoria
+    // depois de esgotar as queries do Claude.
+    async function harvest(termList) {
+      // Pré-carrega as buscas e mantém um cursor por termo (fila de candidatos).
+      const queues = [];
+      for (const term of termList) {
         if (picked.length >= NUM_CLIPS) break;
-        if (seenVideoIds.has(v.id)) continue;
-        const link = pickFile(v);
-        if (!link) continue;
-        seenVideoIds.add(v.id);
-        picked.push(link);
-        log(`+ clipe (${term}) id=${v.id} ${v.width}x${v.height} ${v.duration}s`);
+        queues.push({ term, vids: await searchTerm(term), i: 0 });
       }
+      let progressed = true;
+      while (picked.length < NUM_CLIPS && progressed) {
+        progressed = false;
+        for (const q of queues) {
+          if (picked.length >= NUM_CLIPS) break;
+          // avança no termo até achar um vídeo novo com arquivo utilizável
+          while (q.i < q.vids.length) {
+            const v = q.vids[q.i++];
+            if (seenVideoIds.has(v.id)) continue;
+            const link = pickFile(v);
+            if (!link) continue;
+            seenVideoIds.add(v.id);
+            picked.push(link);
+            progressed = true;
+            log(`+ clipe (${q.term}) id=${v.id} ${v.width}x${v.height} ${v.duration}s`);
+            break;
+          }
+        }
+      }
+    }
+
+    // 1ª escolha: só as queries do Claude (no tema). Pode render < NUM_CLIPS.
+    if (fromClaude.length) await harvest(fromClaude);
+    // Fallback de categoria (genérico) só entra se o Claude rendeu ZERO clipes.
+    // Se rendeu >=1, NÃO misturamos clipe genérico: o Reel.tsx cicla os clipes no
+    // tema (a cena final reusa um deles), evitando o "último clipe fora de contexto".
+    if (!picked.length) {
+      if (fromClaude.length) log(`Claude rendeu 0 clipes — caindo no fallback cat "${cat}"`);
+      await harvest(fallback);
+    } else if (picked.length < NUM_CLIPS) {
+      log(`Claude rendeu ${picked.length} clipe(s) no tema (< ${NUM_CLIPS}) — Reel cicla os do tema, sem fallback genérico`);
     }
 
     if (!picked.length) return done("nenhum clipe encontrado na Pexels — fallback ilustração estática");

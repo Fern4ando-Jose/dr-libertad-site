@@ -40,7 +40,7 @@
 |----------|--------|-----------|
 | `ANTHROPIC_API_KEY` | ✅ | Chave da API Claude |
 | `TAVILY_API_KEY` | ✅ | Chave de pesquisa Tavily |
-| `CRON_SECRET` | ✅ | `bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1` |
+| `CRON_SECRET` | ✅ | No cofre `.chaves/dr-libertad.env` — **nunca** colar o valor aqui |
 | `META_ACCESS_TOKEN` | ✅ ⚠️ Expira em ~60 dias | Token Instagram Business API |
 | `META_INSTAGRAM_ACCOUNT_ID` | ✅ | `27549362607981575` (ID novo API) |
 | `META_DEFAULT_IMAGE_URL` | ✅ | URL da imagem padrão dos posts |
@@ -57,7 +57,7 @@
 | Item | Valor |
 |------|-------|
 | App ID (Facebook) | `2214160215805028` |
-| App Secret (Facebook) | `4630351ff29dc01aa57a67e54fe53554` |
+| App Secret (Facebook) | No cofre `.chaves/dr-libertad.env` — **nunca** colar o valor aqui |
 | App ID (Instagram) | `26694771986884986` |
 | Instagram Account ID (novo) | `27549362607981575` |
 | Instagram Username | `dr.liberdad` |
@@ -66,23 +66,35 @@
 
 ---
 
-## Cron Jobs
+## Cadência diária de publicação (REGRA VIGENTE — definida 2026-06-15)
 
-| Slot | Horário (UTC) | Horário (BRT) | URL |
-|------|--------------|---------------|-----|
-| Manhã | 12:00 | 09:00 | `/api/publish?slot=manha` |
-| Tarde | 16:00 | 13:00 | `/api/publish?slot=tarde` |
-| Noite | 23:00 | 20:00 | `/api/publish?slot=noite` |
+> **6 posts/dia** no @drlibertad = **4 Reels + 2 carrosséis**.
+> A regra antiga de **"6 carrosséis/dia"** foi **REVOGADA em 2026-06-15** — não vale mais.
 
-Para testar manualmente (com `?topic=` opcional):
+| Horário (BRT) | Formato |
+|---|---|
+| 09:00 | Carrossel |
+| 12:00 | Reel (vídeo) |
+| 14:00 | Carrossel |
+| 17:00 | Reel (vídeo) |
+| 19:00 | Reel clássico |
+| 21:00 | Reel (vídeo) |
+
+- Composição: **3 Reels vídeo** (12/17/21h) + **1 Reel clássico** (19h) + **2 carrosséis** (9/14h).
+- Decisão veio da análise de desempenho (Reel ~6× o alcance do carrossel; Reel campeão às 19h).
+- Agendamento roda no **GitHub Actions** (não Vercel); `force=1` burla a trava anti-duplicata de 24h.
+- ✅ **FEITO na `main` (PR #4, 2026-06-16):** `instagram-posts.yml` já roda **2 carrosséis** (12/17 UTC = 9/14h BRT, runs 4-5); `instagram-reels.yml` virou **3 Reels vídeo** (15/20/00 UTC); e `instagram-reels-classic.yml` (NOVO) faz **1 Reel clássico** (22 UTC = 19h BRT). Mix = 4 Reels + 2 carrosséis, exatamente o desta seção.
+- ⚠️ **Sincronizar branches:** a branch local `kiwi-weekly-publish` está ATRÁS da `main` e ainda mostra o esquema antigo — por isso o código local parece desatualizado. Precisa commitar o trabalho local e dar merge da `main` (ver abaixo).
+
+Teste manual — o segredo vive no cofre `.chaves/dr-libertad.env`, **NUNCA** colar o valor aqui:
 ```powershell
-# PowerShell:
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha&topic=seu+tema+aqui" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" }
+# PowerShell (exporte $env:CRON_SECRET antes):
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha&topic=seu+tema" -Headers @{ Authorization = "Bearer $env:CRON_SECRET" }
 ```
 
 ```cmd
-:: Prompt de Comando (cmd.exe):
-curl -H "Authorization: Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" "https://www.drlibertad.com/api/publish?slot=manha&topic=seu+tema+aqui"
+:: cmd.exe (defina %CRON_SECRET% antes):
+curl -H "Authorization: Bearer %CRON_SECRET%" "https://www.drlibertad.com/api/publish?slot=manha&topic=seu+tema"
 ```
 
 ---
@@ -91,7 +103,7 @@ curl -H "Authorization: Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6
 
 **Status: ✅ Concluída em 2026-05-30**
 
-Todos os passos concluídos. Sistema publicando 3 posts/dia automaticamente.
+Todos os passos concluídos. (Cadência **atual** = ver "Cadência diária de publicação" no topo: 6 posts/dia, 4 Reels + 2 carrosséis. O "3 posts/dia" foi só o estado inicial de 05/2026.)
 
 Primeiro post publicado: ID `18082397880445842` — "A Perfeição é Inimiga do Bem"
 

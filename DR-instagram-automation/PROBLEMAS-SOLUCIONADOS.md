@@ -118,7 +118,25 @@ O `preview-carousel.html` usa Fraunces do Google Fonts apenas para visualizaçã
 
 ## ⏰ Cron Jobs
 
-**Configuração atual (3 posts/dia):**
+> **Atualizado 2026-06-16:** o agendamento **NÃO roda mais no Vercel** — migrou para
+> **GitHub Actions** (grátis, sem limite de cron). A tabela antiga de 3 slots no Vercel
+> virou histórico abaixo. **Fonte da verdade da cadência = `../CLAUDE.md` / `PROJETO.md`.**
+
+**Configuração VIGENTE — 6 posts/dia (4 Reels + 2 carrosséis), no GitHub Actions:**
+
+| Run | Horário BRT / UTC | Formato | Workflow |
+|---|---|---|---|
+| 0 | 12h · 15 UTC | Reel vídeo | `instagram-reels.yml` |
+| 1 | 17h · 20 UTC | Reel vídeo | `instagram-reels.yml` |
+| 2 | 21h · 00 UTC | Reel vídeo | `instagram-reels.yml` |
+| 3 | 19h · 22 UTC | Reel clássico | `instagram-reels-classic.yml` |
+| 4 | 09h · 12 UTC | Carrossel | `instagram-posts.yml` |
+| 5 | 14h · 17 UTC | Carrossel | `instagram-posts.yml` |
+
+O `run` (tópico distinto) vem da **expressão cron que disparou** (`github.event.schedule`),
+não de `hora/4`. `force=1` burla a trava anti-duplicata de 24h.
+
+<details><summary>Histórico — config antiga no Vercel (3 carrosséis/dia, REVOGADA 2026-06-15)</summary>
 
 | Slot | Horário UTC | Horário BRT |
 |------|------------|-------------|
@@ -126,11 +144,10 @@ O `preview-carousel.html` usa Fraunces do Google Fonts apenas para visualizaçã
 | Tarde | 16:00 | 13:00 |
 | Noite | 23:00 | 20:00 |
 
-**Atenção:** Plano Hobby do Vercel tem "flexible time window of 1-hour" — crons podem rodar até 1h após o horário agendado.
-
-**Múltiplos deploys no mesmo dia** podem cancelar os crons daquele dia — evite muitos pushes seguidos.
-
-**Para mais posts/dia:** upgrade para Vercel Pro (~$20/mês) permite crons ilimitados e garantidos.
+Plano Hobby do Vercel tinha "flexible time window of 1-hour" **e** limite de cron jobs
+(empiricamente 4 deployam, 7 não) — foi o motivo de migrar para o GitHub Actions.
+**Não recriar crons no `vercel.json`.**
+</details>
 
 ---
 

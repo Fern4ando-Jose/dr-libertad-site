@@ -103,10 +103,10 @@ jobs:
               brand: p.brand || "Dr. Libertad",
               // Termos de busca de footage gerados pelo Claude (no tema do post).
               videoQueries: Array.isArray(p.videoQueries) ? p.videoQueries : [],
-              // Trilha embutida — usa bed.wav ou bed.mp3 se existir no repo
-              // (camada de criação opcional; sem ela o Reel renderiza mudo).
-              music: fs.existsSync("public/music/bed.wav") ? "music/bed.wav"
-                   : fs.existsSync("public/music/bed.mp3") ? "music/bed.mp3" : undefined
+              // Trilha embutida (camada de criação, opcional). Rotaciona por `run`
+              // entre faixas numeradas (bed-0.wav, bed-1.wav, …) se existirem; senão
+              // usa a bed.wav única (igual a antes). Sem nenhuma → Reel renderiza mudo.
+              music: require("./scripts/pick-music.cjs").pickMusic(${{ steps.params.outputs.run }}) || undefined
             };
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("slot.txt", p.slot || "noite");
