@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
     "render:reel": "node scripts/render-reel.mjs",
     "upload:blob": "node scripts/upload-blob.mjs"
   },
@@ -37,6 +38,7 @@
     "eslint-config-next": "latest",
     "postcss": "latest",
     "tailwindcss": "^4.3.0",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vitest": "^3.2.4"
   }
 }

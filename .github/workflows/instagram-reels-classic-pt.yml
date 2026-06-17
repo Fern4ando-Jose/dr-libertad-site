@@ -11,7 +11,8 @@ name: Instagram Reel CLÁSSICO — Dr. Liberdade (PT-BR)
 on:
   # ✅ PT no ar (go-live 2026-06-17).
   schedule:
-    - cron: "17 22 * * *" # 19:17 BRT (run 3)
+    # PT 5 min depois do ES p/ reusar a ilustração já cacheada (run 3).
+    - cron: "22 22 * * *" # 19:22 BRT (run 3)
   workflow_dispatch:
     inputs:
       run:

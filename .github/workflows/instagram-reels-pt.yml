@@ -13,9 +13,11 @@ name: Instagram Reels — Dr. Liberdade (PT-BR)
 on:
   # ✅ PT no ar (go-live 2026-06-17, copy/footage/áudio validados).
   schedule:
-    - cron: "17 15 * * *" # 12:17 BRT (run 0)
-    - cron: "17 20 * * *" # 17:17 BRT (run 1)
-    - cron: "17 0 * * *"  # 21:17 BRT (run 2)
+    # PT dispara 5 min depois do ES (:22 vs :17) p/ ler a arte que o ES já gerou
+    # (imagem compartilhada — só a copy muda por idioma). Ver [[automation-vs-creation]].
+    - cron: "22 15 * * *" # 12:22 BRT (run 0)
+    - cron: "22 20 * * *" # 17:22 BRT (run 1)
+    - cron: "22 0 * * *"  # 21:22 BRT (run 2)
   workflow_dispatch:
     inputs:
       run:
@@ -67,9 +69,9 @@ jobs:
             RUN="${IN_RUN:-2}"   # disparo manual: run informado ou 2 (noite)
           else
             case "$SCHEDULE" in
-              "17 15 * * *") RUN=0 ;;
-              "17 20 * * *") RUN=1 ;;
-              "17 0 * * *")  RUN=2 ;;
+              "22 15 * * *") RUN=0 ;;
+              "22 20 * * *") RUN=1 ;;
+              "22 0 * * *")  RUN=2 ;;
               *) RUN=2 ;;  # fallback defensivo
             esac
           fi
