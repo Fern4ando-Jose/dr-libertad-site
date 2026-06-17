@@ -35,15 +35,20 @@ Sugestão: 3–6 faixas (`bed-0`..`bed-5`) cobrem os 6 runs/dia sem repetir no m
 
 ## Licença — IMPORTANTE
 
-Use **só** áudio royalty-free / sem direitos de terceiros. Opções sem atribuição:
+Use **só** áudio royalty-free / sem direitos de terceiros.
 
-- **Pixabay Music** (pixabay.com/music) — uso livre, sem atribuição.
-- **YouTube Audio Library** — filtre por "sem atribuição".
-
-> Não comitamos uma faixa de terceiros automaticamente para não arriscar a
-> licença ao redistribuir o binário em repositório público. **Escolha uma faixa
-> que você possa usar e solte aqui como `bed.mp3`.** Se preferir, me diga qual
-> faixa/URL e eu baixo e configuro.
+> **As faixas `bed-0.mp3`…`bed-5.mp3` são GERADAS POR IA** (`fal cassetteai/music-generator`)
+> via `scripts/generate-music.mjs` — instrumentais, sem vocais, 6 moods sóbrios
+> coerentes com a marca. Áudio gerado = **redistribuível** num repo público (sem
+> licença de terceiros). **Regenerar** (author-time, ~US$0,05/faixa, NÃO roda no CI):
+>
+> ```
+> FAL_KEY=... node scripts/generate-music.mjs            # as 6
+> FAL_KEY=... node scripts/generate-music.mjs --only=2   # só a bed-2
+> ```
+>
+> Prefere faixa própria? Alternativas sem atribuição: **Pixabay Music**,
+> **YouTube Audio Library** ("sem atribuição") — solte como `bed-<n>.mp3`.
 
 ## Trocar/desligar
 
