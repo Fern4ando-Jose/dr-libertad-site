@@ -1,5 +1,4 @@
 import { getInsights, type PostInsight, type Format } from "@/lib/insights";
-import { getLang, accountFor } from "@/lib/accounts";
 
 // Dashboard de desempenho dos posts. Página utilitária (não faz parte do site
 // localizado em [lang]); protegida por ?key=CRON_SECRET. Em produção o token da
@@ -41,18 +40,16 @@ function Gate({ reason }: { reason: string }) {
 export default async function InsightsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ key?: string; lang?: string }>;
+  searchParams: Promise<{ key?: string }>;
 }) {
-  const { key, lang: langParam } = await searchParams;
+  const { key } = await searchParams;
   const secret = process.env.CRON_SECRET;
 
   if (!secret || key !== secret) {
     return <Gate reason="Página protegida. Chave inválida ou ausente." />;
   }
 
-  const lang = getLang(langParam); // "es" (default) | "pt"
-  const acc = accountFor(lang);
-  const data = await getInsights(lang);
+  const data = await getInsights();
 
   if (!data.tokenPresent) {
     return <Gate reason={data.note ?? "Token da Graph API ausente (rode em produção)."} />;
@@ -69,30 +66,9 @@ export default async function InsightsPage({
   return (
     <main className="mx-auto max-w-6xl px-5 py-16">
       <header className="mb-2">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="font-serif text-4xl tracking-tight">Insights</h1>
-          <nav className="flex gap-2 text-xs uppercase tracking-[0.18em]">
-            {(["es", "pt"] as const).map((l) => {
-              const active = l === lang;
-              return (
-                <a
-                  key={l}
-                  href={`/insights?key=${encodeURIComponent(key)}&lang=${l}`}
-                  className="rounded px-2 py-1"
-                  style={
-                    active
-                      ? { color: "var(--color-offwhite)", border: "1px solid var(--color-muted-red)" }
-                      : { color: "var(--color-warm-gray)", border: "1px solid rgba(185,176,162,0.25)" }
-                  }
-                >
-                  {l === "es" ? "ES" : "BR"}
-                </a>
-              );
-            })}
-          </nav>
-        </div>
+        <h1 className="font-serif text-4xl tracking-tight">Insights</h1>
         <p className="mt-2 text-sm text-warm-gray">
-          {acc.handle} · {data.items.length} posts · ordenados por alcance · atualizado{" "}
+          {data.items.length} posts · ordenados por alcance · atualizado{" "}
           {new Date(data.generatedAt).toLocaleString("pt-BR")}
         </p>
       </header>
