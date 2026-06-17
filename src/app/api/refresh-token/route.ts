@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ACCOUNTS, AccountCfg } from "@/lib/accounts";
 
 /**
  * GET /api/refresh-token
  *
- * Renova o token de longa duração da Instagram (Instagram API with Instagram Login).
- * Chame via cron mensal (antes dos 60 dias expirarem).
+ * Renova o token de longa duração da Instagram (Instagram API with Instagram Login)
+ * de TODAS as contas que têm `dbTokenKey` (ES e PT). Chame via cron mensal (antes
+ * dos 60 dias expirarem).
  *
  * Fluxo correto para tokens "IGAF..." (graph.instagram.com):
  *   GET https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=...
@@ -12,30 +14,40 @@ import { NextRequest, NextResponse } from "next/server";
  *
  * Requisito da Meta: o token precisa ter pelo menos 24h e ainda estar válido.
  *
- * Fluxo:
- *  1. Lê o token atual do banco (tabela config) com fallback para a env var
- *  2. Chama o endpoint de refresh do Instagram para obter um novo token de 60 dias
- *  3. Salva o novo token no banco
+ * Fluxo por conta:
+ *  1. Lê o token atual do banco (tabela config, chave `dbTokenKey`) com fallback
+ *     para a env var da conta (`tokenEnv`).
+ *  2. Chama o endpoint de refresh do Instagram para obter um novo token de 60 dias.
+ *  3. Salva o novo token no banco sob a mesma `dbTokenKey`.
  *
- * O publish/route.ts sempre lê o token do banco — sem intervenção manual.
+ * Na 1ª rodada do PT o DB ainda está vazio → usa a env `META_ACCESS_TOKEN_PT`,
+ * renova e **semeia** o DB. A partir daí o DB é a fonte (sem intervenção manual).
+ * O publish/publish-reel sempre leem o token do banco (com fallback env).
+ *
+ * Falhas são isoladas por conta: se o token PT ainda não tem 24h, o ES renova
+ * mesmo assim. HTTP 500 só se NENHUMA conta renovou.
  */
-export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
-  }
 
-  const { sql } = await import("@vercel/postgres");
+interface RefreshResult {
+  lang: string;
+  key: string;
+  ok: boolean;
+  expires_in_days?: number;
+  error?: unknown;
+}
 
-  // 1. Ler token atual do banco (fallback para env var)
-  const rows = await sql`SELECT value FROM config WHERE key = 'meta_access_token'`;
-  const currentToken = rows.rows[0]?.value ?? process.env.META_ACCESS_TOKEN;
+async function refreshAccount(
+  acc: AccountCfg,
+  sql: typeof import("@vercel/postgres").sql
+): Promise<RefreshResult> {
+  const key = acc.dbTokenKey!;
+
+  // 1. Token atual: DB → fallback env
+  const rows = await sql`SELECT value FROM config WHERE key = ${key}`;
+  const currentToken = rows.rows[0]?.value ?? process.env[acc.tokenEnv];
 
   if (!currentToken) {
-    return NextResponse.json(
-      { ok: false, error: "Nenhum token encontrado no banco nem no env var" },
-      { status: 500 }
-    );
+    return { lang: acc.lang, key, ok: false, error: "Sem token no banco nem na env var" };
   }
 
   // 2. Renovar via fluxo do Instagram Login (ig_refresh_token)
@@ -47,23 +59,50 @@ export async function GET(req: NextRequest) {
   const data = await res.json();
 
   if (!res.ok || !data.access_token) {
-    return NextResponse.json({ ok: false, error: data }, { status: 500 });
+    return { lang: acc.lang, key, ok: false, error: data };
   }
 
   const newToken: string = data.access_token;
   const expiresIn: number = data.expires_in ?? 5183944; // ~60 dias
 
-  // 3. Salvar novo token no banco
+  // 3. Salvar novo token no banco (semeia o PT na 1ª vez)
   await sql`
     INSERT INTO config (key, value, updated_at)
-    VALUES ('meta_access_token', ${newToken}, NOW())
+    VALUES (${key}, ${newToken}, NOW())
     ON CONFLICT (key) DO UPDATE SET value = ${newToken}, updated_at = NOW()
   `;
 
-  return NextResponse.json({
-    ok: true,
-    message: "Token renovado com sucesso",
-    expires_in_days: Math.round(expiresIn / 86400),
-    updated_at: new Date().toISOString(),
-  });
+  return { lang: acc.lang, key, ok: true, expires_in_days: Math.round(expiresIn / 86400) };
+}
+
+export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+  }
+
+  const { sql } = await import("@vercel/postgres");
+
+  // Toda conta com refresh automático (dbTokenKey definido) é renovada.
+  const accounts = Object.values(ACCOUNTS).filter((a) => a.dbTokenKey);
+
+  const results: RefreshResult[] = [];
+  for (const acc of accounts) {
+    try {
+      results.push(await refreshAccount(acc, sql));
+    } catch (error) {
+      results.push({ lang: acc.lang, key: acc.dbTokenKey!, ok: false, error: String(error) });
+    }
+  }
+
+  const anyOk = results.some((r) => r.ok);
+  return NextResponse.json(
+    {
+      ok: anyOk,
+      message: anyOk ? "Refresh concluído" : "Nenhuma conta renovou",
+      results,
+      updated_at: new Date().toISOString(),
+    },
+    { status: anyOk ? 200 : 500 }
+  );
 }
