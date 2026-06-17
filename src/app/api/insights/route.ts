@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getInsights } from "@/lib/insights";
-import { getLang } from "@/lib/accounts";
 
 // Métricas dos posts em JSON. Protegido pelo mesmo CRON_SECRET dos outros
 // endpoints (via header Authorization: Bearer ... ou ?key=...), pois consome
@@ -17,7 +16,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const lang = getLang(req.nextUrl.searchParams.get("lang")); // "es" (default) | "pt"
-  const data = await getInsights(lang);
+  const data = await getInsights();
   return NextResponse.json(data, { headers: { "Cache-Control": "no-store" } });
 }
