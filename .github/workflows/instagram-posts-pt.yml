@@ -6,12 +6,10 @@ name: Instagram — publicar posts (PT-BR)
 # alcance; o foco diário passou a ser vídeo. run é derivado da EXPRESSÃO cron que
 # disparou (github.event.schedule), NÃO da hora do relógio. slot/tom = run % 3.
 on:
-  # ⛔ CRONS DESLIGADOS até validar a copy PT (BR-nativa) — ver PENDENCIAS.md.
-  # Mergear o PR #8 NÃO publica PT sozinho; só dispatch manual. RELIGAR (descomentar)
-  # após aprovar a voz no preview de produção.
-  # schedule:
-  #   - cron: "0 12 * * *" # 09:00 BRT (run 4)
-  #   - cron: "0 17 * * *" # 14:00 BRT (run 5)
+  # ✅ PT no ar (go-live 2026-06-17).
+  schedule:
+    - cron: "0 12 * * *" # 09:00 BRT (run 4)
+    - cron: "0 17 * * *" # 14:00 BRT (run 5)
   workflow_dispatch:
     inputs:
       run:
