@@ -12,9 +12,9 @@ name: Instagram Reels — Dr. Libertad
 # com o run vizinho. Slot/tom = SLOT_FOR_RUN[run].
 on:
   schedule:
-    - cron: "0 15 * * *" # 12:00 BRT (run 0)
-    - cron: "0 20 * * *" # 17:00 BRT (run 1)
-    - cron: "0 0 * * *"  # 21:00 BRT (run 2)
+    - cron: "17 15 * * *" # 12:17 BRT (run 0)
+    - cron: "17 20 * * *" # 17:17 BRT (run 1)
+    - cron: "17 0 * * *"  # 21:17 BRT (run 2)
   workflow_dispatch:
     inputs:
       run:
@@ -66,9 +66,9 @@ jobs:
             RUN="${IN_RUN:-2}"   # disparo manual: run informado ou 2 (noite)
           else
             case "$SCHEDULE" in
-              "0 15 * * *") RUN=0 ;;
-              "0 20 * * *") RUN=1 ;;
-              "0 0 * * *")  RUN=2 ;;
+              "17 15 * * *") RUN=0 ;;
+              "17 20 * * *") RUN=1 ;;
+              "17 0 * * *")  RUN=2 ;;
               *) RUN=2 ;;  # fallback defensivo
             esac
           fi
