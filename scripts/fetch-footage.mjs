@@ -34,6 +34,24 @@ const CAT_TERMS = {
 function log(m) {
   console.log(`[footage] ${m}`);
 }
+
+// Hash estável (FNV-1a) p/ derivar um seed de diversificação por render.
+function hashStr(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+// Rotaciona um array por n posições (não-destrutivo). Usado p/ variar QUAL clipe
+// abre o Reel entre renders, sem mudar o conjunto de candidatos.
+function rotate(arr, n) {
+  if (!Array.isArray(arr) || arr.length <= 1) return arr || [];
+  const k = ((n % arr.length) + arr.length) % arr.length;
+  return arr.slice(k).concat(arr.slice(0, k));
+}
 // Sempre 0: footage é opcional (fallback p/ ilustração estática).
 function done(reason) {
   if (reason) log(reason);
@@ -85,6 +103,15 @@ async function main() {
   const fallback = (CAT_TERMS[cat] || CAT_TERMS.freedom).slice();
   log(fromClaude.length ? `videoQueries do Claude: ${fromClaude.join(" | ")}` : `(sem videoQueries) fallback cat "${cat}": ${fallback.join(" | ")}`);
 
+  // Seed de DIVERSIFICAÇÃO por render: dois posts com o MESMO tema (ex.: ES e PT do
+  // mesmo run, ou o mesmo run em dias diferentes) não devem abrir com o MESMO clipe
+  // da Pexels. ed (nº de edição, muda a cada post), handle (conta) e o dia variam por
+  // render → seed distinto → ordem dos candidatos rotacionada → clipe de abertura
+  // diferente. Sem DB, sem estado; só evita a colisão determinística.
+  const day = new Date().toISOString().slice(0, 10);
+  const seed = hashStr(`${props.handle || ""}|${props.ed || ""}|${props.title || ""}|${day}`);
+  log(`seed de diversificação=${seed} (handle=${props.handle || "?"} ed=${props.ed || "?"} dia=${day})`);
+
   try {
     const picked = [];
     const seenVideoIds = new Set();
@@ -97,9 +124,12 @@ async function main() {
     async function harvest(termList) {
       // Pré-carrega as buscas e mantém um cursor por termo (fila de candidatos).
       const queues = [];
-      for (const term of termList) {
+      for (let t = 0; t < termList.length; t++) {
         if (picked.length >= NUM_CLIPS) break;
-        queues.push({ term, vids: await searchTerm(term), i: 0 });
+        const term = termList[t];
+        // Rotaciona os candidatos por (seed + termo) → abertura varia entre renders.
+        const vids = rotate(await searchTerm(term), seed + t * 7);
+        queues.push({ term, vids, i: 0 });
       }
       let progressed = true;
       while (picked.length < NUM_CLIPS && progressed) {
