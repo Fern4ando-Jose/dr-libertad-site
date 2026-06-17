@@ -91,7 +91,7 @@ function renderArticleBlocks(raw: string, title: string): Block[] {
 }
 
 export default function EditorialGrid() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [posts, setPosts] = useState<EditorialPost[] | null>(null);
   const [active, setActive] = useState<EditorialPost | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -111,7 +111,7 @@ export default function EditorialGrid() {
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/posts")
+    fetch(`/api/posts?lang=${lang}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
         if (!alive) return;
@@ -122,7 +122,7 @@ export default function EditorialGrid() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [lang]);
 
   // Mostra apenas os 3 posts mais recentes — uma fileira limpa no desktop,
   // curta no mobile, sempre as últimas edições do Instagram.
