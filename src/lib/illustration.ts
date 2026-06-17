@@ -60,8 +60,36 @@ const QA_MODEL = "claude-sonnet-4-6"; // visão confiável p/ contar mãos/dedos
 // uma nova geração na fal a cada chamada. Best-effort: qualquer falha de banco é
 // fail-open (gera normalmente). Só URLs APROVADAS no QA entram no cache.
 
-function cacheKey(model: string, cat: string, subject: string): string {
+export function cacheKey(model: string, cat: string, subject: string): string {
   return `${model}|${cat}|${subject}`;
+}
+
+// Seed determinístico por (cat, subject, dia UTC). ES e PT, no mesmo dia, derivam
+// o MESMO seed → a fal devolve a MESMA imagem: a arte é compartilhada entre as
+// contas (só a copy muda por idioma). O dia entra p/ haver variação diária. O nº
+// da tentativa é somado FORA daqui, pra que um retry de QA gere arte nova mas
+// ainda idêntica entre os idiomas naquela tentativa.
+export function seedForDay(cat: string, subject: string, day?: string): number {
+  const d = day ?? new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+  const s = `${cat}|${subject}|${d}`;
+  let h = 2166136261; // FNV-1a 32-bit
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) % 2_000_000_000; // inteiro não-negativo em faixa segura p/ a fal
+}
+
+// Corpo da requisição à fal. Função pura (testável) — o seed determinístico é
+// obrigatório aqui: é o que garante imagem idêntica entre ES e PT.
+export function falRequestBody(prompt: string, seed: number) {
+  return {
+    prompt,
+    image_size: { width: 1024, height: 1280 }, // 4:5 — og faz cover-fit p/ 1080×1350
+    num_images: 1,
+    enable_safety_checker: true,
+    seed, // determinístico por (cat+subject+dia): ES e PT geram a MESMA imagem
+  };
 }
 
 async function readCachedIllustration(model: string, cat: string, subject: string): Promise<string | null> {
@@ -105,18 +133,13 @@ async function generateOnce(
   key: string,
   prompt: string,
   automation: Automation,
+  seed: number,
 ): Promise<{ url: string | null; error?: string }> {
   try {
     const res = await fetch(`https://fal.run/${model}`, {
       method: "POST",
       headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt,
-        image_size: { width: 1024, height: 1280 }, // 4:5 — og faz cover-fit p/ 1080×1350
-        num_images: 1,
-        enable_safety_checker: true,
-        // sem seed fixo: cada tentativa gera uma composição diferente
-      }),
+      body: JSON.stringify(falRequestBody(prompt, seed)),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -211,11 +234,13 @@ export async function generateIllustration(subject: string, cat: string, opts: G
 
   const accent = ACCENTS[cat] ?? ACCENTS.freedom;
   const prompt = buildPrompt(subject, accent.word, accent.hex);
+  const baseSeed = seedForDay(cat, subject); // mesmo p/ ES e PT no mesmo dia
 
   let lastErr = "";
   let lastQa = "";
   for (let attempt = 1; attempt <= maxTries; attempt++) {
-    const gen = await generateOnce(FAL_MODEL, FAL_KEY, prompt, automation);
+    // base+(attempt-1): retry de QA muda a arte, mas ES e PT batem na mesma tentativa.
+    const gen = await generateOnce(FAL_MODEL, FAL_KEY, prompt, automation, baseSeed + attempt - 1);
     if (!gen.url) { lastErr = gen.error ?? "erro de geração"; continue; }
     const qa = await checkAnatomy(gen.url, automation);
     if (qa.ok) {
