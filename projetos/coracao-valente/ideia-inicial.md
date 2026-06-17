@@ -26,18 +26,16 @@ para a geração seguinte que o viu cair.
 A curta tem de fazer o espectador **sentir** esta sequência — amor → humilhação → perda →
 revolta → sacrifício → esperança que continua — não apenas conhecê-la.
 
-## Pontos a confirmar / afinar na sessão de definição
+## Notas de contexto (não são pendências — só conhecimento da obra)
 
-- A **lei do senhor** que o utilizador não recordou: refere-se ao *direito de pernada*
-  (lat. *ius primae noctis* / *prima nocte*) — o direito alegado do senhor feudal sobre a
-  noiva na noite de núpcias. Confirmar como nomeamos isto no guião (ou se o sugerimos sem nomear).
-- **Figura do "filho" que vê o pai morrer e carrega a chama:** este é o nosso ângulo
-  emocional de transmissão da esperança. Na obra/história, a continuidade dá-se mais pela
-  geração e pelos companheiros do que por um filho biológico — decidir na sessão se mantemos
-  a figura do filho (licença criativa, foco na herança) ou outra forma de mostrar a chama a passar.
-- **Foco da curta:** uma só curta com o arco inteiro, ou uma série de micro-curtas
-  (1: amor + humilhação · 2: perda + revolta · 3: sacrifício + esperança)?
-- **Voz:** narração em 1.ª pessoa (o próprio), em 3.ª, ou só imagem + texto + música?
+- A **lei do senhor** que não foi recordada: é o *direito de pernada* (lat. *ius primae
+  noctis* / *prima nocte*) — o direito alegado do senhor feudal sobre a noiva na noite de núpcias.
+- **Figura do "filho" que carrega a chama:** é um ângulo emocional de transmissão da
+  esperança. Na obra/história, a continuidade dá-se mais pela geração e pelos companheiros
+  do que por um filho biológico — daí ser uma licença criativa a ponderar.
+
+> **Decisões em aberto** (foco, formato, voz, créditos, etc.) **não vivem aqui** — são
+> rastreadas apenas no painel central de pendências (`D:\Claude\.pendencias\`).
 
 ## Estado
 

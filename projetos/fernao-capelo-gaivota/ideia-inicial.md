@@ -18,13 +18,9 @@ os limites eram só da mente. No fim, **ensina os outros** — a liberdade apren
 - **Perfeição como caminho, não como vaidade:** o voo como busca interior.
 - **Mestre e discípulo:** quem se liberta volta para libertar os outros.
 
-## Pontos a confirmar / afinar na sessão de definição
-
-- Qual a **passagem** que mais te marcou (o exílio do bando? o reencontro/ascensão? o ensino a Fletcher?).
-- **Tom:** contemplativo/poético vs. inspiracional direto.
-- **Ligação com Coração Valente:** as duas curtas falam de liberdade por ângulos opostos
-  (luta externa vs. libertação interior) — decidir se há uma "assinatura" comum entre elas.
-- **Voz e imagem:** narração poética + footage de mar/voo? Ilustração? Definir na produção.
+> **Decisões em aberto** (qual passagem, tom, voz/imagem, "assinatura" comum com Coração
+> Valente) **não vivem aqui** — são rastreadas apenas no painel central de pendências
+> (`D:\Claude\.pendencias\`).
 
 ## Estado
 
