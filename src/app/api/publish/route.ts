@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateIllustration } from "@/lib/illustration";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
+import { type Automation, checkBudget, logSpend, anthropicCost, tavilyCost, EST_RUN_COST } from "@/lib/spend";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -170,7 +171,7 @@ const SLOT_INSTRUCTIONS: Record<Slot, string> = {
 
 // ─── Pesquisa de contexto ─────────────────────────────────────────────────────
 
-async function searchTopic(topic: string): Promise<SearchResult[]> {
+async function searchTopic(topic: string, automation: Automation): Promise<SearchResult[]> {
   const res = await fetch("https://api.tavily.com/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -183,6 +184,7 @@ async function searchTopic(topic: string): Promise<SearchResult[]> {
     }),
   });
   if (!res.ok) throw new Error(`Tavily error: ${res.status}`);
+  await logSpend({ automation, platform: "tavily", operation: "search", model: "advanced", units: 1, costUsd: tavilyCost() });
   const data = await res.json();
   return (data.results ?? []).map((r: any) => ({
     title: r.title ?? "", content: r.content ?? "", url: r.url ?? "",
@@ -195,7 +197,8 @@ async function generateContent(
   topic: string,
   searchResults: SearchResult[],
   slot: Slot,
-  lang: Lang = "es"
+  lang: Lang = "es",
+  automation: Automation
 ): Promise<GeneratedContent> {
   const acc = accountFor(lang);
   const L = acc.langName; // "español" | "português do Brasil"
@@ -260,6 +263,7 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
 
   if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
   const data = await res.json();
+  await logSpend({ automation, platform: "anthropic", operation: "content", model: "claude-haiku-4-5-20251001", units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0), costUsd: anthropicCost("claude-haiku-4-5-20251001", data?.usage) });
   const raw  = data.content?.[0]?.text ?? "";
   const clean = raw.replace(/```json|```/g, "").trim();
   return JSON.parse(clean) as GeneratedContent;
@@ -389,8 +393,16 @@ export async function GET(req: NextRequest) {
     const topic = topicOverride ?? getTopicForRun(new Date(), r);
     const cat = TOPIC_CAT[topic] ?? "freedom";
     const subject = TOPIC_SUBJECT[topic] ?? "";
+    // Teto: testes manuais entram no orçamento "manual" (evita o pico de dev).
+    const gate = await checkBudget("manual", EST_RUN_COST.dryrun);
+    if (!gate.ok) {
+      return NextResponse.json({ blocked: true, automation: "manual", reason: `Orçamento diário estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)})`, gate }, { status: 402 });
+    }
     // Testa a geração da ilustração SEM publicar (útil p/ validar a fal/FAL_KEY).
-    const ill = await generateIllustration(subject, cat);
+    // Diagnóstico: 1 tentativa só, e reusa o cache do dia (não paga em reruns).
+    // ?fresh=1 força uma geração real na fal (quando o objetivo é mesmo testar a fal).
+    const fresh = sp.get("fresh") === "1";
+    const ill = await generateIllustration(subject, cat, { maxTries: 1, useCache: !fresh, automation: "manual" });
     return NextResponse.json({ dryrun: true, run: r, topic, cat, subject, illustration: ill, falKeyPresent: !!process.env.FAL_KEY });
   }
 
@@ -404,8 +416,14 @@ export async function GET(req: NextRequest) {
     const topic = topicOverride ?? getTopicForRun(now, r);
     const cat = TOPIC_CAT[topic] ?? "freedom";
 
-    const searchResults = await searchTopic(topic);
-    const content = await generateContent(topic, searchResults, slot, lang);
+    // Teto: o preview é o pipeline do Reel diário.
+    const gate = await checkBudget("ig-reels", EST_RUN_COST.preview);
+    if (!gate.ok) {
+      return NextResponse.json({ blocked: true, automation: "ig-reels", reason: `Orçamento diário estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)})`, gate }, { status: 402 });
+    }
+
+    const searchResults = await searchTopic(topic, "ig-reels");
+    const content = await generateContent(topic, searchResults, slot, lang, "ig-reels");
 
     // Número de edição (mesma conta do fluxo de publicação)
     let editionNum = 1;
@@ -420,13 +438,16 @@ export async function GET(req: NextRequest) {
     // O Reel de VÍDEO usa FOOTAGE de banco (Pexels) — NÃO gera ilustração na fal
     // aqui (economia; o preview roda várias vezes/dia). EXCEÇÃO: ?illus=1 — o Reel
     // CLÁSSICO (slide animado) usa a ilustração de fundo, então gera sob demanda.
+    // Quando gera, reusa o cache do dia e usa 1 tentativa (evita pagar o loop 3×
+    // só pra prévia) e contabiliza o gasto na automação ig-reels.
     let illustrationUrl: string | null = null;
     let illustrationError: string | null = null;
     if (sp.get("illus") === "1") {
-      const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat);
+      const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { maxTries: 1, automation: "ig-reels" });
       illustrationUrl = ill.url ?? null;
       illustrationError = ill.error ?? null;
     }
+
     return NextResponse.json({
       preview: true,
       slot, run: r, topic, cat,
@@ -446,6 +467,7 @@ export async function GET(req: NextRequest) {
   }
 
   const results = [];
+  let anyBlocked = false;
 
   try {
     for (const runIndex of runs) {
@@ -470,9 +492,20 @@ export async function GET(req: NextRequest) {
           } catch { /* ignora erro de banco */ }
         }
 
+        // Teto diário da automação ig-posts: se a próxima publicação estoura o
+        // orçamento, BLOQUEIA (não gasta) e sinaliza p/ o GitHub Actions falhar.
+        const gate = await checkBudget("ig-posts", EST_RUN_COST.publish);
+        if (!gate.ok) {
+          anyBlocked = true;
+          slotLog.blocked = true;
+          slotLog.reason = `Orçamento diário ig-posts estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)}). Suba budget:ig-posts em config p/ liberar.`;
+          results.push(slotLog);
+          continue;
+        }
+
         // Pesquisa e geração
-        const searchResults = await searchTopic(topic);
-        const content = await generateContent(topic, searchResults, slot, lang);
+        const searchResults = await searchTopic(topic, "ig-posts");
+        const content = await generateContent(topic, searchResults, slot, lang, "ig-posts");
         slotLog.title = content.postTitle;
 
         // Número de edição: total de posts já publicados + 1
@@ -499,7 +532,7 @@ export async function GET(req: NextRequest) {
         const motif = TOPIC_MOTIF[topic] ?? "gateway";
 
         // Ilustração por IA (fal/Flux) na CAPA. Falha → og usa o motivo abstrato.
-        const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat);
+        const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { automation: "ig-posts" });
         slotLog.illustration = ill.url ? "ia" : `fallback: ${ill.error ?? "?"}`;
         const imgParam = ill.url ? `&img=${encodeURIComponent(ill.url)}` : "";
 
@@ -541,6 +574,11 @@ export async function GET(req: NextRequest) {
       results.push(slotLog);
     }
 
+    // Se alguma run foi bloqueada pelo teto, devolve 402 para o workflow falhar
+    // (::error:: no GitHub Actions) e avisar o dono — mesmo que outras tenham ok.
+    if (anyBlocked) {
+      return NextResponse.json({ ok: false, blocked: true, posts: results }, { status: 402 });
+    }
     return NextResponse.json({ ok: true, posts: results });
   } catch (err) {
     console.error("[publish] erro geral:", err);
