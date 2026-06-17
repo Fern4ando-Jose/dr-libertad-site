@@ -4,6 +4,13 @@ Site Next.js que **gera e publica automaticamente** no Instagram (@drlibertad):
 **Reels (vídeo)** e **carrosséis (imagem)**. Conteúdo (copy + direção) vem do
 Claude; mídia é renderizada e publicada via GitHub Actions.
 
+## Pendências — painel único, com ponte pra agentes da nuvem
+
+A fonte de **visualização é ÚNICA** e fica na máquina do dono: `D:\Claude\.pendencias\dr-libertad.md` (fora do Git). **NUNCA pergunte onde colocar uma pendência — é sempre o painel central.** Como chegar lá depende de ONDE você roda:
+
+- **Agente LOCAL** (tem `D:\Claude\`): edite direto `D:\Claude\.pendencias\dr-libertad.md` (`- [ ]` / `- [x]` sob 🔴/🟡/🟢/✅).
+- **Agente da NUVEM / remoto** (só tem ESTE repo, **não alcança `D:\Claude`**): acrescente ao arquivo **`PENDENCIAS.inbox.md`** na raiz do repo (`- [ ] texto`) e commit. É uma fila — a máquina local drena pro painel e esvazia. **Não crie `TODO.md` nem `PENDENCIAS.md`; não pergunte.**
+
 ## Ritual de início (SEMPRE seguir ao abrir o projeto)
 
 1. **Ler as memórias** do projeto antes de mexer — em especial `reel-i2v-engine`
@@ -84,7 +91,7 @@ Mesma máquina (footage, render, design); muda só a **copy**, o **@handle**, o
   `publish-reel?lang=pt` publicam na conta PT (token/account por idioma).
 - **Workflows PT** (espelham os ES com `lang=pt`): `instagram-reels-pt.yml`,
   `instagram-reels-classic-pt.yml`, `instagram-posts-pt.yml`. **Só ativam quando
-  mergeados + secrets PT setados** (ver `PENDENCIAS.md`).
+  mergeados + secrets PT setados** (ver pendências: `D:\Claude\.pendencias\dr-libertad.md`).
 - **Handle no criativo:** `Reel.tsx`/`ReelClassic.tsx` recebem props `handle`/`brand`
   (default `@dr.liberdad`/"Dr. Libertad"). Nunca mais hardcode.
 
