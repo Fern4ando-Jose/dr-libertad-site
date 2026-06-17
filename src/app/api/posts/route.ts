@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { type Lang, accountFor, getLang } from "@/lib/accounts";
 
 // Revalida a cada hora — assim o EDITORIAL se atualiza sozinho conforme novos posts são publicados.
 export const revalidate = 3600;
@@ -81,9 +82,25 @@ function normalizeTags(raw: unknown): string[] {
   return [];
 }
 
-async function fetchInstagram(): Promise<IgMedia[]> {
-  const accountId = process.env.META_INSTAGRAM_ACCOUNT_ID;
-  const token = process.env.META_ACCESS_TOKEN;
+// Token da conta por idioma: dbTokenKey (refresh no DB) → env. Mesmo padrão do
+// /api/publish, para o site público puxar a conta certa (ES ou BR).
+async function getAccessToken(lang: Lang): Promise<string> {
+  const acc = accountFor(lang);
+  if (acc.dbTokenKey) {
+    try {
+      const { sql } = await import("@vercel/postgres");
+      const rows = await sql`SELECT value FROM config WHERE key = ${acc.dbTokenKey}`;
+      if (rows.rows[0]?.value) return rows.rows[0].value;
+    } catch {
+      /* fallback para env var */
+    }
+  }
+  return process.env[acc.tokenEnv] ?? "";
+}
+
+async function fetchInstagram(lang: Lang): Promise<IgMedia[]> {
+  const accountId = process.env[accountFor(lang).accountIdEnv];
+  const token = await getAccessToken(lang);
   if (!accountId || !token) return [];
 
   const fields = "id,caption,media_type,media_url,thumbnail_url,permalink,timestamp";
@@ -125,9 +142,10 @@ async function fetchTotalCount(): Promise<number> {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const lang = getLang(req.nextUrl.searchParams.get("lang")); // "es" (default) | "pt"
   const [igMedia, dbPosts, totalCount] = await Promise.all([
-    fetchInstagram(),
+    fetchInstagram(lang),
     fetchDbPosts(),
     fetchTotalCount(),
   ]);
