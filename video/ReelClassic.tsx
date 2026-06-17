@@ -53,6 +53,8 @@ export type ReelClassicProps = {
   ed: string; // número da edição (ex.: "012")
   img?: string; // URL da ilustração de IA (fundo da capa)
   cat?: string; // categoria → cor de acento
+  handle?: string; // @ da conta por idioma
+  brand?: string; // nome de exibição (Dr. Libertad | Dr. Liberdade)
 };
 
 export const reelClassicDefaultProps: ReelClassicProps = {
@@ -68,6 +70,8 @@ export const reelClassicDefaultProps: ReelClassicProps = {
   ed: "001",
   img: undefined,
   cat: "freedom",
+  handle: "@dr.liberdad",
+  brand: "Dr. Libertad",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -90,7 +94,7 @@ function Highlighted({ text, accent, color }: { text: string; accent: string; co
 }
 
 // Assinatura (handle) usada nos rodapés
-function Handle({ color = INK }: { color?: string }) {
+function Handle({ color = INK, handle = "@dr.liberdad" }: { color?: string; handle?: string }) {
   return (
     <div
       style={{
@@ -102,13 +106,13 @@ function Handle({ color = INK }: { color?: string }) {
         opacity: 0.85,
       }}
     >
-      @dr.liberdad
+      {handle}
     </div>
   );
 }
 
 // ─── Cena 1 — Capa ────────────────────────────────────────────────────────────
-function CoverScene({ title, kw, ed, img, accent }: { title: string; kw: string; ed: string; img?: string; accent: string }) {
+function CoverScene({ title, kw, ed, img, accent, brand, handle }: { title: string; kw: string; ed: string; img?: string; accent: string; brand: string; handle: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -168,7 +172,7 @@ function CoverScene({ title, kw, ed, img, accent }: { title: string; kw: string;
           opacity: 0.7,
         }}
       >
-        DR. LIBERTAD · Nº {ed}
+        {brand.toUpperCase()} · Nº {ed}
       </div>
 
       {/* Título/gancho — ancorado embaixo (onde o scrim é mais escuro) */}
@@ -198,7 +202,7 @@ function CoverScene({ title, kw, ed, img, accent }: { title: string; kw: string;
 
       {/* Rodapé com handle */}
       <div style={{ position: "absolute", bottom: 80, left: 90 }}>
-        <Handle color={PAPER} />
+        <Handle color={PAPER} handle={handle} />
       </div>
     </AbsoluteFill>
   );
@@ -211,12 +215,14 @@ function SlideScene({
   accentColor,
   index,
   total,
+  handle,
 }: {
   text: string;
   accent: string;
   accentColor: string;
   index: number;
   total: number;
+  handle: string;
 }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -283,14 +289,14 @@ function SlideScene({
 
       {/* Rodapé */}
       <div style={{ position: "absolute", bottom: 80, left: 90 }}>
-        <Handle color={INK} />
+        <Handle color={INK} handle={handle} />
       </div>
     </AbsoluteFill>
   );
 }
 
 // ─── Cena final — CTA ─────────────────────────────────────────────────────────
-function CtaScene({ cta, accent }: { cta: string; accent: string }) {
+function CtaScene({ cta, accent, handle }: { cta: string; accent: string; handle: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -322,7 +328,7 @@ function CtaScene({ cta, accent }: { cta: string; accent: string }) {
             transform: `scale(${pulse})`,
           }}
         >
-          Siga <span style={{ color: accent }}>@dr.liberdad</span>
+          Siga <span style={{ color: accent }}>{handle}</span>
         </div>
 
         <div
@@ -358,7 +364,7 @@ function CtaScene({ cta, accent }: { cta: string; accent: string }) {
 }
 
 // ─── Composição completa ──────────────────────────────────────────────────────
-export const ReelClassic: React.FC<ReelClassicProps> = ({ title, slides, accentWords, cta, kw, ed, img, cat }) => {
+export const ReelClassic: React.FC<ReelClassicProps> = ({ title, slides, accentWords, cta, kw, ed, img, cat, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
   const { fps } = useVideoConfig();
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
 
@@ -378,7 +384,7 @@ export const ReelClassic: React.FC<ReelClassicProps> = ({ title, slides, accentW
   return (
     <AbsoluteFill style={{ backgroundColor: INK }}>
       <Sequence from={next(COVER)} durationInFrames={COVER}>
-        <CoverScene title={title} kw={kw} ed={ed} img={img} accent={accent} />
+        <CoverScene title={title} kw={kw} ed={ed} img={img} accent={accent} brand={brand} handle={handle} />
       </Sequence>
 
       {safeSlides.map((text, i) => (
@@ -389,12 +395,13 @@ export const ReelClassic: React.FC<ReelClassicProps> = ({ title, slides, accentW
             accentColor={accent}
             index={i + 1}
             total={safeSlides.length}
+            handle={handle}
           />
         </Sequence>
       ))}
 
       <Sequence from={next(CTA)} durationInFrames={CTA}>
-        <CtaScene cta={cta} accent={accent} />
+        <CtaScene cta={cta} accent={accent} handle={handle} />
       </Sequence>
     </AbsoluteFill>
   );

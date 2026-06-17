@@ -1,4 +1,4 @@
-name: Instagram Reel CLÁSSICO — Dr. Libertad
+name: Instagram Reel CLÁSSICO — Dr. Liberdade (PT-BR)
 
 # Reel no estilo ANTIGO (slide animado sobre a ilustração da fal) — mantido como
 # estava, rodando em paralelo ao motor de vídeo (footage). Foi o formato que gerou
@@ -9,8 +9,11 @@ name: Instagram Reel CLÁSSICO — Dr. Libertad
 # e o preview com ?illus=1 (gera a ilustração de fundo).
 
 on:
-  schedule:
-    - cron: "0 22 * * *" # 19:00 BRT (run 3)
+  # ⛔ CRON DESLIGADO até validar a copy PT (BR-nativa) — ver PENDENCIAS.md.
+  # Mergear o PR #8 NÃO publica PT sozinho; só dispatch manual. RELIGAR (descomentar)
+  # após aprovar a voz no preview de produção.
+  # schedule:
+  #   - cron: "0 22 * * *" # 19:00 BRT (run 3)
   workflow_dispatch:
     inputs:
       run:
@@ -25,7 +28,7 @@ on:
         options: ["no", "yes"]
 
 concurrency:
-  group: instagram-reels-classic-${{ github.event.schedule || github.event.inputs.run || 'manual' }}
+  group: instagram-reels-classic-pt-${{ github.event.schedule || github.event.inputs.run || 'manual' }}
   cancel-in-progress: false
 
 jobs:
@@ -65,7 +68,7 @@ jobs:
         run: |
           curl -fsS --max-time 180 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://www.drlibertad.com/api/publish?preview=1&illus=1&run=${{ steps.params.outputs.run }}" \
+            "https://www.drlibertad.com/api/publish?preview=1&illus=1&lang=pt&run=${{ steps.params.outputs.run }}" \
             -o preview.json
           echo "Prévia recebida:"
           cat preview.json | head -c 400; echo
@@ -119,7 +122,7 @@ jobs:
             --data-urlencode "video=${{ steps.upload.outputs.video_url }}" \
             --data-urlencode "caption@caption.txt" \
             --data-urlencode "slot=$(cat slot.txt)" \
-            "https://www.drlibertad.com/api/publish-reel")
+            "https://www.drlibertad.com/api/publish-reel?lang=pt")
           echo "Resposta do servidor:"
           echo "$RESP"
           echo "$RESP" | grep -q '"ok":true' || { echo "::error::Publicação falhou"; exit 1; }
