@@ -7,8 +7,31 @@
 // devolve as linhas já enriquecidas (derivadas + comparativo por formato).
 //
 // Usado tanto pela rota /api/insights (JSON) quanto pela página /insights (UI).
+//
+// Multi-idioma: por padrão lê a conta ES (comportamento histórico). Passando
+// lang="pt" puxa as métricas da conta BR (@dr.liberdade.br) — credenciais e token
+// resolvidos via accounts.ts, com a mesma estratégia DB→env dos endpoints de
+// publicação.
+
+import { type Lang, accountFor } from "./accounts";
 
 const GRAPH = "https://graph.instagram.com/v25.0";
+
+// Token da conta: ES tem dbTokenKey (refresh automático no DB) → env; PT idem
+// (dbTokenKey semeado na 1ª rodada do cron) → env. Mesma lógica do /api/publish.
+async function getAccessToken(lang: Lang): Promise<string> {
+  const acc = accountFor(lang);
+  if (acc.dbTokenKey) {
+    try {
+      const { sql } = await import("@vercel/postgres");
+      const rows = await sql`SELECT value FROM config WHERE key = ${acc.dbTokenKey}`;
+      if (rows.rows[0]?.value) return rows.rows[0].value;
+    } catch {
+      /* fallback para env var */
+    }
+  }
+  return process.env[acc.tokenEnv] ?? "";
+}
 
 export type Format = "REEL" | "CARROSSEL" | "IMAGEM" | "OUTRO";
 
@@ -153,10 +176,11 @@ function avg(nums: number[]): number {
   return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
 
-export async function getInsights(): Promise<InsightsResult> {
+export async function getInsights(lang: Lang = "es"): Promise<InsightsResult> {
   const generatedAt = new Date().toISOString();
-  const accountId = process.env.META_INSTAGRAM_ACCOUNT_ID;
-  const token = process.env.META_ACCESS_TOKEN;
+  const acc = accountFor(lang);
+  const accountId = process.env[acc.accountIdEnv];
+  const token = await getAccessToken(lang);
   const tokenPresent = Boolean(accountId && token);
 
   if (!tokenPresent) {
@@ -166,7 +190,7 @@ export async function getInsights(): Promise<InsightsResult> {
       tokenPresent: false,
       items: [],
       byFormat: [],
-      note: "META_INSTAGRAM_ACCOUNT_ID/META_ACCESS_TOKEN ausentes (só existem em produção).",
+      note: `${acc.accountIdEnv}/${acc.tokenEnv} ausentes (só existem em produção).`,
     };
   }
 
