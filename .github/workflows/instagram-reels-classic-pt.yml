@@ -121,6 +121,7 @@ jobs:
             --data-urlencode "video=${{ steps.upload.outputs.video_url }}" \
             --data-urlencode "caption@caption.txt" \
             --data-urlencode "slot=$(cat slot.txt)" \
+            --data-urlencode "run=${{ steps.params.outputs.run }}" \
             "https://www.drlibertad.com/api/publish-reel?lang=pt")
           echo "Resposta do servidor:"
           echo "$RESP"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
+import { dayUTC, runAlreadyPublished, recordRun } from "@/lib/run-ledger";
 
 // Publicação de REELS (vídeo) no @drlibertad via Instagram Graph API v25.
 // O vídeo já precisa estar hospedado em URL pública (ex.: Vercel Blob).
@@ -110,6 +111,9 @@ async function handle(req: NextRequest) {
   let caption = params.get("caption") ?? "";
   const slot = params.get("slot") ?? ""; // opcional — só para log
   const lang = getLang(params.get("lang")); // "es" (default) | "pt"
+  const runParam = params.get("run");      // 0..3 — p/ o livro-razão/dedup do watchdog
+  const run = runParam !== null && runParam !== "" ? parseInt(runParam, 10) : null;
+  const day = dayUTC();
 
   if ((!video || !caption) && req.method === "POST") {
     try {
@@ -127,10 +131,18 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Parâmetro 'video' (URL pública) é obrigatório" }, { status: 400 });
   }
 
+  // Dedup por (dia,run,lang): se o watchdog redisparar um run que já saiu, NÃO
+  // republica. Reel não tinha trava (carrossel tinha por tópico) — esta é a dele.
+  if (run !== null && Number.isFinite(run) && await runAlreadyPublished(day, run, lang)) {
+    return NextResponse.json({ ok: true, skipped: true, reason: `run ${run} (${lang}) já publicado hoje`, log });
+  }
+
   try {
     const postId = await publishReel(video, caption || "", lang);
     log.postId = postId;
     log.ok = true;
+    // Livro-razão p/ o watchdog. run 3 = Reel clássico; 0..2 = Reel footage.
+    if (run !== null && Number.isFinite(run)) await recordRun(day, run, lang, run === 3 ? "reel-classic" : "reel", postId);
     return NextResponse.json({ ok: true, postId, log });
   } catch (err) {
     console.error("[publish-reel] erro:", err);
