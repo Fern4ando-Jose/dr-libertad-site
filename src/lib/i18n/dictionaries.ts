@@ -94,7 +94,7 @@ export const pt = {
   },
   gallery: {
     eyebrow: "EDITORIAL",
-    title: "Cartazes filosóficos, capas de luxo, psicologia em alto contraste.",
+    title: "Todo dia, uma verdade incômoda.",
     live: "ao vivo do Instagram",
     loading: "Carregando o editorial mais recente…",
     empty: "Em breve: os posts mais recentes aparecem aqui automaticamente.",
@@ -239,7 +239,7 @@ export const es: Dict = {
   },
   gallery: {
     eyebrow: "EDITORIAL",
-    title: "Carteles filosóficos, portadas de lujo, psicología en alto contraste.",
+    title: "Cada día, una verdad incómoda.",
     live: "en vivo desde Instagram",
     loading: "Cargando el editorial más reciente…",
     empty: "Muy pronto: los posts más recientes aparecen aquí automáticamente.",
