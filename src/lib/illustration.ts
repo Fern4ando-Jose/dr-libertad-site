@@ -88,7 +88,7 @@ export function seedForDay(cat: string, subject: string, day?: string): number {
 export function falRequestBody(prompt: string, seed: number) {
   return {
     prompt,
-    image_size: { width: 1024, height: 1280 }, // 4:5 — og faz cover-fit p/ 1080×1350
+    image_size: { width: 864, height: 1080 }, // 4:5, ≤1 MP — og faz cover-fit p/ 1080×1350 e trava o flux 1.1 pro em ~$0,04/img (1 MP)
     num_images: 1,
     enable_safety_checker: true,
     seed, // determinístico por (cat+subject+dia): ES e PT geram a MESMA imagem
