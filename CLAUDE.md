@@ -51,7 +51,7 @@ A fonte de **visualização é ÚNICA** e fica na máquina do dono: `D:\Claude\.
 - **Fonte: só Fraunces 700** embutida (não adicionar pesos — incha o bundle edge).
 - **CSS satori-safe** em `/api/og` (flexbox em todo elemento multi-filho; CSS não suportado → 500).
 - **Trava anti-dup: 7 dias POR CONTA** (`topic`+`lang`, coluna `posts.lang`). ES e PT **não se bloqueiam**. Pool de 45 temas a 6/dia → cada tema reaparece a cada ~8 dias, então a janela de 7d não auto-bloqueia. **`force=1`** em `/api/publish` burla a trava (republicar/backfill).
-- **Agendamento no GitHub Actions**, não no Vercel (limite de cron do Hobby). Não recriar crons no `vercel.json`.
+- **Agendamento no GitHub Actions**, não no Vercel (limite de cron do Hobby). Não recriar crons no `vercel.json`. O scheduler do GitHub atrasa/derruba crons → **`catchup.yml`** (de hora em hora) consulta `/api/runs-status` e **redispara só os runs faltantes do dia**. Idempotente: carrossel trava por (tópico,conta,7d); reel por (dia,run,conta) no livro-razão `published_runs` (`src/lib/run-ledger.ts`). Reel publicado registra `run` (workflows passam `run` ao `/api/publish-reel`).
 - Antes de valer em produção: confirmar **deploy Vercel verde** no commit.
 - **Não desestabilizar a automação** num experimento de criação; mudança de criação
   é discutida/aprovada antes de codar.
