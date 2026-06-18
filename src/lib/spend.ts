@@ -19,14 +19,11 @@ const ANTHROPIC_PRICES: Record<string, { in: number; out: number }> = {
   "claude-sonnet-4-6": { in: 3, out: 15 },
 };
 
-// Preço fal por imagem gerada. flux/dev ~1,3 MP. flux 1.1 pro: $0,04/MP arredondado
-// p/ cima; a imagem agora é ≤1 MP (ver falRequestBody) → ~$0,04/imagem. Default
-// conservador p/ modelos novos. Modelo ativo controlado pela env FAL_MODEL.
+// Preço fal por imagem gerada (flux/dev ~1,3 MP). Default conservador p/ modelos novos.
 const FAL_PRICES: Record<string, number> = {
   "fal-ai/flux/dev": 0.028,
-  "fal-ai/flux-pro/v1.1": 0.04,
 };
-const FAL_DEFAULT_PRICE = 0.04;
+const FAL_DEFAULT_PRICE = 0.03;
 
 // Preço Tavily por busca (plano advanced, após cota grátis).
 const TAVILY_PRICE = 0.01;
