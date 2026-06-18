@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateIllustration } from "@/lib/illustration";
+import { generateIllustration, type IllustrationResult } from "@/lib/illustration";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, tavilyCost, EST_RUN_COST } from "@/lib/spend";
 import { parseContentJson } from "@/lib/content-json";
@@ -532,9 +532,17 @@ export async function GET(req: NextRequest) {
         const cat   = TOPIC_CAT[topic] ?? "freedom";
         const motif = TOPIC_MOTIF[topic] ?? "gateway";
 
-        // Ilustração por IA (fal/Flux) na CAPA. Falha → og usa o motivo abstrato.
-        const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { automation: "ig-posts" });
-        slotLog.illustration = ill.url ? "ia" : `fallback: ${ill.error ?? "?"}`;
+        // CAPA do carrossel: por PADRÃO usa o MOTIVO abstrato (estado autorizado pelo
+        // dono — "volte o motivo de ontem; não autorizei a mudança"). A ilustração por
+        // IA (fal/Flux) na capa só volta com COVER_ILLUSTRATION=on, e exige aprovação
+        // VISUAL do dono ANTES (ver memória illustration-rejection-status). Contexto: o
+        // PR #30 fez os subjects passarem no QA → a capa passou de motivo→ilustração sem
+        // autorização; isto reverte. Reel clássico (illus=1) NÃO é afetado por esta flag.
+        const coverIllusOn = process.env.COVER_ILLUSTRATION === "on";
+        const ill: IllustrationResult = coverIllusOn
+          ? await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { automation: "ig-posts" })
+          : { url: null };
+        slotLog.illustration = ill.url ? "ia" : coverIllusOn ? `fallback: ${ill.error ?? "?"}` : "motivo (cover illus off)";
         const imgParam = ill.url ? `&img=${encodeURIComponent(ill.url)}` : "";
 
         const slideUrls: string[] = [
