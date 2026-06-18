@@ -8,8 +8,9 @@ name: Instagram — publicar posts (PT-BR)
 on:
   # ✅ PT no ar (go-live 2026-06-17).
   schedule:
-    - cron: "17 12 * * *" # 09:17 BRT (run 4)
-    - cron: "17 17 * * *" # 14:17 BRT (run 5)
+    # PT 5 min depois do ES (:22 vs :17) p/ reusar a ilustração já cacheada.
+    - cron: "22 12 * * *" # 09:22 BRT (run 4)
+    - cron: "22 17 * * *" # 14:22 BRT (run 5)
   workflow_dispatch:
     inputs:
       run:
@@ -60,8 +61,8 @@ jobs:
             # Agendado: run derivado da EXPRESSÃO cron que disparou (github.event.schedule),
             # não da hora real — assim o atraso/adianto do cron não colide com o run vizinho.
             case "$SCHEDULE" in
-              "17 12 * * *") RUN=4 ;;
-              "17 17 * * *") RUN=5 ;;
+              "22 12 * * *") RUN=4 ;;
+              "22 17 * * *") RUN=5 ;;
               *) RUN=4 ;;  # fallback defensivo
             esac
             echo "run=$RUN" >> "$GITHUB_OUTPUT"
