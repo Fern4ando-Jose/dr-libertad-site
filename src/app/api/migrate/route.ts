@@ -63,6 +63,26 @@ export async function GET(req: NextRequest) {
     results.push("illustration_cache table: " + String(e));
   }
 
+  // Tabela reel_shared_cache — base do Reel COMPARTILHADA entre idiomas (mesmo
+  // vídeo ES/PT): pesquisa (Tavily) + videoQueries + clipes do footage (Pexels)
+  // resolvidos UMA vez por (tópico, dia). O 2º idioma reusa → footage idêntico e
+  // sem pagar Tavily de novo. Só a copy muda por idioma. Ver src/lib/reel-shared.ts.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS reel_shared_cache (
+        cache_key     TEXT PRIMARY KEY,
+        topic         TEXT,
+        research      JSONB NOT NULL DEFAULT '[]',
+        video_queries JSONB NOT NULL DEFAULT '[]',
+        clips         JSONB NOT NULL DEFAULT '[]',
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    results.push("reel_shared_cache table: ok");
+  } catch (e) {
+    results.push("reel_shared_cache table: " + String(e));
+  }
+
   // Tabela spend_log — contabiliza cada chamada paga (fal/Anthropic/Tavily) por
   // automação, p/ a visão de /api/spend e o teto diário por automação (src/lib/spend.ts).
   try {

@@ -103,6 +103,9 @@ jobs:
               brand: p.brand || "Dr. Libertad",
               // Termos de busca de footage gerados pelo Claude (no tema do post).
               videoQueries: Array.isArray(p.videoQueries) ? p.videoQueries : [],
+              // Footage COMPARTILHADO entre ES e PT (mesmo vídeo), resolvido e
+              // cacheado pela API por (tópico, dia). Vazio → fetch-footage.mjs busca.
+              clips: Array.isArray(p.clips) && p.clips.length ? p.clips : undefined,
               // Trilha embutida (camada de criação, opcional). Rotaciona por `run`
               // entre faixas numeradas (bed-0.wav, bed-1.wav, …) se existirem; senão
               // usa a bed.wav única (igual a antes). Sem nenhuma → Reel renderiza mudo.

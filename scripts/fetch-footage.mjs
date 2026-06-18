@@ -95,6 +95,12 @@ async function main() {
   } catch (e) {
     return done(`reel-props.json inválido (${e?.message || e}) — sem footage`);
   }
+  // A API (/api/publish?preview=1) já resolve o footage COMPARTILHADO entre ES e
+  // PT (mesmo vídeo) e o entrega em props.clips. Se veio de lá, não buscamos de
+  // novo — isto aqui vira só o FALLBACK de CI (quando a API não trouxe clipes).
+  if (Array.isArray(props.clips) && props.clips.length) {
+    return done(`clips já vieram da API (base compartilhada, ${props.clips.length}) — pulando Pexels`);
+  }
   if (!PEXELS_API_KEY) return done("PEXELS_API_KEY ausente — sem footage (fallback ilustração estática)");
 
   // Prioridade: termos no tema gerados pelo Claude (videoQueries) → fallback cat.
