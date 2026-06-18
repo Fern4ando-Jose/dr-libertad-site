@@ -106,10 +106,10 @@ jobs:
               // Footage COMPARTILHADO entre ES e PT (mesmo vídeo), resolvido e
               // cacheado pela API por (tópico, dia). Vazio → fetch-footage.mjs busca.
               clips: Array.isArray(p.clips) && p.clips.length ? p.clips : undefined,
-              // Trilha embutida (camada de criação, opcional). Rotaciona por `run`
-              // entre faixas numeradas (bed-0.wav, bed-1.wav, …) se existirem; senão
-              // usa a bed.wav única (igual a antes). Sem nenhuma → Reel renderiza mudo.
-              music: require("./scripts/pick-music.cjs").pickMusic(${{ steps.params.outputs.run }}) || undefined
+              // Trilha embutida (camada de criação, opcional). UMA FAIXA POR TEMA:
+              // o picker acha no manifest.json a faixa do `topic` do post; sem ela,
+              // cai na rotação antiga por `run` (bed-0.mp3, …); sem nenhuma → mudo.
+              music: require("./scripts/pick-music.cjs").pickMusic({ topic: p.topic, run: ${{ steps.params.outputs.run }} }) || undefined
             };
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("slot.txt", p.slot || "noite");

@@ -77,7 +77,12 @@ colide com o run vizinho). 3 workflows:
 já devolve `clips` = footage escolhido) → `scripts/fetch-footage.mjs` (FALLBACK: só busca
 na **Pexels** se a API não trouxe `clips`) → `scripts/render-reel.mjs` (Remotion) →
 `scripts/upload-blob.mjs` (Vercel Blob) → `/api/publish-reel` (Graph API).
-Fundo = footage real + **grade da marca** + **música** (`public/music/bed.*`, opcional).
+Fundo = footage real + **grade da marca** + **música** (opcional). **Uma faixa por
+TEMA**: `scripts/generate-music.mjs` gera (author-time, fal, ~US$0,05/tema) `public/music/bed-<NN>-<slug>.mp3`
++ `manifest.json` (`topic`→arquivo) lendo os 45 temas de `THEMES`; `pick-music.cjs`
+escolhe pelo `topic` do post (não pelo slot). Reuso pra sempre (tema repetido = mesmo
+arquivo; CI não gera). Fail-open: sem faixa do tema → rotação legado `bed-N` → mudo.
+ES/PT compartilham os arquivos. **Nunca** commitar áudio de serviço pago (repo público).
 
 > **Base do Reel COMPARTILHADA entre idiomas (= MESMO vídeo).** A parte
 > **língua-independente** — pesquisa (Tavily), `videoQueries` e os **clipes do footage**
