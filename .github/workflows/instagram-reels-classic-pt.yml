@@ -85,7 +85,11 @@ jobs:
               img: p.illustration || undefined,
               cat: p.cat || "freedom",
               handle: p.handle || "@dr.liberdad",
-              brand: p.brand || "Dr. Libertad"
+              brand: p.brand || "Dr. Libertad",
+              // Trilha embutida — UMA FAIXA POR TEMA via manifest.json (pelo `topic`);
+              // sem faixa → rotação legado por `run`; sem nenhuma → mudo. (Espelha o ES.)
+              // PT e ES compartilham os MESMOS arquivos (mesmo tema = mesma faixa).
+              music: require("./scripts/pick-music.cjs").pickMusic({ topic: p.topic, run: ${{ steps.params.outputs.run }} }) || undefined
             };
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("slot.txt", p.slot || "noite");
