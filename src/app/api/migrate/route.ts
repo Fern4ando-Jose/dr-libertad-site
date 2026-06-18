@@ -86,6 +86,26 @@ export async function GET(req: NextRequest) {
     results.push("reel_shared_cache table: " + String(e));
   }
 
+  // Tabela published_runs — livro-razão (dia, run, idioma) de publicações. Dá
+  // idempotência ao reel (dedup) e alimenta o watchdog (catchup.yml), que redispara
+  // só os runs que faltaram no dia. Ver src/lib/run-ledger.ts.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS published_runs (
+        day               TEXT NOT NULL,
+        run               INT  NOT NULL,
+        lang              TEXT NOT NULL,
+        kind              TEXT,
+        instagram_post_id TEXT,
+        ts                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (day, run, lang)
+      )
+    `;
+    results.push("published_runs table: ok");
+  } catch (e) {
+    results.push("published_runs table: " + String(e));
+  }
+
   // Tabela spend_log — contabiliza cada chamada paga (fal/Anthropic/Tavily) por
   // automação, p/ a visão de /api/spend e o teto diário por automação (src/lib/spend.ts).
   try {

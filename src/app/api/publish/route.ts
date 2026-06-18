@@ -4,6 +4,7 @@ import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, tavilyCost, EST_RUN_COST } from "@/lib/spend";
 import { parseContentJson } from "@/lib/content-json";
 import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
+import { recordRun } from "@/lib/run-ledger";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -565,6 +566,9 @@ export async function GET(req: NextRequest) {
           publishedAt: now,
           lang,
         });
+
+        // Livro-razão (dia,run,lang) p/ o watchdog — só conta como publicado se saiu.
+        if (instagramPostId) await recordRun(dayUTC(now), runIndex, lang, "carousel", instagramPostId);
 
         slotLog.ok = true;
       } catch (slotErr) {
