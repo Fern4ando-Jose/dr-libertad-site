@@ -1,59 +1,138 @@
-// ─── Geração das trilhas do Reel (rotação) via fal cassetteai/music-generator ──
-// Gera N faixas instrumentais SÓBRIAS/atmosféricas (tom da marca: literário, calmo)
-// e grava em public/music/bed-<i>.mp3. O pipeline (pick-music.cjs) rotaciona por
-// `run` entre elas — variando o áudio entre os posts do dia.
+// ─── Geração das trilhas do Reel — UMA FAIXA POR TEMA ─────────────────────────
+// Gera uma trilha instrumental por TEMA (os 45 de THEMES) e grava em
+// public/music/bed-<NN>-<slug>.mp3, além de um public/music/manifest.json que
+// mapeia  topic → arquivo. O pipeline (pick-music.cjs) escolhe a faixa pelo TEMA
+// do post (não pelo slot/run), então cada tema tem som próprio e — como o tema
+// reaparece a cada ~8 dias — a mesma faixa só volta junto com o tema.
 //
-// CAMADA: criação, AUTHOR-TIME (NÃO roda no CI). Roda UMA vez, committa os mp3.
-// Custo: ~US$0,05/faixa na fal (uma vez). CI usa os arquivos commitados (zero custo).
+// REUSO PRA SEMPRE: por padrão PULA temas que já têm arquivo (gera só o que
+// falta). Quando um tema repete, NADA é regenerado: o picker reusa o mp3 já
+// commitado. Use --force pra regenerar mesmo os existentes.
 //
-// Uso:  FAL_KEY=... node scripts/generate-music.mjs            (6 faixas, ~28s)
-//       FAL_KEY=... node scripts/generate-music.mjs --only=2   (regenera só a bed-2)
+// FONTE ÚNICA: os 45 temas são EXTRAÍDOS de src/app/api/publish/route.ts (THEMES),
+// nunca duplicados aqui — impossível dessincronizar da lista de produção.
+//
+// CAMADA: criação, AUTHOR-TIME (NÃO roda no CI). Roda na máquina do dono, committa
+// os mp3 + manifest. CI usa os arquivos commitados (zero custo).
+// Custo: ~US$0,05/faixa na fal (uma vez por tema).
+//
+// Uso:
+//   node scripts/generate-music.mjs --list              # SÓ imprime temas+prompts (grátis)
+//   FAL_KEY=... node scripts/generate-music.mjs --only=0      # gera só o tema índice 0 (teste, ~US$0,05)
+//   FAL_KEY=... node scripts/generate-music.mjs               # gera os que FALTAM (pula existentes)
+//   FAL_KEY=... node scripts/generate-music.mjs --force       # regenera TODOS (~US$2,25)
+//   FAL_KEY=... node scripts/generate-music.mjs --only=soledad # gera os temas cujo topic casa "soledad"
 //
 // Requer ffmpeg no PATH (transcodifica o wav da fal p/ mp3 leve no repo público).
 
-import { writeFileSync, mkdirSync, existsSync, statSync, rmSync } from "node:fs";
+import { writeFileSync, readFileSync, mkdirSync, existsSync, statSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 
-const FAL_KEY = process.env.FAL_KEY;
-if (!FAL_KEY) {
-  console.error("[music] FAL_KEY ausente — abortando (geração é paga).");
-  process.exit(1);
-}
-
-// cassetteai/music-generator: rápido e fila livre (stable-audio vivia congestionado).
-const MODEL = "cassetteai/music-generator";
 const arg = (name, def) => {
   const a = process.argv.find((x) => x.startsWith(`--${name}=`));
   return a ? a.slice(name.length + 3) : def;
 };
-const SECS = Math.max(20, Number(arg("secs", "28")) || 28);
-const ONLY = arg("only", null); // índice único p/ regenerar
+const has = (name) => process.argv.includes(`--${name}`);
 
-// 6 moods distintos mas coerentes com a marca (instrumental, sem vocais, calmo).
-const PROMPTS = [
-  "warm minimal solo piano with soft ambient pads, contemplative and slow, no drums, no vocals, cinematic, intimate, literary mood",
-  "mellow lo-fi instrumental, gentle Rhodes electric piano, soft tape hiss, introspective, downtempo, no vocals, calm",
-  "soft cinematic strings with airy synth pads, reflective and spacious, slow gentle swell, no percussion, no vocals, calm",
-  "intimate fingerpicked acoustic guitar, warm and minimal, slow, thoughtful, no vocals, quiet room ambience",
-  "ambient analog drone with warm evolving pads, meditative and atmospheric, no beat, no vocals, deep calm",
-  "gentle downtempo electronic, soft muted arpeggio, hopeful and warm, sparse, no vocals, calm focus",
+const LIST_ONLY = has("list");
+const FORCE = has("force");
+const ONLY = arg("only", null); // índice exato OU substring do topic
+const SECS = Math.max(20, Number(arg("secs", "28")) || 28);
+
+const MODEL = "cassetteai/music-generator";
+const ROUTE = resolve(process.cwd(), "src", "app", "api", "publish", "route.ts");
+const OUT_DIR = resolve(process.cwd(), "public", "music");
+const MANIFEST = resolve(OUT_DIR, "manifest.json");
+
+// ── Mood por PILAR (rico, cinematográfico, instrumental, sem vocais) ──────────
+// A marca é literária/sóbria; aqui a produção fica mais cheia (camadas, textura,
+// dinâmica), mantendo o tom. Cada pilar tem uma atmosfera; a variação por tema
+// vem do "lead" (instrumento em destaque) rotacionado por índice dentro do pilar.
+const PILLAR_MOOD = {
+  1: // Dopamina e seus seguimentos — sedução brilhante que se esvazia
+    "lush cinematic neo-classical, bright shimmering mallets and a pulsing synth arpeggio that swells seductively then hollows out into sparse echo; warm analog bass, tape saturation, restrained brushed pulse; the tension between bright stimulation and emptiness; around 90 bpm",
+  2: // Redes sociais e o fim dos relacionamentos — intimidade que esfria
+    "intimate cinematic piano and felt textures, a tender melody that slowly turns glassy and distant; cold reverb tails, subtle vinyl crackle, soft sub bass; the ache of closeness replaced by a screen's distance; slow, around 70 bpm",
+  3: // A guerra invisível do Homem — solidão pesada e digna
+    "somber cinematic strings and low cello over a lone piano, dignified and heavy with restrained emotional swell; deep warm bass, soft timpani heartbeat; quiet masculine solitude and resilience; slow and building, around 65 bpm",
+  4: // Verdades incômodas — áspero, confrontador, que se resolve em firmeza
+    "stark minimal piano with firm staccato and a confrontational low pulse that resolves into grounded resolve; analog warmth, sparse percussive ticks, tension chords releasing; an uncomfortable truth turning into clarity; around 85 bpm",
+  5: // Liberdade e o direito de falar — expansivo, desafiador, que se abre
+    "expansive cinematic build with rising strings, bright piano and an uplifting defiant swell breaking into open air; warm pads, hopeful resolution, gentle propulsive pulse; liberation and the courage to speak; around 100 bpm with a crescendo",
+};
+
+// Lead rotacionado por índice DENTRO do pilar (9 por pilar) → 9 faixas distintas.
+const LEADS = [
+  "solo piano lead",
+  "warm electric Rhodes lead",
+  "plucked celesta and harp accents",
+  "warm analog synth lead",
+  "bowed solo cello lead",
+  "soft muted electric guitar lead",
+  "glassy marimba and music-box accents",
+  "wordless ambient choir pads (no lyrics, no singing words)",
+  "felt-piano lead with airy strings",
 ];
 
-const OUT_DIR = resolve(process.cwd(), "public", "music");
-if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
+const SHARED = "purely instrumental, no vocals, no spoken word, no lyrics; cohesive brand sound, organic and analog, high production value, cinematic, loopable, suitable as a background bed";
 
+// ── Slug estável a partir do topic (acentos fora, alfanumérico → hífen) ───────
+function slugify(s) {
+  return s
+    .normalize("NFD").replace(/[̀-ͯ]/g, "") // tira acentos
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 56);
+}
+
+// ── Extrai os 45 temas (pilar + topic) de THEMES no route.ts (fonte única) ────
+function parseThemes() {
+  const src = readFileSync(ROUTE, "utf8");
+  const start = src.indexOf("const THEMES");
+  const open = src.indexOf("[", start);
+  const close = src.indexOf("\n];", open);
+  if (start < 0 || open < 0 || close < 0) throw new Error("Bloco THEMES não encontrado em route.ts");
+  const block = src.slice(open, close);
+
+  const themes = [];
+  let pillar = 0;
+  for (const line of block.split("\n")) {
+    const pil = /\/\/\s*──\s*Pilar\s+(\d+)/.exec(line);
+    if (pil) { pillar = Number(pil[1]); continue; }
+    const m = /\{\s*topic:\s*"((?:[^"\\]|\\.)*)"/.exec(line);
+    if (m) themes.push({ topic: m[1], pillar });
+  }
+  if (themes.length < 1) throw new Error("Nenhum tema extraído de THEMES");
+  return themes;
+}
+
+// Constrói {index, topic, pillar, lead, file, prompt} pra cada tema.
+function buildSpecs() {
+  const themes = parseThemes();
+  // posição dentro do pilar → escolhe o lead (variação)
+  const seenInPillar = new Map();
+  return themes.map((t, i) => {
+    const k = seenInPillar.get(t.pillar) ?? 0;
+    seenInPillar.set(t.pillar, k + 1);
+    const lead = LEADS[k % LEADS.length];
+    const mood = PILLAR_MOOD[t.pillar] || PILLAR_MOOD[5];
+    const nn = String(i).padStart(2, "0");
+    const file = `bed-${nn}-${slugify(t.topic)}.mp3`;
+    const prompt = `${mood}; featured texture: ${lead}; ${SHARED}`;
+    return { index: i, topic: t.topic, pillar: t.pillar, lead, file, prompt };
+  });
+}
+
+// ── fal: fila (submete, pollra, busca) ────────────────────────────────────────
+const FAL_KEY = process.env.FAL_KEY;
 const AUTH = { Authorization: `Key ${FAL_KEY}`, "Content-Type": "application/json" };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Geração de áudio é lenta → endpoint síncrono (fal.run) estoura o gateway. Usa a
-// FILA: submete, pollra o status e busca o resultado. Submeter tudo de uma vez deixa
-// as esperas de fila se sobreporem.
 async function falSubmit(prompt) {
   const res = await fetch(`https://queue.fal.run/${MODEL}`, {
-    method: "POST",
-    headers: AUTH,
-    body: JSON.stringify({ prompt, duration: SECS }),
+    method: "POST", headers: AUTH, body: JSON.stringify({ prompt, duration: SECS }),
   });
   if (!res.ok) throw new Error(`submit HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const j = await res.json();
@@ -83,45 +162,103 @@ async function download(url, path) {
   return buf.length;
 }
 
+// Reconstrói o manifest com TODOS os temas que têm arquivo no disco (completo,
+// mesmo após um --only). topic → caminho staticFile ("music/bed-..mp3").
+function writeManifest(specs) {
+  const map = {};
+  for (const s of specs) {
+    if (existsSync(resolve(OUT_DIR, s.file))) map[s.topic] = `music/${s.file}`;
+  }
+  writeFileSync(MANIFEST, JSON.stringify(map, null, 2) + "\n");
+  return Object.keys(map).length;
+}
+
+function selectSpecs(specs) {
+  if (ONLY == null) return specs;
+  // intervalo "a-b" → índices a..b (inclusive)
+  const range = /^(\d+)-(\d+)$/.exec(ONLY);
+  if (range) {
+    const [a, b] = [Number(range[1]), Number(range[2])].sort((x, y) => x - y);
+    return specs.filter((s) => s.index >= a && s.index <= b);
+  }
+  // lista "a,b,c" → esses índices
+  if (/^\d+(,\d+)+$/.test(ONLY)) {
+    const set = new Set(ONLY.split(",").map(Number));
+    return specs.filter((s) => set.has(s.index));
+  }
+  // índice único
+  if (/^\d+$/.test(ONLY)) return specs.filter((s) => s.index === Number(ONLY));
+  // substring do topic
+  const needle = ONLY.toLowerCase();
+  return specs.filter((s) => s.topic.toLowerCase().includes(needle));
+}
+
 async function main() {
-  const indices = ONLY != null ? [Number(ONLY)] : PROMPTS.map((_, i) => i);
-  console.log(`[music] submetendo ${indices.length} faixa(s) de ${SECS}s na fila (${MODEL})`);
+  if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
+  const specs = buildSpecs();
 
-  // 1. Submete TUDO de uma vez — as esperas de fila se sobrepõem.
-  const jobs = await Promise.all(
-    indices.map(async (i) => {
-      try {
-        const handle = await falSubmit(PROMPTS[i]);
-        console.log(`[music] [${i}] enfileirada`);
-        return { i, handle };
-      } catch (e) {
-        console.error(`[music] [${i}] submit FALHOU: ${e?.message || e}`);
-        return { i, handle: null };
-      }
-    })
-  );
+  if (LIST_ONLY) {
+    console.log(`[music] ${specs.length} temas (fonte: route.ts). Prompts por tema:\n`);
+    for (const s of selectSpecs(specs)) {
+      console.log(`  [${String(s.index).padStart(2, "0")}] P${s.pillar} ${s.topic}\n        → ${s.file}\n        → ${s.prompt}\n`);
+    }
+    console.log(`[music] --list não gasta nada. Para gerar: FAL_KEY=... node scripts/generate-music.mjs --only=0`);
+    return;
+  }
 
-  // 2. Aguarda o resultado, baixa e transcodifica cada faixa.
+  if (!FAL_KEY) {
+    console.error("[music] FAL_KEY ausente — abortando (geração é paga). Use --list para revisar os prompts sem gastar.");
+    process.exit(1);
+  }
+
+  // Alvo: o subconjunto pedido, pulando os que já existem (a não ser --force).
+  let targets = selectSpecs(specs);
+  const before = targets.length;
+  if (!FORCE) targets = targets.filter((s) => !existsSync(resolve(OUT_DIR, s.file)));
+  const skipped = before - targets.length;
+  if (skipped) console.log(`[music] pulando ${skipped} tema(s) já gerado(s) (use --force pra regenerar).`);
+  if (!targets.length) {
+    const n = writeManifest(specs);
+    console.log(`[music] nada a gerar. manifest.json reescrito (${n} temas mapeados).`);
+    return;
+  }
+  console.log(`[music] submetendo ${targets.length} faixa(s) de ${SECS}s na fila (${MODEL})  ≈ US$${(targets.length * 0.05).toFixed(2)}`);
+
+  // 1. Submete tudo de uma vez (esperas de fila se sobrepõem).
+  const jobs = await Promise.all(targets.map(async (s) => {
+    try {
+      const handle = await falSubmit(s.prompt);
+      console.log(`[music] [${s.index}] enfileirada — ${s.topic}`);
+      return { s, handle };
+    } catch (e) {
+      console.error(`[music] [${s.index}] submit FALHOU: ${e?.message || e}`);
+      return { s, handle: null };
+    }
+  }));
+
+  // 2. Aguarda, baixa, transcodifica + normaliza loudness (consistência).
   let ok = 0;
-  for (const { i, handle } of jobs) {
+  for (const { s, handle } of jobs) {
     if (!handle) continue;
-    const tmpWav = resolve(OUT_DIR, `.bed-${i}.tmp.wav`);
-    const outMp3 = resolve(OUT_DIR, `bed-${i}.mp3`);
+    const tmpWav = resolve(OUT_DIR, `.${s.file}.tmp.wav`);
+    const outMp3 = resolve(OUT_DIR, s.file);
     try {
       const url = await falResult(handle);
       const bytes = await download(url, tmpWav);
-      // Transcodifica p/ mp3 (leve) + normaliza loudness (consistência entre faixas).
       execFileSync("ffmpeg", ["-y", "-i", tmpWav, "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-b:a", "128k", outMp3], { stdio: "ignore" });
       rmSync(tmpWav, { force: true });
       const kb = Math.round(statSync(outMp3).size / 1024);
-      console.log(`[music] [${i}] ok → public/music/bed-${i}.mp3 (${kb} KB; wav fonte ${Math.round(bytes / 1024)} KB)`);
+      console.log(`[music] [${s.index}] ok → public/music/${s.file} (${kb} KB; wav ${Math.round(bytes / 1024)} KB)`);
       ok++;
     } catch (e) {
       rmSync(tmpWav, { force: true });
-      console.error(`[music] [${i}] FALHOU: ${e?.message || e}`);
+      console.error(`[music] [${s.index}] FALHOU: ${e?.message || e}`);
     }
   }
-  console.log(`[music] concluído: ${ok}/${indices.length} faixa(s). Teste: node scripts/pick-music.cjs --run=2`);
+
+  const mapped = writeManifest(specs);
+  console.log(`[music] concluído: ${ok}/${targets.length} gerada(s). manifest.json: ${mapped}/${specs.length} temas mapeados.`);
+  console.log(`[music] testar a seleção: node scripts/pick-music.cjs --topic="${specs[0].topic}"`);
 }
 
 main();

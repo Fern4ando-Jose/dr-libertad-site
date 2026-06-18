@@ -1,25 +1,41 @@
-// ─── Seleção da trilha do Reel — rotação por `run` ────────────────────────────
-// Por quê: havia UMA só faixa (bed.wav) → TODOS os Reels saíam com o mesmo áudio.
-// Agora, se houver faixas NUMERADAS em public/music/ (bed-0.wav, bed-1.wav, …),
-// cada `run` pega uma distinta (run % nº de faixas) — variando o áudio entre os
-// posts do dia. Sem faixas numeradas, usa a bed.wav/bed.mp3 única: comportamento
-// IDÊNTICO ao de antes (não quebra a automação; trilha continua opcional).
+// ─── Seleção da trilha do Reel — UMA FAIXA POR TEMA ──────────────────────────
+// Por quê: cada TEMA tem som próprio. O gerador (scripts/generate-music.mjs)
+// produz bed-<NN>-<slug>.mp3 por tema e um manifest.json (topic → arquivo).
+// Aqui escolhemos a faixa pelo TEMA do post — quando o tema repete (a cada ~8
+// dias), o picker reusa o MESMO arquivo já commitado (nada regenera).
 //
-// Camada: CRIAÇÃO (não automação). Faixas são royalty-free OU próprias; ver
-// public/music/README.md. O `run` define o tópico do post (0..5), então a mesma
-// faixa sai sempre no mesmo slot — consistência por horário, variedade no dia.
+// FAIL-OPEN (não quebra a automação):
+//   1. tema no manifest e arquivo no disco → usa a faixa do tema;
+//   2. senão → rotação ANTIGA por `run` entre bed-0.mp3, bed-1.mp3, … (se houver);
+//   3. senão → bed.wav/bed.mp3 única;
+//   4. nada → "" (Reel renderiza mudo, como antes).
 //
-// Uso CLI:  node scripts/pick-music.cjs --run=2   → imprime "music/bed-2.wav" (ou vazio)
-// Uso lib:  require("./scripts/pick-music.cjs").pickMusic(2)  → "music/bed-2.wav" | ""
+// Uso CLI:
+//   node scripts/pick-music.cjs --topic="La soledad masculina que nadie ve"
+//   node scripts/pick-music.cjs --run=2          # legado (sem tema)
+// Uso lib:
+//   require("./scripts/pick-music.cjs").pickMusic({ topic, run })  → "music/bed-..mp3" | ""
+//   require("./scripts/pick-music.cjs").pickMusic(2)               → legado por run
 
 const fs = require("node:fs");
 const path = require("node:path");
 
 const MUSIC_DIR = path.resolve(__dirname, "..", "public", "music");
-// bed.wav / bed.mp3 (base, sem número) e bed-<n>.wav / bed-<n>.mp3 (numeradas).
+const MANIFEST = path.join(MUSIC_DIR, "manifest.json");
+// bed.wav / bed.mp3 (base) e bed-<n>.wav / bed-<n>.mp3 (legado, rotação por run).
+// NÃO casa bed-<NN>-<slug>.mp3 (faixas por tema) — essas só vêm via manifest.
 const RE = /^bed(?:-(\d+))?\.(wav|mp3)$/i;
 
-// Lista as faixas válidas, deduplicando por número (preferindo .wav a .mp3).
+// topic → "music/bed-..mp3" lido do manifest (gerado por generate-music.mjs).
+function readManifest() {
+  try {
+    return JSON.parse(fs.readFileSync(MANIFEST, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+// Lista as faixas LEGADO (bed.* e bed-<n>.*), deduplicando por número (.wav > .mp3).
 function listBeds() {
   let files;
   try {
@@ -27,14 +43,13 @@ function listBeds() {
   } catch {
     return { numbered: [], base: null };
   }
-  const byNum = new Map(); // n -> filename
-  let base = null; // bed.wav|mp3 sem número
+  const byNum = new Map();
+  let base = null;
   for (const f of files) {
     const m = RE.exec(f);
     if (!m) continue;
     const isWav = m[2].toLowerCase() === "wav";
     if (m[1] === undefined) {
-      // prefere .wav se também houver .mp3
       if (!base || isWav) base = f;
     } else {
       const n = Number(m[1]);
@@ -46,21 +61,48 @@ function listBeds() {
   return { numbered, base };
 }
 
-// Devolve o caminho staticFile (ex.: "music/bed-2.wav") ou "" se não houver trilha.
-function pickMusic(run) {
+// Fallback legado: rotação por run entre as faixas numeradas / base.
+function pickByRun(run) {
   const r = Number.isFinite(Number(run)) ? Math.abs(Math.trunc(Number(run))) : 0;
   const { numbered, base } = listBeds();
   const pool = numbered.length ? numbered : base ? [base] : [];
   if (!pool.length) return "";
-  const file = pool[r % pool.length];
-  return `music/${file}`;
+  return `music/${pool[r % pool.length]}`;
 }
 
-module.exports = { pickMusic, listBeds };
+// Escolhe a trilha. Aceita:
+//   • objeto { topic, run }  → tenta tema (manifest); senão run
+//   • string                 → tratada como topic
+//   • número                 → legado por run
+function pickMusic(input) {
+  let topic = null;
+  let run = 0;
+  if (input && typeof input === "object") {
+    topic = input.topic != null ? String(input.topic) : null;
+    run = input.run;
+  } else if (typeof input === "string" && !/^\d+$/.test(input)) {
+    topic = input;
+  } else {
+    run = input;
+  }
 
-// Execução como CLI: imprime o caminho (ou linha vazia).
+  if (topic) {
+    const file = readManifest()[topic];
+    if (file && fs.existsSync(path.resolve(MUSIC_DIR, "..", file))) return file;
+  }
+  return pickByRun(run);
+}
+
+module.exports = { pickMusic, listBeds, readManifest };
+
+// CLI: imprime o caminho (ou linha vazia).
 if (require.main === module) {
-  const arg = process.argv.find((a) => a.startsWith("--run="));
-  const run = arg ? arg.slice("--run=".length) : process.env.RUN || "0";
-  process.stdout.write(pickMusic(run));
+  const argv = process.argv.slice(2);
+  const get = (name) => {
+    const a = argv.find((x) => x.startsWith(`--${name}=`));
+    return a ? a.slice(name.length + 3) : undefined;
+  };
+  const topic = get("topic");
+  const run = get("run") ?? process.env.RUN ?? "0";
+  process.stdout.write(pickMusic(topic != null ? { topic, run } : run));
 }
