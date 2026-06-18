@@ -54,11 +54,21 @@ colide com o run vizinho). 3 workflows:
 > números reais, não por achismo. Teto saudável: ~6 posts/dia (acima disso canibaliza).
 
 ### Pipeline do Reel (vídeo) — `instagram-reels.yml`
-`/api/publish?preview=1&run=N` (conteúdo + `videoQueries` do Claude, **sem** ilustração)
-→ `scripts/fetch-footage.mjs` (footage vertical da **Pexels**, grátis, no tema via
-`videoQueries`; fallback por categoria) → `scripts/render-reel.mjs` (Remotion) →
+`/api/publish?preview=1&run=N` (conteúdo + `videoQueries` do Claude, **sem** ilustração;
+já devolve `clips` = footage escolhido) → `scripts/fetch-footage.mjs` (FALLBACK: só busca
+na **Pexels** se a API não trouxe `clips`) → `scripts/render-reel.mjs` (Remotion) →
 `scripts/upload-blob.mjs` (Vercel Blob) → `/api/publish-reel` (Graph API).
 Fundo = footage real + **grade da marca** + **música** (`public/music/bed.*`, opcional).
+
+> **Base do Reel COMPARTILHADA entre idiomas (= MESMO vídeo).** A parte
+> **língua-independente** — pesquisa (Tavily), `videoQueries` e os **clipes do footage**
+> (Pexels) — é resolvida **uma vez por `(tópico, dia)`** na API e cacheada em
+> `reel_shared_cache` (`src/lib/reel-shared.ts`); o 2º idioma **reusa** tudo → footage
+> idêntico ES/PT e **Tavily não é pago de novo**. Só a **copy** muda por idioma
+> (regenerada pelo `marketBrief`, não traduzida). O seed do footage vem de `(tópico,dia)`,
+> **nunca do `@handle`** — invariante coberto por `reel-shared.invariants.test.ts`. A
+> ilustração já era compartilhada (`illustration_cache`). Tudo fail-open: falha de
+> cache/Pexels → cada idioma resolve o seu, como antes.
 
 ### Pipeline do Reel CLÁSSICO — `instagram-reels-classic.yml`
 Igual, mas: `preview=1&illus=1&run=3` (gera a **ilustração** da fal de fundo),

@@ -3,6 +3,7 @@ import { generateIllustration } from "@/lib/illustration";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, tavilyCost, EST_RUN_COST } from "@/lib/spend";
 import { parseContentJson } from "@/lib/content-json";
+import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -433,8 +434,29 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ blocked: true, automation: "ig-reels", reason: `Orçamento diário estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)})`, gate }, { status: 402 });
     }
 
-    const searchResults = await searchTopic(topic, "ig-reels");
+    // Base LÍNGUA-INDEPENDENTE compartilhada entre ES e PT (= MESMO vídeo): a
+    // pesquisa (Tavily) e o footage (Pexels) são resolvidos UMA vez por (tópico,
+    // dia) e cacheados; o 2º idioma reusa tudo. Só a COPY muda por idioma.
+    const day = dayUTC();
+    const shared = await readReelShared(topic, day);
+
+    // Pesquisa: reusa a do cache (sem pagar Tavily de novo) ou busca agora.
+    const searchResults = shared?.research?.length ? shared.research : await searchTopic(topic, "ig-reels");
     const content = await generateContent(topic, searchResults, slot, lang, "ig-reels");
+
+    // videoQueries CANÔNICOS (inglês, língua-independente): do cache (1º idioma)
+    // ou os recém-gerados. Garantem o mesmo footage entre os idiomas.
+    const videoQueries = shared?.videoQueries?.length
+      ? shared.videoQueries
+      : (Array.isArray(content.videoQueries) ? content.videoQueries : []);
+
+    // Footage: reusa os clipes do cache (vídeo IDÊNTICO ES/PT) ou seleciona agora
+    // com seed de (tópico,dia) — independente de conta. Só cacheia quando há clipes.
+    let clips: string[] = shared?.clips ?? [];
+    if (!clips.length) {
+      clips = await selectFootage(videoQueries, cat, hashStr(reelSharedKey(topic, day)));
+      if (clips.length) await writeReelShared(topic, day, { research: searchResults, videoQueries, clips });
+    }
 
     // Número de edição (mesma conta do fluxo de publicação)
     let editionNum = 1;
@@ -471,7 +493,9 @@ export async function GET(req: NextRequest) {
       cta: content.cta,
       caption: content.instagramCaption,
       kw, ed,
-      videoQueries: Array.isArray(content.videoQueries) ? content.videoQueries : [],
+      videoQueries, // canônicos (compartilhados entre idiomas)
+      clips,        // footage COMPARTILHADO (mesmo vídeo ES/PT); [] → fetch-footage.mjs busca no CI
+      sharedFootage: clips.length > 0, // diagnóstico: veio da base compartilhada?
       illustration: illustrationUrl,
       illustrationError,
     });
