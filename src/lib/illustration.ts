@@ -114,6 +114,39 @@ async function readCachedIllustration(model: string, cat: string, subject: strin
   }
 }
 
+// ─── Re-hospedagem no Vercel Blob ────────────────────────────────────────────
+// As URLs da fal (v3b.fal.media) são uma CDN de terceiros, lenta/fria de forma
+// intermitente e com validade limitada. Quando passadas em ?img= ao /api/og e
+// daí ao Instagram, uma fal lenta estourava o timeout de download da mídia do
+// IG (9004). Re-hospedamos a imagem APROVADA no Blob (mesma infra Vercel, rápida
+// e permanente) e cacheamos a URL do Blob — não a da fal. Best-effort: se o
+// re-host falhar, devolve null e o pipeline segue com a URL original da fal.
+async function rehostToBlob(srcUrl: string, cat: string): Promise<string | null> {
+  try {
+    const raw = process.env.BLOB_READ_WRITE_TOKEN || "";
+    const m = raw.match(/vercel_blob_rw_[A-Za-z0-9_-]+/);
+    const token = m ? m[0] : raw.trim();
+    if (!token) return null;
+
+    const res = await fetch(srcUrl);
+    if (!res.ok) return null;
+    const ct = res.headers.get("content-type") || "image/jpeg";
+    const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : "jpg";
+    const buf = Buffer.from(await res.arrayBuffer());
+
+    const { put } = await import("@vercel/blob");
+    const blob = await put(`illustrations/${cat}.${ext}`, buf, {
+      access: "public",
+      contentType: ct,
+      token,
+      addRandomSuffix: true, // nome único por imagem (não sobrescreve as do dia anterior)
+    });
+    return blob.url;
+  } catch {
+    return null; // re-host é best-effort — nunca quebra o pipeline
+  }
+}
+
 async function writeCachedIllustration(model: string, cat: string, subject: string, url: string): Promise<void> {
   try {
     const { sql } = await import("@vercel/postgres");
@@ -244,9 +277,12 @@ export async function generateIllustration(subject: string, cat: string, opts: G
     if (!gen.url) { lastErr = gen.error ?? "erro de geração"; continue; }
     const qa = await checkAnatomy(gen.url, automation);
     if (qa.ok) {
+      // Re-hospeda a imagem aprovada no Blob (URL rápida/permanente). Se falhar,
+      // segue com a URL original da fal — degrada ao comportamento anterior.
+      const finalUrl = (await rehostToBlob(gen.url, cat)) ?? gen.url;
       // Só imagens aprovadas entram no cache → reuso sempre devolve imagem boa.
-      if (useCache) await writeCachedIllustration(FAL_MODEL, cat, subject, gen.url);
-      return { url: gen.url, model: FAL_MODEL, attempts: attempt, qaReason: qa.reason, cached: false };
+      if (useCache) await writeCachedIllustration(FAL_MODEL, cat, subject, finalUrl);
+      return { url: finalUrl, model: FAL_MODEL, attempts: attempt, qaReason: qa.reason, cached: false };
     }
     lastQa = qa.reason;
     lastErr = `QA reprovou na tentativa ${attempt}: ${qa.reason}`;
