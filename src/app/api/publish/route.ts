@@ -38,7 +38,7 @@ const THEMES: Theme[] = [
   // ── Pilar 1 — Dopamina e seus seguimentos ──
   { topic: "Dopamina y recompensa inmediata", cat: "dopamine", motif: "burst", subject: "a brain with only a few glowing reward receptors lit by a single bright spark" },
   { topic: "Adicción a las redes sociales", cat: "dopamine", motif: "spiral", subject: "a hand reaching into an endless downward spiral emerging from a phone screen" },
-  { topic: "La validación externa como droga", cat: "dopamine", motif: "ripple", subject: "a figure reaching up for floating heart-shaped fruits just out of reach" },
+  { topic: "La validación externa como droga", cat: "dopamine", motif: "ripple", subject: "a lone figure seen from behind, a silhouette gazing up at floating glowing heart-shaped lights drifting just out of reach in a dark void" },
   { topic: "El doomscrolling sin fin", cat: "anxiety", motif: "spiral", subject: "a figure sinking into a dark endless newsfeed river pouring out of a phone" },
   { topic: "La pornografía y el cerebro secuestrado", cat: "dopamine", motif: "decay", subject: "a male figure entangled in glowing screen-threads slowly draining his vitality" },
   { topic: "El placer fácil que mata el deseo real", cat: "dopamine", motif: "burst", subject: "fast bright sparks swirling around a figure while a distant warm fire fades" },
@@ -46,14 +46,14 @@ const THEMES: Theme[] = [
   { topic: "El reseteo de dopamina", cat: "mind", motif: "unplug", subject: "a calm figure unplugging glowing cables from its own head" },
   { topic: "Gratificación instantánea vs esfuerzo real", cat: "self", motif: "descent", subject: "a figure choosing a short bright staircase over a long mountain path" },
   // ── Pilar 2 — Redes sociais, fim dos relacionamentos ──
-  { topic: "Redes sociales y el fin de las relaciones", cat: "network", motif: "web", subject: "two figures tethered by tangled threads to glowing phones, drifting apart" },
+  { topic: "Redes sociales y el fin de las relaciones", cat: "network", motif: "web", subject: "two empty pillows on a dark unmade bed split by a cold central gap, two phones lying face-up glowing on each side, no people, intimacy replaced by screens" },
   { topic: "La comparación que destruye parejas", cat: "network", motif: "bars", subject: "a couple each measuring the other against rows of glowing edited portraits" },
-  { topic: "La intimidad reemplazada por la pantalla", cat: "network", motif: "isolation", subject: "two people in bed with backs turned, faces lit by separate phone screens" },
-  { topic: "El mercado de citas y el descarte infinito", cat: "network", motif: "spiral", subject: "a figure swiping an endless carousel of faces into a discard pile" },
+  { topic: "La intimidad reemplazada por la pantalla", cat: "network", motif: "isolation", subject: "a double bed divided down the middle by a tall pane of cold glowing screen-glass, one side warm and one side blue-lit, no people" },
+  { topic: "El mercado de citas y el descarte infinito", cat: "network", motif: "spiral", subject: "an endless conveyor belt of identical glowing portrait cards tipping off the edge into a dark discard chute, no people" },
   { topic: "La soledad en la era hiperconectada", cat: "network", motif: "isolation", subject: "a tiny solitary figure in vast empty space surrounded by distant glowing screens" },
   { topic: "La pareja actuada para las redes", cat: "dopamine", motif: "ripple", subject: "a couple performing happiness in front of a wall of watching eyes" },
   { topic: "El ghosting y el vínculo desechable", cat: "network", motif: "web", subject: "a figure holding a thread that suddenly fades into nothing" },
-  { topic: "La atención como nueva moneda del amor", cat: "network", motif: "ripple", subject: "two figures bidding for each other's gaze against a rising tide of notifications" },
+  { topic: "La atención como nueva moneda del amor", cat: "network", motif: "ripple", subject: "a single glowing coin engraved with an eye, balanced on a dark scale, slowly drowning under a rising tide of notification dots, no people" },
   { topic: "El amor que no resiste el aburrimiento", cat: "network", motif: "orbit", subject: "two figures drifting apart the moment the spark of novelty fades" },
   // ── Pilar 3 — A guerra invisível do Homem (temas incômodos) ──
   { topic: "La guerra invisible del hombre", cat: "freedom", motif: "descent", subject: "a lone male figure carrying an unseen heavy weight up a grey hill" },
@@ -67,7 +67,7 @@ const THEMES: Theme[] = [
   { topic: "Reconstruir al hombre, no destruirlo", cat: "mind", motif: "synapse", subject: "a cracked male statue regrowing with golden kintsugi veins" },
   // ── Pilar 4 — Verdades incômodas que precisam ser ditas ──
   { topic: "El hombre no necesita ser amado: necesita cariño, respeto y admiración", cat: "self", motif: "embrace", subject: "a male figure standing tall receiving a warm light of respect rather than clinging to affection" },
-  { topic: "Nadie te debe nada", cat: "freedom", motif: "boundary", subject: "a figure dropping a heavy bag labeled with other people's expectations" },
+  { topic: "Nadie te debe nada", cat: "freedom", motif: "boundary", subject: "a lone figure seen from behind walking away into light as a heavy open sack and cut ropes fall away into the dark behind" },
   { topic: "Si no pones límites, te vuelves una opción", cat: "self", motif: "boundary", subject: "a figure fading into a faint optional silhouette among many doors" },
   { topic: "La comodidad te está matando lentamente", cat: "anxiety", motif: "decay", subject: "a figure sinking comfortably into a soft chair that slowly swallows it" },
   { topic: "Te respetan por lo que toleras, no por lo que dices", cat: "freedom", motif: "mirror", subject: "a figure whose spoken words fade while the firm line it draws glows" },
@@ -82,9 +82,9 @@ const THEMES: Theme[] = [
   { topic: "La cultura de la ofensa", cat: "freedom", motif: "squares", subject: "fragile glass figures shattering at every spoken word" },
   { topic: "Pensar diferente no es un crimen", cat: "freedom", motif: "branches", subject: "a single tree branching the opposite way from a uniform forest" },
   { topic: "La libertad empieza donde acaba el miedo", cat: "freedom", motif: "gateway", subject: "a figure stepping through a doorway out of a cage of shadows" },
-  { topic: "Decir 'no' es un acto de libertad", cat: "self", motif: "boundary", subject: "a calm figure raising a hand that halts a flood of demands" },
-  { topic: "La autocensura silenciosa", cat: "anxiety", motif: "masks", subject: "a figure sewing its own mouth shut with thin grey thread" },
-  { topic: "Ser libre incomoda a quien quiere controlarte", cat: "freedom", motif: "branches", subject: "a figure snapping invisible strings while unseen hands recoil" },
+  { topic: "Decir 'no' es un acto de libertad", cat: "self", motif: "boundary", subject: "a single upright closed door standing calm against a swirling storm of paper demands that breaks around it, no people" },
+  { topic: "La autocensura silenciosa", cat: "anxiety", motif: "masks", subject: "a sculptural human head in profile, a line of fine grey stitches sealing shut where the mouth would be, deep shadow, no hands" },
+  { topic: "Ser libre incomoda a quien quiere controlarte", cat: "freedom", motif: "branches", subject: "a lone figure seen from behind walking forward as cut marionette strings fall slack around it and the dark control-cross collapses above, no hands" },
 ];
 
 const TOPICS = THEMES.map((t) => t.topic);
