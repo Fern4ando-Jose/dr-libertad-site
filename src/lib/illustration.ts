@@ -29,8 +29,11 @@ function buildPrompt(subject: string, accentWord: string, accentHex: string): st
     `Dramatic chiaroscuro lighting, sculptural and atmospheric, fine film grain and subtle texture.`,
     `Restricted, desaturated palette: warm off-white paper tone (#F4F0E8) and deep ink black (#0B0B0C), with a single muted accent of ${accentWord} (${accentHex}).`,
     `One bold central metaphor, generous negative space, sober and refined like a literary-magazine cover.`,
-    // Blindagem anatômica — reduz a chance de mão/dedo/membro extra (defeito nº 1 da difusão).
-    `Anatomically correct and photoreal in structure: each person has exactly two arms and two hands, each hand with exactly five fingers; natural, correctly formed limbs, hands and faces. No extra, missing or fused fingers, hands, arms or limbs; no duplicated or distorted body parts.`,
+    // ESTRATÉGIA ANTI-DEFEITO (escolha do dono): em vez de exigir mãos perfeitas
+    // (a difusão erra dedos → QA reprova → cai no motivo abstrato), COMPOR sem mãos
+    // à vista. Tira da imagem a fonte nº 1 de reprovação.
+    `COMPOSITION RULE — HIDE HANDS AND FINGERS: do not show hands or individual fingers. Keep hands out of frame, cropped, behind the body, deep in shadow, inside pockets/sleeves, or replaced by the metaphor object. Prefer silhouettes, figures seen from behind, from a distance, or partially. No close-ups of hands. Faces may be turned away, in shadow, or distant.`,
+    `Any visible anatomy must be natural and correct: no extra, missing, fused or duplicated limbs or body parts.`,
     `No text, no letters, no words, no logo, no watermark. No neon, no purple gradient, no corporate clip-art, no busy clutter.`,
   ].join(" ");
 }
