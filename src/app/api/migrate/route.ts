@@ -17,6 +17,9 @@ export async function GET(req: NextRequest) {
     { name: "instagram_caption", def: "TEXT NOT NULL DEFAULT ''" },
     { name: "tags", def: "JSONB NOT NULL DEFAULT '[]'" },
     { name: "instagram_post_id", def: "TEXT" },
+    // Conta/idioma do post — usado pela trava anti-dup POR CONTA (ES e PT não se
+    // bloqueiam). Registros antigos são todos ES (conta única original).
+    { name: "lang", def: "TEXT NOT NULL DEFAULT 'es'" },
   ];
 
   for (const col of postsCols) {
@@ -61,6 +64,46 @@ export async function GET(req: NextRequest) {
     results.push("illustration_cache table: ok");
   } catch (e) {
     results.push("illustration_cache table: " + String(e));
+  }
+
+  // Tabela reel_shared_cache — base do Reel COMPARTILHADA entre idiomas (mesmo
+  // vídeo ES/PT): pesquisa (Tavily) + videoQueries + clipes do footage (Pexels)
+  // resolvidos UMA vez por (tópico, dia). O 2º idioma reusa → footage idêntico e
+  // sem pagar Tavily de novo. Só a copy muda por idioma. Ver src/lib/reel-shared.ts.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS reel_shared_cache (
+        cache_key     TEXT PRIMARY KEY,
+        topic         TEXT,
+        research      JSONB NOT NULL DEFAULT '[]',
+        video_queries JSONB NOT NULL DEFAULT '[]',
+        clips         JSONB NOT NULL DEFAULT '[]',
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    results.push("reel_shared_cache table: ok");
+  } catch (e) {
+    results.push("reel_shared_cache table: " + String(e));
+  }
+
+  // Tabela published_runs — livro-razão (dia, run, idioma) de publicações. Dá
+  // idempotência ao reel (dedup) e alimenta o watchdog (catchup.yml), que redispara
+  // só os runs que faltaram no dia. Ver src/lib/run-ledger.ts.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS published_runs (
+        day               TEXT NOT NULL,
+        run               INT  NOT NULL,
+        lang              TEXT NOT NULL,
+        kind              TEXT,
+        instagram_post_id TEXT,
+        ts                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (day, run, lang)
+      )
+    `;
+    results.push("published_runs table: ok");
+  } catch (e) {
+    results.push("published_runs table: " + String(e));
   }
 
   // Tabela spend_log — contabiliza cada chamada paga (fal/Anthropic/Tavily) por

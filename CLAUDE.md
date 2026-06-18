@@ -4,6 +4,25 @@ Site Next.js que **gera e publica automaticamente** no Instagram (@drlibertad):
 **Reels (vídeo)** e **carrosséis (imagem)**. Conteúdo (copy + direção) vem do
 Claude; mídia é renderizada e publicada via GitHub Actions.
 
+## Linha editorial (princípios do dono — INVIOLÁVEL)
+
+A marca **acredita na liberdade de expressão e NÃO teme a polêmica — ao contrário,
+a polêmica é uma ferramenta** (é o que gera alcance/debate). A voz é direta, corajosa,
+diz verdades incômodas e desafia o politicamente correto. Os **45 temas** (fonte única
+`THEMES` em `api/publish/route.ts`) giram em **5 pilares**:
+
+1. **Dopamina e seus seguimentos** (recompensa imediata, vício, hiperestimulação, porn/cérebro, detox).
+2. **Redes sociais e o fim dos relacionamentos** (comparação, intimidade x tela, descarte, ghosting).
+3. **A guerra invisível do Homem** — temas incômodos (solidão masculina, o homem que não pode chorar, o "descartável", reconstruir o homem sem destruí-lo).
+4. **Verdades incômodas que precisam ser ditas** (ex.: *"o homem não precisa ser amado: precisa de carinho, respeito e admiração"*; "ninguém te deve nada"; "se você não põe limites, vira uma opção").
+5. **Liberdade (e o direito de falar)** — *"você tem o direito de fazer o que quer e eu de dizer o que penso"*; contra a autocensura e a cultura da ofensa.
+
+> **Guarda única (sobrevivência da conta, não censura):** a provocação vem da **IDEIA**,
+> nunca do ódio. **Nunca** insultar/desumanizar pessoas ou grupos (sexo, raça, orientação…)
+> nem incitar violência — isso derruba a conta no IG e mata o alcance. Incomodar com
+> **argumento**, não com desprezo. Essa régua está embutida na VOZ EDITORIAL do prompt
+> de `generateContent`. **As ideias do dono são mantidas íntegras; só esse limite protege o canal.**
+
 ## Pendências — painel único, com ponte pra agentes da nuvem
 
 A fonte de **visualização é ÚNICA** e fica na máquina do dono: `D:\Claude\.pendencias\dr-libertad.md` (fora do Git). **NUNCA pergunte onde colocar uma pendência — é sempre o painel central.** Como chegar lá depende de ONDE você roda:
@@ -28,11 +47,11 @@ A fonte de **visualização é ÚNICA** e fica na máquina do dono: `D:\Claude\.
 - **Aprovar gasto antes de executar.** Toda chamada a API **paga** (fal, Anthropic)
   exige mostrar o custo estimado e ter OK do usuário antes. Footage Pexels e render
   no CI são grátis. Ver `cost-governance` / `approve-spend-before-executing`.
-- **`TOPIC_CAT` (`api/publish/route.ts`) DEVE espelhar `CATS`/motifs (`api/og/route.tsx`)** — mexeu num, mexe no outro.
+- **Temas em FONTE ÚNICA `THEMES` (`api/publish/route.ts`)**: cada entrada tem `topic`+`cat`+`motif`+`subject`; `TOPICS`/`TOPIC_CAT`/`TOPIC_MOTIF`/`TOPIC_SUBJECT` são DERIVADOS (impossível dessincronizar). `cat`/`motif` **DEVEM** existir em `CATS`/`MOTIF_IDS` de `api/og/route.tsx` — tema novo = usar cat/motif válidos (ou adicionar lá primeiro). Hoje são **45 temas** (5 pilares da Linha editorial).
 - **Fonte: só Fraunces 700** embutida (não adicionar pesos — incha o bundle edge).
 - **CSS satori-safe** em `/api/og` (flexbox em todo elemento multi-filho; CSS não suportado → 500).
-- **`force=1`** em `/api/publish` só para republicar (burla a trava anti-dup de 24h).
-- **Agendamento no GitHub Actions**, não no Vercel (limite de cron do Hobby). Não recriar crons no `vercel.json`.
+- **Trava anti-dup: 7 dias POR CONTA** (`topic`+`lang`, coluna `posts.lang`). ES e PT **não se bloqueiam**. Pool de 45 temas a 6/dia → cada tema reaparece a cada ~8 dias, então a janela de 7d não auto-bloqueia. **`force=1`** em `/api/publish` burla a trava (republicar/backfill).
+- **Agendamento no GitHub Actions**, não no Vercel (limite de cron do Hobby). Não recriar crons no `vercel.json`. O scheduler do GitHub atrasa/derruba crons → **`catchup.yml`** (de hora em hora) consulta `/api/runs-status` e **redispara só os runs faltantes do dia**. Idempotente: carrossel trava por (tópico,conta,7d); reel por (dia,run,conta) no livro-razão `published_runs` (`src/lib/run-ledger.ts`). Reel publicado registra `run` (workflows passam `run` ao `/api/publish-reel`).
 - Antes de valer em produção: confirmar **deploy Vercel verde** no commit.
 - **Não desestabilizar a automação** num experimento de criação; mudança de criação
   é discutida/aprovada antes de codar.
@@ -54,11 +73,21 @@ colide com o run vizinho). 3 workflows:
 > números reais, não por achismo. Teto saudável: ~6 posts/dia (acima disso canibaliza).
 
 ### Pipeline do Reel (vídeo) — `instagram-reels.yml`
-`/api/publish?preview=1&run=N` (conteúdo + `videoQueries` do Claude, **sem** ilustração)
-→ `scripts/fetch-footage.mjs` (footage vertical da **Pexels**, grátis, no tema via
-`videoQueries`; fallback por categoria) → `scripts/render-reel.mjs` (Remotion) →
+`/api/publish?preview=1&run=N` (conteúdo + `videoQueries` do Claude, **sem** ilustração;
+já devolve `clips` = footage escolhido) → `scripts/fetch-footage.mjs` (FALLBACK: só busca
+na **Pexels** se a API não trouxe `clips`) → `scripts/render-reel.mjs` (Remotion) →
 `scripts/upload-blob.mjs` (Vercel Blob) → `/api/publish-reel` (Graph API).
 Fundo = footage real + **grade da marca** + **música** (`public/music/bed.*`, opcional).
+
+> **Base do Reel COMPARTILHADA entre idiomas (= MESMO vídeo).** A parte
+> **língua-independente** — pesquisa (Tavily), `videoQueries` e os **clipes do footage**
+> (Pexels) — é resolvida **uma vez por `(tópico, dia)`** na API e cacheada em
+> `reel_shared_cache` (`src/lib/reel-shared.ts`); o 2º idioma **reusa** tudo → footage
+> idêntico ES/PT e **Tavily não é pago de novo**. Só a **copy** muda por idioma
+> (regenerada pelo `marketBrief`, não traduzida). O seed do footage vem de `(tópico,dia)`,
+> **nunca do `@handle`** — invariante coberto por `reel-shared.invariants.test.ts`. A
+> ilustração já era compartilhada (`illustration_cache`). Tudo fail-open: falha de
+> cache/Pexels → cada idioma resolve o seu, como antes.
 
 ### Pipeline do Reel CLÁSSICO — `instagram-reels-classic.yml`
 Igual, mas: `preview=1&illus=1&run=3` (gera a **ilustração** da fal de fundo),

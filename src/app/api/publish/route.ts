@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateIllustration } from "@/lib/illustration";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, tavilyCost, EST_RUN_COST } from "@/lib/spend";
+import { parseContentJson } from "@/lib/content-json";
+import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
+import { recordRun } from "@/lib/run-ledger";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -22,31 +25,72 @@ interface GeneratedContent {
 
 type Slot = "manha" | "tarde" | "noite";
 
-// ─── Tópicos predefinidos (rotação semanal) ───────────────────────────────────
-
-const TOPICS = [
-  "Libertad mental",
-  "Autoconocimiento profundo",
-  "Redes sociales y el impacto negativo en las relaciones",
-  "Adicción a las redes sociales",
-  "Dopamina y recompensa inmediata",
-  "Mucha elección, poca libertad",
-  "Ansiedad moderna",
-  "La trampa de la comparación social",
-  "Soledad en la era hiperconectada",
-  "La validación externa como droga",
-  "El miedo al fracaso como parálisis",
-  "Límites sanos y relaciones",
-  "Procrastinación y culpa",
-  "Neuroplasticidad: puedes cambiar",
-  "Perfeccionismo y ansiedad",
-  "El poder del aburrimiento",
-  "Burnout emocional",
-  "La máscara social y el yo real",
-  "Desintoxicación digital",
-  "Amor propio vs. autoexigencia",
-  "El ego y el miedo",
+// ─── Temas (rotação) — FONTE ÚNICA ────────────────────────────────────────────
+// Cada tema reúne topic (chave/seed em ES) + cat (cor/direção, espelha CATS de
+// /api/og) + motif (desenho, espelha MOTIF_IDS de /api/og) + subject (metáfora em
+// inglês p/ a ilustração da fal). TOPICS e os 3 mapas são DERIVADOS daqui → é
+// impossível dessincronizar (a regra "TOPIC_CAT espelha CATS/motifs" do CLAUDE.md
+// vira invariante por construção). Linha editorial: ver CLAUDE.md "Linha editorial"
+// — 5 pilares (dopamina · redes/relações · guerra invisível do homem · verdades
+// incômodas · liberdade de expressão). Não temer a polêmica; provocar debate.
+interface Theme { topic: string; cat: string; motif: string; subject: string }
+const THEMES: Theme[] = [
+  // ── Pilar 1 — Dopamina e seus seguimentos ──
+  { topic: "Dopamina y recompensa inmediata", cat: "dopamine", motif: "burst", subject: "a brain with only a few glowing reward receptors lit by a single bright spark" },
+  { topic: "Adicción a las redes sociales", cat: "dopamine", motif: "spiral", subject: "a hand reaching into an endless downward spiral emerging from a phone screen" },
+  { topic: "La validación externa como droga", cat: "dopamine", motif: "ripple", subject: "a lone figure seen from behind, a silhouette gazing up at floating glowing heart-shaped lights drifting just out of reach in a dark void" },
+  { topic: "El doomscrolling sin fin", cat: "anxiety", motif: "spiral", subject: "a figure sinking into a dark endless newsfeed river pouring out of a phone" },
+  { topic: "La pornografía y el cerebro secuestrado", cat: "dopamine", motif: "decay", subject: "a male figure entangled in glowing screen-threads slowly draining his vitality" },
+  { topic: "El placer fácil que mata el deseo real", cat: "dopamine", motif: "burst", subject: "fast bright sparks swirling around a figure while a distant warm fire fades" },
+  { topic: "La hiperestimulación y la incapacidad de aburrirse", cat: "dopamine", motif: "orbit", subject: "a restless figure unable to sit still in a quiet room while screens orbit frantically" },
+  { topic: "El reseteo de dopamina", cat: "mind", motif: "unplug", subject: "a calm figure unplugging glowing cables from its own head" },
+  { topic: "Gratificación instantánea vs esfuerzo real", cat: "self", motif: "descent", subject: "a figure choosing a short bright staircase over a long mountain path" },
+  // ── Pilar 2 — Redes sociais, fim dos relacionamentos ──
+  { topic: "Redes sociales y el fin de las relaciones", cat: "network", motif: "web", subject: "two empty pillows on a dark unmade bed split by a cold central gap, two phones lying face-up glowing on each side, no people, intimacy replaced by screens" },
+  { topic: "La comparación que destruye parejas", cat: "network", motif: "bars", subject: "a couple each measuring the other against rows of glowing edited portraits" },
+  { topic: "La intimidad reemplazada por la pantalla", cat: "network", motif: "isolation", subject: "a double bed divided down the middle by a tall pane of cold glowing screen-glass, one side warm and one side blue-lit, no people" },
+  { topic: "El mercado de citas y el descarte infinito", cat: "network", motif: "spiral", subject: "an endless conveyor belt of identical glowing portrait cards tipping off the edge into a dark discard chute, no people" },
+  { topic: "La soledad en la era hiperconectada", cat: "network", motif: "isolation", subject: "a tiny solitary figure in vast empty space surrounded by distant glowing screens" },
+  { topic: "La pareja actuada para las redes", cat: "dopamine", motif: "ripple", subject: "a couple performing happiness in front of a wall of watching eyes" },
+  { topic: "El ghosting y el vínculo desechable", cat: "network", motif: "web", subject: "a figure holding a thread that suddenly fades into nothing" },
+  { topic: "La atención como nueva moneda del amor", cat: "network", motif: "ripple", subject: "a single glowing coin engraved with an eye, balanced on a dark scale, slowly drowning under a rising tide of notification dots, no people" },
+  { topic: "El amor que no resiste el aburrimiento", cat: "network", motif: "orbit", subject: "two figures drifting apart the moment the spark of novelty fades" },
+  // ── Pilar 3 — A guerra invisível do Homem (temas incômodos) ──
+  { topic: "La guerra invisible del hombre", cat: "freedom", motif: "descent", subject: "a lone male figure carrying an unseen heavy weight up a grey hill" },
+  { topic: "El hombre al que no se le permite llorar", cat: "self", motif: "masks", subject: "a male figure pressing a stone mask over a face about to break" },
+  { topic: "La soledad masculina que nadie ve", cat: "network", motif: "isolation", subject: "a man in a crowd enclosed by an invisible glass wall" },
+  { topic: "El vacío del proveedor", cat: "self", motif: "decay", subject: "a male figure as a burning candle giving light to others while melting unseen" },
+  { topic: "La fuerza mal entendida", cat: "freedom", motif: "boundary", subject: "a male figure mistaking a rigid iron armor for real strength" },
+  { topic: "El padre ausente dentro de ti", cat: "self", motif: "mirror", subject: "a grown figure facing the faded silhouette of an absent father" },
+  { topic: "La rabia que esconde tristeza", cat: "anxiety", motif: "decay", subject: "a figure whose angry shadow hides a small grieving child" },
+  { topic: "El hombre tratado como desechable", cat: "freedom", motif: "descent", subject: "a male figure used as a stepping stone and then stepped past" },
+  { topic: "Reconstruir al hombre, no destruirlo", cat: "mind", motif: "synapse", subject: "a cracked male statue regrowing with golden kintsugi veins" },
+  // ── Pilar 4 — Verdades incômodas que precisam ser ditas ──
+  { topic: "El hombre no necesita ser amado: necesita cariño, respeto y admiración", cat: "self", motif: "embrace", subject: "a male figure standing tall receiving a warm light of respect rather than clinging to affection" },
+  { topic: "Nadie te debe nada", cat: "freedom", motif: "boundary", subject: "a lone figure seen from behind walking away into light as a heavy open sack and cut ropes fall away into the dark behind" },
+  { topic: "Si no pones límites, te vuelves una opción", cat: "self", motif: "boundary", subject: "a figure fading into a faint optional silhouette among many doors" },
+  { topic: "La comodidad te está matando lentamente", cat: "anxiety", motif: "decay", subject: "a figure sinking comfortably into a soft chair that slowly swallows it" },
+  { topic: "Te respetan por lo que toleras, no por lo que dices", cat: "freedom", motif: "mirror", subject: "a figure whose spoken words fade while the firm line it draws glows" },
+  { topic: "El victimismo es una cárcel cómoda", cat: "anxiety", motif: "spiral", subject: "a figure locking its own cage from the inside and pocketing the key" },
+  { topic: "Nadie va a venir a salvarte", cat: "self", motif: "descent", subject: "a figure at the bottom of a well building its own ladder" },
+  { topic: "Tu potencial no vale nada sin acción", cat: "dopamine", motif: "burst", subject: "a bright seed rotting unplanted while a figure only admires it" },
+  { topic: "La verdad incomoda más que la mentira amable", cat: "freedom", motif: "mirror", subject: "a figure choosing a sharp clear mirror over a flattering blurred one" },
+  // ── Pilar 5 — Liberdade (e o direito de falar) ──
+  { topic: "Tú tienes derecho a hacer lo que quieras; yo a decir lo que pienso", cat: "freedom", motif: "gateway", subject: "two figures standing in opposite open doorways, each free, a line of mutual respect between them" },
+  { topic: "La libertad de expresión incómoda", cat: "freedom", motif: "gateway", subject: "a figure speaking through an open arch while soft hands try to push it closed" },
+  { topic: "El miedo a la opinión ajena", cat: "anxiety", motif: "mirror", subject: "a figure shrinking before a wall of judging eyes, then rising tall" },
+  { topic: "La cultura de la ofensa", cat: "freedom", motif: "squares", subject: "fragile glass figures shattering at every spoken word" },
+  { topic: "Pensar diferente no es un crimen", cat: "freedom", motif: "branches", subject: "a single tree branching the opposite way from a uniform forest" },
+  { topic: "La libertad empieza donde acaba el miedo", cat: "freedom", motif: "gateway", subject: "a figure stepping through a doorway out of a cage of shadows" },
+  { topic: "Decir 'no' es un acto de libertad", cat: "self", motif: "boundary", subject: "a single upright closed door standing calm against a swirling storm of paper demands that breaks around it, no people" },
+  { topic: "La autocensura silenciosa", cat: "anxiety", motif: "masks", subject: "a sculptural human head in profile, a line of fine grey stitches sealing shut where the mouth would be, deep shadow, no hands" },
+  { topic: "Ser libre incomoda a quien quiere controlarte", cat: "freedom", motif: "branches", subject: "a lone figure seen from behind walking forward as cut marionette strings fall slack around it and the dark control-cross collapses above, no hands" },
 ];
+
+const TOPICS = THEMES.map((t) => t.topic);
+const TOPIC_CAT: Record<string, string> = Object.fromEntries(THEMES.map((t) => [t.topic, t.cat]));
+const TOPIC_MOTIF: Record<string, string> = Object.fromEntries(THEMES.map((t) => [t.topic, t.motif]));
+const TOPIC_SUBJECT: Record<string, string> = Object.fromEntries(THEMES.map((t) => [t.topic, t.subject]));
 
 // ─── Extrai keyword curta do tópico ──────────────────────────────────────────
 
@@ -55,86 +99,6 @@ function extractKeyword(topic: string): string {
   const word = topic.split(/\s+/).find(w => !STOP.has(w.toLowerCase())) ?? topic.split(" ")[0];
   return word.toUpperCase().replace(/[^A-ZÁÉÍÓÚÜÑ]/g, "");
 }
-
-// Categoria de direção de arte por tópico (espelha CATS em /api/og).
-// Define cor + motivo procedural do slide. Mantenha em sincronia com og/route.tsx.
-const TOPIC_CAT: Record<string, string> = {
-  "Libertad mental": "freedom",
-  "Autoconocimiento profundo": "self",
-  "Redes sociales y el impacto negativo en las relaciones": "network",
-  "Adicción a las redes sociales": "dopamine",
-  "Dopamina y recompensa inmediata": "dopamine",
-  "Mucha elección, poca libertad": "freedom",
-  "Ansiedad moderna": "anxiety",
-  "La trampa de la comparación social": "network",
-  "Soledad en la era hiperconectada": "network",
-  "La validación externa como droga": "dopamine",
-  "El miedo al fracaso como parálisis": "anxiety",
-  "Límites sanos y relaciones": "self",
-  "Procrastinación y culpa": "anxiety",
-  "Neuroplasticidad: puedes cambiar": "mind",
-  "Perfeccionismo y ansiedad": "anxiety",
-  "El poder del aburrimiento": "mind",
-  "Burnout emocional": "anxiety",
-  "La máscara social y el yo real": "self",
-  "Desintoxicación digital": "dopamine",
-  "Amor propio vs. autoexigencia": "self",
-  "El ego y el miedo": "self",
-};
-
-// Desenho (motif) por TEMA — 1:1, espelha os MOTIF_IDS de /api/og.
-// A cor vem da categoria (TOPIC_CAT); o DESENHO é único por tema.
-// Mantenha em sincronia com og/route.tsx (type MotifId / MOTIF_IDS).
-const TOPIC_MOTIF: Record<string, string> = {
-  "Libertad mental": "gateway",
-  "Autoconocimiento profundo": "iris",
-  "Redes sociales y el impacto negativo en las relaciones": "web",
-  "Adicción a las redes sociales": "spiral",
-  "Dopamina y recompensa inmediata": "burst",
-  "Mucha elección, poca libertad": "branches",
-  "Ansiedad moderna": "waves",
-  "La trampa de la comparación social": "bars",
-  "Soledad en la era hiperconectada": "isolation",
-  "La validación externa como droga": "ripple",
-  "El miedo al fracaso como parálisis": "descent",
-  "Límites sanos y relaciones": "boundary",
-  "Procrastinación y culpa": "clock",
-  "Neuroplasticidad: puedes cambiar": "synapse",
-  "Perfeccionismo y ansiedad": "squares",
-  "El poder del aburrimiento": "orbit",
-  "Burnout emocional": "decay",
-  "La máscara social y el yo real": "masks",
-  "Desintoxicación digital": "unplug",
-  "Amor propio vs. autoexigencia": "embrace",
-  "El ego y el miedo": "mirror",
-};
-
-// Subject (metáfora visual, em inglês p/ melhor aderência do Flux) por TEMA.
-// Vira o slot {SUBJECT} do prompt de marca em src/lib/illustration.ts.
-// Colado a TOPIC_CAT/TOPIC_MOTIF — adicionar tema = atualizar os três.
-const TOPIC_SUBJECT: Record<string, string> = {
-  "Libertad mental": "an open birdcage with its door ajar and a single bird flying out toward open sky",
-  "Autoconocimiento profundo": "a human head in profile that opens like a door, a tiny figure exploring the inner landscape",
-  "Redes sociales y el impacto negativo en las relaciones": "two figures tethered by tangled threads to glowing phones, drifting apart",
-  "Adicción a las redes sociales": "a hand reaching into an endless downward spiral emerging from a phone screen",
-  "Dopamina y recompensa inmediata": "a brain with a few glowing reward receptors and a single bright spark",
-  "Mucha elección, poca libertad": "a small figure frozen before a wall of many identical doors",
-  "Ansiedad moderna": "a human head wrapped and entangled in a chaotic ball of yarn",
-  "La trampa de la comparación social": "two figures standing on uneven balance scales, measuring themselves",
-  "Soledad en la era hiperconectada": "a tiny solitary figure in vast empty space, surrounded by distant glowing screens",
-  "La validación externa como droga": "a figure reaching up for floating heart-shaped fruits just out of reach",
-  "El miedo al fracaso como parálisis": "a small figure frozen at the foot of an impossibly tall ladder",
-  "Límites sanos y relaciones": "a calm figure inside a clear circular garden wall, others gently kept outside",
-  "Procrastinación y culpa": "a figure pushing a heavy boulder made of melting clocks uphill",
-  "Neuroplasticidad: puedes cambiar": "a brain growing like a young tree, roots rewiring into new pathways",
-  "Perfeccionismo y ansiedad": "a figure endlessly polishing a cracked marble sculpture of itself",
-  "El poder del aburrimiento": "a lone figure gazing at a vast empty horizon, a single seed sprouting nearby",
-  "Burnout emocional": "a burnt-down candle shaped like a human figure, last wisp of smoke",
-  "La máscara social y el yo real": "a figure slowly lifting an expressionless mask away from its real face",
-  "Desintoxicación digital": "a smartphone dissolving into a flock of small birds flying free",
-  "Amor propio vs. autoexigencia": "a figure tenderly embracing itself, watering its own roots",
-  "El ego y el miedo": "a small fearful figure casting an enormous grandiose shadow on the wall",
-};
 
 // runIndex 0..5 → um dos 6 horários do dia. Garante 6 tópicos DISTINTOS por dia
 // (o esquema antigo, por dia-da-semana+slot, repetia o tópico nos 2 crons do mesmo
@@ -217,6 +181,8 @@ ${SLOT_INSTRUCTIONS[slot]}
 
 REGLA DE MARCA (${acc.brand}): aborda CUALQUIER tema desde el ángulo de la ${acc.freedom.toUpperCase()} mental — recuperar el control, la atención y la autonomía frente a lo que nos esclaviza (algoritmos, validación, miedo, hábitos). El título y al menos uno de los insights deben conectar explícitamente con esa idea de ${acc.freedom}/liberación. Nada de psicología genérica: siempre remite a la marca.
 
+VOZ EDITORIAL: directa, valiente y sin miedo a la POLÉMICA. Dice verdades incómodas, desafía lo políticamente correcto y provoca debate — eso es lo que genera alcance. Defiende la libertad de expresión y el derecho a pensar distinto. PERO la provocación viene de la IDEA, nunca del odio: jamás insultes ni ataques o deshumanices a personas o grupos (por sexo, raza, orientación, etc.), ni incites violencia — eso hunde la cuenta. Incomoda con argumentos, no con desprecio.
+
 MOTOR DE ALCANCE (reglas basadas en datos reales del perfil — lo que más empuja el algoritmo es RETENCIÓN + GUARDADOS + COMPARTIDOS, hoy casi en cero):
 - GANCHO: el título y el PRIMER insight deben detener el scroll en 1-2 segundos. Háblale a "tú", abre una brecha de curiosidad o da un giro inesperado. Concreto y específico, nunca abstracto ni genérico (ej. "Revisas el móvil 144 veces al día" > "El uso del móvil es alto").
 - GUARDABLE: al menos UN insight debe ser un reencuadre o micro-método accionable que la persona quiera GUARDAR para releer (algo aplicable, no solo bonito).
@@ -247,26 +213,36 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
 
 Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmables (no ilustraciones ni metáforas). Deben poder encontrarse en un banco de video como Pexels y conectar con el tema del post.`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 4096,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
+  // O haiku ocasionalmente devolve JSON malformado → o post falhava silencioso.
+  // Tentamos 2×: extrai o objeto (parseContentJson) e, se o parse falhar, regenera.
+  const MAX_CONTENT_TRIES = 2;
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= MAX_CONTENT_TRIES; attempt++) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY!,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 4096,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
 
-  if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
-  const data = await res.json();
-  await logSpend({ automation, platform: "anthropic", operation: "content", model: "claude-haiku-4-5-20251001", units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0), costUsd: anthropicCost("claude-haiku-4-5-20251001", data?.usage) });
-  const raw  = data.content?.[0]?.text ?? "";
-  const clean = raw.replace(/```json|```/g, "").trim();
-  return JSON.parse(clean) as GeneratedContent;
+    if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
+    const data = await res.json();
+    await logSpend({ automation, platform: "anthropic", operation: "content", model: "claude-haiku-4-5-20251001", units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0), costUsd: anthropicCost("claude-haiku-4-5-20251001", data?.usage) });
+    const raw = data.content?.[0]?.text ?? "";
+    try {
+      return parseContentJson<GeneratedContent>(raw);
+    } catch (e) {
+      lastErr = e; // JSON malformado → regenera na próxima volta
+    }
+  }
+  throw new Error(`generateContent: JSON inválido após ${MAX_CONTENT_TRIES} tentativas: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`);
 }
 
 // ─── Token do Instagram ───────────────────────────────────────────────────────
@@ -343,18 +319,18 @@ async function publishCarousel(
 async function savePost(params: {
   topic: string; slot: Slot; title: string; body: string;
   instagramCaption: string; tags: string[];
-  instagramPostId: string | null; publishedAt: Date;
+  instagramPostId: string | null; publishedAt: Date; lang: Lang;
 }): Promise<void> {
   const { sql } = await import("@vercel/postgres");
   await sql`
     INSERT INTO posts (
       topic, slot, title, content, body, instagram_caption,
-      tags, instagram_post_id, published_at
+      tags, instagram_post_id, published_at, lang
     ) VALUES (
       ${params.topic}, ${params.slot}, ${params.title},
       ${params.body}, ${params.body}, ${params.instagramCaption},
       ${"{" + params.tags.join(",") + "}"},
-      ${params.instagramPostId}, ${params.publishedAt.toISOString()}
+      ${params.instagramPostId}, ${params.publishedAt.toISOString()}, ${params.lang}
     )
   `;
 }
@@ -422,8 +398,29 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ blocked: true, automation: "ig-reels", reason: `Orçamento diário estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)})`, gate }, { status: 402 });
     }
 
-    const searchResults = await searchTopic(topic, "ig-reels");
+    // Base LÍNGUA-INDEPENDENTE compartilhada entre ES e PT (= MESMO vídeo): a
+    // pesquisa (Tavily) e o footage (Pexels) são resolvidos UMA vez por (tópico,
+    // dia) e cacheados; o 2º idioma reusa tudo. Só a COPY muda por idioma.
+    const day = dayUTC();
+    const shared = await readReelShared(topic, day);
+
+    // Pesquisa: reusa a do cache (sem pagar Tavily de novo) ou busca agora.
+    const searchResults = shared?.research?.length ? shared.research : await searchTopic(topic, "ig-reels");
     const content = await generateContent(topic, searchResults, slot, lang, "ig-reels");
+
+    // videoQueries CANÔNICOS (inglês, língua-independente): do cache (1º idioma)
+    // ou os recém-gerados. Garantem o mesmo footage entre os idiomas.
+    const videoQueries = shared?.videoQueries?.length
+      ? shared.videoQueries
+      : (Array.isArray(content.videoQueries) ? content.videoQueries : []);
+
+    // Footage: reusa os clipes do cache (vídeo IDÊNTICO ES/PT) ou seleciona agora
+    // com seed de (tópico,dia) — independente de conta. Só cacheia quando há clipes.
+    let clips: string[] = shared?.clips ?? [];
+    if (!clips.length) {
+      clips = await selectFootage(videoQueries, cat, hashStr(reelSharedKey(topic, day)));
+      if (clips.length) await writeReelShared(topic, day, { research: searchResults, videoQueries, clips });
+    }
 
     // Número de edição (mesma conta do fluxo de publicação)
     let editionNum = 1;
@@ -460,7 +457,9 @@ export async function GET(req: NextRequest) {
       cta: content.cta,
       caption: content.instagramCaption,
       kw, ed,
-      videoQueries: Array.isArray(content.videoQueries) ? content.videoQueries : [],
+      videoQueries, // canônicos (compartilhados entre idiomas)
+      clips,        // footage COMPARTILHADO (mesmo vídeo ES/PT); [] → fetch-footage.mjs busca no CI
+      sharedFootage: clips.length > 0, // diagnóstico: veio da base compartilhada?
       illustration: illustrationUrl,
       illustrationError,
     });
@@ -483,10 +482,12 @@ export async function GET(req: NextRequest) {
         if (!force) {
           try {
             const { sql } = await import("@vercel/postgres");
-            const existing = await sql`SELECT id FROM posts WHERE topic = ${topic} AND published_at > NOW() - INTERVAL '24 hours' LIMIT 1`;
+            // Trava POR CONTA (lang) e janela de 7 dias: ES e PT não se bloqueiam
+            // (são contas distintas) e o mesmo tópico não se repete numa semana.
+            const existing = await sql`SELECT id FROM posts WHERE topic = ${topic} AND lang = ${lang} AND published_at > NOW() - INTERVAL '7 days' LIMIT 1`;
             if (existing.rows.length > 0) {
               slotLog.skipped = true;
-              slotLog.reason = "Tópico já publicado nas últimas 24h";
+              slotLog.reason = "Tópico já publicado nesta conta nos últimos 7 dias";
               continue;
             }
           } catch { /* ignora erro de banco */ }
@@ -563,7 +564,11 @@ export async function GET(req: NextRequest) {
           tags: content.tags,
           instagramPostId,
           publishedAt: now,
+          lang,
         });
+
+        // Livro-razão (dia,run,lang) p/ o watchdog — só conta como publicado se saiu.
+        if (instagramPostId) await recordRun(dayUTC(now), runIndex, lang, "carousel", instagramPostId);
 
         slotLog.ok = true;
       } catch (slotErr) {
