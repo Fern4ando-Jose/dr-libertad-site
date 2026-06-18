@@ -83,7 +83,11 @@ jobs:
               img: p.illustration || undefined,
               cat: p.cat || "freedom",
               handle: p.handle || "@dr.liberdad",
-              brand: p.brand || "Dr. Libertad"
+              brand: p.brand || "Dr. Libertad",
+              // Trilha embutida — UMA FAIXA POR TEMA: o picker acha no manifest.json
+              // a faixa do `topic`; sem ela, cai na rotação legado por `run`; sem
+              // nenhuma → Reel renderiza mudo.
+              music: require("./scripts/pick-music.cjs").pickMusic({ topic: p.topic, run: ${{ steps.params.outputs.run }} }) || undefined
             };
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("slot.txt", p.slot || "noite");
