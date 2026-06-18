@@ -1,5 +1,6 @@
 // ─── Composição do Reel Dr. Libertad ─────────────────────────────────────────
-// Vídeo vertical 1080x1920 (9:16), 30fps, sem áudio. Sequência de cenas:
+// Vídeo vertical 1080x1920 (9:16), 30fps, com trilha opcional (prop `music`,
+// uma faixa por tema — ver scripts/pick-music.cjs). Sequência de cenas:
 //   1. Capa  → ilustração de IA (fal) full-bleed + scrim, gancho `title` (Fraunces)
 //   2. Slides → fundo papel, número grande, palavra de destaque no acento da categoria
 //   3. CTA   → "Siga @dr.liberdad" sobre INK
@@ -10,10 +11,12 @@
 import React from "react";
 import {
   AbsoluteFill,
+  Audio,
   Img,
   Sequence,
   interpolate,
   spring,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
@@ -55,6 +58,7 @@ export type ReelClassicProps = {
   cat?: string; // categoria → cor de acento
   handle?: string; // @ da conta por idioma
   brand?: string; // nome de exibição (Dr. Libertad | Dr. Liberdade)
+  music?: string; // caminho staticFile ("music/bed-..mp3") ou URL — trilha opcional
 };
 
 export const reelClassicDefaultProps: ReelClassicProps = {
@@ -72,6 +76,7 @@ export const reelClassicDefaultProps: ReelClassicProps = {
   cat: "freedom",
   handle: "@dr.liberdad",
   brand: "Dr. Libertad",
+  music: undefined,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -364,7 +369,7 @@ function CtaScene({ cta, accent, handle }: { cta: string; accent: string; handle
 }
 
 // ─── Composição completa ──────────────────────────────────────────────────────
-export const ReelClassic: React.FC<ReelClassicProps> = ({ title, slides, accentWords, cta, kw, ed, img, cat, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
+export const ReelClassic: React.FC<ReelClassicProps> = ({ title, slides, accentWords, cta, kw, ed, img, cat, handle = "@dr.liberdad", brand = "Dr. Libertad", music }) => {
   const { fps } = useVideoConfig();
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
 
@@ -373,6 +378,8 @@ export const ReelClassic: React.FC<ReelClassicProps> = ({ title, slides, accentW
   const CTA = Math.round(fps * 3.0);
 
   const safeSlides = slides && slides.length ? slides : reelClassicDefaultProps.slides;
+  const total = COVER + safeSlides.length * SLIDE + CTA; // p/ o fade da trilha
+  const musicSrc = music ? (/^https?:\/\//.test(music) ? music : staticFile(music)) : null;
 
   let cursor = 0;
   const next = (dur: number) => {
@@ -403,6 +410,15 @@ export const ReelClassic: React.FC<ReelClassicProps> = ({ title, slides, accentW
       <Sequence from={next(CTA)} durationInFrames={CTA}>
         <CtaScene cta={cta} accent={accent} handle={handle} />
       </Sequence>
+
+      {musicSrc && (
+        <Audio
+          src={musicSrc}
+          volume={(f) =>
+            interpolate(f, [0, 15, total - 24, total], [0, 0.7, 0.7, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+          }
+        />
+      )}
     </AbsoluteFill>
   );
 };
