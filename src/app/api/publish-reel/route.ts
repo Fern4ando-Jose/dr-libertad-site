@@ -36,6 +36,11 @@ async function publishReel(videoUrl: string, caption: string, lang: Lang = "es")
   const base = `${graphRoot}/${accountId}`;
 
   // 1. Criar container do reel
+  // thumb_offset: a CAPA do Reel é o frame nesse ms. Sem isso, o IG usa o frame 0 —
+  // onde o título ainda NÃO entrou (fade-in de ~28 frames) → capa só footage escuro,
+  // sem texto (ficava "confusa", pior em clipes escuros). 2000ms cai depois do fade,
+  // com o título já visível, e dentro da cena de capa tanto do Reel de footage (5s)
+  // quanto do clássico (2,8s).
   const createRes = await fetch(`${base}/media`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -43,6 +48,7 @@ async function publishReel(videoUrl: string, caption: string, lang: Lang = "es")
       media_type: "REELS",
       video_url: videoUrl,
       caption,
+      thumb_offset: 2000,
       access_token: token,
     }),
   });
