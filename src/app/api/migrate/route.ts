@@ -17,6 +17,9 @@ export async function GET(req: NextRequest) {
     { name: "instagram_caption", def: "TEXT NOT NULL DEFAULT ''" },
     { name: "tags", def: "JSONB NOT NULL DEFAULT '[]'" },
     { name: "instagram_post_id", def: "TEXT" },
+    // Conta/idioma do post — usado pela trava anti-dup POR CONTA (ES e PT não se
+    // bloqueiam). Registros antigos são todos ES (conta única original).
+    { name: "lang", def: "TEXT NOT NULL DEFAULT 'es'" },
   ];
 
   for (const col of postsCols) {
