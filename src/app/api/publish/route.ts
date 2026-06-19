@@ -187,7 +187,7 @@ MOTOR DE ALCANCE (reglas basadas en datos reales del perfil — lo que más empu
 - GANCHO: el título y el PRIMER insight deben detener el scroll en 1-2 segundos. Háblale a "tú", abre una brecha de curiosidad o da un giro inesperado. Concreto y específico, nunca abstracto ni genérico (ej. "Revisas el móvil 144 veces al día" > "El uso del móvil es alto").
 - GUARDABLE: al menos UN insight debe ser un reencuadre o micro-método accionable que la persona quiera GUARDAR para releer (algo aplicable, no solo bonito).
 - COMPARTIBLE: el cta debe invitar a comentar Y a etiquetar/compartir con alguien ("¿Conoces a alguien que…?", "Etiqueta a quien…"), porque etiquetar = compartir.
-- La leyenda debe cerrar SIEMPRE con un llamado explícito a guardar (🔖) y a compartir (📩) antes de los hashtags.
+- SEGUIDORES (objetivo PRINCIPAL): mucha gente que ve esto AÚN NO te sigue. La leyenda debe cerrar SIEMPRE, antes de los hashtags, con un CTA explícito a SEGUIR a ${acc.handle} dándole una RAZÓN con la voz de la marca — provocadora, nunca genérica ("Sígueme si prefieres la verdad incómoda al aplauso fácil" SÍ; "Síguenos para más consejos" NO) — además del CTA de guardar (🔖) y compartir (📩).
 
 Contexto investigado:
 ${context}
@@ -202,7 +202,7 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
     "insight 3 — reencuadre o micro-método GUARDABLE de MÁXIMO 80 chars que remata"
   ],
   "cta": "pregunta de 60-100 chars que invite a comentar y a etiquetar/compartir con alguien, en ${L}",
-  "instagramCaption": "leyenda IG máx 2200 chars: gancho fuerte en la 1ª línea + desarrollo + cierre con CTA de guardar (🔖) y compartir (📩) + 4-5 hashtags, en ${L}",
+  "instagramCaption": "leyenda IG máx 2200 chars: gancho fuerte en la 1ª línea + desarrollo + cierre con CTA de SEGUIR a ${acc.handle} (con razón provocadora de marca) + guardar (🔖) + compartir (📩) + 4-5 hashtags, en ${L}",
   "tags": ["tag1", "tag2", "tag3", "tag4"],
   "videoQueries": [
     "término de búsqueda EN INGLÉS para video de stock que represente VISUALMENTE la escena/emoción de ESTE post — concreto y filmable (personas, gestos, objetos, lugares), NO metáfora abstracta. Ej: 'person scrolling phone in bed at night'",
