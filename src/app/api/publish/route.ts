@@ -434,13 +434,16 @@ export async function GET(req: NextRequest) {
 
     // O Reel de VÍDEO usa FOOTAGE de banco (Pexels) — NÃO gera ilustração na fal
     // aqui (economia; o preview roda várias vezes/dia). EXCEÇÃO: ?illus=1 — o Reel
-    // CLÁSSICO (slide animado) usa a ilustração de fundo, então gera sob demanda.
-    // Quando gera, reusa o cache do dia e usa 1 tentativa (evita pagar o loop 3×
-    // só pra prévia) e contabiliza o gasto na automação ig-reels.
+    // CLÁSSICO (slide animado) usa a ilustração de fundo como a CARA da capa.
+    // maxTries=3 (não 1): aqui o "preview" É o render real do clássico (1×/dia) e ele
+    // DEPENDE da ilustração; com 1 tentativa, um QA reprovado deixava a capa em branco
+    // (só marca d'água). 3 tentativas = mesma robustez do carrossel → a capa quase
+    // sempre sai com a ilustração. Reusa o cache do dia (ES/PT compartilham; uma vez
+    // aprovada, redisparo não re-paga) e contabiliza na automação ig-reels.
     let illustrationUrl: string | null = null;
     let illustrationError: string | null = null;
     if (sp.get("illus") === "1") {
-      const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { maxTries: 1, automation: "ig-reels" });
+      const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { maxTries: 3, automation: "ig-reels" });
       illustrationUrl = ill.url ?? null;
       illustrationError = ill.error ?? null;
     }
