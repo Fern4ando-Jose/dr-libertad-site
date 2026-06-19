@@ -45,6 +45,13 @@ const CAT_ACCENT: Record<string, string> = {
 const COVER_SCRIM =
   "linear-gradient(180deg, rgba(11,11,12,0.35) 0%, rgba(11,11,12,0.12) 34%, rgba(11,11,12,0.92) 100%)";
 
+// Zona segura do FEED (mesmo do Reel.tsx): o feed mostra recorte CENTRADO 4:5
+// (y∈[285,1635]). Na CAPA, o título ancorado no rodapé era cortado → subimos
+// cabeçalho/título/@ pra dentro da faixa. Slides e CTA já são centralizados (ok).
+const SAFE_TOP = 340;
+const SAFE_BOTTOM_TEXT = 420;
+const SAFE_BOTTOM_HANDLE = 300;
+
 // ─── Props de entrada (inputProps) ────────────────────────────────────────────
 // type (não interface) para satisfazer o constraint do Remotion Composition.
 export type ReelClassicProps = {
@@ -168,7 +175,7 @@ function CoverScene({ title, kw, ed, img, accent, brand, handle }: { title: stri
       <div
         style={{
           position: "absolute",
-          top: 90,
+          top: SAFE_TOP,
           left: 90,
           fontFamily: FRAUNCES,
           fontSize: 34,
@@ -180,12 +187,12 @@ function CoverScene({ title, kw, ed, img, accent, brand, handle }: { title: stri
         {brand.toUpperCase()} · Nº {ed}
       </div>
 
-      {/* Título/gancho — ancorado embaixo (onde o scrim é mais escuro) */}
+      {/* Título/gancho — na zona segura do feed (não ancorar no rodapé, que é cortado) */}
       <AbsoluteFill
         style={{
           justifyContent: "flex-end",
           alignItems: "flex-start",
-          padding: "0 90px 150px",
+          padding: `0 90px ${SAFE_BOTTOM_TEXT}px`,
         }}
       >
         <div style={{ transform: `translateY(${titleY}px)`, opacity: titleOpacity }}>
@@ -206,7 +213,7 @@ function CoverScene({ title, kw, ed, img, accent, brand, handle }: { title: stri
       </AbsoluteFill>
 
       {/* Rodapé com handle */}
-      <div style={{ position: "absolute", bottom: 80, left: 90 }}>
+      <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: 90 }}>
         <Handle color={PAPER} handle={handle} />
       </div>
     </AbsoluteFill>
