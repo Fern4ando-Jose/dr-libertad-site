@@ -53,6 +53,17 @@ const SCRIM =
 // Grade da marca aplicado ao próprio vídeo (quase B&W, levemente contrastado).
 const GRADE_FILTER = "saturate(0.18) contrast(1.1) brightness(0.92)";
 
+// ─── Zona segura do FEED do Instagram ─────────────────────────────────────────
+// O Reel é 1080×1920 (9:16), mas o FEED mostra um recorte CENTRADO 4:5 (1080×1350)
+// → faixa visível y ∈ [285, 1635]. Texto ancorado no rodapé (como antes, y≈1770)
+// era CORTADO no feed (a 3ª linha do título sumia). Mantemos todo texto crítico
+// dentro da faixa: cabeçalho em SAFE_TOP, bloco de texto subido (padding-bottom
+// SAFE_BOTTOM_TEXT) e @ logo acima da borda inferior do recorte. No player cheio
+// (aba Reels) continua tudo visível; o que muda é só não ser comido pelo feed.
+const SAFE_TOP = 340;          // topo do recorte 4:5 (285) + margem
+const SAFE_BOTTOM_TEXT = 420;  // bloco de texto termina em y≈1500 (< 1635)
+const SAFE_BOTTOM_HANDLE = 300; // @ em y≈1620, logo acima da borda do recorte
+
 // ─── Tempos (fonte única; Root.tsx importa reelDurations) ─────────────────────
 export const FPS = 30;
 
@@ -253,11 +264,11 @@ function CoverText({ title, ed, accent, brand, handle }: { title: string; ed: st
   return (
     <AbsoluteFill>
       <div
-        style={{ position: "absolute", top: 90, left: 90, fontFamily: FRAUNCES, fontSize: 34, letterSpacing: 6, color: PAPER, opacity: 0.7 }}
+        style={{ position: "absolute", top: SAFE_TOP, left: 90, fontFamily: FRAUNCES, fontSize: 34, letterSpacing: 6, color: PAPER, opacity: 0.7 }}
       >
         {brand.toUpperCase()} · Nº {ed}
       </div>
-      <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: "0 90px 150px" }}>
+      <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: `0 90px ${SAFE_BOTTOM_TEXT}px` }}>
         <div style={{ transform: `translateY(${y}px)`, opacity: o }}>
           <div style={{ width: 110, height: 8, backgroundColor: accent, marginBottom: 40, borderRadius: 4 }} />
           <div
@@ -267,7 +278,7 @@ function CoverText({ title, ed, accent, brand, handle }: { title: string; ed: st
           </div>
         </div>
       </AbsoluteFill>
-      <div style={{ position: "absolute", bottom: 80, left: 90 }}>
+      <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: 90 }}>
         <Handle color={PAPER} handle={handle} />
       </div>
     </AbsoluteFill>
@@ -284,18 +295,18 @@ function InsightText({ text, accent, accentColor, index, total, handle }: { text
   return (
     <AbsoluteFill>
       <div
-        style={{ position: "absolute", top: 100, left: 90, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 700, color: accentColor, opacity: o }}
+        style={{ position: "absolute", top: SAFE_TOP, left: 90, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 700, color: accentColor, opacity: o }}
       >
         {String(index).padStart(2, "0")} / {String(total).padStart(2, "0")}
       </div>
-      <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: "0 90px 200px" }}>
+      <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: `0 90px ${SAFE_BOTTOM_TEXT}px` }}>
         <div
           style={{ transform: `translateX(${x}px)`, opacity: o, fontFamily: FRAUNCES, fontWeight: 800, fontSize: 88, lineHeight: 1.12, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}
         >
           <Highlighted text={text} accent={accent} color={accentColor} />
         </div>
       </AbsoluteFill>
-      <div style={{ position: "absolute", bottom: 80, left: 90 }}>
+      <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: 90 }}>
         <Handle color={PAPER} handle={handle} />
       </div>
     </AbsoluteFill>
