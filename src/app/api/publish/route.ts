@@ -4,6 +4,7 @@ import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, tavilyCost, EST_RUN_COST } from "@/lib/spend";
 import { parseContentJson } from "@/lib/content-json";
 import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
+import { readContentCache, writeContentCache } from "@/lib/content-cache";
 import { recordRun } from "@/lib/run-ledger";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
@@ -406,7 +407,12 @@ export async function GET(req: NextRequest) {
 
     // Pesquisa: reusa a do cache (sem pagar Tavily de novo) ou busca agora.
     const searchResults = shared?.research?.length ? shared.research : await searchTopic(topic, "ig-reels");
-    const content = await generateContent(topic, searchResults, slot, lang, "ig-reels");
+    // Copy: reusa o cache por (tópico, dia, idioma) → redisparo NÃO repaga a Anthropic.
+    let content = (await readContentCache(topic, day, lang)) as GeneratedContent | null;
+    if (!content) {
+      content = await generateContent(topic, searchResults, slot, lang, "ig-reels");
+      await writeContentCache(topic, day, lang, content);
+    }
 
     // videoQueries CANÔNICOS (inglês, língua-independente): do cache (1º idioma)
     // ou os recém-gerados. Garantem o mesmo footage entre os idiomas.
@@ -507,9 +513,14 @@ export async function GET(req: NextRequest) {
           continue;
         }
 
-        // Pesquisa e geração
-        const searchResults = await searchTopic(topic, "ig-posts");
-        const content = await generateContent(topic, searchResults, slot, lang, "ig-posts");
+        // Copy: reusa o cache por (tópico, dia, idioma) → redisparo NÃO repaga
+        // Tavily+Anthropic. Só busca+gera no MISS.
+        let content = (await readContentCache(topic, dayUTC(now), lang)) as GeneratedContent | null;
+        if (!content) {
+          const searchResults = await searchTopic(topic, "ig-posts");
+          content = await generateContent(topic, searchResults, slot, lang, "ig-posts");
+          await writeContentCache(topic, dayUTC(now), lang, content);
+        }
         slotLog.title = content.postTitle;
 
         // Número de edição: total de posts já publicados + 1
