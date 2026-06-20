@@ -194,22 +194,25 @@ async function generateOnce(
   }
 }
 
-const QA_PROMPT =
-  "Eres un inspector de control de calidad ESTRICTO de ilustraciones editoriales generadas por IA. " +
-  "Examina la imagen SOLO en busca de defectos anatómicos o estructurales que avergonzarían a una revista: " +
-  "manos o dedos de más o de menos (cada mano debe tener exactamente cinco dedos), " +
-  "brazos/piernas/miembros de más, de menos o fusionados, partes del cuerpo duplicadas o deformadas, " +
-  "rostros malformados (ojos de más, rasgos derretidos), o cualquier anatomía imposible. " +
-  "IGNORA el estilo, el ánimo, la iluminación, el encuadre, el recorte y la elección del tema: juzga SOLO la corrección física. " +
-  'Responde ÚNICAMENTE con un objeto JSON: {"ok": true|false, "reason": "breve motivo"}. ' +
-  "ok debe ser false si hay CUALQUIER defecto de ese tipo visible.";
+const JUDGE_PROMPT =
+  "Eres un DIRECTOR DE ARTE ESTRICTO evaluando una ilustración editorial (estilo portada de revista literaria) generada por IA. " +
+  "RECHAZA (reject=true) si hay CUALQUIERA de estos defectos graves: " +
+  "(1) anatomía incorrecta — manos/dedos de más o de menos (cada mano exactamente cinco dedos), miembros fusionados/duplicados/deformados, rostros malformados (ojos de más, rasgos derretidos); " +
+  "(2) CUALQUIER texto, letra, palabra, número, firma, logo o marca de agua visible; " +
+  "(3) composición confusa o saturada — varias figuras amontonadas cuando debería haber UNA metáfora central clara; " +
+  "(4) tono equivocado — escena íntima/sexual/ambigua, o cualquier cosa que no parezca una portada editorial sobria. " +
+  "Si NO hay defectos graves, PUNTÚA de 0 a 10 su calidad como portada editorial: metáfora central clara, composición fuerte, luz chiaroscuro dramática, paleta sobria y refinada, espacio negativo generoso. " +
+  'Responde ÚNICAMENTE con JSON: {"score": 0-10, "reject": true|false, "reason": "breve motivo"}. ' +
+  "Si reject es true, score debe ser 0.";
 
-// Controle de qualidade por visão. Em erro de infra (API caída etc.) é
-// fail-open: aceita a imagem para não travar o pipeline (a Claude já é usada
-// antes, em generateContent — se estivesse fora, o publish nem chegaria aqui).
-async function checkAnatomy(imageUrl: string, automation: Automation): Promise<{ ok: boolean; reason: string }> {
+// Juiz de marca por visão: pontua a imagem (0-10) e REJEITA defeitos graves
+// (anatomia, texto/marca-d'água, composição confusa, tom errado). Em erro de infra
+// é fail-open SUAVE: não rejeita e dá score médio (5) — assim uma API caída não
+// blanqueia a capa, mas também não força uma escolha. Score do juiz decide o
+// best-of-N. Retorna { score, reject, reason }.
+async function judgeImage(imageUrl: string, automation: Automation): Promise<{ score: number; reject: boolean; reason: string }> {
   const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return { ok: true, reason: "QA pulado (sem ANTHROPIC_API_KEY)" };
+  if (!key) return { score: 5, reject: false, reason: "juiz pulado (sem ANTHROPIC_API_KEY)" };
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -226,23 +229,23 @@ async function checkAnatomy(imageUrl: string, automation: Automation): Promise<{
             role: "user",
             content: [
               { type: "image", source: { type: "url", url: imageUrl } },
-              { type: "text", text: QA_PROMPT },
+              { type: "text", text: JUDGE_PROMPT },
             ],
           },
         ],
       }),
     });
-    if (!res.ok) return { ok: true, reason: `QA indisponível (HTTP ${res.status}) — aceitando` };
+    if (!res.ok) return { score: 5, reject: false, reason: `juiz indisponível (HTTP ${res.status}) — aceitando` };
     const data = await res.json();
-    // Loga o gasto real do QA (tokens efetivos da resposta).
-    await logSpend({ automation, platform: "anthropic", operation: "qa-anatomy", model: QA_MODEL, units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0), costUsd: anthropicCost(QA_MODEL, data?.usage) });
+    await logSpend({ automation, platform: "anthropic", operation: "qa-judge", model: QA_MODEL, units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0), costUsd: anthropicCost(QA_MODEL, data?.usage) });
     const raw: string = data?.content?.[0]?.text ?? "";
     const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) return { ok: true, reason: `QA sem JSON ("${raw.slice(0, 80)}") — aceitando` };
-    const verdict = JSON.parse(match[0]) as { ok?: boolean; reason?: string };
-    return { ok: verdict.ok !== false, reason: verdict.reason ?? "" };
+    if (!match) return { score: 5, reject: false, reason: `juiz sem JSON ("${raw.slice(0, 80)}") — aceitando` };
+    const v = JSON.parse(match[0]) as { score?: number; reject?: boolean; reason?: string };
+    const reject = v.reject === true;
+    return { score: reject ? 0 : Math.max(0, Math.min(10, Number(v.score) || 0)), reject, reason: v.reason ?? "" };
   } catch (e) {
-    return { ok: true, reason: `QA exceção (${e instanceof Error ? e.message : String(e)}) — aceitando` };
+    return { score: 5, reject: false, reason: `juiz exceção (${e instanceof Error ? e.message : String(e)}) — aceitando` };
   }
 }
 
@@ -269,30 +272,33 @@ export async function generateIllustration(subject: string, cat: string, opts: G
   const prompt = buildPrompt(subject, accent.word, accent.hex);
   const baseSeed = seedForDay(cat, subject); // mesmo p/ ES e PT no mesmo dia
 
-  let lastErr = "";
-  let lastQa = "";
-  for (let attempt = 1; attempt <= maxTries; attempt++) {
-    // base+(attempt-1): retry de QA muda a arte, mas ES e PT batem na mesma tentativa.
-    const gen = await generateOnce(FAL_MODEL, FAL_KEY, prompt, automation, baseSeed + attempt - 1);
-    if (!gen.url) { lastErr = gen.error ?? "erro de geração"; continue; }
-    const qa = await checkAnatomy(gen.url, automation);
-    if (qa.ok) {
-      // Re-hospeda a imagem aprovada no Blob (URL rápida/permanente). Se falhar,
-      // segue com a URL original da fal — degrada ao comportamento anterior.
-      const finalUrl = (await rehostToBlob(gen.url, cat)) ?? gen.url;
-      // Só imagens aprovadas entram no cache → reuso sempre devolve imagem boa.
-      if (useCache) await writeCachedIllustration(FAL_MODEL, cat, subject, finalUrl);
-      return { url: finalUrl, model: FAL_MODEL, attempts: attempt, qaReason: qa.reason, cached: false };
-    }
-    lastQa = qa.reason;
-    lastErr = `QA reprovou na tentativa ${attempt}: ${qa.reason}`;
-    // segue o loop → regera uma composição nova
+  // BEST-OF-N: gera `maxTries` candidatos EM PARALELO (seeds base+0..N-1) e um JUIZ de
+  // marca escolhe o de MAIOR score que NÃO foi rejeitado (anatomia / texto-marca-d'água /
+  // composição confusa / tom errado). Melhor que pegar "o 1º que passa": evita publicar
+  // render fraco ou furado. ES e PT usam o mesmo baseSeed → mesmos candidatos; o cache
+  // garante a mesma escolha entre os idiomas. (Decisão travada A1b — DECISOES-TRAVADAS.md.)
+  const gens = await Promise.all(
+    Array.from({ length: maxTries }, (_, i) => generateOnce(FAL_MODEL, FAL_KEY, prompt, automation, baseSeed + i)),
+  );
+  const valid = gens.filter((g): g is { url: string } => !!g.url);
+  if (!valid.length) {
+    return { url: null, error: `nenhuma imagem gerada. Último: ${gens[gens.length - 1]?.error ?? "?"}`, model: FAL_MODEL, attempts: maxTries };
   }
-  return {
-    url: null,
-    error: `${maxTries} tentativa(s) sem imagem aprovada. Último: ${lastErr}`,
-    model: FAL_MODEL,
-    attempts: maxTries,
-    qaReason: lastQa,
-  };
+  const judged = await Promise.all(valid.map(async (g) => ({ url: g.url, v: await judgeImage(g.url, automation) })));
+  const approved = judged.filter((j) => !j.v.reject).sort((a, b) => b.v.score - a.v.score);
+  if (!approved.length) {
+    return {
+      url: null,
+      error: `${valid.length} imagem(ns) gerada(s), todas reprovadas pelo juiz`,
+      model: FAL_MODEL,
+      attempts: maxTries,
+      qaReason: judged.map((j) => j.v.reason).join(" | "),
+    };
+  }
+  const best = approved[0];
+  // Re-hospeda a melhor no Blob (URL rápida/permanente). Se falhar, segue com a da fal.
+  const finalUrl = (await rehostToBlob(best.url, cat)) ?? best.url;
+  // Só a imagem escolhida entra no cache → reuso (ES/PT, 24h) sempre devolve a melhor.
+  if (useCache) await writeCachedIllustration(FAL_MODEL, cat, subject, finalUrl);
+  return { url: finalUrl, model: FAL_MODEL, attempts: maxTries, qaReason: `melhor de ${valid.length} (score ${best.v.score}): ${best.v.reason}`, cached: false };
 }
