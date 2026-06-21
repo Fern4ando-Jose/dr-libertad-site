@@ -1,5 +1,5 @@
 // ─── Geração das trilhas do Reel — UMA FAIXA POR TEMA ─────────────────────────
-// Gera uma trilha instrumental por TEMA (os 45 de THEMES) e grava em
+// Gera uma trilha instrumental por TEMA (os 51 de THEMES) e grava em
 // public/music/bed-<NN>-<slug>.mp3, além de um public/music/manifest.json que
 // mapeia  topic → arquivo. O pipeline (pick-music.cjs) escolhe a faixa pelo TEMA
 // do post (não pelo slot/run), então cada tema tem som próprio e — como o tema
@@ -9,7 +9,7 @@
 // falta). Quando um tema repete, NADA é regenerado: o picker reusa o mp3 já
 // commitado. Use --force pra regenerar mesmo os existentes.
 //
-// FONTE ÚNICA: os 45 temas são EXTRAÍDOS de src/app/api/publish/route.ts (THEMES),
+// FONTE ÚNICA: os 51 temas são EXTRAÍDOS de src/app/api/publish/route.ts (THEMES),
 // nunca duplicados aqui — impossível dessincronizar da lista de produção.
 //
 // CAMADA: criação, AUTHOR-TIME (NÃO roda no CI). Roda na máquina do dono, committa
@@ -20,7 +20,7 @@
 //   node scripts/generate-music.mjs --list              # SÓ imprime temas+prompts (grátis)
 //   FAL_KEY=... node scripts/generate-music.mjs --only=0      # gera só o tema índice 0 (teste, ~US$0,05)
 //   FAL_KEY=... node scripts/generate-music.mjs               # gera os que FALTAM (pula existentes)
-//   FAL_KEY=... node scripts/generate-music.mjs --force       # regenera TODOS (~US$2,25)
+//   FAL_KEY=... node scripts/generate-music.mjs --force       # regenera TODOS (~US$2,55)
 //   FAL_KEY=... node scripts/generate-music.mjs --only=soledad # gera os temas cujo topic casa "soledad"
 //
 // Requer ffmpeg no PATH (transcodifica o wav da fal p/ mp3 leve no repo público).
@@ -75,6 +75,18 @@ const LEADS = [
   "felt-piano lead with airy strings",
 ];
 
+// Override de instrumentação POR TEMA (vence o LEAD rotacionado do pilar). Usado
+// p/ dar piano + violino (e harmônica/gaita-de-boca em alguns) aos 6 temas novos
+// do Pilar 2. Chave = topic exato em THEMES (route.ts).
+const LEAD_OVERRIDE = {
+  "El filtro que te vendió una belleza que no existe": "intimate solo piano lead with a singing solo violin countermelody",
+  "Cientos de likes en la foto, nadie en la vida real": "solo piano and an aching solo violin over a distant lonely harmonica",
+  "En la foto haces match; en la cita aparece otra persona": "delicate solo piano lead with a wistful solo violin",
+  "Te enamoras de una edición y cenas con la realidad": "felt solo piano lead with a tender solo violin",
+  "La ilusión de opciones infinitas te deja solo": "sparse solo piano and solo violin with a faint wandering harmonica",
+  "Pasas más tiempo eligiendo que viviendo": "minimal solo piano lead with a restless solo violin",
+};
+
 const SHARED = "purely instrumental, no vocals, no spoken word, no lyrics; cohesive brand sound, organic and analog, high production value, cinematic, loopable, suitable as a background bed";
 
 // ── Slug estável a partir do topic (acentos fora, alfanumérico → hífen) ───────
@@ -116,7 +128,7 @@ function buildSpecs() {
   return themes.map((t, i) => {
     const k = seenInPillar.get(t.pillar) ?? 0;
     seenInPillar.set(t.pillar, k + 1);
-    const lead = LEADS[k % LEADS.length];
+    const lead = LEAD_OVERRIDE[t.topic] ?? LEADS[k % LEADS.length];
     const mood = PILLAR_MOOD[t.pillar] || PILLAR_MOOD[5];
     const nn = String(i).padStart(2, "0");
     const file = `bed-${nn}-${slugify(t.topic)}.mp3`;

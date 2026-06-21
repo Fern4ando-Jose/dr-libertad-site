@@ -14,3 +14,4 @@
 - [ ] Projetos: decidir "assinatura" comum entre as duas curtas (liberdade: luta externa vs. interior)
 - [ ] Projetos: definir forma final de créditos/disclaimer por curta antes de publicar
 - [ ] Projetos: decidir se a produção reaproveita a máquina do Dr. Libertad (footage/render/voz)
+- [ ] Música (LOCAL, tem FAL_KEY): gerar as faixas dos 6 temas novos com `FAL_KEY=... node scripts/generate-music.mjs --only=18-23` e commitar mp3+manifest (~US$0,30, gasto aprovado pelo dono 2026-06-21). Piano+violino; harmônica nos índices 19 e 22. A nuvem não roda (sem FAL_KEY/ffmpeg).

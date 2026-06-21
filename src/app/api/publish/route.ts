@@ -56,6 +56,13 @@ const THEMES: Theme[] = [
   { topic: "El ghosting y el vínculo desechable", cat: "network", motif: "web", subject: "a figure holding a thread that suddenly fades into nothing" },
   { topic: "La atención como nueva moneda del amor", cat: "network", motif: "ripple", subject: "a single glowing coin engraved with an eye, balanced on a dark scale, slowly drowning under a rising tide of notification dots, no people" },
   { topic: "El amor que no resiste el aburrimiento", cat: "network", motif: "orbit", subject: "two figures drifting apart the moment the spark of novelty fades" },
+  // ── (extensão Pilar 2) Filtros, padrão de beleza inexistente e excesso de escolha ──
+  { topic: "El filtro que te vendió una belleza que no existe", cat: "network", motif: "masks", subject: "a figure admiring a flawless filtered reflection in a phone while the plain real face behind the glass sits alone in shadow" },
+  { topic: "Cientos de likes en la foto, nadie en la vida real", cat: "network", motif: "isolation", subject: "a glowing portrait surrounded by hundreds of floating like-hearts while the real person sits alone in a dark room" },
+  { topic: "En la foto haces match; en la cita aparece otra persona", cat: "network", motif: "masks", subject: "a polished filtered portrait on a phone beside the plain real face of the same person arriving at an empty restaurant table, mismatch, no flattery" },
+  { topic: "Te enamoras de una edición y cenas con la realidad", cat: "network", motif: "mirror", subject: "a figure embracing a glowing edited portrait that dissolves into an ordinary plain reflection in a mirror" },
+  { topic: "La ilusión de opciones infinitas te deja solo", cat: "network", motif: "spiral", subject: "a figure endlessly scrolling a spiral wall of identical portrait cards, unable to choose, alone in the dark" },
+  { topic: "Pasas más tiempo eligiendo que viviendo", cat: "anxiety", motif: "orbit", subject: "a paralyzed figure before an infinite shelf of glowing options, hours dissolving, nothing chosen" },
   // ── Pilar 3 — A guerra invisível do Homem (temas incômodos) ──
   { topic: "La guerra invisible del hombre", cat: "freedom", motif: "descent", subject: "a lone male figure carrying an unseen heavy weight up a grey hill" },
   { topic: "El hombre al que no se le permite llorar", cat: "self", motif: "masks", subject: "a male figure pressing a stone mask over a face about to break" },
@@ -182,7 +189,11 @@ ${SLOT_INSTRUCTIONS[slot]}
 
 REGLA DE MARCA (${acc.brand}): aborda CUALQUIER tema desde el ángulo de la ${acc.freedom.toUpperCase()} mental — recuperar el control, la atención y la autonomía frente a lo que nos esclaviza (algoritmos, validación, miedo, hábitos). El título y al menos uno de los insights deben conectar explícitamente con esa idea de ${acc.freedom}/liberación. Nada de psicología genérica: siempre remite a la marca.
 
-VOZ EDITORIAL: directa, valiente y sin miedo a la POLÉMICA. Dice verdades incómodas, desafía lo políticamente correcto y provoca debate — eso es lo que genera alcance. Defiende la libertad de expresión y el derecho a pensar distinto. PERO la provocación viene de la IDEA, nunca del odio: jamás insultes ni ataques o deshumanices a personas o grupos (por sexo, raza, orientación, etc.), ni incites violencia — eso hunde la cuenta. Incomoda con argumentos, no con desprecio.
+VOZ EDITORIAL: directa, valiente y sin miedo a la POLÉMICA — la polémica es la herramienta, no el accidente; es lo que genera alcance y debate. Dice VERDADES INCÓMODAS de forma LITERAL: nunca las suavices, relativices ni "equilibres" para hacerlas cómodas — la fuerza de la frase ES el producto. Desafía lo políticamente correcto y defiende la libertad de expresión y el derecho a pensar distinto ("tú tienes derecho a hacer lo que quieras; yo a decir lo que pienso").
+
+ALMA de la marca (impregna el TONO; no la cites literalmente): hombría — fuerza, coraje y responsabilidad, y la capacidad de amar sin anularse; rechazo a la servidumbre voluntaria y al hombre pasivo que entrega su libertad; determinación de ir hasta las últimas consecuencias por un sueño; y un sentido de la vida que solo se completa en lo compartido (nadie nació para vivir solo). Cuando el tema lo permita, mira con ojo crítico la era de las pantallas: filtros y apps venden un estándar de belleza inexistente y una ilusión de opciones infinitas que dejan a la gente más sola, no más libre.
+
+PERO la provocación viene de la IDEA, nunca del odio: atacas la idea, el sistema o el comportamiento — JAMÁS a la persona. Nunca insultes ni deshumanices a personas o grupos (por sexo, raza, orientación, etc.) ni incites violencia — eso hunde la cuenta. Incomoda con argumentos, no con desprecio.
 
 MOTOR DE ALCANCE (reglas basadas en datos reales del perfil — lo que más empuja el algoritmo es RETENCIÓN + GUARDADOS + COMPARTIDOS, hoy casi en cero):
 - GANCHO: el título y el PRIMER insight deben detener el scroll en 1-2 segundos. Háblale a "tú", abre una brecha de curiosidad o da un giro inesperado. Concreto y específico, nunca abstracto ni genérico (ej. "Revisas el móvil 144 veces al día" > "El uso del móvil es alto").
