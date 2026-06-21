@@ -56,6 +56,13 @@ const THEMES: Theme[] = [
   { topic: "El ghosting y el vínculo desechable", cat: "network", motif: "web", subject: "a figure holding a thread that suddenly fades into nothing" },
   { topic: "La atención como nueva moneda del amor", cat: "network", motif: "ripple", subject: "a single glowing coin engraved with an eye, balanced on a dark scale, slowly drowning under a rising tide of notification dots, no people" },
   { topic: "El amor que no resiste el aburrimiento", cat: "network", motif: "orbit", subject: "two figures drifting apart the moment the spark of novelty fades" },
+  // ── (extensão Pilar 2) Filtros, padrão de beleza inexistente e excesso de escolha ──
+  { topic: "El filtro que te vendió una belleza que no existe", cat: "network", motif: "masks", subject: "a figure admiring a flawless filtered reflection in a phone while the plain real face behind the glass sits alone in shadow" },
+  { topic: "Cientos de likes en la foto, nadie en la vida real", cat: "network", motif: "isolation", subject: "a glowing portrait surrounded by hundreds of floating like-hearts while the real person sits alone in a dark room" },
+  { topic: "En la foto haces match; en la cita aparece otra persona", cat: "network", motif: "masks", subject: "a polished filtered portrait on a phone beside the plain real face of the same person arriving at an empty restaurant table, mismatch, no flattery" },
+  { topic: "Te enamoras de una edición y cenas con la realidad", cat: "network", motif: "mirror", subject: "a figure embracing a glowing edited portrait that dissolves into an ordinary plain reflection in a mirror" },
+  { topic: "La ilusión de opciones infinitas te deja solo", cat: "network", motif: "spiral", subject: "a figure endlessly scrolling a spiral wall of identical portrait cards, unable to choose, alone in the dark" },
+  { topic: "Pasas más tiempo eligiendo que viviendo", cat: "anxiety", motif: "orbit", subject: "a paralyzed figure before an infinite shelf of glowing options, hours dissolving, nothing chosen" },
   // ── Pilar 3 — A guerra invisível do Homem (temas incômodos) ──
   { topic: "La guerra invisible del hombre", cat: "freedom", motif: "descent", subject: "a lone male figure carrying an unseen heavy weight up a grey hill" },
   { topic: "El hombre al que no se le permite llorar", cat: "self", motif: "masks", subject: "a male figure pressing a stone mask over a face about to break" },

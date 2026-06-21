@@ -84,11 +84,25 @@
 ### B1. Linha editorial / voz
 - **Estado atual:** provocativa, 5 pilares, polêmica como ferramenta; **guarda única =
   não-ódio** (sobrevivência da conta). Já INVIOLÁVEL no `CLAUDE.md`.
-- **Decisão:** ⬜ A DEFINIR (confirmar trava)
+- **Decisão:** 🔒 **Fonte única da VOZ = [`LINHA-EDITORIAL.md`](LINHA-EDITORIAL.md)**
+  (definida com o dono em 2026-06-21). Captura: fundamentos/cânone (Coração Valente,
+  Servidão Voluntária, Fernão Capelo Gaivota, O Pequeno Príncipe, Na Natureza Selvagem),
+  convicções, **críticas centrais** (filtros → padrão de beleza inexistente / o encontro
+  que não bate com a foto; excesso de escolha → geração indecisa) e as **verdades
+  incômodas literais**. Postura anti-PC **implícita** (não nomear feminismo/woke/LGBT no
+  doc — escolha do dono). Frase-âncora canônica = *"o homem não precisa ser amado…"* (a
+  branda). Vale pro IG **e** pros projetos novos (curtas).
+  - ⬜ **PENDENTE (aprovação separada):** refletir esta linha na `VOZ EDITORIAL` do prompt
+    de `generateContent` (`api/publish/route.ts`). O dono quer ver a redação do prompt e
+    aprovar antes de mexer na automação.
 
 ### B2. Temas
-- **Estado atual:** **45 temas** em `THEMES` (fonte única).
-- **Decisão:** ⬜ A DEFINIR
+- **Estado atual:** 🔒 **51 temas** em `THEMES` (fonte única). +6 adicionados em 2026-06-21
+  (extensão do Pilar 2): filtros/padrão de beleza inexistente, match ≠ foto do Tinder, e
+  excesso de escolha. `cat`/`motif` já válidos em `/api/og`.
+  - ⚠️ **Música:** os 6 temas novos ainda **não têm faixa própria** (fail-open → rotação
+    legado). Gerar com `generate-music.mjs` custa ~US$0,05/tema (~US$0,30) na fal —
+    **só com OK de gasto do dono**.
 
 ### B3. CTA da legenda
 - **Estado atual:** objetivo = **seguidores**; legenda fecha com CTA de SEGUIR (PR #39).
