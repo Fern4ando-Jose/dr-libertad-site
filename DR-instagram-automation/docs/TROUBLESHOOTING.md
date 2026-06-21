@@ -18,7 +18,7 @@ Registro de problemas encontrados e como foram resolvidos.
 5. Faça um **Redeploy** no Vercel
 6. Rode o migrate para gravar o token no banco:
 ```powershell
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/migrate" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/migrate" -Headers @{ Authorization = "Bearer <CRON_SECRET>" } -UseBasicParsing | Select-Object -ExpandProperty Content
 ```
 
 > **A partir de agora:** o cron `/api/refresh-token` roda todo dia 1 do mês e renova automaticamente. Renovação manual só necessária se o token já tiver expirado.
@@ -31,7 +31,7 @@ Cron mensal automático — dia 1 de cada mês às 10h UTC.
 
 **Para forçar renovação manual:**
 ```powershell
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/refresh-token" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/refresh-token" -Headers @{ Authorization = "Bearer <CRON_SECRET>" } -UseBasicParsing | Select-Object -ExpandProperty Content
 ```
 
 **Requer no Vercel:**
@@ -44,16 +44,16 @@ Invoke-WebRequest -Uri "https://www.drlibertad.com/api/refresh-token" -Headers @
 
 ```powershell
 # Manhã
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha" -Headers @{ Authorization = "Bearer <CRON_SECRET>" } -UseBasicParsing | Select-Object -ExpandProperty Content
 
 # Tarde
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=tarde" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=tarde" -Headers @{ Authorization = "Bearer <CRON_SECRET>" } -UseBasicParsing | Select-Object -ExpandProperty Content
 
 # Noite
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=noite" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=noite" -Headers @{ Authorization = "Bearer <CRON_SECRET>" } -UseBasicParsing | Select-Object -ExpandProperty Content
 
 # Com tema específico
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha&topic=libertad+mental" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha&topic=libertad+mental" -Headers @{ Authorization = "Bearer <CRON_SECRET>" } -UseBasicParsing | Select-Object -ExpandProperty Content
 ```
 
 ---
@@ -63,7 +63,7 @@ Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha&topic=
 **Quando rodar:** após renovar token manualmente, ou se aparecer erro de coluna inexistente.
 
 ```powershell
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/migrate" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" } -UseBasicParsing | Select-Object -ExpandProperty Content
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/migrate" -Headers @{ Authorization = "Bearer <CRON_SECRET>" } -UseBasicParsing | Select-Object -ExpandProperty Content
 ```
 
 **Tabelas:**
@@ -149,7 +149,7 @@ Editar `vercel.json` e fazer push.
 
 ## 🔒 CRON_SECRET
 
-Valor: `bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1`
+Valor: guardado no cofre (Vercel/GitHub Secrets) — **NUNCA** colar o valor real aqui (repo público). Use o placeholder `<CRON_SECRET>` nos exemplos.
 
 Para gerar um novo:
 ```powershell

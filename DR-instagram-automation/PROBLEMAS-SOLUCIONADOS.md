@@ -59,16 +59,16 @@ Header: Authorization: Bearer {CRON_SECRET}
 
 ## 🔒 CRON_SECRET
 
-Valor atual: `bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1`
+Valor: guardado no cofre (Vercel/GitHub Secrets) — **NUNCA** colar o valor real aqui (repo público). Use o placeholder `<CRON_SECRET>` nos exemplos.
 
 **Chamada manual correta (PowerShell):**
 ```powershell
-Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha&topic=seu+tema" -Headers @{ Authorization = "Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" }
+Invoke-WebRequest -Uri "https://www.drlibertad.com/api/publish?slot=manha&topic=seu+tema" -Headers @{ Authorization = "Bearer <CRON_SECRET>" }
 ```
 
 **Chamada manual correta (cmd.exe):**
 ```cmd
-curl -H "Authorization: Bearer bad6e4fd26f990aadc4babed1210a9cea626eeb1c28390db6f06148196014ed1" "https://www.drlibertad.com/api/publish?slot=manha&topic=seu+tema"
+curl -H "Authorization: Bearer <CRON_SECRET>" "https://www.drlibertad.com/api/publish?slot=manha&topic=seu+tema"
 ```
 
 ---
