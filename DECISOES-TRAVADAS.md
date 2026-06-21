@@ -60,8 +60,12 @@
     linha editorial → tratada no B1, não aqui.
 
 ### A4. Posição do texto nos Reels (footage + clássico)
-- **Estado atual:** texto na **zona segura 4:5 do feed** pra não cortar (PR #40/#41).
-- **Decisão:** ⬜ A DEFINIR
+- **Decisão:** 🔒 **Texto SEMPRE na zona segura do recorte 4:5 do feed — nunca cortar.**
+  O IG mostra o Reel 9:16 como recorte 4:5 centralizado no feed; texto fora dessa faixa
+  é cortado. Implementado em `video/Reel.tsx`/`ReelClassic.tsx` (constantes `SAFE_TOP`/
+  `SAFE_BOTTOM_*`, PRs #40/#41) e **validado no render real do A3** (2026-06-21): gancho
+  e handle dentro da zona segura, sem corte. Aprovado pelo dono em 2026-06-21.
+  - Tema/copy podem mudar; a **regra de zona segura é fixa** — todo texto novo respeita.
 
 ### A5. Reel CLÁSSICO (slide animado)
 - **Estado atual:** formato mantido; **ilustração de fundo** na capa, com **3 tentativas**
@@ -162,3 +166,5 @@
   `video/Reel.tsx` (timing do `CoverText`). Une A3 ao #2 (gancho) — maior alavanca p/ 100k.
   O teste também destravou um bug: GitHub Secret `CRON_SECRET` dessincronizado pós-rotação
   (workflows de publicação caíam em 401) — re-sincronizado via `gh secret set`.
+- **2026-06-21 · A4 TRAVADO** — texto dos Reels sempre na zona segura 4:5 do feed (nunca
+  cortar). Já implementado (PRs #40/#41) e validado no render real do A3. Só formalizado 🔒.
