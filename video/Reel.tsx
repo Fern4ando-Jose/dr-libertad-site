@@ -258,9 +258,15 @@ function Scene({
 function CoverText({ title, ed, accent, brand, handle }: { title: string; ed: string; accent: string; brand: string; handle: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 28 });
-  const y = interpolate(entry, [0, 1], [60, 0]);
-  const o = interpolate(entry, [0, 1], [0, 1]);
+  // A3 = Opção A — o GANCHO é o scroll-stopper. Em vez de esmaecer por ~1s (metade
+  // do público já saiu nos 3s iniciais), ele entra FORTE e quase IMEDIATO: cheio em
+  // ~0,2s, com um "assentamento" rápido. Frame 0 segue com opacidade 0 → a CAPA do
+  // grid continua só footage (preferência do dono); o ganho é no PLAY, na janela
+  // crítica dos 3s. (Pesquisa: retenção de 3s > 60% = 5-10× mais alcance.)
+  const o = interpolate(frame, [2, 7], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const settle = spring({ frame, fps, config: { damping: 200, stiffness: 240 }, durationInFrames: 12 });
+  const y = interpolate(settle, [0, 1], [28, 0]);
+  const scale = interpolate(settle, [0, 1], [1.04, 1]);
   return (
     <AbsoluteFill>
       <div
@@ -269,7 +275,7 @@ function CoverText({ title, ed, accent, brand, handle }: { title: string; ed: st
         {brand.toUpperCase()} · Nº {ed}
       </div>
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: `0 90px ${SAFE_BOTTOM_TEXT}px` }}>
-        <div style={{ transform: `translateY(${y}px)`, opacity: o }}>
+        <div style={{ transform: `translateY(${y}px) scale(${scale})`, transformOrigin: "left bottom", opacity: o }}>
           <div style={{ width: 110, height: 8, backgroundColor: accent, marginBottom: 40, borderRadius: 4 }} />
           <div
             style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 100, lineHeight: 1.05, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}

@@ -46,9 +46,18 @@
   motivo (rede de segurança). ES/PT compartilham via cache. Custo ~3× geração (~US$0,10/tema,
   1×/dia, cacheado). **Continua 100% automático** (sem aprovação manual por post).
 
-### A3. Capa do REEL de footage — com ou sem título?
-- **Estado atual:** **SEM título** (frame 0 limpo, só footage) — a pedido do dono.
-- **Decisão:** ⬜ A DEFINIR
+### A3. Capa do REEL de footage / gancho no início
+- **Decisão:** 🔒 **Opção A — o GANCHO entra FORTE no início do vídeo (~0,2s), o frame 0
+  (capa do grid) segue LIMPO (só footage).** Aprovado pelo dono em 2026-06-21 após ver o
+  **render real no CI** (não publicado). O título da capa esmaecia por ~1s (no play o
+  gancho só ficava forte perto de 1s, FORA da janela crítica dos 3s onde ~50% sai); agora
+  entra cheio em ~0,2s com assentamento rápido. **Frame 0 mantém opacity 0 → grid limpo**
+  (preferência do dono [[reel-cover-no-title]] preservada). Implementado em `video/Reel.tsx`
+  (timing do `CoverText`). **Racional:** retenção de 3s > 60% = 5-10× alcance — maior
+  alavanca p/ a meta de 100k. **Une A3 ao item #2 (gancho).** Frame de referência aprovado:
+  "Tu cerebro vende tu libertad por un like" (run 2, 2026-06-21).
+  - **NÃO mexer no fundo/footage nem na posição** (só o timing do gancho). A FRASE em si é
+    linha editorial → tratada no B1, não aqui.
 
 ### A4. Posição do texto nos Reels (footage + clássico)
 - **Estado atual:** texto na **zona segura 4:5 do feed** pra não cortar (PR #40/#41).
@@ -148,3 +157,8 @@
   → `/api/catchup` a cada 15min (PR #46, validado 200 OK). Na montagem, o `CRON_SECRET`
   exposto em docs do repo público foi reativado por engano → **rotação fresca** + limpeza
   das docs (**PR #47**). Resolve a parte operacional de D2 (falta só formalizar o item D2).
+- **2026-06-21 · A3 TRAVADO + EXECUTADO** — Reel abre com o GANCHO forte em ~0,2s; frame 0
+  (capa do grid) segue limpo. Aprovado pelo dono após **render real no CI** (não publicado).
+  `video/Reel.tsx` (timing do `CoverText`). Une A3 ao #2 (gancho) — maior alavanca p/ 100k.
+  O teste também destravou um bug: GitHub Secret `CRON_SECRET` dessincronizado pós-rotação
+  (workflows de publicação caíam em 401) — re-sincronizado via `gh secret set`.
