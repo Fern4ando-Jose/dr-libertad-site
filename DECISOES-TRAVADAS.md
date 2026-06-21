@@ -92,9 +92,11 @@
   incômodas literais**. Postura anti-PC **implícita** (não nomear feminismo/woke/LGBT no
   doc — escolha do dono). Frase-âncora canônica = *"o homem não precisa ser amado…"* (a
   branda). Vale pro IG **e** pros projetos novos (curtas).
-  - ⬜ **PENDENTE (aprovação separada):** refletir esta linha na `VOZ EDITORIAL` do prompt
-    de `generateContent` (`api/publish/route.ts`). O dono quer ver a redação do prompt e
-    aprovar antes de mexer na automação.
+  - ✅ **VOZ EDITORIAL do prompt atualizada** (2026-06-21, aprovada pelo dono): régua de
+    literalidade ("nunca suavizar; a força da frase é o produto"), ALMA da marca
+    (hombridade, contra a servidão voluntária, últimas consequências, sentido no
+    compartilhar, crítica às telas/filtros/excesso de escolha) e guarda "atacar a ideia,
+    nunca a pessoa". Base ES; PT segue regerado pelo `marketBrief`.
 
 ### B2. Temas
 - **Estado atual:** 🔒 **51 temas** em `THEMES` (fonte única). +6 adicionados em 2026-06-21
