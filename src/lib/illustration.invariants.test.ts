@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { seedForDay, cacheKey, falRequestBody } from "./illustration";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,5 +55,34 @@ describe("cache da ilustração é compartilhado entre idiomas", () => {
     const k = cacheKey("fal-ai/flux/dev", "freedom", "subject");
     expect(k).toBe("fal-ai/flux/dev|freedom|subject");
     expect(k).not.toMatch(/\b(es|pt|lang)\b/);
+  });
+});
+
+// COMPORTAMENTAL — o fix da CORRIDA ES/PT: havendo a ilustração do dia no cache,
+// o 2º idioma REUSA e NUNCA chama a fal (senão paga 2×, que era o bug de custo).
+describe("cache HIT reusa e NÃO repaga a fal (anti-corrida ES/PT)", () => {
+  beforeEach(() => {
+    process.env.FAL_KEY = "test-key";
+    vi.resetModules();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("com ilustração cacheada do dia, REUSA e nunca chama fal.run", async () => {
+    const CACHED = "https://blob.test/cover.jpg";
+    vi.doMock("@vercel/postgres", () => ({ sql: async () => ({ rows: [{ url: CACHED }] }) }));
+    const fetched: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (u: unknown) => {
+      fetched.push(String(u));
+      return { ok: true, status: 200, text: async () => "", json: async () => ({}) } as unknown as Response;
+    }));
+    const { generateIllustration } = await import("./illustration");
+    const res = await generateIllustration("uma corrente que se rompe", "freedom", { useCache: true, automation: "ig-posts" });
+    expect(res.cached).toBe(true);
+    expect(res.url).toBe(CACHED);
+    // o 2º idioma NÃO pode ter chamado a fal (seria pagar de novo)
+    expect(fetched.some((u) => u.includes("fal.run"))).toBe(false);
   });
 });

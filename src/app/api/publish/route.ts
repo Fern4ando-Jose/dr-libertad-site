@@ -449,7 +449,7 @@ export async function GET(req: NextRequest) {
     let illustrationUrl: string | null = null;
     let illustrationError: string | null = null;
     if (sp.get("illus") === "1") {
-      const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { maxTries: 3, automation: "ig-reels" });
+      const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { maxTries: 3, automation: "ig-reels", meta: { topic, lang } });
       illustrationUrl = ill.url ?? null;
       illustrationError = ill.error ?? null;
     }
@@ -552,7 +552,7 @@ export async function GET(req: NextRequest) {
         // og cai no MOTIVO abstrato como REDE DE SEGURANÇA (nunca publica defeito).
         // [Histórico: o PR #33 pôs o motivo por padrão por um mal-entendido de "motivo";
         //  o dono confirmou (2026-06-19) que "o motivo de ontem" = ESTAS ilustrações. Revertido.]
-        const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { automation: "ig-posts" });
+        const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { automation: "ig-posts", meta: { topic, lang } });
         slotLog.illustration = ill.url ? "ia" : `fallback: ${ill.error ?? "?"}`;
         const imgParam = ill.url ? `&img=${encodeURIComponent(ill.url)}` : "";
 

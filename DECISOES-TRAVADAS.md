@@ -118,9 +118,17 @@
 ## E. CUSTO
 
 ### E1. Tetos de orçamento
-- **Estado atual:** `ig-reels` = **US$0,50**; `ig-posts` ≈ US$0,45. Toda chamada paga
-  (fal/Anthropic) precisa de OK antes.
-- **Decisão:** ⬜ A DEFINIR
+- **Estado atual:** tetos `ig-reels` = US$0,50 · `ig-posts` ≈ US$0,45 (config no DB).
+- **GASTO REAL medido (spend_log, 2026-06-21)** — média dos últimos 4 dias cheios
+  ≈ **US$0,61/dia no total**. Por automação: `ig-reels` ~$0,19–0,44/dia (abaixo do
+  $0,50); `ig-posts` ~$0,10–0,43/dia — **encostando** no teto $0,45 nos dias com
+  ilustração (18/jun $0,435; 20/jun $0,418). **NÃO está "bem abaixo"** (correção de uma
+  afirmação errada minha anterior).
+- **Drivers:** ilustração `flux/dev` best-of-3 (~$0,42/dia, maior ralo — decisão A1b),
+  content/haiku (caiu p/ ~$0,17 com o cache PR #45), qa-judge sonnet (~$0,11), search
+  Tavily (~$0,10). Footage e render = grátis.
+- **Decisão:** ⬜ A DEFINIR pelo dono com os números na mão — manter $0,50/$0,45 (sabendo
+  que `ig-posts` quase não tem folga) ou ajustar? Regra "aprovar gasto antes" mantida.
 
 ---
 
@@ -132,3 +140,11 @@
 - **2026-06-19 · A1b TRAVADO + EXECUTADO** — best-of-3 + juiz de marca (**PR #43**, deploy
   verde). Escolhe a melhor de 3 e barra anatomia/texto/composição-confusa/tom-errado.
   Aprovado pelo dono ("finaliza com o (1)").
+- **2026-06-21 · E1 reaberto com DADOS** — medi o `spend_log`: gasto real ≈ $0,61/dia
+  (não "bem abaixo" como eu tinha afirmado errado). `ig-posts` encosta no teto $0,45 nos
+  dias de ilustração. Tetos $0,50/$0,45 seguem no DB; falta o dono decidir se mantém ou
+  ajusta com os números na mão. Maior ralo = best-of-3 da ilustração (A1b).
+- **2026-06-21 · Agendador externo (opção B) no ar + 🔐 incidente CRON_SECRET** — cron-job.org
+  → `/api/catchup` a cada 15min (PR #46, validado 200 OK). Na montagem, o `CRON_SECRET`
+  exposto em docs do repo público foi reativado por engano → **rotação fresca** + limpeza
+  das docs (**PR #47**). Resolve a parte operacional de D2 (falta só formalizar o item D2).

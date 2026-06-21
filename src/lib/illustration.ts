@@ -49,6 +49,7 @@ export interface GenerateOpts {
   maxTries?: number;        // tentativas no loop de QA (publish=3; dryrun/preview=1)
   useCache?: boolean;       // reusar a ilustração aprovada do dia (default: true)
   automation?: Automation;  // a quem atribuir o gasto no spend_log (default: "manual")
+  meta?: Record<string, unknown>; // contexto p/ o spend_log (ex.: { topic, lang }) — observabilidade
 }
 
 const MAX_TRIES = 3;        // gera no máx. 3 vezes tentando passar no QA
@@ -98,7 +99,7 @@ async function readCachedIllustration(model: string, cat: string, subject: strin
     const key = cacheKey(model, cat, subject);
     const rows = await sql<{ url: string }>`
       SELECT url FROM illustration_cache
-      WHERE cache_key = ${key} AND created_at > NOW() - INTERVAL '24 hours'
+      WHERE cache_key = ${key} AND url <> 'PENDING' AND created_at > NOW() - INTERVAL '24 hours'
       LIMIT 1
     `;
     const url = rows.rows[0]?.url;
@@ -159,6 +160,57 @@ async function writeCachedIllustration(model: string, cat: string, subject: stri
   } catch { /* cache é best-effort — nunca quebra o pipeline */ }
 }
 
+// ─── Serialização ES/PT (eleição de líder) ───────────────────────────────────
+// ES e PT do MESMO (cat,subject,dia) rodam em jobs CONCORRENTES. Sem trava, os
+// dois liam o cache vazio ao mesmo tempo e geravam → pagavam a fal 2× (e com o
+// best-of-3, 6 imagens em vez de 3). Aqui um "líder" REIVINDICA a chave (linha
+// sentinela `url='PENDING'`); o "seguidor" ESPERA o líder gravar a URL real e a
+// REUSA (gasto fal = 0). Atômico via INSERT … ON CONFLICT — só 1 líder por chave.
+// TUDO fail-open: erro de banco → cada um gera (como antes), nunca bloqueia o post.
+const PENDING = "PENDING";
+
+// Tenta virar líder da geração desta chave. true = você gera; false = outro já
+// está gerando (você é seguidor → espere e reuse). Rouba a vaga se o PENDING
+// estiver velho (>4min, líder caiu) ou se a entrada expirou (>24h, virada do dia).
+async function claimIllustrationLeadership(key: string, subject: string, cat: string, model: string): Promise<boolean> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql`
+      INSERT INTO illustration_cache (cache_key, url, subject, cat, model, created_at)
+      VALUES (${key}, ${PENDING}, ${subject}, ${cat}, ${model}, NOW())
+      ON CONFLICT (cache_key) DO UPDATE
+        SET url = ${PENDING}, subject = ${subject}, cat = ${cat}, model = ${model}, created_at = NOW()
+        WHERE (illustration_cache.url = ${PENDING} AND illustration_cache.created_at < NOW() - INTERVAL '4 minutes')
+           OR illustration_cache.created_at < NOW() - INTERVAL '24 hours'
+      RETURNING cache_key
+    `;
+    return r.rows.length > 0; // linha devolvida = inserimos OU roubamos a vaga → somos líder
+  } catch {
+    return true; // sem banco → cada um gera (fail-open, comportamento antigo)
+  }
+}
+
+// Limpa a reivindicação PENDING (líder NÃO conseguiu gerar) — pra não travar 24h.
+async function clearIllustrationClaim(key: string): Promise<void> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    await sql`DELETE FROM illustration_cache WHERE cache_key = ${key} AND url = ${PENDING}`;
+  } catch { /* best-effort */ }
+}
+
+// Seguidor: espera o líder gravar a URL real (até ~maxMs) e a reusa. null se o
+// líder não entregou a tempo (aí o seguidor gera por conta — raro, fail-open).
+async function waitForCachedIllustration(model: string, cat: string, subject: string, maxMs: number): Promise<string | null> {
+  const stepMs = 5000;
+  const deadline = Date.now() + maxMs;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, stepMs));
+    const url = await readCachedIllustration(model, cat, subject);
+    if (url) return url;
+  }
+  return null;
+}
+
 // Gera UMA imagem no fal e confirma que a URL responde. Sem QA aqui.
 // Loga o gasto na fal assim que a imagem é gerada (a fal cobra na geração).
 async function generateOnce(
@@ -167,6 +219,7 @@ async function generateOnce(
   prompt: string,
   automation: Automation,
   seed: number,
+  meta?: Record<string, unknown>,
 ): Promise<{ url: string | null; error?: string }> {
   try {
     const res = await fetch(`https://fal.run/${model}`, {
@@ -181,7 +234,7 @@ async function generateOnce(
     const data = await res.json();
     const url: string | undefined = data?.images?.[0]?.url;
     // Imagem gerada → fal cobrou. Loga independentemente do QA aprovar depois.
-    await logSpend({ automation, platform: "fal", operation: "illustration", model, units: 1, costUsd: falCost(model) });
+    await logSpend({ automation, platform: "fal", operation: "illustration", model, units: 1, costUsd: falCost(model), meta: { ...meta, seed } });
     if (!url) return { url: null, error: `fal resposta sem images[0].url: ${JSON.stringify(data).slice(0, 220)}` };
     let check: Response | null = null;
     try { check = await fetch(url, { method: "GET" }); } catch (e) {
@@ -210,7 +263,7 @@ const JUDGE_PROMPT =
 // é fail-open SUAVE: não rejeita e dá score médio (5) — assim uma API caída não
 // blanqueia a capa, mas também não força uma escolha. Score do juiz decide o
 // best-of-N. Retorna { score, reject, reason }.
-async function judgeImage(imageUrl: string, automation: Automation): Promise<{ score: number; reject: boolean; reason: string }> {
+async function judgeImage(imageUrl: string, automation: Automation, meta?: Record<string, unknown>): Promise<{ score: number; reject: boolean; reason: string }> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return { score: 5, reject: false, reason: "juiz pulado (sem ANTHROPIC_API_KEY)" };
   try {
@@ -237,7 +290,7 @@ async function judgeImage(imageUrl: string, automation: Automation): Promise<{ s
     });
     if (!res.ok) return { score: 5, reject: false, reason: `juiz indisponível (HTTP ${res.status}) — aceitando` };
     const data = await res.json();
-    await logSpend({ automation, platform: "anthropic", operation: "qa-judge", model: QA_MODEL, units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0), costUsd: anthropicCost(QA_MODEL, data?.usage) });
+    await logSpend({ automation, platform: "anthropic", operation: "qa-judge", model: QA_MODEL, units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0), costUsd: anthropicCost(QA_MODEL, data?.usage), meta });
     const raw: string = data?.content?.[0]?.text ?? "";
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) return { score: 5, reject: false, reason: `juiz sem JSON ("${raw.slice(0, 80)}") — aceitando` };
@@ -270,7 +323,23 @@ export async function generateIllustration(subject: string, cat: string, opts: G
 
   const accent = ACCENTS[cat] ?? ACCENTS.freedom;
   const prompt = buildPrompt(subject, accent.word, accent.hex);
-  const baseSeed = seedForDay(cat, subject); // mesmo p/ ES e PT no mesmo dia
+  const day = new Date().toISOString().slice(0, 10); // UTC
+  const baseSeed = seedForDay(cat, subject, day); // mesmo p/ ES e PT no mesmo dia
+  const key = cacheKey(FAL_MODEL, cat, subject);
+  // meta p/ o spend_log (antes era {} → gasto cego). cat/subject/dia identificam a capa;
+  // a rota injeta lang/topic via opts.meta. Útil pra auditar custo por tema/idioma.
+  const meta = { cat, subject, day, ...(opts.meta ?? {}) };
+
+  // Serialização ES/PT: um gera, o outro reusa. Só no caminho com cache (publish).
+  // Sem isso, ES e PT do mesmo dia geram em paralelo e pagam 2× (bug de custo).
+  if (useCache) {
+    const isLeader = await claimIllustrationLeadership(key, subject, cat, FAL_MODEL);
+    if (!isLeader) {
+      const waited = await waitForCachedIllustration(FAL_MODEL, cat, subject, 120_000);
+      if (waited) return { url: waited, model: FAL_MODEL, attempts: 0, qaReason: "reuso (o outro idioma gerou)", cached: true };
+      // líder não entregou a tempo (raro) → segue e gera por conta (fail-open)
+    }
+  }
 
   // BEST-OF-N: gera `maxTries` candidatos EM PARALELO (seeds base+0..N-1) e um JUIZ de
   // marca escolhe o de MAIOR score que NÃO foi rejeitado (anatomia / texto-marca-d'água /
@@ -278,15 +347,17 @@ export async function generateIllustration(subject: string, cat: string, opts: G
   // render fraco ou furado. ES e PT usam o mesmo baseSeed → mesmos candidatos; o cache
   // garante a mesma escolha entre os idiomas. (Decisão travada A1b — DECISOES-TRAVADAS.md.)
   const gens = await Promise.all(
-    Array.from({ length: maxTries }, (_, i) => generateOnce(FAL_MODEL, FAL_KEY, prompt, automation, baseSeed + i)),
+    Array.from({ length: maxTries }, (_, i) => generateOnce(FAL_MODEL, FAL_KEY, prompt, automation, baseSeed + i, meta)),
   );
   const valid = gens.filter((g): g is { url: string } => !!g.url);
   if (!valid.length) {
+    if (useCache) await clearIllustrationClaim(key); // libera a vaga p/ não travar 24h
     return { url: null, error: `nenhuma imagem gerada. Último: ${gens[gens.length - 1]?.error ?? "?"}`, model: FAL_MODEL, attempts: maxTries };
   }
-  const judged = await Promise.all(valid.map(async (g) => ({ url: g.url, v: await judgeImage(g.url, automation) })));
+  const judged = await Promise.all(valid.map(async (g) => ({ url: g.url, v: await judgeImage(g.url, automation, meta) })));
   const approved = judged.filter((j) => !j.v.reject).sort((a, b) => b.v.score - a.v.score);
   if (!approved.length) {
+    if (useCache) await clearIllustrationClaim(key); // libera a vaga p/ não travar 24h
     return {
       url: null,
       error: `${valid.length} imagem(ns) gerada(s), todas reprovadas pelo juiz`,
@@ -299,6 +370,7 @@ export async function generateIllustration(subject: string, cat: string, opts: G
   // Re-hospeda a melhor no Blob (URL rápida/permanente). Se falhar, segue com a da fal.
   const finalUrl = (await rehostToBlob(best.url, cat)) ?? best.url;
   // Só a imagem escolhida entra no cache → reuso (ES/PT, 24h) sempre devolve a melhor.
+  // Isto também SUBSTITUI a linha-sentinela PENDING pela URL real (libera os seguidores).
   if (useCache) await writeCachedIllustration(FAL_MODEL, cat, subject, finalUrl);
   return { url: finalUrl, model: FAL_MODEL, attempts: maxTries, qaReason: `melhor de ${valid.length} (score ${best.v.score}): ${best.v.reason}`, cached: false };
 }
