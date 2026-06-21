@@ -6,9 +6,15 @@ Claude; mídia é renderizada e publicada via GitHub Actions.
 
 ## Linha editorial (princípios do dono — INVIOLÁVEL)
 
+> **Fonte única da VOZ:** [`LINHA-EDITORIAL.md`](LINHA-EDITORIAL.md) — fundamentos (o
+> cânone: Coração Valente, Servidão Voluntária, Fernão Capelo Gaivota, O Pequeno
+> Príncipe, Na Natureza Selvagem), convicções, críticas centrais (filtros/padrão de
+> beleza inexistente, excesso de escolha) e as verdades incômodas literais. Vale para o
+> IG **e** para os projetos novos (curtas). Esta seção é o resumo operacional.
+
 A marca **acredita na liberdade de expressão e NÃO teme a polêmica — ao contrário,
 a polêmica é uma ferramenta** (é o que gera alcance/debate). A voz é direta, corajosa,
-diz verdades incômodas e desafia o politicamente correto. Os **45 temas** (fonte única
+diz verdades incômodas e desafia o politicamente correto. Os **51 temas** (fonte única
 `THEMES` em `api/publish/route.ts`) giram em **5 pilares**:
 
 1. **Dopamina e seus seguimentos** (recompensa imediata, vício, hiperestimulação, porn/cérebro, detox).
@@ -47,10 +53,10 @@ A fonte de **visualização é ÚNICA** e fica na máquina do dono: `D:\Claude\.
 - **Aprovar gasto antes de executar.** Toda chamada a API **paga** (fal, Anthropic)
   exige mostrar o custo estimado e ter OK do usuário antes. Footage Pexels e render
   no CI são grátis. Ver `cost-governance` / `approve-spend-before-executing`.
-- **Temas em FONTE ÚNICA `THEMES` (`api/publish/route.ts`)**: cada entrada tem `topic`+`cat`+`motif`+`subject`; `TOPICS`/`TOPIC_CAT`/`TOPIC_MOTIF`/`TOPIC_SUBJECT` são DERIVADOS (impossível dessincronizar). `cat`/`motif` **DEVEM** existir em `CATS`/`MOTIF_IDS` de `api/og/route.tsx` — tema novo = usar cat/motif válidos (ou adicionar lá primeiro). Hoje são **45 temas** (5 pilares da Linha editorial).
+- **Temas em FONTE ÚNICA `THEMES` (`api/publish/route.ts`)**: cada entrada tem `topic`+`cat`+`motif`+`subject`; `TOPICS`/`TOPIC_CAT`/`TOPIC_MOTIF`/`TOPIC_SUBJECT` são DERIVADOS (impossível dessincronizar). `cat`/`motif` **DEVEM** existir em `CATS`/`MOTIF_IDS` de `api/og/route.tsx` — tema novo = usar cat/motif válidos (ou adicionar lá primeiro). Hoje são **51 temas** (5 pilares da Linha editorial).
 - **Fonte: só Fraunces 700** embutida (não adicionar pesos — incha o bundle edge).
 - **CSS satori-safe** em `/api/og` (flexbox em todo elemento multi-filho; CSS não suportado → 500).
-- **Trava anti-dup: 7 dias POR CONTA** (`topic`+`lang`, coluna `posts.lang`). ES e PT **não se bloqueiam**. Pool de 45 temas a 6/dia → cada tema reaparece a cada ~8 dias, então a janela de 7d não auto-bloqueia. **`force=1`** em `/api/publish` burla a trava (republicar/backfill).
+- **Trava anti-dup: 7 dias POR CONTA** (`topic`+`lang`, coluna `posts.lang`). ES e PT **não se bloqueiam**. Pool de 51 temas a 6/dia → cada tema reaparece a cada ~8-9 dias, então a janela de 7d não auto-bloqueia. **`force=1`** em `/api/publish` burla a trava (republicar/backfill).
 - **Agendamento no GitHub Actions**, não no Vercel (limite de cron do Hobby). Não recriar crons no `vercel.json`. O scheduler do GitHub atrasa/derruba crons → **`catchup.yml`** (de hora em hora) consulta `/api/runs-status` e **redispara só os runs faltantes do dia**. Idempotente: carrossel trava por (tópico,conta,7d); reel por (dia,run,conta) no livro-razão `published_runs` (`src/lib/run-ledger.ts`). Reel publicado registra `run` (workflows passam `run` ao `/api/publish-reel`).
 - Antes de valer em produção: confirmar **deploy Vercel verde** no commit.
 - **Não desestabilizar a automação** num experimento de criação; mudança de criação
@@ -79,7 +85,7 @@ na **Pexels** se a API não trouxe `clips`) → `scripts/render-reel.mjs` (Remot
 `scripts/upload-blob.mjs` (Vercel Blob) → `/api/publish-reel` (Graph API).
 Fundo = footage real + **grade da marca** + **música** (opcional). **Uma faixa por
 TEMA**: `scripts/generate-music.mjs` gera (author-time, fal, ~US$0,05/tema) `public/music/bed-<NN>-<slug>.mp3`
-+ `manifest.json` (`topic`→arquivo) lendo os 45 temas de `THEMES`; `pick-music.cjs`
++ `manifest.json` (`topic`→arquivo) lendo os 51 temas de `THEMES`; `pick-music.cjs`
 escolhe pelo `topic` do post (não pelo slot). Reuso pra sempre (tema repetido = mesmo
 arquivo; CI não gera). Fail-open: sem faixa do tema → rotação legado `bed-N` → mudo.
 ES/PT compartilham os arquivos. **Nunca** commitar áudio de serviço pago (repo público).
