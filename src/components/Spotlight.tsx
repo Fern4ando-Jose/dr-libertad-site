@@ -14,12 +14,26 @@ export default function Spotlight() {
     root.style.setProperty("--mx", "50%");
     root.style.setProperty("--my", "20%");
 
+    // Coalesce em 1 atualização por frame (rAF): mousemove dispara muitas vezes
+    // por frame; sem isso, o gradiente de tela cheia repinta em excesso e trava.
+    let raf = 0;
+    let lastX = 0;
+    let lastY = 0;
+    const apply = () => {
+      raf = 0;
+      root.style.setProperty("--mx", `${lastX}px`);
+      root.style.setProperty("--my", `${lastY}px`);
+    };
     const onMove = (e: MouseEvent) => {
-      root.style.setProperty("--mx", `${e.clientX}px`);
-      root.style.setProperty("--my", `${e.clientY}px`);
+      lastX = e.clientX;
+      lastY = e.clientY;
+      if (!raf) raf = requestAnimationFrame(apply);
     };
     window.addEventListener("mousemove", onMove, { passive: true });
-    return () => window.removeEventListener("mousemove", onMove);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
 
   const opacity = enabled ? 1 : 0;
@@ -38,7 +52,6 @@ export default function Spotlight() {
         style={{
           background:
             "radial-gradient(900px circle at var(--mx) var(--my), rgba(231,221,204,0.12), transparent 62%)",
-          filter: "blur(18px)",
           transform: "translate3d(0,0,0)",
         }}
       />
