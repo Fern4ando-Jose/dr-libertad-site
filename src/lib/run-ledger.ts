@@ -74,6 +74,13 @@ export async function recentTopicsForLang(lang: string, days = 7): Promise<Set<s
 // Tópicos publicados em QUALQUER conta nos últimos `days` dias (reels ∪ carrosséis).
 // Base UNIFICADA da seleção: ES e PT usam a MESMA base de recentes → escolhem o
 // MESMO tema por vaga (vídeo compartilhado) E nenhum repete. Fail-open: vazio.
+//
+// TRÊS fontes (pra não ter ponto cego): (1) `published_runs.topic` — reels que
+// gravaram o tópico (a coluna nasceu em 22/06, então reels ANTERIORES têm NULL);
+// (2) `posts.topic` — carrosséis (sempre gravaram); (3) `reel_shared_cache.topic`
+// — o tópico REAL de cada reel por dia (resolvido no preview do footage), que
+// COBRE os reels antigos sem `published_runs.topic`. Sem (3), a trava era cega aos
+// reels da semana e repetia o tema deles num carrossel dias depois.
 export async function recentTopicsAllLangs(days = 7): Promise<Set<string>> {
   const out = new Set<string>();
   try {
@@ -90,6 +97,12 @@ export async function recentTopicsAllLangs(days = 7): Promise<Set<string>> {
         AND published_at > NOW() - (${days} || ' days')::interval
     `;
     for (const r of b.rows) if (r.topic) out.add(r.topic);
+    const c = await sql<{ topic: string }>`
+      SELECT DISTINCT topic FROM reel_shared_cache
+      WHERE topic IS NOT NULL
+        AND created_at > NOW() - (${days} || ' days')::interval
+    `;
+    for (const r of c.rows) if (r.topic) out.add(r.topic);
   } catch { /* fail-open */ }
   return out;
 }
