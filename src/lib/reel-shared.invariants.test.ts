@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { reelSharedKey, hashStr, dayUTC } from "./reel-shared";
+import { reelSharedKey, hashStr, dayUTC, normalizeShareInput } from "./reel-shared";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INVARIANTE MULTI-IDIOMA (Reel): o VÍDEO é o MESMO entre as contas (ES, PT, …).
@@ -53,5 +53,31 @@ describe("seed do footage é determinístico e independente de conta", () => {
 describe("dayUTC", () => {
   it("formata YYYY-MM-DD em UTC", () => {
     expect(dayUTC(new Date("2026-06-18T23:30:00Z"))).toBe("2026-06-18");
+  });
+});
+
+// Writeback do footage do CI: o que a 1ª conta achar precisa virar a base que a
+// 2ª conta REUSA (mesmo vídeo ES/PT). normalizeShareInput é o contrato de entrada.
+describe("normalizeShareInput (writeback footage compartilhado)", () => {
+  it("aceita topic + day válido + ≥1 clipe", () => {
+    const r = normalizeShareInput({ topic: "Dopamina", day: "2026-06-22", clips: ["https://x/a.mp4"], videoQueries: ["q1", ""] });
+    expect(r).toEqual({ topic: "Dopamina", day: "2026-06-22", clips: ["https://x/a.mp4"], videoQueries: ["q1"] });
+  });
+
+  it("rejeita sem clipe utilizável (não grava base vazia)", () => {
+    expect(normalizeShareInput({ topic: "X", day: "2026-06-22", clips: [] })).toBeNull();
+    expect(normalizeShareInput({ topic: "X", day: "2026-06-22", clips: ["", "  "] })).toBeNull();
+  });
+
+  it("rejeita topic vazio ou day fora de YYYY-MM-DD", () => {
+    expect(normalizeShareInput({ topic: "", day: "2026-06-22", clips: ["https://x/a.mp4"] })).toBeNull();
+    expect(normalizeShareInput({ topic: "X", day: "22/06/2026", clips: ["https://x/a.mp4"] })).toBeNull();
+    expect(normalizeShareInput({ topic: "X", clips: ["https://x/a.mp4"] })).toBeNull();
+  });
+
+  it("entradas inválidas não derrubam o validador", () => {
+    expect(normalizeShareInput(null)).toBeNull();
+    expect(normalizeShareInput("nope")).toBeNull();
+    expect(normalizeShareInput({ clips: [123] })).toBeNull();
   });
 });

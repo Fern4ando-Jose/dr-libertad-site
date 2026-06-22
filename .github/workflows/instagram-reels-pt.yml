@@ -100,6 +100,8 @@ jobs:
               cta: p.cta || "",
               kw: p.kw || "LIBERTAD",
               ed: p.ed || "000",
+              // topic: chave do tema (p/ o writeback do footage compartilhar ES↔PT).
+              topic: p.topic || "",
               img: p.illustration || undefined,
               cat: p.cat || "freedom",
               handle: p.handle || "@dr.liberdad",
@@ -128,15 +130,56 @@ jobs:
         env:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           FOOTAGE_NUM_CLIPS: "4"
+          # writeback: se a Pexels for usada aqui (fallback), compartilha o footage
+          # achado com a outra conta via /api/reel-share (mesmo vídeo ES↔PT).
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: node scripts/fetch-footage.mjs --props=reel-props.json
 
-      # 6. Renderiza o Reel para out/reel.mp4
+      # 5c. Guarda anti-preto (#3) — cascata footage → ilustração → pular.
+      #     Se a Pexels também não trouxe clipes e não há ilustração, tenta gerar a
+      #     ilustração da fal (illus=1, raro, ~US$0,03–0,08) como fundo. Se ainda
+      #     assim faltar mídia, NÃO publica: Reel preto/quebrado nunca vai ao ar
+      #     (caso Nº 102). Regra única em scripts/reel-media.cjs (teste invariante).
+      - name: Garantir fundo (footage → ilustração → pular)
+        id: media
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          has() { node -e 'process.exit(require("./scripts/reel-media.cjs").hasVisualMedia(require("./reel-props.json"))?0:1)'; }
+          if has; then
+            echo "Fundo OK (footage ou ilustração presente)."
+            echo "has_media=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Sem footage e sem ilustração — tentando ilustração (fal) como fallback…"
+          curl -fsS --max-time 200 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "https://www.drlibertad.com/api/publish?preview=1&illus=1&lang=pt&run=${{ steps.params.outputs.run }}" \
+            -o illus.json || echo "(chamada de ilustração falhou)"
+          node -e '
+            const fs = require("fs");
+            const p = JSON.parse(fs.readFileSync("reel-props.json", "utf8"));
+            let ill = null;
+            try { ill = JSON.parse(fs.readFileSync("illus.json", "utf8")).illustration || null; } catch {}
+            if (ill) { p.img = ill; fs.writeFileSync("reel-props.json", JSON.stringify(p)); console.log("ilustração de fallback aplicada"); }
+            else { console.log("sem ilustração de fallback"); }
+          '
+          if has; then
+            echo "has_media=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_media=0" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Reel pulado::Sem footage nem ilustração — não publicamos Reel preto (#3)."
+          fi
+
+      # 6. Renderiza o Reel para out/reel.mp4 (só se há fundo de verdade).
       - name: Renderizar Reel (Remotion)
+        if: ${{ steps.media.outputs.has_media == '1' }}
         run: node scripts/render-reel.mjs --props=reel-props.json
 
       # 7. Sobe o mp4 para o Vercel Blob e captura a URL pública (stdout)
       - name: Upload do mp4 para o Vercel Blob
         id: upload
+        if: ${{ steps.media.outputs.has_media == '1' }}
         env:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         run: |
@@ -147,15 +190,16 @@ jobs:
       # 7b. Modo preview: no disparo manual com publish=no, NÃO publica — só expõe a
       #     URL do mp4 p/ revisar a criação. O cron (schedule) sempre publica.
       - name: Preview (sem publicar)
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'yes' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'yes' && steps.media.outputs.has_media == '1' }}
         run: |
           echo "::notice title=Reel pronto (preview, não publicado)::${{ steps.upload.outputs.video_url }}"
           echo "Preview do Reel (NÃO publicado): ${{ steps.upload.outputs.video_url }}"
 
       # 8. Publica o Reel no Instagram via /api/publish-reel (polling de status).
-      #     Roda no cron (schedule) ou no disparo manual com publish=yes.
+      #     Roda no cron (schedule) ou no disparo manual com publish=yes — e só se
+      #     houver fundo (has_media): Reel sem footage/ilustração é pulado, não preto.
       - name: Publicar Reel no Instagram
-        if: ${{ github.event_name == 'schedule' || github.event.inputs.publish == 'yes' }}
+        if: ${{ (github.event_name == 'schedule' || github.event.inputs.publish == 'yes') && steps.media.outputs.has_media == '1' }}
         run: |
           RESP=$(curl -sS --max-time 280 -G \
             -w $'\nHTTP_CODE:%{http_code}' \
