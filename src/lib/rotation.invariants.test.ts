@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildRotation, topicIndexForRun } from "./rotation";
+import { buildRotation, topicIndexForRun, slotForRun, pickFreshTopicIndex } from "./rotation";
 
 // Espelha THEMES[].cat de api/publish/route.ts (51 temas, em ordem). Se THEMES
 // mudar, atualizar aqui. O bug antigo: reembaralho semanal repetia o mesmo tema
@@ -45,5 +45,56 @@ describe("rotação — sem repetição antes de fechar o ciclo", () => {
 
   it("determinística — mesma entrada, mesma ordem (ES e PT batem)", () => {
     expect(buildRotation(CATS)).toEqual(buildRotation(CATS));
+  });
+});
+
+// TRAVA ANTI-DUP REAL (cross-formato). A rotação determinística sozinha NÃO
+// impedia repetição: trocar o algoritmo no meio do ciclo, ou o Reel não gravar o
+// tópico, fazia o MESMO tema sair Reel num dia e carrossel no outro ("El padre
+// ausente": reel 21/06 + carrossel 22/06). pickFreshTopicIndex pula o que saiu
+// nos últimos 7d em QUALQUER formato → repetição impossível.
+describe("pickFreshTopicIndex — não repete tema usado recentemente", () => {
+  const n = 51;
+  const rot = Array.from({ length: n }, (_, i) => i); // a propriedade não depende da permutação
+
+  it("sem recentes → tema-base do slot", () => {
+    expect(pickFreshTopicIndex(rot, 10, new Set())).toBe(10);
+  });
+
+  it("pula o(s) recente(s) e devolve o próximo livre", () => {
+    expect(pickFreshTopicIndex(rot, 10, new Set([10]))).toBe(11);
+    expect(pickFreshTopicIndex(rot, 10, new Set([10, 11, 12]))).toBe(13);
+  });
+
+  it("NUNCA devolve um tema usado (salvo se todos usados)", () => {
+    const used = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    for (let s = 0; s < n; s++) {
+      expect(used.has(pickFreshTopicIndex(rot, s, used))).toBe(false);
+    }
+  });
+
+  it("regressão 'padre ausente': tema de ontem não reaparece hoje no seu slot", () => {
+    const padre = 30;            // saiu ontem (Reel) → está nos recentes
+    const used = new Set([padre]);
+    expect(pickFreshTopicIndex(rot, padre, used)).not.toBe(padre);
+  });
+
+  it("simulação 14 dias × 6/dia com janela 7d (42 slots) → ZERO repetição em 7d", () => {
+    const realRot = buildRotation(CATS);
+    const history: number[] = [];
+    for (let day = 0; day < 14; day++) {
+      for (let run = 0; run < 6; run++) {
+        const used = new Set(history.slice(-42)); // últimos 7 dias (qualquer formato)
+        const idx = pickFreshTopicIndex(realRot, day * 6 + run, used);
+        expect(used.has(idx)).toBe(false); // nunca repete dentro de 7d
+        history.push(idx);
+      }
+    }
+  });
+
+  it("slotForRun é contínuo (dia avança 6 slots)", () => {
+    const d1 = new Date(Date.UTC(2026, 5, 21, 12));
+    const d2 = new Date(Date.UTC(2026, 5, 22, 12));
+    expect(slotForRun(d2, 0) - slotForRun(d1, 0)).toBe(6);
   });
 });

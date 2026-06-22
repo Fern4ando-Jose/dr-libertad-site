@@ -117,13 +117,15 @@ async function handle(req: NextRequest) {
   const lang = getLang(params.get("lang")); // "es" (default) | "pt"
   const runParam = params.get("run");      // 0..3 — p/ o livro-razão/dedup do watchdog
   const run = runParam !== null && runParam !== "" ? parseInt(runParam, 10) : null;
+  let topic = params.get("topic") ?? "";   // tópico do Reel → livro-razão (anti-dup cross-formato)
   const day = dayUTC();
 
-  if ((!video || !caption) && req.method === "POST") {
+  if ((!video || !caption || !topic) && req.method === "POST") {
     try {
       const body = await req.json();
       video = video || body.video || "";
       caption = caption || body.caption || "";
+      topic = topic || body.topic || "";
     } catch {
       /* sem body JSON — segue com o que veio da query */
     }
@@ -145,8 +147,9 @@ async function handle(req: NextRequest) {
     const postId = await publishReel(video, caption || "", lang);
     log.postId = postId;
     log.ok = true;
-    // Livro-razão p/ o watchdog. run 3 = Reel clássico; 0..2 = Reel footage.
-    if (run !== null && Number.isFinite(run)) await recordRun(day, run, lang, run === 3 ? "reel-classic" : "reel", postId);
+    // Livro-razão p/ o watchdog + anti-dup cross-formato (grava o tópico).
+    // run 3 = Reel clássico; 0..2 = Reel footage.
+    if (run !== null && Number.isFinite(run)) await recordRun(day, run, lang, run === 3 ? "reel-classic" : "reel", postId, topic || null);
     return NextResponse.json({ ok: true, postId, log });
   } catch (err) {
     console.error("[publish-reel] erro:", err);
