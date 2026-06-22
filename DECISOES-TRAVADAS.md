@@ -104,9 +104,10 @@
 - **Estado atual:** 🔒 **51 temas** em `THEMES` (fonte única). +6 adicionados em 2026-06-21
   (extensão do Pilar 2): filtros/padrão de beleza inexistente, match ≠ foto do Tinder, e
   excesso de escolha. `cat`/`motif` já válidos em `/api/og`.
-  - ⚠️ **Música:** os 6 temas novos ainda **não têm faixa própria** (fail-open → rotação
-    legado). Gerar com `generate-music.mjs` custa ~US$0,05/tema (~US$0,30) na fal —
-    **só com OK de gasto do dono**.
+  - ✅ **Música:** os 6 temas novos **têm faixa própria** ([PR #53](https://github.com/Fern4ando-Jose/dr-libertad-site/pull/53),
+    2026-06-21, ~US$0,30 na fal com OK do dono). A faixa do tema "Cientos de likes…" foi
+    **reprovada e regenerada** ([PR #55](https://github.com/Fern4ando-Jose/dr-libertad-site/pull/55))
+    — todas as **6 aprovadas pelo dono** (ouviu pelos links). `manifest.json`: **51/51 temas**.
 
 ### B3. CTA da legenda
 - **Estado atual:** objetivo = **seguidores**; legenda fecha com CTA de SEGUIR (PR #39).
