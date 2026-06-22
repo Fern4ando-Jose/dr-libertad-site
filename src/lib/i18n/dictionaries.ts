@@ -17,6 +17,7 @@ export const pt = {
       { id: "newsletter", label: "Newsletter" },
     ],
     cta: "Entrar na lista",
+    books: "Livros",
   },
   hero: {
     chips: ["filosofia aplicada", "psicologia", "atenção"],
@@ -184,6 +185,12 @@ export const pt = {
     finalTitle: "Leve a farmácia verde com você.",
     finalLead: "Acesso imediato após a compra. Leia no computador, tablet ou celular.",
   },
+  livrosIndex: {
+    eyebrow: "Biblioteca",
+    title: "Livros para reconectar saber e cuidado.",
+    lead: "Guias ilustrados que reúnem conhecimento tradicional com clareza e respeito à informação. Escolha um título para ver os detalhes.",
+    viewLabel: "Ver livro",
+  },
   footer: {
     tagline: "Filosofia aplicada à atenção e ao comportamento.",
     links: [
@@ -205,6 +212,7 @@ export const es: Dict = {
       { id: "newsletter", label: "Newsletter" },
     ],
     cta: "Unirme a la lista",
+    books: "Libros",
   },
   hero: {
     chips: ["filosofía aplicada", "psicología", "atención"],
@@ -371,6 +379,12 @@ export const es: Dict = {
     disclaimer: "Contenido estrictamente educativo. Las plantas son aliadas, pero no sustituyen la consulta a un profesional de salud. Esta guía no promete cura ni tratamiento de enfermedades.",
     finalTitle: "Lleva la farmacia verde contigo.",
     finalLead: "Acceso inmediato tras la compra. Léelo en la computadora, tablet o celular.",
+  },
+  livrosIndex: {
+    eyebrow: "Biblioteca",
+    title: "Libros para reconectar saber y cuidado.",
+    lead: "Guías ilustradas que reúnen conocimiento tradicional con claridad y respeto a la información. Elige un título para ver los detalles.",
+    viewLabel: "Ver libro",
   },
   footer: {
     tagline: "Filosofía aplicada a la atención y al comportamiento.",
