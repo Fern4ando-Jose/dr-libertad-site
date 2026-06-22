@@ -48,6 +48,12 @@ export default function StudioNav() {
               {it.label}
             </button>
           ))}
+          <a
+            href={`/${lang}/livros`}
+            className="text-xs tracking-[0.22em] uppercase text-warm-gray/80 hover:text-offwhite transition"
+          >
+            {t.nav.books}
+          </a>
         </nav>
 
         <div className="flex items-center gap-3">
