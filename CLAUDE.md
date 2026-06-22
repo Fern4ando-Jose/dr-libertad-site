@@ -81,9 +81,18 @@ colide com o run vizinho). 3 workflows:
 ### Pipeline do Reel (vídeo) — `instagram-reels.yml`
 `/api/publish?preview=1&run=N` (conteúdo + `videoQueries` do Claude, **sem** ilustração;
 já devolve `clips` = footage escolhido) → `scripts/fetch-footage.mjs` (FALLBACK: só busca
-na **Pexels** se a API não trouxe `clips`) → `scripts/render-reel.mjs` (Remotion) →
+na **Pexels** se a API não trouxe `clips`) → **passo "Garantir fundo"** (cascata anti-preto,
+ver abaixo) → `scripts/render-reel.mjs` (Remotion) →
 `scripts/upload-blob.mjs` (Vercel Blob) → `/api/publish-reel` (Graph API).
-Fundo = footage real + **grade da marca** + **música** (opcional). **Uma faixa por
+Fundo = footage real + **grade da marca** + **música** (opcional). **Duração ~25s / 5 cenas**
+(capa 5s + **3 insights** 5,2s + CTA 4,6s; fonte única `reelDurations` em `video/Reel.tsx`,
+`Root.tsx` ajusta sozinho). **Grade = duotone QUENTE/VINTAGE** que NORMALIZA qualquer footage
+do Pexels na mesma faixa tonal da marca (cor parcial+sépia; `screen`(piso marrom) mata o preto
+puro, `multiply`(âmbar) mata o estouro, wash quente + acento por categoria) — sem isso as capas
+saíam divergentes (umas claras, outras pretas). **Nunca publicar Reel preto:** o passo "Garantir
+fundo" checa `scripts/reel-media.cjs` `hasVisualMedia` (≥1 clipe **ou** ilustração); se faltar,
+tenta ilustração da fal (`illus=1`, raro) e, se ainda faltar, **pula** render/upload/publish
+(`has_media=0`, `::warning::`) — invariante `reel-media.invariants.test.ts`. **Uma faixa por
 TEMA**: `scripts/generate-music.mjs` gera (author-time, fal, ~US$0,05/tema) `public/music/bed-<NN>-<slug>.mp3`
 + `manifest.json` (`topic`→arquivo) lendo os 51 temas de `THEMES`; `pick-music.cjs`
 escolhe pelo `topic` do post (não pelo slot). Reuso pra sempre (tema repetido = mesmo
@@ -99,6 +108,21 @@ ES/PT compartilham os arquivos. **Nunca** commitar áudio de serviço pago (repo
 > **nunca do `@handle`** — invariante coberto por `reel-shared.invariants.test.ts`. A
 > ilustração já era compartilhada (`illustration_cache`). Tudo fail-open: falha de
 > cache/Pexels → cada idioma resolve o seu, como antes.
+>
+> **Writeback do fallback (ES↔PT idênticos mesmo sem cache da API):** se a API devolveu 0
+> clipes, cada conta cai no fallback do CI e buscava sozinha (videoQueries por idioma) → ES
+> com footage, PT preto. Agora a 1ª conta que acha footage no CI faz POST em
+> **`/api/reel-share`** (`writeReelSharedClips`, autenticado por `CRON_SECRET`), gravando os
+> clipes na base compartilhada; a 2ª conta (PT, +5min) lê e **reusa o MESMO vídeo**. Preserva a
+> pesquisa cacheada (não repaga Tavily). Contrato em `normalizeShareInput` (teste invariante).
+
+> **Nº de edição (capa) por VAGA, não por `COUNT(posts)`.** O "Nº" vinha de `COUNT(posts)+1`,
+> mas só o **carrossel** grava em `posts` (Reel só registra no livro-razão) → o contador não
+> andava e **"Nº 102" repetia em todo Reel**. Agora `editionFor(dia,run)` (`src/lib/edition.ts`,
+> tabela `editions` PK `dia,run`) atribui o número por **VAGA**, o **MESMO p/ ES e PT** (mesma
+> edição em 2 idiomas), monotônico, único, idempotente (rerun/2º idioma lêem o mesmo) e
+> **contínuo** (segue de ~102; piso = `COUNT(posts)`; nunca regride). Preview do Reel **e**
+> carrossel usam. Fail-open → esquema antigo. Regra pura `pickNextEdition` com teste invariante.
 
 ### Pipeline do Reel CLÁSSICO — `instagram-reels-classic.yml`
 Igual, mas: `preview=1&illus=1&run=3` (gera a **ilustração** da fal de fundo),
