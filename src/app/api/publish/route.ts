@@ -5,8 +5,8 @@ import { type Automation, checkBudget, logSpend, anthropicCost, tavilyCost, EST_
 import { parseContentJson } from "@/lib/content-json";
 import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun } from "@/lib/run-ledger";
-import { buildRotation, topicIndexForRun } from "@/lib/rotation";
+import { recordRun, recentTopicsForLang } from "@/lib/run-ledger";
+import { buildRotation, topicIndexForRun, slotForRun, pickFreshTopicIndex } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
@@ -120,6 +120,29 @@ function extractKeyword(topic: string): string {
 const ROTATION = buildRotation(THEMES.map((t) => t.cat));
 function getTopicForRun(date: Date, runIndex: number): string {
   return TOPICS[topicIndexForRun(ROTATION, date, runIndex)];
+}
+
+// tópico → índice no array original (p/ a trava anti-dup mapear recentes p/ índices).
+const TOPIC_INDEX = new Map(TOPICS.map((t, i) => [t, i] as const));
+
+// Tópico do (data, run) com TRAVA ANTI-DUP CROSS-FORMATO: pula os temas já
+// publicados na conta nos últimos 7d em QUALQUER formato (reel ∪ carrossel).
+// É a trava REAL — robusta a mudanças de rotação e a repetição reel↔carrossel
+// (o bug em que "padre ausente" saiu Reel num dia e carrossel no outro). A
+// rotação determinística sozinha não bastava: trocar o algoritmo (ou o reel não
+// gravar tópico) reintroduzia repetições. Fail-open: erro de banco → tema-base.
+async function getFreshTopicForRun(date: Date, runIndex: number, lang: Lang): Promise<string> {
+  try {
+    const recent = await recentTopicsForLang(lang, 7);
+    const used = new Set<number>();
+    for (const t of recent) {
+      const i = TOPIC_INDEX.get(t);
+      if (i !== undefined) used.add(i);
+    }
+    return TOPICS[pickFreshTopicIndex(ROTATION, slotForRun(date, runIndex), used)];
+  } catch {
+    return getTopicForRun(date, runIndex);
+  }
 }
 
 // Tom editorial derivado do horário (3 slots), independente do tópico.
@@ -393,7 +416,7 @@ export async function GET(req: NextRequest) {
     const r = runs[0];
     const slot = SLOT_FOR_RUN[r];
     const now = new Date();
-    const topic = topicOverride ?? getTopicForRun(now, r);
+    const topic = topicOverride ?? await getFreshTopicForRun(now, r, lang);
     const cat = TOPIC_CAT[topic] ?? "freedom";
 
     // Teto: o preview é o pipeline do Reel diário.
@@ -491,15 +514,17 @@ export async function GET(req: NextRequest) {
 
       try {
         const now   = new Date();
-        const topic = topicOverride ?? getTopicForRun(now, runIndex);
+        // Tópico FRESCO: já pula o que saiu nos últimos 7d em QUALQUER formato
+        // (reel ∪ carrossel) — trava anti-dup real, não só a checagem de `posts`.
+        const topic = topicOverride ?? await getFreshTopicForRun(now, runIndex, lang);
         slotLog.topic = topic;
 
-        // Verificar se tópico já foi publicado hoje (a menos que force=1)
+        // Backstop defensivo (a menos que force=1): se mesmo assim o tópico já saiu
+        // como CARROSSEL nesta conta em 7d, pula. Com o tópico fresco acima isto
+        // praticamente nunca dispara (N=51 > 6×7); fica como rede de segurança.
         if (!force) {
           try {
             const { sql } = await import("@vercel/postgres");
-            // Trava POR CONTA (lang) e janela de 7 dias: ES e PT não se bloqueiam
-            // (são contas distintas) e o mesmo tópico não se repete numa semana.
             const existing = await sql`SELECT id FROM posts WHERE topic = ${topic} AND lang = ${lang} AND published_at > NOW() - INTERVAL '7 days' LIMIT 1`;
             if (existing.rows.length > 0) {
               slotLog.skipped = true;
@@ -597,7 +622,7 @@ export async function GET(req: NextRequest) {
         });
 
         // Livro-razão (dia,run,lang) p/ o watchdog — só conta como publicado se saiu.
-        if (instagramPostId) await recordRun(dayUTC(now), runIndex, lang, "carousel", instagramPostId);
+        if (instagramPostId) await recordRun(dayUTC(now), runIndex, lang, "carousel", instagramPostId, topic);
 
         slotLog.ok = true;
       } catch (slotErr) {
