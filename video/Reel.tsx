@@ -50,18 +50,21 @@ const CAT_ACCENT: Record<string, string> = {
 const SCRIM =
   "linear-gradient(180deg, rgba(11,11,12,0.58) 0%, rgba(11,11,12,0.20) 30%, rgba(11,11,12,0.22) 58%, rgba(11,11,12,0.90) 100%)";
 
-// ─── Duotone editorial (padrão de marca aplicado a TODO footage) ──────────────
-// O footage do Pexels chega com exposições/cores totalmente diferentes — uns
-// claros, outros pretos — e a dessatura leve antiga NÃO unificava. Aqui um
-// DUOTONE normaliza qualquer clipe na MESMA faixa tonal da marca:
-//   1. vídeo → grayscale + contraste (tira a bagunça de cor do banco);
-//   2. screen(PISO)   → nada fica mais escuro que DUO_FLOOR  (mata o "preto puro");
-//   3. multiply(CREME)→ luzes viram creme/paper              (mata o estouro);
-//   4. soft-light(acento) → cor da categoria por cima.
-// Resultado: capa coesa, "cara de revista", independente do clipe de origem.
-const GRADE_FILTER = "grayscale(1) contrast(1.18) brightness(1.04)";
-const DUO_FLOOR = "#23252e";   // piso tonal (deep slate de marca — nunca preto puro)
-const DUO_HIGHLIGHT = PAPER;   // teto tonal (creme/paper)
+// ─── Grade cinematográfica QUENTE/VINTAGE (padrão de marca em todo footage) ───
+// Restaura e UNIFICA a cara editorial/cine que o footage bom já tinha — tons
+// antigos, quentes, puxando pro âmbar/vermelho, matte e profundos. (A 1ª versão
+// em grayscale+creme clareou demais e matou a cor — revertida.) Normaliza
+// qualquer clipe do Pexels na MESMA faixa tonal quente:
+//   1. vídeo → cor PARCIAL + sépia (calor garantido) + escuro (mood);
+//   2. screen(PISO quente) → pretos viram marrom profundo (matte vintage; nunca
+//      cinza lavado, nunca preto puro);
+//   3. multiply(LUZ âmbar) → luzes viram dourado quente (sem estourar);
+//   4. soft-light(WASH quente) → base sempre quente, coesa mesmo em clipe frio;
+//   5. soft-light(acento) → cor da categoria por cima.
+const GRADE_FILTER = "saturate(0.4) contrast(1.12) brightness(0.95) sepia(0.38)";
+const DUO_FLOOR = "#241a12";      // piso quente (marrom escuro — matte vintage)
+const DUO_HIGHLIGHT = "#E9CDA6";  // teto âmbar/creme quente (dourado, não branco)
+const WARM_WASH = "#6B3F24";      // unificador quente global (tons antigos)
 
 // ─── Zona segura do FEED do Instagram ─────────────────────────────────────────
 // O Reel é 1080×1920 (9:16), mas o FEED mostra um recorte CENTRADO 4:5 (1080×1350)
@@ -204,14 +207,16 @@ function SceneBg({
             style={{ width: "100%", height: "100%", objectFit: "cover", filter: GRADE_FILTER }}
           />
         </AbsoluteFill>
-        {/* PISO: screen com o slate de marca — sombras nunca passam de DUO_FLOOR
-            (clipe escuro deixa de virar preto; todas as sombras viram o mesmo tom) */}
+        {/* PISO quente: screen com marrom escuro — pretos viram matte vintage
+            (clipe escuro deixa de virar preto; sombras coesas e QUENTES, não cinza) */}
         <AbsoluteFill style={{ backgroundColor: DUO_FLOOR, mixBlendMode: "screen" }} />
-        {/* TETO: multiply com creme — luzes viram paper (clipe claro não estoura;
-            todas as luzes viram o mesmo creme) → exposição igual clipe a clipe */}
+        {/* TETO âmbar: multiply — luzes viram dourado quente (clipe claro não estoura;
+            luzes coesas) → exposição igual clipe a clipe, com calor de filme antigo */}
         <AbsoluteFill style={{ backgroundColor: DUO_HIGHLIGHT, mixBlendMode: "multiply" }} />
-        {/* ACENTO da categoria por cima do duotone — cor de marca */}
-        <AbsoluteFill style={{ backgroundColor: accent, opacity: 0.22, mixBlendMode: "soft-light" }} />
+        {/* WASH quente global — garante o tom 'antigo/quente' mesmo em clipe frio */}
+        <AbsoluteFill style={{ backgroundColor: WARM_WASH, opacity: 0.28, mixBlendMode: "soft-light" }} />
+        {/* ACENTO da categoria por cima — cor de marca */}
+        <AbsoluteFill style={{ backgroundColor: accent, opacity: 0.18, mixBlendMode: "soft-light" }} />
       </AbsoluteFill>
     );
   }
