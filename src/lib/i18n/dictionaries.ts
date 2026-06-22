@@ -8,6 +8,7 @@ export const LANGS: Lang[] = ["pt", "es"];
 type Dict = typeof pt;
 
 export const pt = {
+  brand: "Dr. Liberdade",
   nav: {
     items: [
       { id: "manifesto", label: "Manifesto" },
@@ -18,6 +19,7 @@ export const pt = {
     ],
     cta: "Entrar na lista",
     books: "Livros",
+    author: "Autor",
   },
   hero: {
     chips: ["filosofia aplicada", "psicologia", "atenção"],
@@ -112,15 +114,15 @@ export const pt = {
     items: [
       {
         quote: "Você não precisa vencer o mundo. Precisa parar de ser vencido pelo seu próprio feed.",
-        meta: "DR. LIBERTAD · nota editorial 01",
+        meta: "DR. LIBERDADE · nota editorial 01",
       },
       {
         quote: "A mente é um palco. Se ninguém entra, você finalmente ouve o que sempre esteve lá.",
-        meta: "DR. LIBERTAD · nota editorial 02",
+        meta: "DR. LIBERDADE · nota editorial 02",
       },
       {
         quote: "Liberdade não é ausência de estímulo; é habilidade de escolher a resposta.",
-        meta: "DR. LIBERTAD · nota editorial 03",
+        meta: "DR. LIBERDADE · nota editorial 03",
       },
     ],
   },
@@ -191,6 +193,52 @@ export const pt = {
     lead: "Guias ilustrados que reúnem conhecimento tradicional com clareza e respeito à informação. Escolha um título para ver os detalhes.",
     viewLabel: "Ver livro",
   },
+  author: {
+    eyebrow: "AUTOR",
+    title: "A voz por trás do Dr. Liberdade.",
+    lead: "Dr. Liberdade é um selo editorial — a persona sob a qual escrevo sobre atenção, liberdade e o que as telas fizeram com a forma de viver. As ideias são minhas, ditas de forma literal. O nome é o personagem; a convicção é real.",
+    manifestoEyebrow: "MANIFESTO PESSOAL",
+    manifestoTitle: "Por que eu escrevo isto.",
+    manifestoParas: [
+      "Acredito que a liberdade de expressão é inegociável: você tem o direito de fazer o que quer, e eu de dizer o que penso. Não curvo a frase ao politicamente correto nem à pressão de norma imposta — a força da ideia é o produto.",
+      "Escrevo contra a servidão voluntária: a do homem que terceiriza a própria vida e a própria liberdade, que se acomoda no bando e entrega a atenção a quem a projetou para capturá-la. A provocação aqui vem sempre da ideia, com argumento — nunca do ódio.",
+      "E acredito que o sentido não está na tela: está no que se compartilha. Vínculo, amizade, amor verdadeiro. A alegria só é verdadeira quando compartilhada — e nenhum filtro entrega isso.",
+    ],
+    convictionsLabel: "no que eu acredito",
+    convictions: [
+      "A liberdade de expressão é inegociável.",
+      "Ninguém te deve nada.",
+      "Se você não põe limites, vira uma opção.",
+      "A ilusão de escolhas infinitas é exatamente o que te deixa sozinho.",
+    ],
+    authorityEyebrow: "DE ONDE VEM A VOZ",
+    authorityTitle: "Formação e fundamentos.",
+    credLead: "Por trás do selo, o autor é advogado, pós-graduado em Neurociências e estudante de Medicina — uma base que une o direito de falar, a ciência da atenção e o estudo do comportamento humano. Dr. Liberdade é persona editorial, não consultório: aqui não há diagnóstico nem tratamento, há ideia e argumento.",
+    creds: [
+      { t: "Advogado", d: "A defesa da liberdade de expressão e do direito de pensar diferente." },
+      { t: "Pós-graduado em Neurociências", d: "A mecânica da atenção, da dopamina e do hábito — o porquê antes do como." },
+      { t: "Estudante de Medicina", d: "O estudo do comportamento humano com rigor, sem moralismo." },
+    ],
+    canonLabel: "o cânone que forma a visão",
+    canon: [
+      { t: "Coração Valente", d: "Hombridade, luta e amor — ir até as últimas consequências por aquilo que vale mais que a própria vida." },
+      { t: "Discurso da Servidão Voluntária", d: "O sistema só tem poder porque o homem consente em obedecer. O alvo é a passividade." },
+      { t: "Fernão Capelo Gaivota", d: "A força de um sonho e a recusa de viver diluído no bando." },
+      { t: "O Pequeno Príncipe", d: "O essencial é invisível aos olhos — e somos responsáveis por aquilo que cativamos." },
+      { t: "Na Natureza Selvagem", d: "Todo homem tem o seu momento de busca: a alegria só é verdadeira quando compartilhada." },
+    ],
+    contactEyebrow: "CONTATO",
+    contactTitle: "Onde me encontrar.",
+    instagramLabel: "Instagram",
+    instagramHandle: "@dr.liberdade.br",
+    instagramUrl: "https://instagram.com/dr.liberdade.br",
+    emailLabel: "E-mail",
+    email: "contato@drlibertad.com",
+    ctaEyebrow: "LIVROS",
+    ctaTitle: "Leia os livros.",
+    ctaLead: "As ideias em formato longo — guias e ensaios para ler com calma.",
+    ctaButton: "Ver os livros",
+  },
   footer: {
     tagline: "Filosofia aplicada à atenção e ao comportamento.",
     links: [
@@ -203,6 +251,7 @@ export const pt = {
 };
 
 export const es: Dict = {
+  brand: "Dr. Libertad",
   nav: {
     items: [
       { id: "manifesto", label: "Manifiesto" },
@@ -213,6 +262,7 @@ export const es: Dict = {
     ],
     cta: "Unirme a la lista",
     books: "Libros",
+    author: "Autor",
   },
   hero: {
     chips: ["filosofía aplicada", "psicología", "atención"],
@@ -385,6 +435,52 @@ export const es: Dict = {
     title: "Libros para reconectar saber y cuidado.",
     lead: "Guías ilustradas que reúnen conocimiento tradicional con claridad y respeto a la información. Elige un título para ver los detalles.",
     viewLabel: "Ver libro",
+  },
+  author: {
+    eyebrow: "AUTOR",
+    title: "La voz detrás del Dr. Libertad.",
+    lead: "Dr. Libertad es un sello editorial — la persona bajo la cual escribo sobre atención, libertad y lo que las pantallas le hicieron a la forma de vivir. Las ideas son mías, dichas de forma literal. El nombre es el personaje; la convicción es real.",
+    manifestoEyebrow: "MANIFIESTO PERSONAL",
+    manifestoTitle: "Por qué escribo esto.",
+    manifestoParas: [
+      "Creo que la libertad de expresión es innegociable: tú tienes el derecho de hacer lo que quieres, y yo de decir lo que pienso. No doblo la frase ante lo políticamente correcto ni ante la presión de una norma impuesta — la fuerza de la idea es el producto.",
+      "Escribo contra la servidumbre voluntaria: la del hombre que terceriza su propia vida y su propia libertad, que se acomoda en la manada y entrega su atención a quien la diseñó para capturarla. La provocación aquí viene siempre de la idea, con argumento — nunca del odio.",
+      "Y creo que el sentido no está en la pantalla: está en lo que se comparte. Vínculo, amistad, amor verdadero. La alegría solo es verdadera cuando se comparte — y ningún filtro entrega eso.",
+    ],
+    convictionsLabel: "en lo que creo",
+    convictions: [
+      "La libertad de expresión es innegociable.",
+      "Nadie te debe nada.",
+      "Si no pones límites, te vuelves una opción.",
+      "La ilusión de opciones infinitas es exactamente lo que te deja solo.",
+    ],
+    authorityEyebrow: "DE DÓNDE VIENE LA VOZ",
+    authorityTitle: "Formación y fundamentos.",
+    credLead: "Detrás del sello, el autor es abogado, posgraduado en Neurociencias y estudiante de Medicina — una base que une el derecho a hablar, la ciencia de la atención y el estudio del comportamiento humano. Dr. Libertad es persona editorial, no consultorio: aquí no hay diagnóstico ni tratamiento, hay idea y argumento.",
+    creds: [
+      { t: "Abogado", d: "La defensa de la libertad de expresión y del derecho a pensar distinto." },
+      { t: "Posgraduado en Neurociencias", d: "La mecánica de la atención, la dopamina y el hábito — el porqué antes del cómo." },
+      { t: "Estudiante de Medicina", d: "El estudio del comportamiento humano con rigor, sin moralismo." },
+    ],
+    canonLabel: "el canon que forma la visión",
+    canon: [
+      { t: "Corazón Valiente", d: "Hombría, lucha y amor — ir hasta las últimas consecuencias por aquello que vale más que la propia vida." },
+      { t: "Discurso de la Servidumbre Voluntaria", d: "El sistema solo tiene poder porque el hombre consiente en obedecer. El blanco es la pasividad." },
+      { t: "Juan Salvador Gaviota", d: "La fuerza de un sueño y la negativa a vivir diluido en la bandada." },
+      { t: "El Principito", d: "Lo esencial es invisible a los ojos — y somos responsables de aquello que domesticamos." },
+      { t: "Hacia rutas salvajes", d: "Todo hombre tiene su momento de búsqueda: la alegría solo es verdadera cuando se comparte." },
+    ],
+    contactEyebrow: "CONTACTO",
+    contactTitle: "Dónde encontrarme.",
+    instagramLabel: "Instagram",
+    instagramHandle: "@dr.liberdad",
+    instagramUrl: "https://instagram.com/dr.liberdad",
+    emailLabel: "Correo",
+    email: "contacto@drlibertad.com",
+    ctaEyebrow: "LIBROS",
+    ctaTitle: "Lee los libros.",
+    ctaLead: "Las ideas en formato largo — guías y ensayos para leer con calma.",
+    ctaButton: "Ver los libros",
   },
   footer: {
     tagline: "Filosofía aplicada a la atención y al comportamiento.",

@@ -416,7 +416,7 @@ export default function Page() {
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="font-serif text-[1.75rem] font-semibold leading-none tracking-[-0.01em] text-offwhite">
-                Dr. Libertad
+                {t.brand}
               </div>
               <div className="mt-4 h-[2px] w-11 bg-muted-red" />
               <div className="mt-4 text-sm tracking-[0.02em] text-warm-gray/90">{t.footer.tagline}</div>

@@ -12,6 +12,7 @@ const organization = {
   "@type": "Organization",
   "@id": `${SITE_URL}/#organization`,
   name: "Dr. Libertad",
+  alternateName: "Dr. Liberdade",
   url: SITE_URL,
   logo: `${SITE_URL}/icon.svg`,
   image: `${SITE_URL}/api/og?slide=cover&slot=manha&title=Dr.%20Libertad&kw=LIBERTAD&ed=00&mood=red&tag=psicolog%C3%ADa`,
