@@ -175,10 +175,37 @@ async function main() {
     props.clips = picked;
     writeFileSync(PROPS_PATH, JSON.stringify(props));
     log(`${picked.length} clipe(s) gravados em props.clips`);
+
+    // Writeback: ESTA conta achou footage no fallback do CI → grava na base
+    // compartilhada pra a 2ª conta (PT dispara 5 min depois) REUSAR o MESMO
+    // vídeo. Sem isso, ES e PT divergiam (um com footage, outro preto). Só roda
+    // quando há topic + CRON_SECRET; best-effort (falha não quebra o render).
+    await shareClips(props, picked);
   } catch (e) {
     return done(`exceção: ${e?.message || e} — sem footage`);
   }
   return done();
+}
+
+// Compartilha o footage achado aqui com a outra conta (via /api/reel-share).
+async function shareClips(props, clips) {
+  const secret = process.env.CRON_SECRET;
+  const topic = props.topic;
+  if (!secret || !topic) {
+    return log(`writeback pulado (${!secret ? "sem CRON_SECRET" : "sem topic nos props"}) — footage não compartilhado`);
+  }
+  const base = process.env.PRODUCTION_URL || "https://www.drlibertad.com";
+  const day = new Date().toISOString().slice(0, 10); // UTC, igual a dayUTC()
+  try {
+    const res = await fetch(`${base}/api/reel-share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${secret}` },
+      body: JSON.stringify({ topic, day, clips, videoQueries: props.videoQueries || [] }),
+    });
+    log(`writeback /api/reel-share → HTTP ${res.status} (footage compartilhado p/ a 2ª conta)`);
+  } catch (e) {
+    log(`writeback falhou (${e?.message || e}) — segue sem compartilhar`);
+  }
 }
 
 main();
