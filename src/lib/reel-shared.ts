@@ -86,6 +86,53 @@ export async function writeReelShared(topic: string, day: string, bundle: ReelSh
   } catch { /* cache é best-effort — nunca quebra o pipeline */ }
 }
 
+// ─── Writeback do footage achado no CI (fallback) ─────────────────────────────
+// Quando a API devolve 0 clipes (Pexels falhou naquele instante), cada conta cai
+// no fallback do CI (fetch-footage.mjs) e busca sozinha — com videoQueries por
+// IDIOMA → ES e PT podiam achar footage DIFERENTE (ou um achava e o outro saía
+// preto). Para garantir o MESMO vídeo, a 1ª conta que achar footage no CI grava
+// aqui; a 2ª conta (dispara 5 min depois) lê pelo readReelShared e REUSA.
+// NÃO sobrescreve a pesquisa (research) já cacheada — só footage/videoQueries.
+
+export interface ShareClipsInput { topic: string; day: string; clips: string[]; videoQueries: string[] }
+
+// Validador PURO (testável): normaliza o corpo do POST /api/reel-share. Retorna
+// null se inválido (sem tópico/dia válido ou sem nenhum clipe utilizável).
+export function normalizeShareInput(body: unknown): ShareClipsInput | null {
+  if (!body || typeof body !== "object") return null;
+  const b = body as Record<string, unknown>;
+  const topic = typeof b.topic === "string" ? b.topic.trim() : "";
+  const day = typeof b.day === "string" ? b.day.trim() : "";
+  if (!topic || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const clips = Array.isArray(b.clips) ? b.clips.filter((c): c is string => typeof c === "string" && c.trim() !== "") : [];
+  if (!clips.length) return null; // só compartilha quando há footage de verdade
+  const videoQueries = Array.isArray(b.videoQueries) ? b.videoQueries.filter((q): q is string => typeof q === "string" && q.trim() !== "") : [];
+  return { topic, day, clips, videoQueries };
+}
+
+// Grava SÓ o footage (e videoQueries) na base compartilhada, preservando a
+// pesquisa já existente (ON CONFLICT não toca em research). Best-effort.
+export async function writeReelSharedClips(input: ShareClipsInput): Promise<void> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const key = reelSharedKey(input.topic, input.day);
+    await sql`
+      INSERT INTO reel_shared_cache (cache_key, topic, research, video_queries, clips, created_at)
+      VALUES (
+        ${key}, ${input.topic},
+        '[]'::jsonb,
+        ${JSON.stringify(input.videoQueries)}::jsonb,
+        ${JSON.stringify(input.clips)}::jsonb,
+        NOW()
+      )
+      ON CONFLICT (cache_key) DO UPDATE SET
+        video_queries = ${JSON.stringify(input.videoQueries)}::jsonb,
+        clips = ${JSON.stringify(input.clips)}::jsonb,
+        created_at = NOW()
+    `;
+  } catch { /* best-effort — nunca quebra o pipeline do CI */ }
+}
+
 // ─── Seleção de footage (Pexels) ──────────────────────────────────────────────
 // Portado de scripts/fetch-footage.mjs, com UMA diferença: o seed de
 // diversificação vem de (tópico, dia), NÃO do @handle/edição — assim ES e PT do

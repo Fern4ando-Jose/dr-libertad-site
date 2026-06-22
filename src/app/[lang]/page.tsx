@@ -136,7 +136,7 @@ export default function Page() {
                 </div>
 
                 <div className="mt-6" data-gsap="reveal">
-                  <p className="max-w-xl text-[1.05rem] leading-[1.85] text-warm-gray/90">
+                  <p className="prose-justify max-w-xl text-[1.05rem] leading-[1.85] text-warm-gray/90">
                     {t.hero.lead}
                   </p>
                 </div>
@@ -377,7 +377,7 @@ export default function Page() {
               <Reveal>
                 <SectionHeading eyebrow={t.newsletter.eyebrow} title={t.newsletter.title} />
               </Reveal>
-              <p className="mt-4 text-sm leading-[1.8] text-warm-gray/90">{t.newsletter.lead}</p>
+              <p className="prose-justify mt-4 text-sm leading-[1.8] text-warm-gray/90">{t.newsletter.lead}</p>
               <NewsletterForm />
             </div>
 

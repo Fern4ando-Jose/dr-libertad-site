@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { dictionaries, pt, type Lang } from "./dictionaries";
 
 type Ctx = {
@@ -29,6 +29,7 @@ export function LanguageProvider({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   // O <html lang> do root é estático (pt-BR); aqui sincronizamos com a rota
   // atual para que /es exponha lang="es-ES" no cliente.
@@ -50,10 +51,12 @@ export function LanguageProvider({
     (l: Lang) => {
       if (l === lang) return;
       persist(l);
-      // scroll: false mantém a posição atual; o texto troca de idioma no lugar.
-      router.push(`/${l}`, { scroll: false });
+      // Substitui só o segmento de idioma, mantendo o restante do caminho
+      // (ex.: /pt/livros → /es/livros em vez de voltar à raiz /es).
+      const newPath = pathname.replace(new RegExp(`^/${lang}`), `/${l}`);
+      router.push(newPath, { scroll: false });
     },
-    [lang, persist, router]
+    [lang, persist, router, pathname]
   );
 
   const toggle = useCallback(() => {

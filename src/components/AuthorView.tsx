@@ -46,7 +46,7 @@ export default function AuthorView() {
             <h1 className="mt-5 max-w-[16ch] font-serif text-[clamp(2.3rem,5vw,4.6rem)] leading-[0.98] tracking-[-0.04em] text-pretty">
               {a.title}
             </h1>
-            <p className="mt-6 max-w-2xl text-[1.05rem] leading-[1.85] text-warm-gray/90">{a.lead}</p>
+            <p className="prose-justify mt-6 max-w-2xl text-[1.05rem] leading-[1.85] text-warm-gray/90">{a.lead}</p>
             <div className="mt-7 h-[1px] w-28 bg-gradient-to-r from-muted-red/70 via-warm-gray/25 to-transparent" />
           </div>
         </StudioContainer>
@@ -62,7 +62,7 @@ export default function AuthorView() {
             <div className="space-y-5 lg:col-span-7">
               {a.manifestoParas.map((p, i) => (
                 <Reveal key={i} delay={i * 0.05}>
-                  <p className="text-[1.05rem] leading-[1.9] text-warm-gray/90">{p}</p>
+                  <p className="prose-justify text-[1.05rem] leading-[1.9] text-warm-gray/90">{p}</p>
                 </Reveal>
               ))}
             </div>
@@ -99,7 +99,7 @@ export default function AuthorView() {
           <Reveal>
             <SectionHeading eyebrow={a.authorityEyebrow} title={a.authorityTitle} />
           </Reveal>
-          <p className="mt-6 max-w-3xl text-[1.02rem] leading-[1.85] text-warm-gray/90">{a.credLead}</p>
+          <p className="prose-justify mt-6 max-w-3xl text-[1.02rem] leading-[1.85] text-warm-gray/90">{a.credLead}</p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             {a.creds.map((c, i) => (
