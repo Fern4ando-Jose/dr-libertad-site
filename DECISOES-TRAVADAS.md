@@ -84,7 +84,9 @@
 ### B1. Linha editorial / voz
 - **Estado atual:** provocativa, 5 pilares, polêmica como ferramenta; **guarda única =
   não-ódio** (sobrevivência da conta). Já INVIOLÁVEL no `CLAUDE.md`.
-- **Decisão:** 🔒 **Fonte única da VOZ = [`LINHA-EDITORIAL.md`](LINHA-EDITORIAL.md)**
+- **Decisão:** 🔒 **Fonte única da VOZ = `LINHA-EDITORIAL.md` — mora OFFLINE em
+  `D:\Claude\.marca\dr-libertad\LINHA-EDITORIAL.md`** (estratégia de marca, FORA do repo
+  público por decisão do dono em 2026-06-21; ver PR #52 que a removeu do main).
   (definida com o dono em 2026-06-21). Captura: fundamentos/cânone (Coração Valente,
   Servidão Voluntária, Fernão Capelo Gaivota, O Pequeno Príncipe, Na Natureza Selvagem),
   convicções, **críticas centrais** (filtros → padrão de beleza inexistente / o encontro
