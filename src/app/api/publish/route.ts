@@ -6,6 +6,7 @@ import { parseContentJson } from "@/lib/content-json";
 import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
 import { recordRun } from "@/lib/run-ledger";
+import { buildRotation, topicIndexForRun } from "@/lib/rotation";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -111,23 +112,13 @@ function extractKeyword(topic: string): string {
 // runIndex 0..5 → um dos 6 horários do dia. Garante 6 tópicos DISTINTOS por dia
 // (o esquema antigo, por dia-da-semana+slot, repetia o tópico nos 2 crons do mesmo
 //  slot e o 2º era barrado pela checagem de duplicata → só 3 posts/dia de fato).
+// Rotação determinística SEM repetição (cada tema 1× por ciclo de N posts ≈ 8,5
+// dias > trava anti-dup de 7d) e com categorias INTERCALADAS. Substitui o
+// reembaralho semanal antigo, que fazia o mesmo tema voltar em 1–3 dias e a
+// anti-dup bloquear o post. Lógica em src/lib/rotation.ts (com teste invariante).
+const ROTATION = buildRotation(THEMES.map((t) => t.cat));
 function getTopicForRun(date: Date, runIndex: number): string {
-  const start     = new Date(date.getFullYear(), 0, 0);
-  const dayOfYear = Math.floor((date.getTime() - start.getTime()) / 86400000);
-  const weekNum   = Math.floor(dayOfYear / 7);
-
-  // Embaralha deterministicamente por semana
-  const arr = [...TOPICS];
-  let seed = weekNum * 6364136223846793005 + 1442695040888963407;
-  for (let i = arr.length - 1; i > 0; i--) {
-    seed = Math.imul(seed, 1664525) + 1013904223;
-    const j = Math.abs(seed) % (i + 1);
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-
-  // 6 índices consecutivos por dia (distintos mod TOPICS.length); avança a cada dia.
-  const idx = (dayOfYear * 6 + runIndex) % arr.length;
-  return arr[idx];
+  return TOPICS[topicIndexForRun(ROTATION, date, runIndex)];
 }
 
 // Tom editorial derivado do horário (3 slots), independente do tópico.
