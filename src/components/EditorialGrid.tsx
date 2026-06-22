@@ -152,7 +152,7 @@ export default function EditorialGrid() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((c, idx) => (
-          <CoverCard key={c.id} card={c} idx={idx} onOpen={() => setActive(c)} openLabel={t.gallery.openLabel} />
+          <CoverCard key={c.id} card={c} idx={idx} onOpen={() => setActive(c)} openLabel={t.gallery.openLabel} brand={t.brand} />
         ))}
       </div>
 
@@ -326,11 +326,13 @@ function CoverCard({
   idx,
   onOpen,
   openLabel,
+  brand,
 }: {
   card: EditorialPost;
   idx: number;
   onOpen: () => void;
   openLabel: string;
+  brand: string;
 }) {
   return (
     <motion.button
@@ -384,7 +386,7 @@ function CoverCard({
       {!card.image && (
         <div className="relative border-t border-black/10 bg-offwhite/95 px-5 py-4">
           <div className="flex items-center justify-between gap-4">
-            <div className="text-[11px] tracking-[0.22em] text-black/65 uppercase">DR. LIBERTAD</div>
+            <div className="text-[11px] tracking-[0.22em] text-black/65 uppercase">{brand}</div>
             <div className="text-[11px] tracking-[0.22em] text-black/55 uppercase">{card.issue}</div>
           </div>
         </div>

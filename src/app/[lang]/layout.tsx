@@ -10,7 +10,7 @@ const SITE_URL = "https://www.drlibertad.com";
 // para que cada versão seja indexada no seu próprio idioma.
 const SEO: Record<Lang, { title: string; description: string; ogLocale: string }> = {
   pt: {
-    title: "Dr. Libertad — Estúdio editorial de psicologia, atenção e liberdade mental",
+    title: "Dr. Liberdade — Estúdio editorial de psicologia, atenção e liberdade mental",
     description:
       "Estúdio editorial sobre desintoxicação digital, ansiedade moderna e inteligência emocional. Filosofia aplicada à atenção e ao comportamento.",
     ogLocale: "pt_BR",
@@ -39,11 +39,13 @@ export async function generateMetadata({
   const { lang } = await params;
   const l: Lang = lang === "es" ? "es" : "pt";
   const seo = SEO[l];
+  // Nome da marca por idioma: PT-BR usa "Dr. Liberdade"; ES usa "Dr. Libertad".
+  const brand = l === "es" ? "Dr. Libertad" : "Dr. Liberdade";
 
   return {
     title: {
       default: seo.title,
-      template: "%s · Dr. Libertad",
+      template: `%s · ${brand}`,
     },
     description: seo.description,
     alternates: {
@@ -56,7 +58,7 @@ export async function generateMetadata({
     },
     openGraph: {
       type: "website",
-      siteName: "Dr. Libertad",
+      siteName: brand,
       title: seo.title,
       description: seo.description,
       url: `${SITE_URL}/${l}`,
