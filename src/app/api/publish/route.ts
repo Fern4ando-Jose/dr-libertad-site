@@ -5,7 +5,7 @@ import { type Automation, checkBudget, logSpend, anthropicCost, tavilyCost, EST_
 import { parseContentJson } from "@/lib/content-json";
 import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentTopicsAllLangs } from "@/lib/run-ledger";
+import { recordRun, recentTopicsAllLangs, runAlreadyPublished } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, slotForRun, pickFreshTopicIndex } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 
@@ -522,6 +522,19 @@ export async function GET(req: NextRequest) {
 
       try {
         const now   = new Date();
+
+        // IDEMPOTÊNCIA por (dia, run, conta) — a MESMA trava que o Reel já tinha.
+        // Sem ela, quando o catchup recupera um run E o cron atrasado do GitHub
+        // dispara o MESMO run depois, o carrossel publicava 2× (o anti-dup por
+        // TÓPICO não pega porque a seleção fresca dá um tema diferente a cada hora).
+        // Aqui: se a vaga já saiu hoje nesta conta, pula (force=1 burla p/ backfill).
+        if (!force && await runAlreadyPublished(dayUTC(now), runIndex, lang)) {
+          slotLog.skipped = true;
+          slotLog.reason = `run ${runIndex} (${lang}) já publicado hoje — idempotência`;
+          results.push(slotLog);
+          continue;
+        }
+
         // Tópico FRESCO: já pula o que saiu nos últimos 7d em QUALQUER formato
         // (reel ∪ carrossel) — trava anti-dup real, não só a checagem de `posts`.
         const topic = topicOverride ?? await getFreshTopicForRun(now, runIndex, lang);
