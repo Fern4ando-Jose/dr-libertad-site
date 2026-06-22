@@ -61,10 +61,10 @@ const SCRIM =
 //   3. multiply(LUZ âmbar) → luzes viram dourado quente (sem estourar);
 //   4. soft-light(WASH quente) → base sempre quente, coesa mesmo em clipe frio;
 //   5. soft-light(acento) → cor da categoria por cima.
-const GRADE_FILTER = "saturate(0.4) contrast(1.12) brightness(0.95) sepia(0.38)";
-const DUO_FLOOR = "#241a12";      // piso quente (marrom escuro — matte vintage)
-const DUO_HIGHLIGHT = "#E9CDA6";  // teto âmbar/creme quente (dourado, não branco)
-const WARM_WASH = "#6B3F24";      // unificador quente global (tons antigos)
+const GRADE_FILTER = "saturate(0.5) contrast(1.1) brightness(0.95) sepia(0.2)";
+const DUO_FLOOR = "#1F1A18";      // piso levemente quente (marrom-neutro — matte, sem laranja)
+const DUO_HIGHLIGHT = "#ECDCC4";  // teto creme quente suave (entre creme e âmbar)
+const WARM_WASH = "#5A4636";      // unificador quente discreto (marrom-neutro, não vermelho)
 
 // ─── Zona segura do FEED do Instagram ─────────────────────────────────────────
 // O Reel é 1080×1920 (9:16), mas o FEED mostra um recorte CENTRADO 4:5 (1080×1350)
@@ -214,7 +214,7 @@ function SceneBg({
             luzes coesas) → exposição igual clipe a clipe, com calor de filme antigo */}
         <AbsoluteFill style={{ backgroundColor: DUO_HIGHLIGHT, mixBlendMode: "multiply" }} />
         {/* WASH quente global — garante o tom 'antigo/quente' mesmo em clipe frio */}
-        <AbsoluteFill style={{ backgroundColor: WARM_WASH, opacity: 0.28, mixBlendMode: "soft-light" }} />
+        <AbsoluteFill style={{ backgroundColor: WARM_WASH, opacity: 0.16, mixBlendMode: "soft-light" }} />
         {/* ACENTO da categoria por cima — cor de marca */}
         <AbsoluteFill style={{ backgroundColor: accent, opacity: 0.18, mixBlendMode: "soft-light" }} />
       </AbsoluteFill>
