@@ -106,6 +106,15 @@ export async function GET(req: NextRequest) {
     results.push("published_runs table: " + String(e));
   }
 
+  // Coluna published_runs.topic — rastro do tópico por publicação (reel + carrossel)
+  // p/ a trava anti-dup CROSS-FORMATO (não repetir o mesmo tema reel↔carrossel).
+  try {
+    await sql`ALTER TABLE published_runs ADD COLUMN IF NOT EXISTS topic TEXT`;
+    results.push("published_runs.topic: ok");
+  } catch (e) {
+    results.push("published_runs.topic: " + String(e));
+  }
+
   // Tabela editions — número de edição (Nº na capa) por VAGA (dia, run), o MESMO
   // p/ ES e PT (é o mesmo conteúdo traduzido). Antes o Nº vinha de COUNT(posts)+1,
   // que NÃO andava pra Reels (só carrossel grava em posts) → "Nº 102" repetia em

@@ -42,3 +42,23 @@ export function topicIndexForRun(rotation: number[], date: Date, runIndex: numbe
   const n = rotation.length;
   return rotation[((slot % n) + n) % n];
 }
+
+// Slot inicial (contínuo) de um (data, run). Separado p/ o caminhar-pulando abaixo.
+export function slotForRun(date: Date, runIndex: number): number {
+  return dayOfYear(date) * 6 + runIndex;
+}
+
+// Escolhe o tema do slot PULANDO os já usados recentemente (em QUALQUER formato,
+// na conta) — a trava anti-dup REAL, robusta a mudanças de rotação e a repetição
+// reel↔carrossel. Caminha a rotação a partir de `startSlot` e devolve o 1º índice
+// de tema que NÃO está em `used` (índices de tema publicados nos últimos N dias).
+// Se todos estiverem usados (degenerado — N temas < janela), cai no tema-base do
+// slot. Função PURA → testável.
+export function pickFreshTopicIndex(rotation: number[], startSlot: number, used: Set<number>): number {
+  const n = rotation.length;
+  for (let i = 0; i < n; i++) {
+    const idx = rotation[(((startSlot + i) % n) + n) % n];
+    if (!used.has(idx)) return idx;
+  }
+  return rotation[((startSlot % n) + n) % n]; // tudo usado → base (não deve ocorrer: N > 6×7)
+}

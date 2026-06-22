@@ -27,19 +27,48 @@ export async function runAlreadyPublished(day: string, run: number, lang: string
   }
 }
 
-// Registra (ou atualiza) a publicação. Best-effort.
+// Registra (ou atualiza) a publicação. Best-effort. Grava o `topic` (coluna nova)
+// para a trava anti-dup CROSS-FORMATO: assim um Reel deixa rastro do tópico e o
+// carrossel (e vice-versa) não repete o mesmo tema no dia seguinte.
 export async function recordRun(
   day: string, run: number, lang: string, kind: string, instagramPostId: string | null,
+  topic?: string | null,
 ): Promise<void> {
   try {
     const { sql } = await import("@vercel/postgres");
     await sql`
-      INSERT INTO published_runs (day, run, lang, kind, instagram_post_id, ts)
-      VALUES (${day}, ${run}, ${lang}, ${kind}, ${instagramPostId}, NOW())
+      INSERT INTO published_runs (day, run, lang, kind, instagram_post_id, topic, ts)
+      VALUES (${day}, ${run}, ${lang}, ${kind}, ${instagramPostId}, ${topic ?? null}, NOW())
       ON CONFLICT (day, run, lang) DO UPDATE SET
-        kind = ${kind}, instagram_post_id = ${instagramPostId}, ts = NOW()
+        kind = ${kind}, instagram_post_id = ${instagramPostId},
+        topic = COALESCE(${topic ?? null}, published_runs.topic), ts = NOW()
     `;
   } catch { /* livro-razão é best-effort — nunca quebra o pipeline */ }
+}
+
+// Tópicos publicados na conta (lang) nos últimos `days` dias, em QUALQUER formato:
+// reels (livro-razão `published_runs.topic`) ∪ carrosséis (`posts.topic`). É a
+// base da trava anti-dup REAL na seleção do tema. Fail-open: erro → conjunto vazio
+// (não bloqueia; volta ao comportamento antigo).
+export async function recentTopicsForLang(lang: string, days = 7): Promise<Set<string>> {
+  const out = new Set<string>();
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const a = await sql<{ topic: string }>`
+      SELECT DISTINCT topic FROM published_runs
+      WHERE lang = ${lang} AND topic IS NOT NULL
+        AND instagram_post_id IS NOT NULL
+        AND ts > NOW() - (${days} || ' days')::interval
+    `;
+    for (const r of a.rows) if (r.topic) out.add(r.topic);
+    const b = await sql<{ topic: string }>`
+      SELECT DISTINCT topic FROM posts
+      WHERE lang = ${lang} AND topic IS NOT NULL
+        AND published_at > NOW() - (${days} || ' days')::interval
+    `;
+    for (const r of b.rows) if (r.topic) out.add(r.topic);
+  } catch { /* fail-open */ }
+  return out;
 }
 
 // Quais runs do dia já têm publicação, por idioma. Usado pelo watchdog (via
