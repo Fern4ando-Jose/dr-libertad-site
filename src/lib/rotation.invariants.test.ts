@@ -97,4 +97,24 @@ describe("pickFreshTopicIndex — não repete tema usado recentemente", () => {
     const d2 = new Date(Date.UTC(2026, 5, 22, 12));
     expect(slotForRun(d2, 0) - slotForRun(d1, 0)).toBe(6);
   });
+
+  // Threading intra-dia (igual ao getFreshTopicForRun): com base de recentes DENSA
+  // (pior caso), os 6 runs do dia avançariam todos p/ o mesmo "1º livre" se não
+  // houvesse threading. Incluindo os picks anteriores no `used`, saem 6 DISTINTOS —
+  // sem depender da ordem/timing de gravação (robusto a re-disparo do catchup).
+  it("threading intra-dia → 6 runs do dia DISTINTOS, nenhum recente", () => {
+    const realRot = buildRotation(CATS);
+    const baseUsed = new Set<number>();
+    for (let i = 0; i < 20; i++) baseUsed.add(i); // 20 recentes (força avanço)
+    const day = 200;
+    const used = new Set(baseUsed);
+    const picks: number[] = [];
+    for (let run = 0; run < 6; run++) {
+      const idx = pickFreshTopicIndex(realRot, day * 6 + run, used);
+      used.add(idx);
+      picks.push(idx);
+    }
+    expect(new Set(picks).size).toBe(6);            // 6 distintos (sem colisão)
+    for (const p of picks) expect(baseUsed.has(p)).toBe(false); // nenhum recente
+  });
 });
