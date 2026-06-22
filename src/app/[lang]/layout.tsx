@@ -72,6 +72,10 @@ export async function generateMetadata({
       description: seo.description,
       images: [OG_IMAGE],
     },
+    icons: {
+      icon: [{ url: `/icon-${l}.svg`, type: "image/svg+xml" }],
+      apple: [{ url: `/icon-${l}.svg` }],
+    },
   };
 }
 
