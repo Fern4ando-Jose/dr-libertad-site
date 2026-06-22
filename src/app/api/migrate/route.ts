@@ -106,6 +106,25 @@ export async function GET(req: NextRequest) {
     results.push("published_runs table: " + String(e));
   }
 
+  // Tabela editions — número de edição (Nº na capa) por VAGA (dia, run), o MESMO
+  // p/ ES e PT (é o mesmo conteúdo traduzido). Antes o Nº vinha de COUNT(posts)+1,
+  // que NÃO andava pra Reels (só carrossel grava em posts) → "Nº 102" repetia em
+  // todo Reel. Aqui cada vaga ganha um número monotônico único. Ver src/lib/edition.ts.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS editions (
+        day        TEXT NOT NULL,
+        run        INT  NOT NULL,
+        ed         INT  NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (day, run)
+      )
+    `;
+    results.push("editions table: ok");
+  } catch (e) {
+    results.push("editions table: " + String(e));
+  }
+
   // Tabela spend_log — contabiliza cada chamada paga (fal/Anthropic/Tavily) por
   // automação, p/ a visão de /api/spend e o teto diário por automação (src/lib/spend.ts).
   try {

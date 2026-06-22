@@ -7,6 +7,7 @@ import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, select
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
 import { recordRun } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun } from "@/lib/rotation";
+import { editionFor } from "@/lib/edition";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -430,13 +431,17 @@ export async function GET(req: NextRequest) {
       if (clips.length) await writeReelShared(topic, day, { research: searchResults, videoQueries, clips });
     }
 
-    // Número de edição (mesma conta do fluxo de publicação)
-    let editionNum = 1;
-    try {
-      const { sql } = await import("@vercel/postgres");
-      const countResult = await sql`SELECT COUNT(*) as n FROM posts`;
-      editionNum = (parseInt(countResult.rows[0]?.n ?? "0") || 0) + 1;
-    } catch { /* fallback silencioso */ }
+    // Número de edição: por VAGA (dia, run), o MESMO p/ ES e PT (mesmo conteúdo
+    // traduzido), monotônico e único — não repete entre Reels (ver edition.ts).
+    // Fail-open: se o banco falhar (ed=0), cai no esquema antigo COUNT(posts)+1.
+    let editionNum = await editionFor(day, r);
+    if (!editionNum) {
+      try {
+        const { sql } = await import("@vercel/postgres");
+        const countResult = await sql`SELECT COUNT(*) as n FROM posts`;
+        editionNum = (parseInt(countResult.rows[0]?.n ?? "0") || 0) + 1;
+      } catch { editionNum = 1; }
+    }
     const ed = String(editionNum).padStart(2, "0");
     const kw = extractKeyword(topic);
 
@@ -525,13 +530,16 @@ export async function GET(req: NextRequest) {
         }
         slotLog.title = content.postTitle;
 
-        // Número de edição: total de posts já publicados + 1
-        let editionNum = 1;
-        try {
-          const { sql } = await import("@vercel/postgres");
-          const countResult = await sql`SELECT COUNT(*) as n FROM posts`;
-          editionNum = (parseInt(countResult.rows[0]?.n ?? "0") || 0) + 1;
-        } catch { /* fallback silencioso */ }
+        // Número de edição: por VAGA (dia, run), MESMO p/ ES e PT, único e
+        // monotônico (ver edition.ts). Fail-open p/ o esquema antigo COUNT(posts)+1.
+        let editionNum = await editionFor(dayUTC(now), runIndex);
+        if (!editionNum) {
+          try {
+            const { sql } = await import("@vercel/postgres");
+            const countResult = await sql`SELECT COUNT(*) as n FROM posts`;
+            editionNum = (parseInt(countResult.rows[0]?.n ?? "0") || 0) + 1;
+          } catch { editionNum = 1; }
+        }
         const ed   = String(editionNum).padStart(2, "0");
         const kw   = extractKeyword(topic);
         // mood alterna: red para ímpares, ink para pares (igual ao EditorialGrid do site)
