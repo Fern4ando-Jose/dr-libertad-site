@@ -50,8 +50,18 @@ const CAT_ACCENT: Record<string, string> = {
 const SCRIM =
   "linear-gradient(180deg, rgba(11,11,12,0.58) 0%, rgba(11,11,12,0.20) 30%, rgba(11,11,12,0.22) 58%, rgba(11,11,12,0.90) 100%)";
 
-// Grade da marca aplicado ao próprio vídeo (quase B&W, levemente contrastado).
-const GRADE_FILTER = "saturate(0.18) contrast(1.1) brightness(0.92)";
+// ─── Duotone editorial (padrão de marca aplicado a TODO footage) ──────────────
+// O footage do Pexels chega com exposições/cores totalmente diferentes — uns
+// claros, outros pretos — e a dessatura leve antiga NÃO unificava. Aqui um
+// DUOTONE normaliza qualquer clipe na MESMA faixa tonal da marca:
+//   1. vídeo → grayscale + contraste (tira a bagunça de cor do banco);
+//   2. screen(PISO)   → nada fica mais escuro que DUO_FLOOR  (mata o "preto puro");
+//   3. multiply(CREME)→ luzes viram creme/paper              (mata o estouro);
+//   4. soft-light(acento) → cor da categoria por cima.
+// Resultado: capa coesa, "cara de revista", independente do clipe de origem.
+const GRADE_FILTER = "grayscale(1) contrast(1.18) brightness(1.04)";
+const DUO_FLOOR = "#23252e";   // piso tonal (deep slate de marca — nunca preto puro)
+const DUO_HIGHLIGHT = PAPER;   // teto tonal (creme/paper)
 
 // ─── Zona segura do FEED do Instagram ─────────────────────────────────────────
 // O Reel é 1080×1920 (9:16), mas o FEED mostra um recorte CENTRADO 4:5 (1080×1350)
@@ -182,8 +192,11 @@ function SceneBg({
   const driftX = interpolate(frame, [0, dur], [0, -28], { extrapolateRight: "clamp" });
 
   if (clip) {
+    // isolation: isolate → os mix-blend abaixo se combinam SÓ entre si (duotone
+    // fechado), sem vazar pro resto da cena. Ordem importa: grayscale → screen
+    // (piso) → multiply (teto) → soft-light (acento).
     return (
-      <AbsoluteFill style={{ backgroundColor: INK, overflow: "hidden" }}>
+      <AbsoluteFill style={{ backgroundColor: DUO_FLOOR, overflow: "hidden", isolation: "isolate" }}>
         <AbsoluteFill style={{ transform: `scale(${zoom}) translateX(${driftX}px)` }}>
           <OffthreadVideo
             src={clip}
@@ -191,10 +204,14 @@ function SceneBg({
             style={{ width: "100%", height: "100%", objectFit: "cover", filter: GRADE_FILTER }}
           />
         </AbsoluteFill>
-        {/* wash do acento — funde o footage na paleta da marca */}
-        <AbsoluteFill style={{ backgroundColor: accent, opacity: 0.16, mixBlendMode: "soft-light" }} />
-        {/* leve duotone: reforço de ink nas sombras */}
-        <AbsoluteFill style={{ backgroundColor: INK, opacity: 0.14, mixBlendMode: "multiply" }} />
+        {/* PISO: screen com o slate de marca — sombras nunca passam de DUO_FLOOR
+            (clipe escuro deixa de virar preto; todas as sombras viram o mesmo tom) */}
+        <AbsoluteFill style={{ backgroundColor: DUO_FLOOR, mixBlendMode: "screen" }} />
+        {/* TETO: multiply com creme — luzes viram paper (clipe claro não estoura;
+            todas as luzes viram o mesmo creme) → exposição igual clipe a clipe */}
+        <AbsoluteFill style={{ backgroundColor: DUO_HIGHLIGHT, mixBlendMode: "multiply" }} />
+        {/* ACENTO da categoria por cima do duotone — cor de marca */}
+        <AbsoluteFill style={{ backgroundColor: accent, opacity: 0.22, mixBlendMode: "soft-light" }} />
       </AbsoluteFill>
     );
   }
