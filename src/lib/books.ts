@@ -16,9 +16,10 @@ export const BOOKS: BookMeta[] = [
     slug: "100-plantas",
     dictKey: "livro",
     cover: { pt: "/images/livro-capa-pt.png", es: "/images/livro-capa-es.png" },
-    // TODO: substituir pelos links de checkout reais da Hotmart após a aprovação.
-    // Produto PT na Hotmart: ID 7978640 (em análise). Edição ES ainda será cadastrada.
-    checkout: { pt: "https://hotmart.com", es: "https://hotmart.com" },
+    // PT: produto Hotmart aprovado (ID 7978640) — checkout direto.
+    // ES: ainda sem produto próprio na Hotmart (entregaria o PDF PT); fica como placeholder
+    // até criarmos o produto em espanhol com o PDF ES.
+    checkout: { pt: "https://pay.hotmart.com/J106432769P", es: "https://hotmart.com" },
   },
 ];
 
