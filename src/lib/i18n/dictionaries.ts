@@ -202,7 +202,7 @@ export const pt = {
     manifestoParas: [
       "Acredito que a liberdade de expressão é inegociável: você tem o direito de fazer o que quer, e eu de dizer o que penso. Não curvo a frase ao politicamente correto nem à pressão de norma imposta — a força da ideia é o produto.",
       "Escrevo contra a servidão voluntária: a do homem que terceiriza a própria vida e a própria liberdade, que se acomoda no bando e entrega a atenção a quem a projetou para capturá-la. A provocação aqui vem sempre da ideia, com argumento — nunca do ódio.",
-      "E acredito que o sentido não está na tela: está no que se compartilha. Vínculo, amizade, amor verdadeiro. A alegria só é verdadeira quando compartilhada — e nenhum filtro entrega isso.",
+      "E acredito que o sentido não está na tela: está no que se compartilha. Vínculo, amizade, amor verdadeiro. Nada disso se completa sozinho — e nenhum filtro entrega o que só o encontro real entrega.",
     ],
     convictionsLabel: "no que eu acredito",
     convictions: [
@@ -221,11 +221,11 @@ export const pt = {
     ],
     canonLabel: "o cânone que forma a visão",
     canon: [
-      { t: "Coração Valente", d: "Hombridade, luta e amor — ir até as últimas consequências por aquilo que vale mais que a própria vida." },
-      { t: "Discurso da Servidão Voluntária", d: "O sistema só tem poder porque o homem consente em obedecer. O alvo é a passividade." },
-      { t: "Fernão Capelo Gaivota", d: "A força de um sonho e a recusa de viver diluído no bando." },
-      { t: "O Pequeno Príncipe", d: "O essencial é invisível aos olhos — e somos responsáveis por aquilo que cativamos." },
-      { t: "Na Natureza Selvagem", d: "Todo homem tem o seu momento de busca: a alegria só é verdadeira quando compartilhada." },
+      { t: "Coração Valente", d: "Coragem não é a ausência de medo, mas seguir apesar dele — por algo que vale mais do que a própria segurança." },
+      { t: "Discurso da Servidão Voluntária", d: "Nenhum poder se sustenta sem o consentimento de quem obedece. A acomodação é a corrente; parar de consentir é a chave." },
+      { t: "Fernão Capelo Gaivota", d: "Quem se recusa a viver diluído na maioria paga o preço da solidão — e descobre que voar mais alto valia cada centímetro." },
+      { t: "O Pequeno Príncipe", d: "O que de fato importa não cabe numa tela nem se mede em números: a gente se torna responsável por quem escolhe deixar perto." },
+      { t: "Na Natureza Selvagem", d: "Buscar a si mesmo longe de tudo ensina muito, mas a descoberta final é dura: nada se completa no isolamento." },
     ],
     contactEyebrow: "CONTATO",
     contactTitle: "Onde me encontrar.",
@@ -445,7 +445,7 @@ export const es: Dict = {
     manifestoParas: [
       "Creo que la libertad de expresión es innegociable: tú tienes el derecho de hacer lo que quieres, y yo de decir lo que pienso. No doblo la frase ante lo políticamente correcto ni ante la presión de una norma impuesta — la fuerza de la idea es el producto.",
       "Escribo contra la servidumbre voluntaria: la del hombre que terceriza su propia vida y su propia libertad, que se acomoda en la manada y entrega su atención a quien la diseñó para capturarla. La provocación aquí viene siempre de la idea, con argumento — nunca del odio.",
-      "Y creo que el sentido no está en la pantalla: está en lo que se comparte. Vínculo, amistad, amor verdadero. La alegría solo es verdadera cuando se comparte — y ningún filtro entrega eso.",
+      "Y creo que el sentido no está en la pantalla: está en lo que se comparte. Vínculo, amistad, amor verdadero. Nada de eso se completa en soledad — y ningún filtro entrega lo que solo el encuentro real entrega.",
     ],
     convictionsLabel: "en lo que creo",
     convictions: [
@@ -464,11 +464,11 @@ export const es: Dict = {
     ],
     canonLabel: "el canon que forma la visión",
     canon: [
-      { t: "Corazón Valiente", d: "Hombría, lucha y amor — ir hasta las últimas consecuencias por aquello que vale más que la propia vida." },
-      { t: "Discurso de la Servidumbre Voluntaria", d: "El sistema solo tiene poder porque el hombre consiente en obedecer. El blanco es la pasividad." },
-      { t: "Juan Salvador Gaviota", d: "La fuerza de un sueño y la negativa a vivir diluido en la bandada." },
-      { t: "El Principito", d: "Lo esencial es invisible a los ojos — y somos responsables de aquello que domesticamos." },
-      { t: "Hacia rutas salvajes", d: "Todo hombre tiene su momento de búsqueda: la alegría solo es verdadera cuando se comparte." },
+      { t: "Corazón Valiente", d: "El coraje no es la ausencia de miedo, sino avanzar a pesar de él — por algo que vale más que la propia seguridad." },
+      { t: "Discurso de la Servidumbre Voluntaria", d: "Ningún poder se sostiene sin el consentimiento de quien obedece. La comodidad es la cadena; dejar de consentir es la llave." },
+      { t: "Juan Salvador Gaviota", d: "Quien se niega a vivir diluido en la mayoría paga el precio de la soledad — y descubre que volar más alto valía cada centímetro." },
+      { t: "El Principito", d: "Lo que de verdad importa no cabe en una pantalla ni se mide en números: uno se vuelve responsable de quien elige tener cerca." },
+      { t: "Hacia rutas salvajes", d: "Buscarse a uno mismo lejos de todo enseña mucho, pero el descubrimiento final es duro: nada se completa en el aislamiento." },
     ],
     contactEyebrow: "CONTACTO",
     contactTitle: "Dónde encontrarme.",
