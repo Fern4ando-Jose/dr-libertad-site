@@ -17,9 +17,8 @@ export const BOOKS: BookMeta[] = [
     dictKey: "livro",
     cover: { pt: "/images/livro-capa-pt.png", es: "/images/livro-capa-es.png" },
     // PT: produto Hotmart aprovado (ID 7978640) — checkout direto.
-    // ES: ainda sem produto próprio na Hotmart (entregaria o PDF PT); fica como placeholder
-    // até criarmos o produto em espanhol com o PDF ES.
-    checkout: { pt: "https://pay.hotmart.com/J106432769P", es: "https://hotmart.com" },
+    // ES: produto Hotmart próprio (ID 7980706) com o PDF ES, US$ 7,90, afiliados 50%.
+    checkout: { pt: "https://pay.hotmart.com/J106432769P", es: "https://pay.hotmart.com/W106437072U" },
   },
 ];
 
