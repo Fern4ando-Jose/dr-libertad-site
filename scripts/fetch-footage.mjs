@@ -13,7 +13,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
-const NUM_CLIPS = Math.max(1, Math.min(4, Number(process.env.FOOTAGE_NUM_CLIPS || "3")));
+const NUM_CLIPS = Math.max(1, Math.min(6, Number(process.env.FOOTAGE_NUM_CLIPS || "5")));
 const PER_PAGE = 20;
 
 const propsArg = process.argv.find((a) => a.startsWith("--props="));
