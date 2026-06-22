@@ -5,7 +5,7 @@ import { type Automation, checkBudget, logSpend, anthropicCost, tavilyCost, EST_
 import { parseContentJson } from "@/lib/content-json";
 import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentTopicsForLang } from "@/lib/run-ledger";
+import { recordRun, recentTopicsAllLangs } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, slotForRun, pickFreshTopicIndex } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 
@@ -131,13 +131,21 @@ const TOPIC_INDEX = new Map(TOPICS.map((t, i) => [t, i] as const));
 // (o bug em que "padre ausente" saiu Reel num dia e carrossel no outro). A
 // rotação determinística sozinha não bastava: trocar o algoritmo (ou o reel não
 // gravar tópico) reintroduzia repetições. Fail-open: erro de banco → tema-base.
-async function getFreshTopicForRun(date: Date, runIndex: number, lang: Lang): Promise<string> {
+async function getFreshTopicForRun(date: Date, runIndex: number, _lang: Lang): Promise<string> {
   try {
-    const recent = await recentTopicsForLang(lang, 7);
+    // Base UNIFICADA (qualquer conta): ES e PT veem os MESMOS recentes → escolhem o
+    // MESMO tema por vaga (vídeo compartilhado) e nenhum repete.
+    const recent = await recentTopicsAllLangs(7);
     const used = new Set<number>();
     for (const t of recent) {
       const i = TOPIC_INDEX.get(t);
       if (i !== undefined) used.add(i);
+    }
+    // THREADING intra-dia: inclui os temas que os runs ANTERIORES de hoje escolhem
+    // (deterministicamente, mesma base) → 6 temas DISTINTOS no dia, sem depender da
+    // ordem/timing de gravação no livro-razão (robusto a re-disparo do catchup).
+    for (let i = 0; i < runIndex; i++) {
+      used.add(pickFreshTopicIndex(ROTATION, slotForRun(date, i), used));
     }
     return TOPICS[pickFreshTopicIndex(ROTATION, slotForRun(date, runIndex), used)];
   } catch {
