@@ -9,6 +9,10 @@ export type BookMeta = {
   dictKey: BookDictKey;
   cover: { pt: string; es: string };
   checkout: { pt: string; es: string };
+  // Vídeo promo vertical (9:16) por idioma. Use null enquanto a versão do idioma
+  // não existir — o player só aparece quando há vídeo para o idioma atual.
+  promoVideo?: { pt: string | null; es: string | null };
+  promoPoster?: { pt: string | null; es: string | null };
 };
 
 export const BOOKS: BookMeta[] = [
@@ -19,6 +23,9 @@ export const BOOKS: BookMeta[] = [
     // PT: produto Hotmart aprovado (ID 7978640) — checkout direto.
     // ES: produto Hotmart próprio (ID 7980706) com o PDF ES, US$ 7,90, afiliados 50%.
     checkout: { pt: "https://pay.hotmart.com/J106432769P", es: "https://pay.hotmart.com/W106437072U" },
+    // ES ainda não produzido — fica null até a versão em espanhol ser renderizada.
+    promoVideo: { pt: "/videos/livro-promo-pt.mp4", es: null },
+    promoPoster: { pt: "/videos/livro-promo-pt-poster.jpg", es: null },
   },
 ];
 
