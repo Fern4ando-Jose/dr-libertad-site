@@ -97,6 +97,8 @@ jobs:
               cta: p.cta || "",
               kw: p.kw || "LIBERTAD",
               ed: p.ed || "000",
+              // topic: chave do tema (p/ o writeback do footage compartilhar ES↔PT).
+              topic: p.topic || "",
               img: p.illustration || undefined,
               cat: p.cat || "freedom",
               handle: p.handle || "@dr.liberdad",
@@ -124,6 +126,9 @@ jobs:
         env:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           FOOTAGE_NUM_CLIPS: "4"
+          # writeback: se a Pexels for usada aqui (fallback), compartilha o footage
+          # achado com a outra conta via /api/reel-share (mesmo vídeo ES↔PT).
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: node scripts/fetch-footage.mjs --props=reel-props.json
 
       # 5c. Guarda anti-preto (#3) — cascata footage → ilustração → pular.
