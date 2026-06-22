@@ -32,6 +32,8 @@ export default function BookSales({ slug }: { slug: string }) {
   const L = t[book.dictKey];
   const checkout = book.checkout[lang] ?? book.checkout.pt;
   const cover = book.cover[lang] ?? book.cover.pt;
+  const promoVideo = book.promoVideo?.[lang] ?? null;
+  const promoPoster = book.promoPoster?.[lang] ?? null;
 
   return (
     <motion.main
@@ -129,6 +131,48 @@ export default function BookSales({ slug }: { slug: string }) {
           </div>
         </StudioContainer>
       </section>
+
+      {/* VIDEO PROMO (vertical 9:16) — só renderiza quando há vídeo no idioma atual */}
+      {promoVideo && (
+        <section className="relative overflow-hidden border-b border-warm-gray/10 py-16 md:py-24">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 -z-10"
+            style={{
+              background:
+                "radial-gradient(700px circle at 50% 12%, rgba(45,90,61,0.16), transparent 60%)",
+            }}
+          />
+          <StudioContainer>
+            <div className="mx-auto max-w-md text-center">
+              <Eyebrow>{lang === "es" ? "Vea el libro" : "Veja o livro"}</Eyebrow>
+              <h2 className="mt-4 font-serif tracking-[-0.02em] text-[clamp(1.6rem,3vw,2.3rem)] leading-[1.05] text-balance">
+                {lang === "es"
+                  ? "30 segundos por dentro del guía"
+                  : "30 segundos por dentro do guia"}
+              </h2>
+            </div>
+            <Reveal>
+              <motion.div
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="mx-auto mt-10 w-full max-w-[340px]"
+              >
+                <div className="relative overflow-hidden rounded-[28px] border border-warm-gray/20 bg-black/40 p-2 shadow-[0_40px_110px_rgba(0,0,0,0.6)] ring-1 ring-white/10">
+                  <video
+                    className="aspect-[9/16] w-full rounded-[20px] bg-black"
+                    src={promoVideo}
+                    poster={promoPoster ?? undefined}
+                    controls
+                    playsInline
+                    preload="metadata"
+                  />
+                </div>
+              </motion.div>
+            </Reveal>
+          </StudioContainer>
+        </section>
+      )}
 
       {/* BENEFITS */}
       <section className="border-b border-warm-gray/10 py-16 md:py-24">
