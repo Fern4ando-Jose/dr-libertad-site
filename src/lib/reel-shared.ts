@@ -138,7 +138,7 @@ export async function selectFootage(
   videoQueries: string[],
   cat: string,
   seed: number,
-  numClips = 4,
+  numClips = 5, // 5 cenas do Reel (capa + 3 insights + CTA) → 5 clipes distintos
 ): Promise<string[]> {
   const key = process.env.PEXELS_API_KEY;
   if (!key) return [];

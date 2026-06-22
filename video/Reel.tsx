@@ -67,13 +67,15 @@ const SAFE_BOTTOM_HANDLE = 300; // @ em y≈1620, logo acima da borda do recorte
 // ─── Tempos (fonte única; Root.tsx importa reelDurations) ─────────────────────
 export const FPS = 30;
 
-// "Texto mínimo": no máximo 2 insights entre capa e CTA. Cenas mais longas →
-// Reel ~20s (capa 5s + 2×5,2s + CTA 4,6s).
+// Até 3 insights entre capa e CTA → Reel mais LONGO e com mais cenas (decisão do
+// dono: ~25s p/ casar com a música de ~28s; antes eram só 2 insights/~20s e o
+// vídeo parecia curto). Capa 5s + 3×5,2s + CTA 4,6s ≈ 25,2s. Com 3 insights são
+// 5 cenas (capa + 3 + CTA) → 5 clipes de footage distintos (ver FOOTAGE_NUM_CLIPS).
 export function reelDurations(slidesCount: number) {
   const COVER = Math.round(FPS * 5.0);
   const INSIGHT = Math.round(FPS * 5.2);
   const CTA = Math.round(FPS * 4.6);
-  const n = Math.min(Math.max(slidesCount || 1, 1), 2);
+  const n = Math.min(Math.max(slidesCount || 1, 1), 3);
   return { COVER, INSIGHT, CTA, n, total: COVER + INSIGHT * n + CTA };
 }
 
@@ -352,7 +354,7 @@ function CtaText({ cta, accent, handle }: { cta: string; accent: string; handle:
 // ─── Composição completa ──────────────────────────────────────────────────────
 export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, clips, clip, music, cat, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
-  const safeSlides = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 2);
+  const safeSlides = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 3);
   const { COVER, INSIGHT, CTA, n, total } = reelDurations(safeSlides.length);
   const usedSlides = safeSlides.slice(0, n);
 

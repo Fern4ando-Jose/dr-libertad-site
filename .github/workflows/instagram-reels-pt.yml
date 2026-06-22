@@ -122,12 +122,12 @@ jobs:
           '
 
       # 5b. Busca footage REAL de banco (Pexels, grátis) no tema do post → clipes de
-      #     fundo (movimento real, 4 cenas). NÃO-FATAL: sem PEXELS_API_KEY ou sem
+      #     fundo (movimento real, 5 cenas). NÃO-FATAL: sem PEXELS_API_KEY ou sem
       #     match, segue sem clips e o Reel usa a ilustração estática.
       - name: Buscar footage (Pexels) → clipes de fundo
         env:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          FOOTAGE_NUM_CLIPS: "4"
+          FOOTAGE_NUM_CLIPS: "5"
         run: node scripts/fetch-footage.mjs --props=reel-props.json
 
       # 6. Renderiza o Reel para out/reel.mp4
