@@ -22,6 +22,14 @@ h1, h2, h3 {
   font-family: var(--font-serif, ui-serif), ui-serif;
 }
 
+/* Tailwind v4 não força cursor de ponteiro em botões; restauramos para os
+   elementos interativos (mantendo o cursor padrão quando desabilitados). */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+summary {
+  cursor: pointer;
+}
+
 /* Studio polish */
 .text-balance {
   text-wrap: balance;
