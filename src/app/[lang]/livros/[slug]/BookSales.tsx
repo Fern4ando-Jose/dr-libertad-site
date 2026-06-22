@@ -91,10 +91,10 @@ export default function BookSales({ slug }: { slug: string }) {
                   href={checkout}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center rounded-full bg-muted-red px-7 py-3.5 text-sm font-semibold tracking-[0.02em] text-offwhite shadow-[0_14px_44px_rgba(164,90,90,0.32)] transition hover:bg-muted-red/88"
+                  className="group inline-flex items-center rounded-full bg-gradient-to-b from-[#cf6259] to-[#9e433d] px-8 py-4 text-[0.95rem] font-bold tracking-[0.01em] text-white shadow-[0_16px_44px_rgba(207,98,89,0.55)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_20px_56px_rgba(207,98,89,0.72)]"
                 >
                   {L.ctaBuy}
-                  <span className="ml-3 transition group-hover:translate-x-0.5">
+                  <span className="ml-3 transition group-hover:translate-x-1">
                     {String.fromCharCode(8594)}
                   </span>
                 </a>
@@ -264,10 +264,10 @@ export default function BookSales({ slug }: { slug: string }) {
                 href={checkout}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex items-center rounded-full bg-muted-red px-8 py-4 text-sm font-semibold text-offwhite shadow-[0_14px_44px_rgba(164,90,90,0.32)] transition hover:bg-muted-red/88"
+                className="group inline-flex items-center rounded-full bg-gradient-to-b from-[#cf6259] to-[#9e433d] px-10 py-5 text-[1.05rem] font-bold text-white shadow-[0_18px_50px_rgba(207,98,89,0.6)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_24px_64px_rgba(207,98,89,0.78)]"
               >
                 {L.ctaBuy} · {L.price}
-                <span className="ml-3 transition group-hover:translate-x-0.5">
+                <span className="ml-3 transition group-hover:translate-x-1">
                   {String.fromCharCode(8594)}
                 </span>
               </a>
