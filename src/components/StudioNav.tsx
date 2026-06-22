@@ -27,7 +27,8 @@ export default function StudioNav() {
   };
 
   const linkCls =
-    "text-xs tracking-[0.22em] uppercase text-warm-gray/80 hover:text-offwhite transition";
+    "relative cursor-pointer text-xs tracking-[0.22em] uppercase text-warm-gray/80 transition-colors hover:text-offwhite " +
+    "after:pointer-events-none after:absolute after:-bottom-1.5 after:left-0 after:h-[1.5px] after:w-0 after:bg-muted-red after:transition-all after:duration-300 hover:after:w-full";
 
   return (
     <motion.header
