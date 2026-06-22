@@ -50,8 +50,21 @@ const CAT_ACCENT: Record<string, string> = {
 const SCRIM =
   "linear-gradient(180deg, rgba(11,11,12,0.58) 0%, rgba(11,11,12,0.20) 30%, rgba(11,11,12,0.22) 58%, rgba(11,11,12,0.90) 100%)";
 
-// Grade da marca aplicado ao próprio vídeo (quase B&W, levemente contrastado).
-const GRADE_FILTER = "saturate(0.18) contrast(1.1) brightness(0.92)";
+// ─── Grade cinematográfica QUENTE/VINTAGE (padrão de marca em todo footage) ───
+// Restaura e UNIFICA a cara editorial/cine que o footage bom já tinha — tons
+// antigos, quentes, puxando pro âmbar/vermelho, matte e profundos. (A 1ª versão
+// em grayscale+creme clareou demais e matou a cor — revertida.) Normaliza
+// qualquer clipe do Pexels na MESMA faixa tonal quente:
+//   1. vídeo → cor PARCIAL + sépia (calor garantido) + escuro (mood);
+//   2. screen(PISO quente) → pretos viram marrom profundo (matte vintage; nunca
+//      cinza lavado, nunca preto puro);
+//   3. multiply(LUZ âmbar) → luzes viram dourado quente (sem estourar);
+//   4. soft-light(WASH quente) → base sempre quente, coesa mesmo em clipe frio;
+//   5. soft-light(acento) → cor da categoria por cima.
+const GRADE_FILTER = "saturate(0.5) contrast(1.1) brightness(0.95) sepia(0.2)";
+const DUO_FLOOR = "#1F1A18";      // piso levemente quente (marrom-neutro — matte, sem laranja)
+const DUO_HIGHLIGHT = "#ECDCC4";  // teto creme quente suave (entre creme e âmbar)
+const WARM_WASH = "#5A4636";      // unificador quente discreto (marrom-neutro, não vermelho)
 
 // ─── Zona segura do FEED do Instagram ─────────────────────────────────────────
 // O Reel é 1080×1920 (9:16), mas o FEED mostra um recorte CENTRADO 4:5 (1080×1350)
@@ -67,13 +80,15 @@ const SAFE_BOTTOM_HANDLE = 300; // @ em y≈1620, logo acima da borda do recorte
 // ─── Tempos (fonte única; Root.tsx importa reelDurations) ─────────────────────
 export const FPS = 30;
 
-// "Texto mínimo": no máximo 2 insights entre capa e CTA. Cenas mais longas →
-// Reel ~20s (capa 5s + 2×5,2s + CTA 4,6s).
+// Até 3 insights entre capa e CTA → Reel mais LONGO e com mais cenas (decisão do
+// dono: ~25s p/ casar com a música de ~28s; antes eram só 2 insights/~20s e o
+// vídeo parecia curto). Capa 5s + 3×5,2s + CTA 4,6s ≈ 25,2s. Com 3 insights são
+// 5 cenas (capa + 3 + CTA) → 5 clipes de footage distintos (ver FOOTAGE_NUM_CLIPS).
 export function reelDurations(slidesCount: number) {
   const COVER = Math.round(FPS * 5.0);
   const INSIGHT = Math.round(FPS * 5.2);
   const CTA = Math.round(FPS * 4.6);
-  const n = Math.min(Math.max(slidesCount || 1, 1), 2);
+  const n = Math.min(Math.max(slidesCount || 1, 1), 3);
   return { COVER, INSIGHT, CTA, n, total: COVER + INSIGHT * n + CTA };
 }
 
@@ -180,8 +195,11 @@ function SceneBg({
   const driftX = interpolate(frame, [0, dur], [0, -28], { extrapolateRight: "clamp" });
 
   if (clip) {
+    // isolation: isolate → os mix-blend abaixo se combinam SÓ entre si (duotone
+    // fechado), sem vazar pro resto da cena. Ordem importa: grayscale → screen
+    // (piso) → multiply (teto) → soft-light (acento).
     return (
-      <AbsoluteFill style={{ backgroundColor: INK, overflow: "hidden" }}>
+      <AbsoluteFill style={{ backgroundColor: DUO_FLOOR, overflow: "hidden", isolation: "isolate" }}>
         <AbsoluteFill style={{ transform: `scale(${zoom}) translateX(${driftX}px)` }}>
           <OffthreadVideo
             src={clip}
@@ -189,10 +207,16 @@ function SceneBg({
             style={{ width: "100%", height: "100%", objectFit: "cover", filter: GRADE_FILTER }}
           />
         </AbsoluteFill>
-        {/* wash do acento — funde o footage na paleta da marca */}
-        <AbsoluteFill style={{ backgroundColor: accent, opacity: 0.16, mixBlendMode: "soft-light" }} />
-        {/* leve duotone: reforço de ink nas sombras */}
-        <AbsoluteFill style={{ backgroundColor: INK, opacity: 0.14, mixBlendMode: "multiply" }} />
+        {/* PISO quente: screen com marrom escuro — pretos viram matte vintage
+            (clipe escuro deixa de virar preto; sombras coesas e QUENTES, não cinza) */}
+        <AbsoluteFill style={{ backgroundColor: DUO_FLOOR, mixBlendMode: "screen" }} />
+        {/* TETO âmbar: multiply — luzes viram dourado quente (clipe claro não estoura;
+            luzes coesas) → exposição igual clipe a clipe, com calor de filme antigo */}
+        <AbsoluteFill style={{ backgroundColor: DUO_HIGHLIGHT, mixBlendMode: "multiply" }} />
+        {/* WASH quente global — garante o tom 'antigo/quente' mesmo em clipe frio */}
+        <AbsoluteFill style={{ backgroundColor: WARM_WASH, opacity: 0.16, mixBlendMode: "soft-light" }} />
+        {/* ACENTO da categoria por cima — cor de marca */}
+        <AbsoluteFill style={{ backgroundColor: accent, opacity: 0.18, mixBlendMode: "soft-light" }} />
       </AbsoluteFill>
     );
   }
@@ -352,7 +376,7 @@ function CtaText({ cta, accent, handle }: { cta: string; accent: string; handle:
 // ─── Composição completa ──────────────────────────────────────────────────────
 export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, clips, clip, music, cat, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
-  const safeSlides = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 2);
+  const safeSlides = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 3);
   const { COVER, INSIGHT, CTA, n, total } = reelDurations(safeSlides.length);
   const usedSlides = safeSlides.slice(0, n);
 
