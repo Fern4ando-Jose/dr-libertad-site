@@ -68,10 +68,10 @@ export default function BookSales({ slug }: { slug: string }) {
                 {L.title} <em className="italic text-muted-red">{L.titleAccent}</em>
               </h1>
 
-              <p className="mt-6 max-w-xl text-[1.08rem] leading-[1.7] text-offwhite/90">
+              <p className="prose-justify mt-6 max-w-xl text-[1.08rem] leading-[1.7] text-offwhite/90">
                 {L.subtitle}
               </p>
-              <p className="mt-4 max-w-xl text-[0.98rem] leading-[1.8] text-warm-gray/85">
+              <p className="prose-justify mt-4 max-w-xl text-[0.98rem] leading-[1.8] text-warm-gray/85">
                 {L.lead}
               </p>
 
@@ -164,7 +164,7 @@ export default function BookSales({ slug }: { slug: string }) {
           <Reveal>
             <Heading eyebrow={L.insideEyebrow} title={L.insideTitle} />
           </Reveal>
-          <p className="mt-6 max-w-3xl text-[0.98rem] leading-[1.8] text-warm-gray/90">
+          <p className="prose-justify mt-6 max-w-3xl text-[0.98rem] leading-[1.8] text-warm-gray/90">
             {L.insideLead}
           </p>
           <div className="mt-10 space-y-6">
