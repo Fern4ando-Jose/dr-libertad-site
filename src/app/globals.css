@@ -35,6 +35,20 @@ summary {
   text-wrap: balance;
 }
 
+/* Parágrafos de corpo: justificados como num livro, com hifenização
+   (usa o dicionário do idioma via document.documentElement.lang). Só a
+   partir de md — em coluna estreita o justify abre "rios" de espaço feios. */
+.prose-justify {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+@media (min-width: 768px) {
+  .prose-justify {
+    text-align: justify;
+    text-justify: inter-word;
+  }
+}
+
 .hairline {
   height: 1px;
   background: rgba(185,176,162,0.18);
