@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateIllustration } from "@/lib/illustration";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
-import { type Automation, checkBudget, logSpend, anthropicCost, tavilyCost, EST_RUN_COST } from "@/lib/spend";
+import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
 import { parseContentJson } from "@/lib/content-json";
 import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
@@ -164,26 +164,44 @@ const SLOT_INSTRUCTIONS: Record<Slot, string> = {
   noite: "Ángulo NOCHE: provocador y de alto engagement. Termina con una pregunta o insight que genere debate. Tono audaz.",
 };
 
-// ─── Pesquisa de contexto ─────────────────────────────────────────────────────
+// ─── Pesquisa de contexto (GRÁTIS — Wikipedia, sem chave, sem custo) ───────────
+// Substitui a Tavily (paga, ~US$0,01/busca). Contexto factual de apoio pro prompt;
+// não precisa ser fresco (temas são perenes). Espanhol (es.wikipedia) porque a
+// pesquisa é COMPARTILHADA ES/PT e o conteúdo é regenerado por mercado, não traduzido.
+// FAIL-OPEN: qualquer erro/zero-resultado → [] e a geração segue SEM contexto
+// (o prompt lida com `context` vazio). A Tavily era hard-dependency (throw derrubava
+// a geração) E ralo de orçamento (44 buscas/dia drenaram o teto ig-reels em 23/06).
+const WIKI_UA = "DrLibertadBot/1.0 (https://www.drlibertad.com; research)";
 
-async function searchTopic(topic: string, automation: Automation): Promise<SearchResult[]> {
-  const res = await fetch("https://api.tavily.com/search", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      api_key: process.env.TAVILY_API_KEY,
-      query: topic + " psicología neurociencia",
-      search_depth: "advanced",
-      max_results: 5,
-      include_answer: true,
-    }),
-  });
-  if (!res.ok) throw new Error(`Tavily error: ${res.status}`);
-  await logSpend({ automation, platform: "tavily", operation: "search", model: "advanced", units: 1, costUsd: tavilyCost() });
-  const data = await res.json();
-  return (data.results ?? []).map((r: any) => ({
-    title: r.title ?? "", content: r.content ?? "", url: r.url ?? "",
-  }));
+async function searchTopic(topic: string, _automation: Automation): Promise<SearchResult[]> {
+  try {
+    // Viés leve pro domínio (como a query antiga da Tavily) — melhora a relevância
+    // de temas-frase (ex.: "El padre ausente" → Rollo May/Idealización em vez de um filme).
+    const searchUrl = `https://es.wikipedia.org/w/rest.php/v1/search/page?q=${encodeURIComponent(topic + " psicología")}&limit=3`;
+    const sres = await fetch(searchUrl, { headers: { "User-Agent": WIKI_UA } });
+    if (!sres.ok) return [];
+    const sdata = await sres.json();
+    const pages: any[] = (sdata.pages ?? []).slice(0, 3);
+    const summaries = await Promise.all(
+      pages.map(async (p): Promise<SearchResult | null> => {
+        const key = p.key ?? p.title;
+        if (!key) return null;
+        try {
+          const r = await fetch(
+            `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(key)}`,
+            { headers: { "User-Agent": WIKI_UA } },
+          );
+          if (!r.ok) return null;
+          const d = await r.json();
+          if (!d.extract) return null;
+          return { title: d.title ?? p.title ?? "", content: d.extract, url: d.content_urls?.desktop?.page ?? "" };
+        } catch { return null; }
+      }),
+    );
+    return summaries.filter((s): s is SearchResult => s !== null);
+  } catch {
+    return []; // fail-open: gera sem contexto
+  }
 }
 
 // ─── Geração de conteúdo via Claude ──────────────────────────────────────────
@@ -434,12 +452,12 @@ export async function GET(req: NextRequest) {
     }
 
     // Base LÍNGUA-INDEPENDENTE compartilhada entre ES e PT (= MESMO vídeo): a
-    // pesquisa (Tavily) e o footage (Pexels) são resolvidos UMA vez por (tópico,
+    // pesquisa (Wikipedia) e o footage (Pexels) são resolvidos UMA vez por (tópico,
     // dia) e cacheados; o 2º idioma reusa tudo. Só a COPY muda por idioma.
     const day = dayUTC();
     const shared = await readReelShared(topic, day);
 
-    // Pesquisa: reusa a do cache (sem pagar Tavily de novo) ou busca agora.
+    // Pesquisa: reusa a do cache ou busca agora (Wikipedia, grátis e fail-open).
     const searchResults = shared?.research?.length ? shared.research : await searchTopic(topic, "ig-reels");
     // Copy: reusa o cache por (tópico, dia, idioma) → redisparo NÃO repaga a Anthropic.
     let content = (await readContentCache(topic, day, lang)) as GeneratedContent | null;
@@ -567,7 +585,7 @@ export async function GET(req: NextRequest) {
         }
 
         // Copy: reusa o cache por (tópico, dia, idioma) → redisparo NÃO repaga
-        // Tavily+Anthropic. Só busca+gera no MISS.
+        // a Anthropic. Só busca (Wikipedia, grátis) + gera no MISS.
         let content = (await readContentCache(topic, dayUTC(now), lang)) as GeneratedContent | null;
         if (!content) {
           const searchResults = await searchTopic(topic, "ig-posts");

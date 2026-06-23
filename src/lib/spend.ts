@@ -1,7 +1,8 @@
 // ─── Governança de custo (spend log + teto por automação) ────────────────────
 // Centraliza TODA a contabilidade de gasto em APIs pagas do projeto:
 //   • tabela de preços de referência por modelo;
-//   • logSpend() — registra cada chamada paga (fal/Anthropic/Tavily) em spend_log;
+//   • logSpend() — registra cada chamada paga (fal/Anthropic) em spend_log;
+//     (Tavily aposentada em 23/06 — pesquisa agora é grátis via Wikipedia);
 //   • checkBudget() — teto DIÁRIO por automação (ig-posts/ig-reels/manual);
 //     o orçamento é aprovado pelo dono; se a automação for estourar, é BLOQUEADA
 //     e o GitHub Actions falha com ::error:: (o dono libera subindo o orçamento).
@@ -25,7 +26,9 @@ const FAL_PRICES: Record<string, number> = {
 };
 const FAL_DEFAULT_PRICE = 0.03;
 
-// Preço Tavily por busca (plano advanced, após cota grátis).
+// Preço Tavily por busca (LEGADO — Tavily aposentada em 23/06; a pesquisa de
+// contexto passou a ser grátis via Wikipedia. Mantido só p/ ler rows antigas de
+// spend_log com platform "tavily").
 const TAVILY_PRICE = 0.01;
 
 // Orçamento DIÁRIO aprovado por automação (USD). Override em runtime via
@@ -43,8 +46,8 @@ const DEFAULT_BUDGETS: Record<Automation, number> = {
 // gate para decidir se a PRÓXIMA execução cabe no orçamento (o gasto real já
 // gravado é a base; isto é só a margem da execução atual). Assume retries cheios.
 export const EST_RUN_COST: Record<"publish" | "preview" | "dryrun", number> = {
-  publish: 0.15, // tavily + haiku + 3×(fal+QA)
-  preview: 0.07, // tavily + haiku + 1×(fal+QA)
+  publish: 0.15, // haiku + 3×(fal+QA)  (pesquisa Wikipedia = grátis)
+  preview: 0.07, // haiku + 1×(fal+QA)  (pesquisa Wikipedia = grátis)
   dryrun: 0.04,  // 1×(fal+QA)
 };
 
