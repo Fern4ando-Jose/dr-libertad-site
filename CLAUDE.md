@@ -11,7 +11,7 @@ Claude; mídia é renderizada e publicada via GitHub Actions.
 > Príncipe, Na Natureza Selvagem), convicções, críticas centrais (filtros/padrão de
 > beleza inexistente, excesso de escolha) e as verdades incômodas literais. Vale para o
 > IG **e** para os projetos novos (curtas). Esta seção é o resumo operacional.
-> **⚠️ Mora OFFLINE** em `D:\Claude\.marca\dr-libertad\LINHA-EDITORIAL.md` (fora do Git —
+> **⚠️ Mora OFFLINE** em `D:\Claude\.claude\marca\dr-libertad\LINHA-EDITORIAL.md` (fora do Git —
 > é estratégia/voz de marca e o repo é PÚBLICO; `.gitignore` barra o retorno, PR #52).
 > Não recriar no repo. Restaurável do Git: `git show dfd6a99a:LINHA-EDITORIAL.md`.
 
