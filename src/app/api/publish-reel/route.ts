@@ -153,6 +153,6 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ ok: true, postId, log });
   } catch (err) {
     console.error("[publish-reel] erro:", err);
-    return NextResponse.json({ ok: false, error: String(err), log }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "erro ao publicar reel", log }, { status: 500 });
   }
 }

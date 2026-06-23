@@ -647,8 +647,9 @@ export async function GET(req: NextRequest) {
 
         slotLog.ok = true;
       } catch (slotErr) {
+        console.error("[publish] erro no slot:", slotErr);
         slotLog.ok    = false;
-        slotLog.error = String(slotErr);
+        slotLog.error = "erro ao publicar slot";
       }
 
       results.push(slotLog);
