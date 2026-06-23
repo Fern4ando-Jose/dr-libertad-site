@@ -59,7 +59,9 @@ async function refreshAccount(
   const data = await res.json();
 
   if (!res.ok || !data.access_token) {
-    return { lang: acc.lang, key, ok: false, error: data };
+    // Não ecoar o objeto cru da Meta (pode conter detalhes de token/conta) — só logar no servidor.
+    console.error(`[refresh-token] falha ao renovar ${acc.lang}: status=${res.status}`);
+    return { lang: acc.lang, key, ok: false, error: "falha ao renovar token" };
   }
 
   const newToken: string = data.access_token;
@@ -91,7 +93,8 @@ export async function GET(req: NextRequest) {
     try {
       results.push(await refreshAccount(acc, sql));
     } catch (error) {
-      results.push({ lang: acc.lang, key: acc.dbTokenKey!, ok: false, error: String(error) });
+      console.error(`[refresh-token] erro inesperado ${acc.lang}:`, error);
+      results.push({ lang: acc.lang, key: acc.dbTokenKey!, ok: false, error: "erro ao renovar token" });
     }
   }
 

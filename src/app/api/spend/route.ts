@@ -19,7 +19,8 @@ export async function GET(req: NextRequest) {
     const summary = await spendSummary();
     return NextResponse.json({ ok: true, ...summary });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+    console.error("GET /api/spend:", e);
+    return NextResponse.json({ ok: false, error: "erro interno" }, { status: 500 });
   }
 }
 
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
     await setBudget(automation, budget);
     return NextResponse.json({ ok: true, automation, budget });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+    console.error("POST /api/spend:", e);
+    return NextResponse.json({ ok: false, error: "erro interno" }, { status: 500 });
   }
 }
