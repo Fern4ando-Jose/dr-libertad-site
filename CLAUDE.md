@@ -100,10 +100,10 @@ arquivo; CI não gera). Fail-open: sem faixa do tema → rotação legado `bed-N
 ES/PT compartilham os arquivos. **Nunca** commitar áudio de serviço pago (repo público).
 
 > **Base do Reel COMPARTILHADA entre idiomas (= MESMO vídeo).** A parte
-> **língua-independente** — pesquisa (Tavily), `videoQueries` e os **clipes do footage**
+> **língua-independente** — pesquisa (Wikipedia, grátis), `videoQueries` e os **clipes do footage**
 > (Pexels) — é resolvida **uma vez por `(tópico, dia)`** na API e cacheada em
 > `reel_shared_cache` (`src/lib/reel-shared.ts`); o 2º idioma **reusa** tudo → footage
-> idêntico ES/PT e **Tavily não é pago de novo**. Só a **copy** muda por idioma
+> idêntico ES/PT. Só a **copy** muda por idioma
 > (regenerada pelo `marketBrief`, não traduzida). O seed do footage vem de `(tópico,dia)`,
 > **nunca do `@handle`** — invariante coberto por `reel-shared.invariants.test.ts`. A
 > ilustração já era compartilhada (`illustration_cache`). Tudo fail-open: falha de
@@ -114,7 +114,7 @@ ES/PT compartilham os arquivos. **Nunca** commitar áudio de serviço pago (repo
 > com footage, PT preto. Agora a 1ª conta que acha footage no CI faz POST em
 > **`/api/reel-share`** (`writeReelSharedClips`, autenticado por `CRON_SECRET`), gravando os
 > clipes na base compartilhada; a 2ª conta (PT, +5min) lê e **reusa o MESMO vídeo**. Preserva a
-> pesquisa cacheada (não repaga Tavily). Contrato em `normalizeShareInput` (teste invariante).
+> pesquisa cacheada. Contrato em `normalizeShareInput` (teste invariante).
 
 > **Nº de edição (capa) por VAGA, não por `COUNT(posts)`.** O "Nº" vinha de `COUNT(posts)+1`,
 > mas só o **carrossel** grava em `posts` (Reel só registra no livro-razão) → o contador não
@@ -172,8 +172,13 @@ mas performa e o usuário quer manter).
 - **fal** (`FAL_KEY`): só para **ilustração** (carrossel + Reel clássico via `illus=1`)
   e geração da trilha. Maior ralo histórico (retry 3× no QA queima imagens). Footage
   e render são **grátis**. Saldo acabou uma vez (2026-06-15) → quebra ilustração.
-- **Anthropic** (`ANTHROPIC_API_KEY`): geração de conteúdo (haiku). Baixo.
+- **Anthropic** (`ANTHROPIC_API_KEY`): geração de conteúdo (haiku). É a **API paga
+  ESSENCIAL** — escreve toda a copy (título/slides/CTA/caption/videoQueries). ⚠️ NÃO é a
+  assinatura de US$100/mês do Claude (essa não roda em automação); é a API à parte, paga
+  por uso. ~US$0,01/post. Cair aqui = nada publica (incidente 23/06).
 - **Pexels** (`PEXELS_API_KEY`): footage, grátis.
+- **Wikipedia**: pesquisa de contexto, **grátis, sem chave**. Substituiu a **Tavily**
+  (paga, aposentada em 23/06 — era hard-dependency e drenou o teto ig-reels). Fail-open.
 - Governança (orçamento/gate/log) tratada à parte — ver `cost-governance`.
 
 ## Limite do ambiente local
