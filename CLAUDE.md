@@ -6,11 +6,14 @@ Claude; mídia é renderizada e publicada via GitHub Actions.
 
 ## Linha editorial (princípios do dono — INVIOLÁVEL)
 
-> **Fonte única da VOZ:** [`LINHA-EDITORIAL.md`](LINHA-EDITORIAL.md) — fundamentos (o
+> **Fonte única da VOZ:** `LINHA-EDITORIAL.md` — fundamentos (o
 > cânone: Coração Valente, Servidão Voluntária, Fernão Capelo Gaivota, O Pequeno
 > Príncipe, Na Natureza Selvagem), convicções, críticas centrais (filtros/padrão de
 > beleza inexistente, excesso de escolha) e as verdades incômodas literais. Vale para o
 > IG **e** para os projetos novos (curtas). Esta seção é o resumo operacional.
+> **⚠️ Mora OFFLINE** em `D:\Claude\.marca\dr-libertad\LINHA-EDITORIAL.md` (fora do Git —
+> é estratégia/voz de marca e o repo é PÚBLICO; `.gitignore` barra o retorno, PR #52).
+> Não recriar no repo. Restaurável do Git: `git show dfd6a99a:LINHA-EDITORIAL.md`.
 
 A marca **acredita na liberdade de expressão e NÃO teme a polêmica — ao contrário,
 a polêmica é uma ferramenta** (é o que gera alcance/debate). A voz é direta, corajosa,
