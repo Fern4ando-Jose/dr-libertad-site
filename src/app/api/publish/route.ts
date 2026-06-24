@@ -5,7 +5,7 @@ import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } f
 import { parseContentJson } from "@/lib/content-json";
 import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentTopicsAllLangs, runAlreadyPublished, getOrSetRunTopic } from "@/lib/run-ledger";
+import { recordRun, recentTopicsAllLangs, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, pickFreshTopicIndexThreaded } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
@@ -598,19 +598,17 @@ export async function GET(req: NextRequest) {
         const topic = topicOverride ?? await getFreshTopicForRun(now, runIndex, lang);
         slotLog.topic = topic;
 
-        // Backstop defensivo (a menos que force=1): se mesmo assim o tópico já saiu
-        // como CARROSSEL nesta conta em 7d, pula. Com o tópico fresco acima isto
-        // praticamente nunca dispara (N=51 > 6×7); fica como rede de segurança.
-        if (!force) {
-          try {
-            const { sql } = await import("@vercel/postgres");
-            const existing = await sql`SELECT id FROM posts WHERE topic = ${topic} AND lang = ${lang} AND published_at > NOW() - INTERVAL '7 days' LIMIT 1`;
-            if (existing.rows.length > 0) {
-              slotLog.skipped = true;
-              slotLog.reason = "Tópico já publicado nesta conta nos últimos 7 dias";
-              continue;
-            }
-          } catch { /* ignora erro de banco */ }
+        // TRAVA DE PUBLICAÇÃO (rede de segurança INDEPENDENTE da seleção, a menos de
+        // force=1): se este tema já saiu em OUTRA vaga (dia,run) nos últimos 7d — em
+        // QUALQUER formato e QUALQUER idioma (published_runs unifica reel+carrossel+langs)
+        // — NÃO publica. EXCLUI a própria vaga, então o par ES/PT do mesmo (dia,run) passa.
+        // Mesmo que a seleção erre por qualquer motivo, a repetição NÃO chega ao feed.
+        // (Substitui o backstop antigo, que só olhava `posts`+idioma → cego a reels/PT.)
+        if (!force && await topicUsedInOtherVaga(dayUTC(now), runIndex, topic)) {
+          slotLog.skipped = true;
+          slotLog.reason = "Tópico já publicado em outra vaga nos últimos 7d — trava de publicação";
+          results.push(slotLog);
+          continue;
         }
 
         // Teto diário da automação ig-posts: se a próxima publicação estoura o

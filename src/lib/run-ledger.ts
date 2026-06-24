@@ -127,6 +127,56 @@ export async function getOrSetRunTopic(day: string, run: number, candidate: stri
   }
 }
 
+// ── TRAVA DE PUBLICAÇÃO (rede de segurança INDEPENDENTE da seleção) ────────────
+// O tema já saiu em OUTRA vaga (dia,run) nos últimos `days`? Consulta published_runs,
+// que UNIFICA reel + carrossel + os 2 idiomas (cada um grava sua vaga lá). EXCLUI a
+// própria vaga (dia,run) → o par ES/PT do MESMO (dia,run) é permitido (mesmo vídeo, 2
+// idiomas). Pega repetição cross-formato/cross-dia/cross-idioma MESMO se a seleção
+// errar — é o que faltava: a garantia mora no PUBLISH, não só na escolha do tema.
+// FAIL-OPEN: erro de banco → false (não bloqueia; pior caso volta ao estado anterior).
+// PURE (testável): entre as vagas (dia,run) em que o tema já saiu, existe ALGUMA que
+// NÃO seja a própria (day,run)? Se sim, é repetição real → bloqueia. A MESMA vaga (par
+// ES/PT do mesmo dia,run = mesmo vídeo) é permitida. É a regra que faltava ser testada.
+export function hasOtherVaga(vagas: { day: string; run: number }[], day: string, run: number): boolean {
+  return vagas.some((v) => !(v.day === day && v.run === run));
+}
+
+export async function topicUsedInOtherVaga(day: string, run: number, topic: string, days = 7): Promise<boolean> {
+  if (!topic) return false;
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql<{ day: string; run: number }>`
+      SELECT day, run FROM published_runs
+      WHERE topic = ${topic} AND instagram_post_id IS NOT NULL
+        AND ts > NOW() - (${days} || ' days')::interval
+    `;
+    return hasOtherVaga(r.rows.map((x) => ({ day: x.day, run: Number(x.run) })), day, run);
+  } catch {
+    return false;
+  }
+}
+
+// DETECÇÃO: temas que saíram em 2+ vagas DISTINTAS (dia,run) nos últimos `days` — i.e.
+// repetição REAL. Alimenta o /api/runs-status pra a gente CAPTAR um repeat antes do dono.
+// Vazio = saudável. FAIL-OPEN: erro → [].
+export async function recentDuplicateTopics(days = 7): Promise<{ topic: string; vagas: number }[]> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql<{ topic: string; vagas: number }>`
+      SELECT topic, COUNT(DISTINCT day || ':' || run) AS vagas
+      FROM published_runs
+      WHERE topic IS NOT NULL AND instagram_post_id IS NOT NULL
+        AND ts > NOW() - (${days} || ' days')::interval
+      GROUP BY topic
+      HAVING COUNT(DISTINCT day || ':' || run) > 1
+      ORDER BY vagas DESC
+    `;
+    return r.rows.map((x) => ({ topic: x.topic, vagas: Number(x.vagas) }));
+  } catch {
+    return [];
+  }
+}
+
 // Quais runs do dia já têm publicação, por idioma. Usado pelo watchdog (via
 // /api/runs-status) para decidir o que falta. Retorna ex.: { es: [4], pt: [] }.
 export async function publishedRunsToday(day: string): Promise<Record<string, number[]>> {
