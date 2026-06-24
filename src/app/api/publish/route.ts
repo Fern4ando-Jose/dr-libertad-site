@@ -9,6 +9,7 @@ import { recordRun, recentTopicsAllLangs, runAlreadyPublished } from "@/lib/run-
 import { buildRotation, topicIndexForRun, slotForRun, pickFreshTopicIndex } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
+import { buildLiteralDirective } from "@/lib/literal-lock";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -37,7 +38,7 @@ type Slot = "manha" | "tarde" | "noite";
 // vira invariante por construção). Linha editorial: ver CLAUDE.md "Linha editorial"
 // — 5 pilares (dopamina · redes/relações · guerra invisível do homem · verdades
 // incômodas · liberdade de expressão). Não temer a polêmica; provocar debate.
-interface Theme { topic: string; cat: string; motif: string; subject: string }
+interface Theme { topic: string; cat: string; motif: string; subject: string; literal?: boolean }
 const THEMES: Theme[] = [
   // ── Pilar 1 — Dopamina e seus seguimentos ──
   { topic: "Dopamina y recompensa inmediata", cat: "dopamine", motif: "burst", subject: "a brain with only a few glowing reward receptors lit by a single bright spark" },
@@ -77,31 +78,34 @@ const THEMES: Theme[] = [
   { topic: "El hombre tratado como desechable", cat: "freedom", motif: "descent", subject: "a male figure used as a stepping stone and then stepped past" },
   { topic: "Reconstruir al hombre, no destruirlo", cat: "mind", motif: "synapse", subject: "a cracked male statue regrowing with golden kintsugi veins" },
   // ── Pilar 4 — Verdades incômodas que precisam ser ditas ──
-  { topic: "El hombre no necesita ser amado: necesita cariño, respeto y admiración", cat: "self", motif: "embrace", subject: "a male figure standing tall receiving a warm light of respect rather than clinging to affection" },
-  { topic: "Nadie te debe nada", cat: "freedom", motif: "boundary", subject: "a lone figure seen from behind walking away into light as a heavy open sack and cut ropes fall away into the dark behind" },
-  { topic: "Si no pones límites, te vuelves una opción", cat: "self", motif: "boundary", subject: "a figure fading into a faint optional silhouette among many doors" },
-  { topic: "La comodidad te está matando lentamente", cat: "anxiety", motif: "decay", subject: "a figure sinking comfortably into a soft chair that slowly swallows it" },
-  { topic: "Te respetan por lo que toleras, no por lo que dices", cat: "freedom", motif: "mirror", subject: "a figure whose spoken words fade while the firm line it draws glows" },
-  { topic: "El victimismo es una cárcel cómoda", cat: "anxiety", motif: "spiral", subject: "a figure locking its own cage from the inside and pocketing the key" },
-  { topic: "Nadie va a venir a salvarte", cat: "self", motif: "descent", subject: "a figure at the bottom of a well building its own ladder" },
-  { topic: "Tu potencial no vale nada sin acción", cat: "dopamine", motif: "burst", subject: "a bright seed rotting unplanted while a figure only admires it" },
-  { topic: "La verdad incomoda más que la mentira amable", cat: "freedom", motif: "mirror", subject: "a figure choosing a sharp clear mirror over a flattering blurred one" },
+  { topic: "El hombre no necesita ser amado: necesita cariño, respeto y admiración", literal: true, cat: "self", motif: "embrace", subject: "a male figure standing tall receiving a warm light of respect rather than clinging to affection" },
+  { topic: "Nadie te debe nada", literal: true, cat: "freedom", motif: "boundary", subject: "a lone figure seen from behind walking away into light as a heavy open sack and cut ropes fall away into the dark behind" },
+  { topic: "Si no pones límites, te vuelves una opción", literal: true, cat: "self", motif: "boundary", subject: "a figure fading into a faint optional silhouette among many doors" },
+  { topic: "La comodidad te está matando lentamente", literal: true, cat: "anxiety", motif: "decay", subject: "a figure sinking comfortably into a soft chair that slowly swallows it" },
+  { topic: "Te respetan por lo que toleras, no por lo que dices", literal: true, cat: "freedom", motif: "mirror", subject: "a figure whose spoken words fade while the firm line it draws glows" },
+  { topic: "El victimismo es una cárcel cómoda", literal: true, cat: "anxiety", motif: "spiral", subject: "a figure locking its own cage from the inside and pocketing the key" },
+  { topic: "Nadie va a venir a salvarte", literal: true, cat: "self", motif: "descent", subject: "a figure at the bottom of a well building its own ladder" },
+  { topic: "Tu potencial no vale nada sin acción", literal: true, cat: "dopamine", motif: "burst", subject: "a bright seed rotting unplanted while a figure only admires it" },
+  { topic: "La verdad incomoda más que la mentira amable", literal: true, cat: "freedom", motif: "mirror", subject: "a figure choosing a sharp clear mirror over a flattering blurred one" },
   // ── Pilar 5 — Liberdade (e o direito de falar) ──
-  { topic: "Tú tienes derecho a hacer lo que quieras; yo a decir lo que pienso", cat: "freedom", motif: "gateway", subject: "two figures standing in opposite open doorways, each free, a line of mutual respect between them" },
+  { topic: "Tú tienes derecho a hacer lo que quieras; yo a decir lo que pienso", literal: true, cat: "freedom", motif: "gateway", subject: "two figures standing in opposite open doorways, each free, a line of mutual respect between them" },
   { topic: "La libertad de expresión incómoda", cat: "freedom", motif: "gateway", subject: "a figure speaking through an open arch while soft hands try to push it closed" },
   { topic: "El miedo a la opinión ajena", cat: "anxiety", motif: "mirror", subject: "a figure shrinking before a wall of judging eyes, then rising tall" },
   { topic: "La cultura de la ofensa", cat: "freedom", motif: "squares", subject: "fragile glass figures shattering at every spoken word" },
-  { topic: "Pensar diferente no es un crimen", cat: "freedom", motif: "branches", subject: "a single tree branching the opposite way from a uniform forest" },
-  { topic: "La libertad empieza donde acaba el miedo", cat: "freedom", motif: "gateway", subject: "a figure stepping through a doorway out of a cage of shadows" },
-  { topic: "Decir 'no' es un acto de libertad", cat: "self", motif: "boundary", subject: "a single upright closed door standing calm against a swirling storm of paper demands that breaks around it, no people" },
+  { topic: "Pensar diferente no es un crimen", literal: true, cat: "freedom", motif: "branches", subject: "a single tree branching the opposite way from a uniform forest" },
+  { topic: "La libertad empieza donde acaba el miedo", literal: true, cat: "freedom", motif: "gateway", subject: "a figure stepping through a doorway out of a cage of shadows" },
+  { topic: "Decir 'no' es un acto de libertad", literal: true, cat: "self", motif: "boundary", subject: "a single upright closed door standing calm against a swirling storm of paper demands that breaks around it, no people" },
   { topic: "La autocensura silenciosa", cat: "anxiety", motif: "masks", subject: "a sculptural human head in profile, a line of fine grey stitches sealing shut where the mouth would be, deep shadow, no hands" },
-  { topic: "Ser libre incomoda a quien quiere controlarte", cat: "freedom", motif: "branches", subject: "a lone figure seen from behind walking forward as cut marionette strings fall slack around it and the dark control-cross collapses above, no hands" },
+  { topic: "Ser libre incomoda a quien quiere controlarte", literal: true, cat: "freedom", motif: "branches", subject: "a lone figure seen from behind walking forward as cut marionette strings fall slack around it and the dark control-cross collapses above, no hands" },
 ];
 
 const TOPICS = THEMES.map((t) => t.topic);
 const TOPIC_CAT: Record<string, string> = Object.fromEntries(THEMES.map((t) => [t.topic, t.cat]));
 const TOPIC_MOTIF: Record<string, string> = Object.fromEntries(THEMES.map((t) => [t.topic, t.motif]));
 const TOPIC_SUBJECT: Record<string, string> = Object.fromEntries(THEMES.map((t) => [t.topic, t.subject]));
+// Temas-convicção (frase-verdade do dono): título/slide preservam a frase, NUNCA viram
+// "libertad". Derivado do flag `literal` (fonte única THEMES). Trava em src/lib/literal-lock.ts.
+const TOPIC_LITERAL: Record<string, boolean> = Object.fromEntries(THEMES.filter((t) => t.literal).map((t) => [t.topic, true]));
 
 // ─── Extrai keyword curta do tópico ──────────────────────────────────────────
 
@@ -232,6 +236,8 @@ async function generateContent(
   const acc = accountFor(lang);
   const L = acc.langName; // "español" | "português do Brasil"
   const context = searchResults.map((r, i) => `[${i + 1}] ${r.title}\n${r.content}`).join("\n\n");
+  // Trava anti-amenização: em tema-convicção, o título preserva a frase-verdade (não vira "libertad").
+  const literalDirective = buildLiteralDirective(!!TOPIC_LITERAL[topic], acc.freedom);
 
   const marketSection = acc.marketBrief
     ? `\nMERCADO / VOZ NATIVA — LEIA ANTES DE TUDO (vale mais que qualquer exemplo abaixo):\n${acc.marketBrief}\n`
@@ -243,8 +249,8 @@ IMPORTANTE — IDIOMA: genera ABSOLUTAMENTE TODA la salida (postTitle, postBody,
 ${marketSection}
 Tema: "${topic}"
 ${SLOT_INSTRUCTIONS[slot]}
-
-REGLA DE MARCA (${acc.brand}): aborda CUALQUIER tema desde el ángulo de la ${acc.freedom.toUpperCase()} mental — recuperar el control, la atención y la autonomía frente a lo que nos esclaviza (algoritmos, validación, miedo, hábitos). El título y al menos uno de los insights deben conectar explícitamente con esa idea de ${acc.freedom}/liberación. Nada de psicología genérica: siempre remite a la marca.
+${literalDirective}
+REGLA DE MARCA (${acc.brand}): aborda CUALQUIER tema desde el ángulo de la ${acc.freedom.toUpperCase()} mental — recuperar el control, la atención y la autonomía frente a lo que nos esclaviza (algoritmos, validación, miedo, hábitos). El título y al menos uno de los insights deben conectar explícitamente con esa idea de ${acc.freedom}/liberación (EXCEPCIÓN: en un TEMA-CONVICCIÓN, esa conexión va en un insight, NUNCA en el título — el título preserva la frase). Nada de psicología genérica: siempre remite a la marca.
 
 VOZ EDITORIAL: directa, valiente y sin miedo a la POLÉMICA — la polémica es la herramienta, no el accidente; es lo que genera alcance y debate. Dice VERDADES INCÓMODAS de forma LITERAL: nunca las suavices, relativices ni "equilibres" para hacerlas cómodas — la fuerza de la frase ES el producto. Desafía lo políticamente correcto y defiende la libertad de expresión y el derecho a pensar distinto ("tú tienes derecho a hacer lo que quieras; yo a decir lo que pienso").
 

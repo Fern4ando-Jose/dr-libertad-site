@@ -32,6 +32,19 @@ diz verdades incômodas e desafia o politicamente correto. Os **51 temas** (font
 > **argumento**, não com desprezo. Essa régua está embutida na VOZ EDITORIAL do prompt
 > de `generateContent`. **As ideias do dono são mantidas íntegras; só esse limite protege o canal.**
 
+> **Trava anti-amenização (temas-convicção):** os temas que SÃO uma frase-verdade do dono
+> (flag `literal: true` no `THEMES`, hoje **14**) NUNCA podem ser suavizados nem ter a frase
+> trocada por "libertad"/palavra de marca — o **título preserva a frase** e a libertad vai num
+> insight. Foi o bug do **ED 106** ("No necesitas ser amado: necesitas LIBERTAD" no lugar de
+> "...necesita cariño, respeto y admiración"). Mecanismo: `buildLiteralDirective`
+> (`src/lib/literal-lock.ts` — função pura + teste invariante) injeta a trava no prompt e
+> **ANULA**, nesses temas, a exigência de libertad no título.
+>
+> **⚠️ "Link" da linha editorial:** a automação só obedece o que está **NO REPO** —
+> a **VOZ do prompt** (`generateContent`), os **`THEMES`** e `accounts.ts` (`brand`/`freedom`/`marketBrief`).
+> O `LINHA-EDITORIAL.md` mora **OFFLINE** (o Vercel não o lê). Então **reestruturar a linha
+> editorial = propagar pra esses 3 lugares** (marcar/desmarcar `literal` nos temas + ajustar a VOZ).
+
 ## Pendências — painel único, com ponte pra agentes da nuvem
 
 A fonte de **visualização é ÚNICA** e fica na máquina do dono: `D:\Claude\.pendencias\dr-libertad.md` (fora do Git). **NUNCA pergunte onde colocar uma pendência — é sempre o painel central.** Como chegar lá depende de ONDE você roda:
@@ -56,7 +69,7 @@ A fonte de **visualização é ÚNICA** e fica na máquina do dono: `D:\Claude\.
 - **Aprovar gasto antes de executar.** Toda chamada a API **paga** (fal, Anthropic)
   exige mostrar o custo estimado e ter OK do usuário antes. Footage Pexels e render
   no CI são grátis. Ver `cost-governance` / `approve-spend-before-executing`.
-- **Temas em FONTE ÚNICA `THEMES` (`api/publish/route.ts`)**: cada entrada tem `topic`+`cat`+`motif`+`subject`; `TOPICS`/`TOPIC_CAT`/`TOPIC_MOTIF`/`TOPIC_SUBJECT` são DERIVADOS (impossível dessincronizar). `cat`/`motif` **DEVEM** existir em `CATS`/`MOTIF_IDS` de `api/og/route.tsx` — tema novo = usar cat/motif válidos (ou adicionar lá primeiro). Hoje são **51 temas** (5 pilares da Linha editorial).
+- **Temas em FONTE ÚNICA `THEMES` (`api/publish/route.ts`)**: cada entrada tem `topic`+`cat`+`motif`+`subject`; `TOPICS`/`TOPIC_CAT`/`TOPIC_MOTIF`/`TOPIC_SUBJECT` são DERIVADOS (impossível dessincronizar). `cat`/`motif` **DEVEM** existir em `CATS`/`MOTIF_IDS` de `api/og/route.tsx` — tema novo = usar cat/motif válidos (ou adicionar lá primeiro). Hoje são **51 temas** (5 pilares da Linha editorial); **14** são temas-convicção (`literal: true`) — título/slide preservam a frase, NUNCA viram "libertad" (trava `src/lib/literal-lock.ts`).
 - **Fonte: só Fraunces 700** embutida (não adicionar pesos — incha o bundle edge).
 - **CSS satori-safe** em `/api/og` (flexbox em todo elemento multi-filho; CSS não suportado → 500).
 - **Trava anti-dup: 7 dias, CROSS-FORMATO, na SELEÇÃO do tema.** Histórico do bug: a trava antiga só olhava `posts` (carrossel) e o Reel não gravava tópico → o mesmo tema saía Reel num dia e carrossel no outro ("El padre ausente", 21→22/06). Hoje: (1) **todo formato grava o `topic`** — carrossel em `posts`, reel em `published_runs.topic` (passado pelos workflows ao `/api/publish-reel`); (2) a seleção (`getFreshTopicForRun` em `api/publish`) **pula** qualquer tema usado nos últimos 7d em **qualquer formato**, caminhando a rotação (`pickFreshTopicIndex` em `src/lib/rotation.ts`); (3) base de recentes **UNIFICADA ES/PT** (`recentTopicsAllLangs`) → as duas contas escolhem o **MESMO tema por vaga** (vídeo compartilhado) e nenhuma repete; (4) **threading intra-dia** (inclui os picks dos runs anteriores do dia) → 6 temas DISTINTOS/dia, sem depender de timing de gravação (robusto ao re-disparo do catchup). Tudo **fail-open** (erro de banco → tema-base da rotação). Pool de 51 temas a 6/dia ≈ 8,5 dias > 7d. **`force=1`** em `/api/publish` burla o backstop de carrossel (republicar/backfill). Invariantes em `rotation.invariants.test.ts`.
