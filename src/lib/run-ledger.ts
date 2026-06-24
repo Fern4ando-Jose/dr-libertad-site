@@ -81,26 +81,33 @@ export async function recentTopicsForLang(lang: string, days = 7): Promise<Set<s
 // — o tópico REAL de cada reel por dia (resolvido no preview do footage), que
 // COBRE os reels antigos sem `published_runs.topic`. Sem (3), a trava era cega aos
 // reels da semana e repetia o tema deles num carrossel dias depois.
-export async function recentTopicsAllLangs(days = 7): Promise<Set<string>> {
+export async function recentTopicsAllLangs(days = 7, beforeISO?: string): Promise<Set<string>> {
   const out = new Set<string>();
+  // `beforeISO` = limite superior EXCLUSIVO. getFreshTopicForRun passa o início de HOJE
+  // (UTC) → o `recent` EXCLUI hoje, pra o tema que o 1º idioma a publicar grava não poluir
+  // a escolha do 2º (ES e PT pegam o MESMO tema/vídeo). Default = agora (no-op).
+  const before = beforeISO ?? new Date().toISOString();
   try {
     const { sql } = await import("@vercel/postgres");
     const a = await sql<{ topic: string }>`
       SELECT DISTINCT topic FROM published_runs
       WHERE topic IS NOT NULL AND instagram_post_id IS NOT NULL
         AND ts > NOW() - (${days} || ' days')::interval
+        AND ts < ${before}::timestamptz
     `;
     for (const r of a.rows) if (r.topic) out.add(r.topic);
     const b = await sql<{ topic: string }>`
       SELECT DISTINCT topic FROM posts
       WHERE topic IS NOT NULL
         AND published_at > NOW() - (${days} || ' days')::interval
+        AND published_at < ${before}::timestamptz
     `;
     for (const r of b.rows) if (r.topic) out.add(r.topic);
     const c = await sql<{ topic: string }>`
       SELECT DISTINCT topic FROM reel_shared_cache
       WHERE topic IS NOT NULL
         AND created_at > NOW() - (${days} || ' days')::interval
+        AND created_at < ${before}::timestamptz
     `;
     for (const r of c.rows) if (r.topic) out.add(r.topic);
   } catch { /* fail-open */ }
