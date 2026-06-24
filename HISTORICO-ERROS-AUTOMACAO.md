@@ -32,6 +32,10 @@
 - **DECISÃO (dono, 24/06):** **A + B**. Rotação de enquadramento no `buildPrompt` + reescrever os
   ~10-15 subjects de porta/figura-de-costas → objeto/símbolo. A lista dos subjects a trocar é mostrada
   ao dono para veto ANTES de aplicar. (C não entra agora.)
+- **✅ PARTE A IMPLEMENTADA (24/06):** `framingFor(subject)` + `buildPrompt` em `illustration.ts` —
+  6 enquadramentos rotativos (close-up, plano aberto, ângulo alto/baixo, off-center, mid-shot)
+  determinísticos por subject (ES/PT batem). Teste em `illustration.invariants.test.ts`.
+- **⏳ PARTE B (subjects):** aguardando o dono vetar a lista de ~10-15 subjects de porta/figura → objeto.
 
 ### ERRO B — Tema duplicado no MESMO dia: o "post-fantasma" (vaga publicada sem id)
 - **Sintoma:** "O amor que morre de tédio" saiu **2× no mesmo dia** na conta PT — mesma vaga
