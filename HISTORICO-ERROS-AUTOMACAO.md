@@ -11,7 +11,46 @@
 
 ---
 
-## 🟢 SEM ERRO EM ABERTO (24/06/2026) — tudo resolvido nesta sessão
+## 🔴 2 ERROS EM ABERTO (24/06/2026 — aguardando decisão do dono)
+
+### ERRO A — Repetição VISUAL: capas quase idênticas (figura solitária na "porta")
+- **Sintoma:** o feed (ES e PT) repete o mesmo quadro — homem só, de costas, retroiluminado num
+  vão/porta. Visto no print do dono em 24/06 ("Nunca cambies", "Si no pones límites", "Nadie te
+  debe nada", "No necesitas ser amado" — todas a mesma composição).
+- **Causa-raiz:** **46 de 62 `subjects` (74%)** começam com *"a figure / a male figure / a man"* —
+  figura humana solitária; **10** são literalmente porta/limiar/de-costas/caminhando-pra-luz. E o
+  template fixo `buildPrompt` (`src/lib/illustration.ts`) amplifica: *"Cinematic… dramatic chiaroscuro…
+  one bold central metaphor, generous negative space"* → o Flux converge na mesma silhueta centralizada.
+- **O que fazer (synthesis):**
+  - **A (estrutural):** rotação de **enquadramento** no `buildPrompt` por `motif`/índice (close-up,
+    plano aberto, flat-lay de objetos visto de cima, ângulo baixo…) → posts vizinhos não saem iguais.
+  - **B (subjects):** reescrever os ~10-15 piores `subjects` (porta/figura-de-costas) trocando a
+    **figura humana por metáfora de OBJETO/símbolo**, mantendo o sentido (a marca já tem bons exemplos:
+    *"uma única porta fechada, no people"*).
+  - **C (opcional):** alternar **ilustração × motivo abstrato** por slot → mais variedade e menos custo.
+  - Recomendação: **A + B** (C como bônus).
+- **DECISÃO:** _(pendente — preencher quando o dono definir)_
+
+### ERRO B — Tema duplicado no MESMO dia: o "post-fantasma" (vaga publicada sem id)
+- **Sintoma:** "O amor que morre de tédio" saiu **2× no mesmo dia** na conta PT — mesma vaga
+  (slot `tarde` = run 5), 11:16 e 19:16 BRT, **mesma edição (ED 112)**. Não é seleção nem numeração:
+  a **mesma vaga publicou duas vezes**.
+- **Causa-raiz:** o carrossel **publicou no IG, mas a API voltou sem o `instagram_post_id`** (falha
+  parcial: post vivo, id perdido). No código (`route.ts:702`) `recordRun` é guardado por
+  `if (instagramPostId)` → **não gravou no `published_runs`** → o watchdog (catchup) vê a vaga como
+  "não publicada" e **redispara** → mesmo tema/edição de novo. TODAS as 4 camadas anti-dup filtram
+  `instagram_post_id IS NOT NULL` → um post **vivo sem id** é **invisível** pra elas. (Mesma brecha
+  possível no reel: `publish-reel` também guarda `recordRun` por id não-nulo.)
+- **O que fazer (synthesis):**
+  - Gravar a vaga como publicada **mesmo com id perdido**: assim que a publicação retorna OK, chamar
+    `recordRun` com um **marcador "publicado-sem-id"** (sentinela não-nulo) — o watchdog para de redisparar.
+  - **Endurecer a captura do id** em `publishCarousel` (reler/poll o media id antes de desistir).
+  - Replicar no **reel** (`publish-reel`). Cobrir com **teste invariante** (vaga sem id ≠ vaga ausente).
+- **DECISÃO:** _(pendente — preencher quando o dono definir)_
+
+---
+
+## ✅ Resolvidos nesta sessão
 
 ### ✅ FINALIZADO: custo do carrossel (auditoria 24/06)
 - **Sintoma que aparecia:** workflow "publicar posts (PT-BR)" dava **402 em loop** (PT run 4):
