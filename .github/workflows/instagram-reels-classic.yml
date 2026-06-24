@@ -5,8 +5,13 @@ name: Instagram Reel CLÁSSICO — Dr. Libertad
 # o melhor Reel até agora (insights), por isso preservado.
 #
 # 1x/dia às 22:00 UTC (19:00 BRT — slot do Reel campeão). Tópico = run 3 (distinto
-# dos Reels de vídeo, que usam runs 0..2). Usa a composição Remotion "ReelClassic"
-# e o preview com ?illus=1 (gera a ilustração de fundo).
+# dos Reels de vídeo, que usam runs 0..2).
+#
+# BLINDAGEM DO 4º REEL: o clássico depende da ilustração da fal (não tinha footage de
+# reserva) — se a ilustração falhasse (402 de orçamento, fal fora, QA reprovando), o
+# slot das 19h NÃO saía (era a maior causa de furo do run 3). Agora a cascata é:
+# ilustração → footage (Pexels) → pular. Com ilustração, renderiza "ReelClassic"
+# (slide); sem ilustração, vira um Reel de FOOTAGE ("Reel") — sempre sai algo.
 
 on:
   schedule:
@@ -60,15 +65,23 @@ jobs:
           echo "run=$RUN" >> "$GITHUB_OUTPUT"
           echo "Run escolhido: $RUN"
 
-      # Conteúdo + ILUSTRAÇÃO (illus=1) — o clássico usa a imagem da fal de fundo.
-      - name: Obter conteúdo (preview, com ilustração) e montar REEL_PROPS
+      # Conteúdo + tentativa de ILUSTRAÇÃO (clássico usa a imagem da fal de fundo).
+      # NÃO-FATAL: se o gate de orçamento / a fal derrubar (402/5xx), cai pro conteúdo
+      # SEM ilustração e o slot vira um Reel de FOOTAGE — o run 3 nunca fica sem sair
+      # por causa da ilustração.
+      - name: Obter conteúdo (preview, tenta ilustração) e montar REEL_PROPS
         run: |
-          curl -fsS --max-time 180 \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://www.drlibertad.com/api/publish?preview=1&illus=1&run=${{ steps.params.outputs.run }}" \
-            -o preview.json
-          echo "Prévia recebida:"
-          cat preview.json | head -c 400; echo
+          AUTH="Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+          RUN="${{ steps.params.outputs.run }}"
+          HTTP=$(curl -sS -o preview.json -w "%{http_code}" --max-time 200 -H "$AUTH" \
+            "https://www.drlibertad.com/api/publish?preview=1&illus=1&run=$RUN" || echo 000)
+          echo "preview (com ilustração): HTTP $HTTP"
+          if [ "$HTTP" != "200" ]; then
+            echo "::warning title=Clássico sem ilustração::HTTP $HTTP no preview illus=1 — caindo pra footage."
+            curl -fsS --max-time 180 -H "$AUTH" \
+              "https://www.drlibertad.com/api/publish?preview=1&run=$RUN" -o preview.json
+          fi
+          echo "Prévia recebida:"; cat preview.json | head -c 400; echo
 
           node -e '
             const fs = require("fs");
@@ -80,13 +93,16 @@ jobs:
               cta: p.cta || "",
               kw: p.kw || "LIBERTAD",
               ed: p.ed || "000",
+              topic: p.topic || "",
               img: p.illustration || undefined,
               cat: p.cat || "freedom",
               handle: p.handle || "@dr.liberdad",
               brand: p.brand || "Dr. Libertad",
-              // Trilha embutida — UMA FAIXA POR TEMA: o picker acha no manifest.json
-              // a faixa do `topic`; sem ela, cai na rotação legado por `run`; sem
-              // nenhuma → Reel renderiza mudo.
+              // Footage de RESERVA (quando não há ilustração): termos do Claude + clipes.
+              videoQueries: Array.isArray(p.videoQueries) ? p.videoQueries : [],
+              clips: Array.isArray(p.clips) && p.clips.length ? p.clips : undefined,
+              // Trilha embutida — UMA FAIXA POR TEMA via manifest.json (pelo `topic`);
+              // sem faixa → rotação legado por `run`; sem nenhuma → mudo.
               music: require("./scripts/pick-music.cjs").pickMusic({ topic: p.topic, run: ${{ steps.params.outputs.run }} }) || undefined
             };
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
@@ -96,12 +112,44 @@ jobs:
             console.log("REEL_PROPS (classic) montado:", JSON.stringify(props).slice(0, 280));
           '
 
-      # Renderiza a composição CLÁSSICA (slide animado), não a de footage.
-      - name: Renderizar Reel clássico (Remotion)
-        run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelClassic
+      # Decide o fundo: ILUSTRAÇÃO presente → Reel CLÁSSICO (slide, formato campeão).
+      # Sem ilustração → busca footage (Pexels, grátis) e o slot publica um Reel de
+      # FOOTAGE. Sem nenhum dos dois → pula (nunca publica Reel preto; regra única em
+      # scripts/reel-media.cjs). É a cascata robusta do Reel de footage no clássico.
+      - name: Garantir fundo (ilustração → footage → pular)
+        id: media
+        env:
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          FOOTAGE_NUM_CLIPS: "5"
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          hasImg() { node -e 'const p=require("./reel-props.json"); process.exit(typeof p.img==="string"&&p.img.trim()?0:1)'; }
+          hasMedia() { node -e 'process.exit(require("./scripts/reel-media.cjs").hasVisualMedia(require("./reel-props.json"))?0:1)'; }
+          if hasImg; then
+            echo "Ilustração presente → Reel CLÁSSICO (slide)."
+            echo "composition=ReelClassic" >> "$GITHUB_OUTPUT"
+            echo "has_media=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Sem ilustração — buscando footage (Pexels) p/ Reel de footage…"
+          node scripts/fetch-footage.mjs --props=reel-props.json || echo "(footage falhou)"
+          if hasMedia; then
+            echo "Footage OK → Reel de footage (fallback do clássico)."
+            echo "composition=Reel" >> "$GITHUB_OUTPUT"
+            echo "has_media=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_media=0" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Reel clássico pulado::Sem ilustração nem footage — não publicamos Reel preto."
+          fi
+
+      # Renderiza a composição escolhida (ReelClassic = slide; Reel = footage).
+      - name: Renderizar Reel (Remotion)
+        if: ${{ steps.media.outputs.has_media == '1' }}
+        run: node scripts/render-reel.mjs --props=reel-props.json --composition=${{ steps.media.outputs.composition }}
 
       - name: Upload do mp4 para o Vercel Blob
         id: upload
+        if: ${{ steps.media.outputs.has_media == '1' }}
         env:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         run: |
@@ -110,13 +158,13 @@ jobs:
           echo "video_url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Preview (sem publicar)
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'yes' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'yes' && steps.media.outputs.has_media == '1' }}
         run: |
           echo "::notice title=Reel clássico pronto (preview)::${{ steps.upload.outputs.video_url }}"
           echo "Preview (NÃO publicado): ${{ steps.upload.outputs.video_url }}"
 
       - name: Publicar Reel no Instagram
-        if: ${{ github.event_name == 'schedule' || github.event.inputs.publish == 'yes' }}
+        if: ${{ (github.event_name == 'schedule' || github.event.inputs.publish == 'yes') && steps.media.outputs.has_media == '1' }}
         run: |
           RESP=$(curl -sS --max-time 280 -G \
             -w $'\nHTTP_CODE:%{http_code}' \
