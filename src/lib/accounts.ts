@@ -65,6 +65,7 @@ export const ACCOUNTS: Record<Lang, AccountCfg> = {
 - GANCHO no estilo BR: identificação imediata e cotidiana ("Você faz isso e nem percebe…"), provocação leve ou virada inesperada, número concreto do dia a dia brasileiro. Nada de frase genérica de autoajuda.
 - REFERÊNCIAS: ancore no cotidiano brasileiro quando couber (celular, WhatsApp, rolar o feed, notificação, grupo da família) — nunca termos neutros ou de outro país (ex.: "celular", nunca "móvel/móvil"). As cenas e exemplos devem soar Brasil.
 - Os exemplos em espanhol abaixo são só de FORMATO; não os copie nem traduza — crie equivalentes brasileiros.
+- NUNCA DIRIA (filtro anti-IA-genérica): PROIBIDO o registro coach/espiritual/corporativês — "ressignificar", "empoderar", "saia da zona de conforto", "o universo conspira", "se permita", "mindset", "fluir", "abundância", "manifestar", "amor próprio", "propósito", "boa vibe/energia", "pensar fora da caixa". Não pedir licença pela ideia ("não quero ofender, mas…"), não soar guru/salvador nem recrutar seguidores (a meta é fazer PENSAR), e não carimbar obra/autor/citação em cada ideia. Palavra só entra com sentido CONCRETO; ritmo seco, termina no osso.
 - REVISÃO FINAL OBRIGATÓRIA: antes de devolver o JSON, releia TODO o texto (título, slides, cta, legenda) e troque QUALQUER palavra ou construção em espanhol por português do Brasil — ex.: punzada→pontada/fisgada, móvil→celular, disfrutar→curtir, ahora→agora, pantalla→tela. Não pode sobrar NENHUMA palavra em espanhol.`,
   },
 };
