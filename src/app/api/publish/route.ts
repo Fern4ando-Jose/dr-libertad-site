@@ -6,7 +6,7 @@ import { parseContentJson } from "@/lib/content-json";
 import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
 import { recordRun, recentTopicsAllLangs, runAlreadyPublished } from "@/lib/run-ledger";
-import { buildRotation, topicIndexForRun, slotForRun, pickFreshTopicIndex } from "@/lib/rotation";
+import { buildRotation, topicIndexForRun, pickFreshTopicIndexThreaded } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
 import { buildLiteralDirective } from "@/lib/literal-lock";
@@ -63,9 +63,9 @@ const THEMES: Theme[] = [
   // ── (extensão Pilar 2) Filtros, padrão de beleza inexistente e excesso de escolha ──
   { topic: "El filtro que te vendió una belleza que no existe", cat: "network", motif: "masks", subject: "a figure admiring a flawless filtered reflection in a phone while the plain real face behind the glass sits alone in shadow" },
   { topic: "Cientos de likes en la foto, nadie en la vida real", cat: "network", motif: "isolation", subject: "a glowing portrait surrounded by hundreds of floating like-hearts while the real person sits alone in a dark room" },
-  { topic: "En la foto haces match; en la cita aparece otra persona", cat: "network", motif: "masks", subject: "a polished filtered portrait on a phone beside the plain real face of the same person arriving at an empty restaurant table, mismatch, no flattery" },
-  { topic: "Te enamoras de una edición y cenas con la realidad", cat: "network", motif: "mirror", subject: "a figure embracing a glowing edited portrait that dissolves into an ordinary plain reflection in a mirror" },
-  { topic: "La ilusión de opciones infinitas te deja solo", cat: "network", motif: "spiral", subject: "a figure endlessly scrolling a spiral wall of identical portrait cards, unable to choose, alone in the dark" },
+  { topic: "En la foto haces match; en la cita aparece otra persona", literal: true, cat: "network", motif: "masks", subject: "a polished filtered portrait on a phone beside the plain real face of the same person arriving at an empty restaurant table, mismatch, no flattery" },
+  { topic: "Te enamoras de una edición y cenas con la realidad", literal: true, cat: "network", motif: "mirror", subject: "a figure embracing a glowing edited portrait that dissolves into an ordinary plain reflection in a mirror" },
+  { topic: "La ilusión de opciones infinitas te deja solo", literal: true, cat: "network", motif: "spiral", subject: "a figure endlessly scrolling a spiral wall of identical portrait cards, unable to choose, alone in the dark" },
   { topic: "Pasas más tiempo eligiendo que viviendo", cat: "anxiety", motif: "orbit", subject: "a paralyzed figure before an infinite shelf of glowing options, hours dissolving, nothing chosen" },
   // ── Pilar 3 — A guerra invisível do Homem (temas incômodos) ──
   { topic: "La guerra invisible del hombre", cat: "freedom", motif: "descent", subject: "a lone male figure carrying an unseen heavy weight up a grey hill" },
@@ -103,6 +103,12 @@ const THEMES: Theme[] = [
   { topic: "La servidumbre que más cuesta romper es la que eliges tú mismo", literal: true, cat: "freedom", motif: "boundary", subject: "a seated figure holding its own heavy chain, the open padlock resting in its palm and the cage door already ajar, no captor present" },
   { topic: "La felicidad solo es real cuando se comparte", literal: true, cat: "network", motif: "ripple", subject: "two figures sharing a single small warm fire in a vast cold wilderness, the firelight rippling outward in warm rings, no screens" },
   { topic: "Prefiero morir de pie a vivir de rodillas", literal: true, cat: "freedom", motif: "descent", subject: "a lone figure standing tall and unbowed at the crest of a grey hill as a vast shadow presses down, refusing to kneel, no people around" },
+  // ── §4 Verdades incômodas (literais) — adições da Linha editorial ──
+  { topic: "El filtro no corrige tu piel: corrige tu expectativa", literal: true, cat: "network", motif: "masks", subject: "a figure admiring a flawless filtered reflection in a phone while the plain real face behind the glass waits unseen, the gap between the promise and the skin" },
+  { topic: "Nunca cambies lo que eres por nadie", literal: true, cat: "self", motif: "mirror", subject: "a figure facing a mirror that holds its true unaltered shape, calmly ignoring a ring of empty molds offered around it, no people" },
+  { topic: "Solo cambias cuando tú quieres — y duele", literal: true, cat: "self", motif: "descent", subject: "a figure carving a faint path through thick dark brush by sheer will, the trail appearing only from passing again and again, effort before ease" },
+  { topic: "La mujer elige con quién acostarse; el hombre, con quién casarse", literal: true, cat: "self", motif: "boundary", subject: "two diverging paths from a single crossroads — one a brief bright spark, the other a long steady flame — weighed in silence, symbolic, no people" },
+  { topic: "El hombre puede ser feliz con cualquier mujer, mientras no la ame", literal: true, cat: "self", motif: "embrace", subject: "a serene figure holding a small calm flame at arm's length untroubled, while the same flame pressed to the chest scorches — detachment versus attachment, symbolic, no people" },
 ];
 
 const TOPICS = THEMES.map((t) => t.topic);
@@ -144,21 +150,19 @@ const TOPIC_INDEX = new Map(TOPICS.map((t, i) => [t, i] as const));
 // gravar tópico) reintroduzia repetições. Fail-open: erro de banco → tema-base.
 async function getFreshTopicForRun(date: Date, runIndex: number, _lang: Lang): Promise<string> {
   try {
-    // Base UNIFICADA (qualquer conta): ES e PT veem os MESMOS recentes → escolhem o
-    // MESMO tema por vaga (vídeo compartilhado) e nenhum repete.
-    const recent = await recentTopicsAllLangs(7);
-    const used = new Set<number>();
+    // `recent` EXCLUI hoje (início do dia UTC): assim o tema que o 1º idioma a publicar
+    // grava (em published_runs/reel_shared_cache) NÃO entra no recent do 2º → ES e PT
+    // escolhem o MESMO tema por vaga (mesmo vídeo), independente de timing. A distinção
+    // intra-dia é garantida pelo THREADING determinístico (pickFreshTopicIndexThreaded).
+    // Cross-dia 7d preservado. Era o bug do descasamento ES/PT (reels com vídeos distintos).
+    const todayStartUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())).toISOString();
+    const recent = await recentTopicsAllLangs(7, todayStartUTC);
+    const recentIdx = new Set<number>();
     for (const t of recent) {
       const i = TOPIC_INDEX.get(t);
-      if (i !== undefined) used.add(i);
+      if (i !== undefined) recentIdx.add(i);
     }
-    // THREADING intra-dia: inclui os temas que os runs ANTERIORES de hoje escolhem
-    // (deterministicamente, mesma base) → 6 temas DISTINTOS no dia, sem depender da
-    // ordem/timing de gravação no livro-razão (robusto a re-disparo do catchup).
-    for (let i = 0; i < runIndex; i++) {
-      used.add(pickFreshTopicIndex(ROTATION, slotForRun(date, i), used));
-    }
-    return TOPICS[pickFreshTopicIndex(ROTATION, slotForRun(date, runIndex), used)];
+    return TOPICS[pickFreshTopicIndexThreaded(ROTATION, date, runIndex, recentIdx)];
   } catch {
     return getTopicForRun(date, runIndex);
   }
