@@ -8,6 +8,7 @@ import { readContentCache, writeContentCache } from "@/lib/content-cache";
 import { recordRun, recentTopicsAllLangs, runAlreadyPublished } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, slotForRun, pickFreshTopicIndex } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
+import { searchDuckDuckGo } from "@/lib/ddg";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -164,19 +165,34 @@ const SLOT_INSTRUCTIONS: Record<Slot, string> = {
   noite: "Ángulo NOCHE: provocador y de alto engagement. Termina con una pregunta o insight que genere debate. Tono audaz.",
 };
 
-// ─── Pesquisa de contexto (GRÁTIS — Wikipedia, sem chave, sem custo) ───────────
-// Substitui a Tavily (paga, ~US$0,01/busca). Contexto factual de apoio pro prompt;
-// não precisa ser fresco (temas são perenes). Espanhol (es.wikipedia) porque a
-// pesquisa é COMPARTILHADA ES/PT e o conteúdo é regenerado por mercado, não traduzido.
-// FAIL-OPEN: qualquer erro/zero-resultado → [] e a geração segue SEM contexto
-// (o prompt lida com `context` vazio). A Tavily era hard-dependency (throw derrubava
-// a geração) E ralo de orçamento (44 buscas/dia drenaram o teto ig-reels em 23/06).
+// ─── Pesquisa de contexto (GRÁTIS) — DuckDuckGo (web inteira) + Wikipedia (reserva) ─
+// Contexto factual de apoio pro prompt; não precisa ser fresco (temas perenes).
+// PRIMÁRIA: DuckDuckGo (web inteira, sem chave, sem cartão — src/lib/ddg.ts).
+// RESERVA: Wikipedia (enciclopédica) quando o DDG vier vazio/bloqueado. O DDG
+// estrangula IP de datacenter (202/403) → a queda pra Wikipedia tende a ser comum
+// em prod; por isso o log diz a FONTE (pra medir no teste de uns dias). Espanhol
+// (es) porque a pesquisa é COMPARTILHADA ES/PT (conteúdo regenerado por mercado,
+// não traduzido). FAIL-OPEN total: erro/zero → [] e a geração segue SEM contexto.
+// Histórico: Tavily (paga) aposentada 23/06; Brave virou pago e Google fechou a API
+// JSON p/ clientes novos → DDG é a única busca grátis de web inteira (decisão 23/06).
 const WIKI_UA = "DrLibertadBot/1.0 (https://www.drlibertad.com; research)";
 
 async function searchTopic(topic: string, _automation: Automation): Promise<SearchResult[]> {
+  // 1º DuckDuckGo (web inteira); se vazio/bloqueado, Wikipedia (reserva). Ambos fail-open.
+  const ddg = await searchDuckDuckGo(topic);
+  if (ddg.length > 0) {
+    console.log(`[search] fonte=ddg n=${ddg.length} topic="${topic}"`);
+    return ddg;
+  }
+  const wiki = await searchWikipedia(topic);
+  console.log(`[search] fonte=wikipedia(reserva) n=${wiki.length} topic="${topic}"`);
+  return wiki;
+}
+
+async function searchWikipedia(topic: string): Promise<SearchResult[]> {
   try {
-    // Viés leve pro domínio (como a query antiga da Tavily) — melhora a relevância
-    // de temas-frase (ex.: "El padre ausente" → Rollo May/Idealización em vez de um filme).
+    // Viés leve pro domínio — melhora a relevância de temas-frase
+    // (ex.: "El padre ausente" → Rollo May/Idealización em vez de um filme).
     const searchUrl = `https://es.wikipedia.org/w/rest.php/v1/search/page?q=${encodeURIComponent(topic + " psicología")}&limit=3`;
     const sres = await fetch(searchUrl, { headers: { "User-Agent": WIKI_UA } });
     if (!sres.ok) return [];

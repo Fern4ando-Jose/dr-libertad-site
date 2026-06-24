@@ -103,7 +103,7 @@ arquivo; CI não gera). Fail-open: sem faixa do tema → rotação legado `bed-N
 ES/PT compartilham os arquivos. **Nunca** commitar áudio de serviço pago (repo público).
 
 > **Base do Reel COMPARTILHADA entre idiomas (= MESMO vídeo).** A parte
-> **língua-independente** — pesquisa (Wikipedia, grátis), `videoQueries` e os **clipes do footage**
+> **língua-independente** — pesquisa (DuckDuckGo + Wikipedia de reserva, grátis), `videoQueries` e os **clipes do footage**
 > (Pexels) — é resolvida **uma vez por `(tópico, dia)`** na API e cacheada em
 > `reel_shared_cache` (`src/lib/reel-shared.ts`); o 2º idioma **reusa** tudo → footage
 > idêntico ES/PT. Só a **copy** muda por idioma
@@ -180,8 +180,11 @@ mas performa e o usuário quer manter).
   assinatura de US$100/mês do Claude (essa não roda em automação); é a API à parte, paga
   por uso. ~US$0,01/post. Cair aqui = nada publica (incidente 23/06).
 - **Pexels** (`PEXELS_API_KEY`): footage, grátis.
-- **Wikipedia**: pesquisa de contexto, **grátis, sem chave**. Substituiu a **Tavily**
-  (paga, aposentada em 23/06 — era hard-dependency e drenou o teto ig-reels). Fail-open.
+- **Pesquisa de contexto (grátis, sem chave/cartão)**: **DuckDuckGo** (web inteira,
+  `src/lib/ddg.ts`) como PRIMÁRIA + **Wikipedia** (enciclopédica) como RESERVA quando o DDG
+  vier vazio/bloqueado (estrangula IP de datacenter → o log diz a fonte). Substituíram a
+  **Tavily** (paga, aposentada 23/06). Brave virou pago e Google fechou a API JSON p/ clientes
+  novos → DDG é a única busca grátis de web inteira. Tudo fail-open.
 - Governança (orçamento/gate/log) tratada à parte — ver `cost-governance`.
 
 ## Limite do ambiente local
