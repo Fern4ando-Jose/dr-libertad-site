@@ -134,6 +134,24 @@ export async function GET(req: NextRequest) {
     results.push("editions table: " + String(e));
   }
 
+  // Tabela run_topics — livro-razão (dia,run)→tema escolhido. O 1º idioma a computar a
+  // vaga grava; o 2º lê o MESMO → ES e PT no MESMO tema/vídeo, SEM tirar "hoje" do recent
+  // (tirar hoje repetia o tema same-day reel↔carrossel). Ver getOrSetRunTopic (run-ledger.ts).
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS run_topics (
+        day        TEXT NOT NULL,
+        run        INT  NOT NULL,
+        topic      TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (day, run)
+      )
+    `;
+    results.push("run_topics table: ok");
+  } catch (e) {
+    results.push("run_topics table: " + String(e));
+  }
+
   // Tabela spend_log — contabiliza cada chamada paga (fal/Anthropic/Tavily) por
   // automação, p/ a visão de /api/spend e o teto diário por automação (src/lib/spend.ts).
   try {

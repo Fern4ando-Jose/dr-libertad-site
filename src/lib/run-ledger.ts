@@ -81,37 +81,50 @@ export async function recentTopicsForLang(lang: string, days = 7): Promise<Set<s
 // — o tópico REAL de cada reel por dia (resolvido no preview do footage), que
 // COBRE os reels antigos sem `published_runs.topic`. Sem (3), a trava era cega aos
 // reels da semana e repetia o tema deles num carrossel dias depois.
-export async function recentTopicsAllLangs(days = 7, beforeISO?: string): Promise<Set<string>> {
+export async function recentTopicsAllLangs(days = 7): Promise<Set<string>> {
   const out = new Set<string>();
-  // `beforeISO` = limite superior EXCLUSIVO. getFreshTopicForRun passa o início de HOJE
-  // (UTC) → o `recent` EXCLUI hoje, pra o tema que o 1º idioma a publicar grava não poluir
-  // a escolha do 2º (ES e PT pegam o MESMO tema/vídeo). Default = agora (no-op).
-  const before = beforeISO ?? new Date().toISOString();
   try {
     const { sql } = await import("@vercel/postgres");
     const a = await sql<{ topic: string }>`
       SELECT DISTINCT topic FROM published_runs
       WHERE topic IS NOT NULL AND instagram_post_id IS NOT NULL
         AND ts > NOW() - (${days} || ' days')::interval
-        AND ts < ${before}::timestamptz
     `;
     for (const r of a.rows) if (r.topic) out.add(r.topic);
     const b = await sql<{ topic: string }>`
       SELECT DISTINCT topic FROM posts
       WHERE topic IS NOT NULL
         AND published_at > NOW() - (${days} || ' days')::interval
-        AND published_at < ${before}::timestamptz
     `;
     for (const r of b.rows) if (r.topic) out.add(r.topic);
     const c = await sql<{ topic: string }>`
       SELECT DISTINCT topic FROM reel_shared_cache
       WHERE topic IS NOT NULL
         AND created_at > NOW() - (${days} || ' days')::interval
-        AND created_at < ${before}::timestamptz
     `;
     for (const r of c.rows) if (r.topic) out.add(r.topic);
   } catch { /* fail-open */ }
   return out;
+}
+
+// Livro-razão (dia,run)→tema: o 1º idioma a computar uma vaga GRAVA o tema; o 2º LÊ o
+// MESMO (igual ao `editions`) → ES e PT pegam o MESMO tema/vídeo por vaga, mesmo que o
+// publish do 1º já tenha entrado no `recent`. INSERT ON CONFLICT DO NOTHING + SELECT
+// resolve a corrida (os dois convergem pro 1º gravado). FAIL-OPEN: erro/sem tabela →
+// devolve `candidate` (que já NÃO repete, pois o recent inclui hoje). NÃO substitui a
+// trava anti-dup — é só pra ES e PT baterem na MESMA vaga sem tirar "hoje" do recent.
+export async function getOrSetRunTopic(day: string, run: number, candidate: string): Promise<string> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    await sql`
+      INSERT INTO run_topics (day, run, topic) VALUES (${day}, ${run}, ${candidate})
+      ON CONFLICT (day, run) DO NOTHING
+    `;
+    const r = await sql<{ topic: string }>`SELECT topic FROM run_topics WHERE day = ${day} AND run = ${run}`;
+    return r.rows[0]?.topic ?? candidate;
+  } catch {
+    return candidate;
+  }
 }
 
 // Quais runs do dia já têm publicação, por idioma. Usado pelo watchdog (via
