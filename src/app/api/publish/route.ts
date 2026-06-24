@@ -3,7 +3,7 @@ import { generateIllustration } from "@/lib/illustration";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
 import { parseContentJson } from "@/lib/content-json";
-import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
+import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
 import { recordRun, recentTopicsAllLangs, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, pickFreshTopicIndexThreaded } from "@/lib/rotation";
@@ -162,7 +162,7 @@ async function getFreshTopicForRun(date: Date, runIndex: number, _lang: Lang): P
     const candidate = TOPICS[pickFreshTopicIndexThreaded(ROTATION, date, runIndex, recentIdx)];
     // Livro-razão: 1º idioma grava (dia,run)→tema; 2º LÊ o mesmo → ES e PT no MESMO vídeo.
     // Fail-open dentro de getOrSetRunTopic → devolve `candidate` (que já não repete).
-    return await getOrSetRunTopic(dayUTC(date), runIndex, candidate);
+    return await getOrSetRunTopic(dayBRT(date), runIndex, candidate);
   } catch {
     return getTopicForRun(date, runIndex);
   }
@@ -494,7 +494,7 @@ export async function GET(req: NextRequest) {
     // Base LÍNGUA-INDEPENDENTE compartilhada entre ES e PT (= MESMO vídeo): a
     // pesquisa (Wikipedia) e o footage (Pexels) são resolvidos UMA vez por (tópico,
     // dia) e cacheados; o 2º idioma reusa tudo. Só a COPY muda por idioma.
-    const day = dayUTC();
+    const day = dayBRT();
     const shared = await readReelShared(topic, day);
 
     // Pesquisa: reusa a do cache ou busca agora (Wikipedia, grátis e fail-open).
@@ -586,7 +586,7 @@ export async function GET(req: NextRequest) {
         // dispara o MESMO run depois, o carrossel publicava 2× (o anti-dup por
         // TÓPICO não pega porque a seleção fresca dá um tema diferente a cada hora).
         // Aqui: se a vaga já saiu hoje nesta conta, pula (force=1 burla p/ backfill).
-        if (!force && await runAlreadyPublished(dayUTC(now), runIndex, lang)) {
+        if (!force && await runAlreadyPublished(dayBRT(now), runIndex, lang)) {
           slotLog.skipped = true;
           slotLog.reason = `run ${runIndex} (${lang}) já publicado hoje — idempotência`;
           results.push(slotLog);
@@ -604,7 +604,7 @@ export async function GET(req: NextRequest) {
         // — NÃO publica. EXCLUI a própria vaga, então o par ES/PT do mesmo (dia,run) passa.
         // Mesmo que a seleção erre por qualquer motivo, a repetição NÃO chega ao feed.
         // (Substitui o backstop antigo, que só olhava `posts`+idioma → cego a reels/PT.)
-        if (!force && await topicUsedInOtherVaga(dayUTC(now), runIndex, topic)) {
+        if (!force && await topicUsedInOtherVaga(dayBRT(now), runIndex, topic)) {
           slotLog.skipped = true;
           slotLog.reason = "Tópico já publicado em outra vaga nos últimos 7d — trava de publicação";
           results.push(slotLog);
@@ -624,17 +624,17 @@ export async function GET(req: NextRequest) {
 
         // Copy: reusa o cache por (tópico, dia, idioma) → redisparo NÃO repaga
         // a Anthropic. Só busca (Wikipedia, grátis) + gera no MISS.
-        let content = (await readContentCache(topic, dayUTC(now), lang)) as GeneratedContent | null;
+        let content = (await readContentCache(topic, dayBRT(now), lang)) as GeneratedContent | null;
         if (!content) {
           const searchResults = await searchTopic(topic, "ig-posts");
           content = await generateContent(topic, searchResults, slot, lang, "ig-posts");
-          await writeContentCache(topic, dayUTC(now), lang, content);
+          await writeContentCache(topic, dayBRT(now), lang, content);
         }
         slotLog.title = content.postTitle;
 
         // Número de edição: por VAGA (dia, run), MESMO p/ ES e PT, único e
         // monotônico (ver edition.ts). Fail-open p/ o esquema antigo COUNT(posts)+1.
-        let editionNum = await editionFor(dayUTC(now), runIndex);
+        let editionNum = await editionFor(dayBRT(now), runIndex);
         if (!editionNum) {
           try {
             const { sql } = await import("@vercel/postgres");
@@ -699,7 +699,7 @@ export async function GET(req: NextRequest) {
         });
 
         // Livro-razão (dia,run,lang) p/ o watchdog — só conta como publicado se saiu.
-        if (instagramPostId) await recordRun(dayUTC(now), runIndex, lang, "carousel", instagramPostId, topic);
+        if (instagramPostId) await recordRun(dayBRT(now), runIndex, lang, "carousel", instagramPostId, topic);
 
         slotLog.ok = true;
       } catch (slotErr) {

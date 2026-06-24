@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
-import { dayUTC, runAlreadyPublished, recordRun, topicUsedInOtherVaga } from "@/lib/run-ledger";
+import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga } from "@/lib/run-ledger";
 
 // Publicação de REELS (vídeo) no @drlibertad via Instagram Graph API v25.
 // O vídeo já precisa estar hospedado em URL pública (ex.: Vercel Blob).
@@ -118,7 +118,7 @@ async function handle(req: NextRequest) {
   const runParam = params.get("run");      // 0..3 — p/ o livro-razão/dedup do watchdog
   const run = runParam !== null && runParam !== "" ? parseInt(runParam, 10) : null;
   let topic = params.get("topic") ?? "";   // tópico do Reel → livro-razão (anti-dup cross-formato)
-  const day = dayUTC();
+  const day = dayBRT();
   const force = params.get("force") === "1"; // backfill manual burla a trava de tópico
 
   if ((!video || !caption || !topic) && req.method === "POST") {
