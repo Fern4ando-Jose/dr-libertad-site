@@ -97,6 +97,12 @@ const THEMES: Theme[] = [
   { topic: "Decir 'no' es un acto de libertad", literal: true, cat: "self", motif: "boundary", subject: "a single upright closed door standing calm against a swirling storm of paper demands that breaks around it, no people" },
   { topic: "La autocensura silenciosa", cat: "anxiety", motif: "masks", subject: "a sculptural human head in profile, a line of fine grey stitches sealing shut where the mouth would be, deep shadow, no hands" },
   { topic: "Ser libre incomoda a quien quiere controlarte", literal: true, cat: "freedom", motif: "branches", subject: "a lone figure seen from behind walking forward as cut marionette strings fall slack around it and the dark control-cross collapses above, no hands" },
+  // ── Cânone — convicções das obras de referência (Linha editorial) ──
+  { topic: "Volar más alto no es traición: es lealtad a lo que eres", literal: true, cat: "self", motif: "branches", subject: "a lone seagull soaring high into open sky, breaking upward away from a low grey flock hugging the ground, no people" },
+  { topic: "Lo esencial es invisible a los ojos", literal: true, cat: "mind", motif: "iris", subject: "a figure with closed eyes before a dazzling empty surface, a faint warm rose of light glowing only in the dark behind the eyelids, no text" },
+  { topic: "La servidumbre que más cuesta romper es la que eliges tú mismo", literal: true, cat: "freedom", motif: "boundary", subject: "a seated figure holding its own heavy chain, the open padlock resting in its palm and the cage door already ajar, no captor present" },
+  { topic: "La felicidad solo es real cuando se comparte", literal: true, cat: "network", motif: "ripple", subject: "two figures sharing a single small warm fire in a vast cold wilderness, the firelight rippling outward in warm rings, no screens" },
+  { topic: "Prefiero morir de pie a vivir de rodillas", literal: true, cat: "freedom", motif: "descent", subject: "a lone figure standing tall and unbowed at the crest of a grey hill as a vast shadow presses down, refusing to kneel, no people around" },
 ];
 
 const TOPICS = THEMES.map((t) => t.topic);
