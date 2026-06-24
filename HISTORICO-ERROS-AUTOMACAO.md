@@ -39,6 +39,12 @@
   com o dono só se ele quiser mudar de rumo agora.
 
 ### ✅ Resolvido HOJE nesta sessão (não está mais aberto)
+- **Reel CLÁSSICO (run 3, o 4º reel) não saía** — dependia 100% da ilustração da fal; quando ela
+  falhava (402 de orçamento no storm da Tavily, fal fora, QA reprovando), o `curl -fsS` do preview
+  derrubava o workflow inteiro **sem fallback**. Saía só **6× em ~7 dias** (devia ser ~14). **Fix:**
+  cascata robusta nos `instagram-reels-classic*.yml` — tenta ilustração (não-fatal); se falhar, busca
+  **footage (Pexels)** e o slot publica um Reel de footage; só pula se faltarem os dois. Com ilustração
+  renderiza `ReelClassic`, sem ela `Reel`. O 4º reel **sempre sai algo**.
 - **Reel renderizava o vídeo inteiro e PULAVA** (`{"ok":true,"skipped":true,"reason":"run 0 já publicado hoje"}`).
   Causa: o "dia" do livro-razão era **UTC**; o slot das 21h BRT (00h UTC) e os catchups da madrugada
   caíam no **dia UTC seguinte** e marcavam as vagas do dia seguinte como feitas. **Fix:** dia ancorado
