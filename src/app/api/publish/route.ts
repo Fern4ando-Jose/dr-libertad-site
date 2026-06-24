@@ -5,7 +5,7 @@ import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } f
 import { parseContentJson } from "@/lib/content-json";
 import { dayUTC, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentTopicsAllLangs, runAlreadyPublished } from "@/lib/run-ledger";
+import { recordRun, recentTopicsAllLangs, runAlreadyPublished, getOrSetRunTopic } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, pickFreshTopicIndexThreaded } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
@@ -150,19 +150,19 @@ const TOPIC_INDEX = new Map(TOPICS.map((t, i) => [t, i] as const));
 // gravar tópico) reintroduzia repetições. Fail-open: erro de banco → tema-base.
 async function getFreshTopicForRun(date: Date, runIndex: number, _lang: Lang): Promise<string> {
   try {
-    // `recent` EXCLUI hoje (início do dia UTC): assim o tema que o 1º idioma a publicar
-    // grava (em published_runs/reel_shared_cache) NÃO entra no recent do 2º → ES e PT
-    // escolhem o MESMO tema por vaga (mesmo vídeo), independente de timing. A distinção
-    // intra-dia é garantida pelo THREADING determinístico (pickFreshTopicIndexThreaded).
-    // Cross-dia 7d preservado. Era o bug do descasamento ES/PT (reels com vídeos distintos).
-    const todayStartUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())).toISOString();
-    const recent = await recentTopicsAllLangs(7, todayStartUTC);
+    // `recent` INCLUI hoje → impede repetir o MESMO tema no dia entre formatos/runs/idiomas
+    // (era o bug: reel de manhã + carrossel à tarde com o mesmo tema). O descasamento ES/PT
+    // (mesmo vídeo) é resolvido pelo LIVRO-RAZÃO (dia,run)→tema — NÃO tirando hoje do recent.
+    const recent = await recentTopicsAllLangs(7);
     const recentIdx = new Set<number>();
     for (const t of recent) {
       const i = TOPIC_INDEX.get(t);
       if (i !== undefined) recentIdx.add(i);
     }
-    return TOPICS[pickFreshTopicIndexThreaded(ROTATION, date, runIndex, recentIdx)];
+    const candidate = TOPICS[pickFreshTopicIndexThreaded(ROTATION, date, runIndex, recentIdx)];
+    // Livro-razão: 1º idioma grava (dia,run)→tema; 2º LÊ o mesmo → ES e PT no MESMO vídeo.
+    // Fail-open dentro de getOrSetRunTopic → devolve `candidate` (que já não repete).
+    return await getOrSetRunTopic(dayUTC(date), runIndex, candidate);
   } catch {
     return getTopicForRun(date, runIndex);
   }
