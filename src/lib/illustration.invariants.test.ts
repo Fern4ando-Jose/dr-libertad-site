@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { seedForDay, cacheKey, falRequestBody } from "./illustration";
+import { seedForDay, cacheKey, falRequestBody, framingFor, buildPrompt } from "./illustration";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INVARIANTE MULTI-IDIOMA: a ILUSTRAÇÃO (arte da IA) é ÚNICA por post/dia e
@@ -39,6 +39,29 @@ describe("seed determinístico (imagem idêntica entre idiomas)", () => {
     expect(Number.isInteger(s)).toBe(true);
     expect(s).toBeGreaterThanOrEqual(0);
     expect(s).toBeLessThan(2_000_000_000);
+  });
+});
+
+// Anti-repetição VISUAL: o enquadramento varia por subject (temas vizinhos no feed
+// não saem com o mesmo quadro), mas é DETERMINÍSTICO (ES e PT do mesmo subject batem)
+// e entra no prompt. (Erro "Repetição VISUAL" no HISTORICO-ERROS.)
+describe("framingFor — enquadramento rotativo (anti capa repetida)", () => {
+  it("determinístico: mesmo subject → mesmo enquadramento (ES e PT batem)", () => {
+    expect(framingFor("a lone figure in a doorway")).toBe(framingFor("a lone figure in a doorway"));
+  });
+  it("não depende de idioma (só do subject, que é compartilhado)", () => {
+    expect(framingFor.length).toBe(1); // só (subject)
+  });
+  it("subjects diferentes podem cair em enquadramentos diferentes (há variedade)", () => {
+    const got = new Set([
+      "a", "uma porta fechada", "a figure walking into light", "fragile glass figures",
+      "a calm figure unplugging cables", "a paralyzed figure before a shelf",
+    ].map(framingFor));
+    expect(got.size).toBeGreaterThan(1);
+  });
+  it("o enquadramento escolhido entra no prompt", () => {
+    const subject = "a single closed door against a storm";
+    expect(buildPrompt(subject, "amber", "#C8862B")).toContain(framingFor(subject));
   });
 });
 
