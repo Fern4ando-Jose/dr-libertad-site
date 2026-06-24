@@ -42,11 +42,19 @@ const DEFAULT_BUDGETS: Record<Automation, number> = {
   manual: 0.5, // testes manuais (dryrun &fresh=1) — cap evita o pico de dev (~US$10)
 };
 
-// Estimativa CONSERVADORA do custo de uma execução, por caminho. Usada só pelo
-// gate para decidir se a PRÓXIMA execução cabe no orçamento (o gasto real já
-// gravado é a base; isto é só a margem da execução atual). Assume retries cheios.
+// Estimativa do custo de uma execução, por caminho. Usada só pelo gate p/ decidir se
+// a PRÓXIMA execução cabe no orçamento (o gasto real já gravado é a base; isto é só a
+// margem da execução atual).
+//
+// AUDITORIA 2026-06-24 (finalização do tema custo do carrossel): publish=0,15 assumia
+// ilustração nova (best-of-3) em TODO carrossel, mas ES e PT COMPARTILHAM a ilustração
+// (o 2º idioma reusa o cache → custo real ~só haiku). Com 0,15 o gate dava 402 FALSO
+// (gasto US$0,351 + est US$0,15 > teto US$0,50) num dia em que o gasto REAL nunca passou
+// de US$0,469 (máx 7d, com 6 carrosséis). Real médio/carrossel ~US$0,07. Baixar p/ 0,10
+// elimina o bloqueio à toa e mantém margem. TETO inalterado (0,50); ilustração e QA
+// best-of-3 inalterados (o gasto não é o problema — a estimativa era).
 export const EST_RUN_COST: Record<"publish" | "preview" | "dryrun", number> = {
-  publish: 0.15, // haiku + 3×(fal+QA)  (pesquisa Wikipedia = grátis)
+  publish: 0.10, // haiku + ilustração compartilhada ES/PT (real médio ~0,07; era 0,15)
   preview: 0.07, // haiku + 1×(fal+QA)  (pesquisa Wikipedia = grátis)
   dryrun: 0.04,  // 1×(fal+QA)
 };

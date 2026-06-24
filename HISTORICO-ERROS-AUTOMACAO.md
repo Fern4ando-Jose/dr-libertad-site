@@ -11,32 +11,23 @@
 
 ---
 
-## 🔴 ERRO ATUAL EM ABERTO (24/06/2026)
+## 🟢 SEM ERRO EM ABERTO (24/06/2026) — tudo resolvido nesta sessão
 
-### Carrossel em looping de 402 (orçamento `ig-posts`)
-- **Sintoma:** o workflow "Instagram — publicar posts (PT-BR)" falha **a cada 15 min** (vermelho),
-  desde 15:40 UTC de 24/06. O agendador externo (cron-job.org → `/api/catchup`) rebate o slot
-  faltante (PT run 4), toma 402 e o workflow sai com `exit 1` → alarme em loop.
-- **Erro literal:** `HTTP 402 {"blocked":true,"reason":"Orçamento diário ig-posts estourado (gasto US$0.351 + est US$0.150 > teto US$0.50)"}`
-- **Causa-raiz (medida no `spend_log` de hoje):** o teto de **$0,50** é consumido em **72% por
-  ilustração da fal** — **9 chamadas de ilustração + 9 de QA (sonnet)** para apenas **3 carrosséis**,
-  porque o QA roda **3 tentativas por carrossel**. Conta: fal $0,252 + qa-judge $0,066 + conteúdo
-  (haiku) $0,033 = $0,351. A 4 carrosséis/dia (2 ES + 2 PT) **não cabe em $0,50** → o 4º toma 402.
-  O looping em si é um segundo defeito: **402 de orçamento é estado NORMAL** ("acabou a verba do
-  dia"), mas o workflow o trata como crash e o catchup redispara sem fim.
-- **Como corrigir (respeitando o teto de $0,50, sem subir gasto):**
-  1. **Cortar o QA de 3→1 tentativa** na ilustração do carrossel (`generateIllustration` em
-     `src/app/api/publish/route.ts:667`, hoje usa o `maxTries` default = 3). Cada carrossel cai de
-     ~$0,12 → ~$0,03; os 4 cabem folgado em $0,50. Se a única tentativa falhar, já existe a rede de
-     segurança: cai no **motivo abstrato** (nunca publica defeito). **— decisão da ilustração: ver nota.**
-  2. **402-de-orçamento vira `skip` (exit 0), não falha** — nos workflows `instagram-posts*.yml`
-     (e espelhos), tratar `"blocked":true`+402 como pulo, e o catchup não reenfileirar slot sem verba.
-     Mata o alarme vermelho. Independe da decisão da ilustração.
-- **Nota da ilustração (conflito resolvido pelo git):** a memória antiga dizia que o dono *rejeitou*
-  a ilustração (ED 89, 18/06, PR #33 → motivo). Mas o commit **`26bec4c5` (19/06)** *reverteu de
-  volta pra ilustração editorial* ("desfaz #33"). Então o estado ATUAL e mais recente é
-  **ilustração LIGADA** → o fix recomendado é o **(1) cortar QA 3→1** (mantém a ilustração). Confirmar
-  com o dono só se ele quiser mudar de rumo agora.
+### ✅ FINALIZADO: custo do carrossel (auditoria 24/06)
+- **Sintoma que aparecia:** workflow "publicar posts (PT-BR)" dava **402 em loop** (PT run 4):
+  `{"blocked":true,"reason":"Orçamento diário ig-posts estourado (gasto US$0.351 + est US$0.150 > teto US$0.50)"}`.
+- **Conclusão da auditoria (7 dias de `spend_log`):** o **gasto real diário NUNCA passou de US$0,469**
+  (máx, com 6 carrosséis); o teto de **US$0,50 tem folga** — o dono estava certo. A ilustração (fal,
+  best-of-3) **já é compartilhada ES/PT** (o 2º idioma reusa o cache). O 402 era **falso**: a
+  **estimativa conservadora** (US$0,15/carrossel) somava ao gasto e tombava o gate (US$0,351 + 0,15 =
+  US$0,501), mesmo o custo REAL do PT run 4 sendo ~US$0,014 (reusa a ilustração do ES). Tavily
+  (US$0,066/dia) já fora desde 23/06 → ainda mais folga.
+- **Finalização (PR desta sessão):** baixar `EST_RUN_COST.publish` **0,15 → 0,10** (`src/lib/spend.ts`)
+  — reflete a ilustração compartilhada (real médio ~US$0,07/carrossel). **NÃO** mexe no teto (0,50) e
+  **NÃO** corta a ilustração/QA best-of-3 (o gasto não era o problema; a estimativa era). Some o 402
+  falso e, sem 402, some o loop vermelho do catchup.
+- **Decisão da ilustração (firme):** o git confirma que ela foi **religada em 19/06** (`26bec4c5`,
+  "desfaz #33") e hoje é gerada por padrão (`route.ts:667`). Fica **LIGADA**. Memória corrigida.
 
 ### ✅ Resolvido HOJE nesta sessão (não está mais aberto)
 - **Reel CLÁSSICO (run 3, o 4º reel) não saía** — dependia 100% da ilustração da fal; quando ela
@@ -61,7 +52,7 @@ a sensação de "conserta e volta".
 | Família | Nº de investidas | Linha do tempo (commits) | Por que voltava |
 |---|---|---|---|
 | **Anti-duplicata de tema** (a maior do projeto) | ~11 | af39e050(01/06) → 33f3b9ed(15/06) → 6c6f2a5d(22/06) → e409a539 → bf061468 → 0ddd5bd2 → 8b3d00c2 → 10bb10d7(24/06) → 2ad320c4 → 7cd4c3f8 → a1c0beb8(24/06) | Cada fix cobria um caminho (24h, run, reembaralho, cross-formato, idioma, intra-dia, seleção). Faltava a **trava no PUBLISH** (#75) e o **dia em BRT** (#76). |
-| **Orçamento / 402** | ~6 | de4c4a58(17/06 sobe ig-reels) → budget-db-override(17/06) → 7640bdf3(cache copy) → b3d4de61(ilustração 1×) → 75d075ba(aposenta Tavily) → **ATUAL ig-posts** | Teto baixo p/ a cadência real; override no DB vence o código; ralos pagos (Tavily, fal 2×, retry 3×). |
+| **Orçamento / 402** | ~7 (✅ finalizada 24/06) | de4c4a58(17/06 sobe ig-reels) → budget-db-override(17/06) → 7640bdf3(cache copy) → b3d4de61(ilustração 1×) → 75d075ba(aposenta Tavily) → **EST_RUN_COST 0,15→0,10 (24/06, auditoria: o teto sempre teve folga; era a estimativa)** | Teto baixo p/ a cadência real; override no DB; ralos pagos (Tavily, fal 2×). Auditoria fechou: gasto real ≤US$0,469/dia, teto US$0,50 OK; o que tombava era a estimativa conservadora. |
 | **Satori/edge no `/api/og`** | ~10 | bloco de 01/06 (fonte, woff2, flex, Array.from, fundo preto, borda) | O renderizador de imagem do edge não aceita CSS/JS comuns; cada recurso quebrava um detalhe. Estabilizou. |
 | **Token Meta / segredos** | ~6 | ccafd621 → ef18300e → 2f12b7e0 → b... → 401 do CRON_SECRET (21/06) → 8ba9cb7e(23/06) | Token expira a cada 60d; CRON_SECRET tem de bater em 4 lugares; segredo commitado reusado. |
 | **Ilustração / anatomia da capa** | ~6 | 7fbc6b4d → 94e7bd5d → a9eab7ec(revert) → 52677cd9(motivo) → 26bec4c5(volta ilustração) → 69db6902(best-of-3) | Flux erra mãos → QA reprova → cai no motivo; idas e vindas sobre ligar/desligar a ilustração. |
@@ -122,6 +113,8 @@ a sensação de "conserta e volta".
 | 2026-06-24 | anti-dup | repetição chegava ao feed (toda trava na seleção) | **trava de PUBLICAÇÃO** independente + detecção (PR #75) | família anti-dup |
 | 2026-06-24 | deploy | deploy do #75 preso em fila na Vercel | redeploy (`2b72566c`) | — |
 | 2026-06-24 | reel/rotação | reel renderizava e PULAVA (dia em UTC roubava vagas do dia seguinte) | **dia ancorado em BRT** (PR #76) | **família anti-dup (raiz de fuso)** |
+| 2026-06-24 | reel | **Reel clássico (run 3, 4º reel) não saía** — 402/erro na ilustração derrubava o workflow sem fallback (saía ~6× em 7d) | cascata ilustração→**footage**→pular nos `instagram-reels-classic*.yml` (PR #78) | família budget/ilustração |
+| 2026-06-24 | budget | **402 FALSO no carrossel** — estimativa US$0,15 (assumia ilustração nova em todo carrossel) tombava o gate, mas o gasto real nunca passou de US$0,469/dia e o 2º idioma reusa a ilustração | auditoria + `EST_RUN_COST.publish` 0,15→0,10 (`spend.ts`); teto e QA inalterados | **família budget (finalizada)** |
 
 ---
 
