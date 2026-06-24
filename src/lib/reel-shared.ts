@@ -18,10 +18,9 @@ export interface ReelSharedBundle {
   clips: string[];            // URLs dos clipes Pexels escolhidos (footage idêntico)
 }
 
-// Dia UTC (YYYY-MM-DD) — entra na chave p/ haver variação diária e expiração natural.
-export function dayUTC(date = new Date()): string {
-  return date.toISOString().slice(0, 10);
-}
+// Dia (YYYY-MM-DD) ancorado em BRT — entra na chave p/ variação diária e expiração
+// natural. Fonte única em `./day` (ES e PT compartilham o MESMO dia BRT → mesma base).
+export { dayBRT } from "./day";
 
 // Chave do cache: (tópico, dia). NÃO inclui idioma — é o que garante ES e PT
 // lerem/escreverem a MESMA base. (Invariante coberto por teste no CI.)

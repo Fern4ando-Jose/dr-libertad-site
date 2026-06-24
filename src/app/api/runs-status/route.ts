@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dayUTC, publishedRunsToday, recentDuplicateTopics } from "@/lib/run-ledger";
+import { dayBRT, publishedRunsToday, recentDuplicateTopics } from "@/lib/run-ledger";
+import { minOfDayBRT } from "@/lib/day";
 
 // Status dos 6 runs do dia por idioma — o que JÁ publicou e o que está FALTANDO
 // (vencido por agora e ainda sem publicação). O watchdog (catchup.yml) consome
@@ -7,11 +8,12 @@ import { dayUTC, publishedRunsToday, recentDuplicateTopics } from "@/lib/run-led
 //
 //   GET /api/runs-status  → { day, nowMin, missing: [{lang, run}], published }
 //
-// "Vencido" = a hora do cron daquele run + carência já passou (UTC). Cron real
-// atrasado depois é deduplicado pela trava (carrossel) / livro-razão (reel).
+// "Vencido" = a hora daquele run + carência já passou (em BRT). Cron real atrasado
+// depois é deduplicado pela trava (carrossel) / livro-razão (reel).
 
-// Hora UTC de cada run (espelha os crons dos workflows; minuto :17/:22 ignorado).
-const RUN_HOUR_UTC: Record<number, number> = { 0: 15, 1: 20, 2: 0, 3: 22, 4: 12, 5: 17 };
+// Hora BRT de cada run (= o cron UTC convertido: 15/20/0/22/12/17 UTC). PRECISA ser
+// BRT p/ casar com dayBRT — senão o run 2 (21h BRT = 00h UTC) cairia fora da janela.
+const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14 };
 const GRACE_MIN = 75; // carência após o horário do cron antes de considerar "faltando"
 
 // Idiomas com publicação automática ativa (crons ligados). PT no ar desde 2026-06-18.
@@ -22,15 +24,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
   const now = new Date();
-  const day = dayUTC(now);
-  const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const day = dayBRT(now);
+  const nowMin = minOfDayBRT(now);
   const published = await publishedRunsToday(day);
 
   const missing: { lang: string; run: number }[] = [];
   for (const lang of ACTIVE_LANGS) {
     const done = new Set(published[lang] ?? []);
     for (let run = 0; run <= 5; run++) {
-      const dueMin = RUN_HOUR_UTC[run] * 60 + GRACE_MIN; // venceu por agora?
+      const dueMin = RUN_HOUR_BRT[run] * 60 + GRACE_MIN; // venceu por agora?
       if (nowMin >= dueMin && !done.has(run)) missing.push({ lang, run });
     }
   }

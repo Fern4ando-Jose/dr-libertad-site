@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { reelSharedKey, hashStr, dayUTC, normalizeShareInput } from "./reel-shared";
+import { reelSharedKey, hashStr, dayBRT, normalizeShareInput } from "./reel-shared";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INVARIANTE MULTI-IDIOMA (Reel): o VÍDEO é o MESMO entre as contas (ES, PT, …).
@@ -50,9 +50,10 @@ describe("seed do footage é determinístico e independente de conta", () => {
   });
 });
 
-describe("dayUTC", () => {
-  it("formata YYYY-MM-DD em UTC", () => {
-    expect(dayUTC(new Date("2026-06-18T23:30:00Z"))).toBe("2026-06-18");
+describe("dayBRT (re-export — âncora Brasília)", () => {
+  it("formata YYYY-MM-DD no fuso BRT", () => {
+    // 23:30 UTC = 20:30 BRT do mesmo dia
+    expect(dayBRT(new Date("2026-06-18T23:30:00Z"))).toBe("2026-06-18");
   });
 });
 

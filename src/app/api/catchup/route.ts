@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dayUTC, publishedRunsToday } from "@/lib/run-ledger";
+import { dayBRT, publishedRunsToday } from "@/lib/run-ledger";
+import { minOfDayBRT } from "@/lib/day";
 
 // ─── Catch-up acionável DE FORA (agendador externo) ──────────────────────────
 // Espelha o catchup.yml, mas como ENDPOINT — pra um cron EXTERNO (ex.: cron-job.org)
@@ -13,7 +14,8 @@ import { dayUTC, publishedRunsToday } from "@/lib/run-ledger";
 // (PAT fine-grained com Actions: read+write no repo) — guardado na Vercel, NÃO no
 // serviço de cron externo. Sem o token → 500 avisando (inerte até o dono configurar).
 
-const RUN_HOUR_UTC: Record<number, number> = { 0: 15, 1: 20, 2: 0, 3: 22, 4: 12, 5: 17 };
+// Hora BRT de cada run (cron UTC convertido). BRT p/ casar com dayBRT (run 2 = 21h BRT).
+const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14 };
 const GRACE_MIN = 75;
 const ACTIVE_LANGS = ["es", "pt"];
 const REPO = process.env.GH_REPO || "Fern4ando-Jose/dr-libertad-site";
@@ -40,8 +42,8 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date();
-  const day = dayUTC(now);
-  const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const day = dayBRT(now);
+  const nowMin = minOfDayBRT(now);
   const published = await publishedRunsToday(day);
 
   const dispatched: { lang: string; run: number; file: string }[] = [];
@@ -50,7 +52,7 @@ export async function GET(req: NextRequest) {
   for (const lang of ACTIVE_LANGS) {
     const done = new Set(published[lang] ?? []);
     for (let run = 0; run <= 5; run++) {
-      const dueMin = RUN_HOUR_UTC[run] * 60 + GRACE_MIN;
+      const dueMin = RUN_HOUR_BRT[run] * 60 + GRACE_MIN;
       if (nowMin < dueMin || done.has(run)) continue;
       const wf = workflowFor(run, lang);
       if (!wf) continue;
