@@ -29,7 +29,9 @@
     *"uma única porta fechada, no people"*).
   - **C (opcional):** alternar **ilustração × motivo abstrato** por slot → mais variedade e menos custo.
   - Recomendação: **A + B** (C como bônus).
-- **DECISÃO:** _(pendente — preencher quando o dono definir)_
+- **DECISÃO (dono, 24/06):** **A + B**. Rotação de enquadramento no `buildPrompt` + reescrever os
+  ~10-15 subjects de porta/figura-de-costas → objeto/símbolo. A lista dos subjects a trocar é mostrada
+  ao dono para veto ANTES de aplicar. (C não entra agora.)
 
 ### ERRO B — Tema duplicado no MESMO dia: o "post-fantasma" (vaga publicada sem id)
 - **Sintoma:** "O amor que morre de tédio" saiu **2× no mesmo dia** na conta PT — mesma vaga
@@ -46,7 +48,13 @@
     `recordRun` com um **marcador "publicado-sem-id"** (sentinela não-nulo) — o watchdog para de redisparar.
   - **Endurecer a captura do id** em `publishCarousel` (reler/poll o media id antes de desistir).
   - Replicar no **reel** (`publish-reel`). Cobrir com **teste invariante** (vaga sem id ≠ vaga ausente).
-- **DECISÃO:** _(pendente — preencher quando o dono definir)_
+- **DECISÃO (dono, 24/06):** **carrossel + reel**. Gravar a vaga mesmo com id perdido + endurecer a
+  captura do id nos dois caminhos + teste invariante. Fecha a brecha de vez.
+- **✅ IMPLEMENTADO (24/06):** `publishedId(mediaId, creationId)` em `run-ledger.ts` — publicação
+  confirmada SEMPRE gera id não-nulo (media id, senão `creation_id` sentinela). Aplicado em
+  `publishCarousel` e `publishReel`. Teste em `run-ledger.invariants.test.ts`. *Resíduo conhecido
+  (raro): se o `media_publish` der erro de REDE depois do post já ter ido ao ar, ainda cai no catch
+  sem gravar — não coberto (exige reconciliação). O caso observado (200 sem id) está fechado.*
 
 ---
 

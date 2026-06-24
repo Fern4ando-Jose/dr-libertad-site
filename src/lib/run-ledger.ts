@@ -11,6 +11,20 @@
 // (Ver day.ts: por que BRT corrige o reel que renderizava-e-pulava.)
 export { dayBRT } from "./day";
 
+// ── Anti "post-fantasma" ──────────────────────────────────────────────────────
+// A Graph API às vezes CONFIRMA o media_publish (HTTP 200) mas a resposta vem SEM o
+// `id` do media. O post fica VIVO no feed, mas sem id o `recordRun` era pulado (ou
+// gravava id nulo) → o livro-razão não enxergava a vaga → o watchdog REDISPARAVA a
+// MESMA vaga → o mesmo tema/edição saía 2× no dia (bug "O amor que morre de tédio",
+// ED 112, PT, 24/06). Como TODAS as travas filtram `instagram_post_id IS NOT NULL`,
+// um post vivo sem id é invisível a elas. Regra: uma publicação CONFIRMADA sempre
+// produz um id NÃO-NULO p/ gravar — o media id quando vem, senão o `creation_id`
+// como SENTINELA (não-nulo e único por vaga). Pura + testável (run-ledger.invariants).
+export function publishedId(mediaId: unknown, creationId: string): string {
+  if (typeof mediaId === "string" && mediaId.trim() !== "") return mediaId;
+  return creationId;
+}
+
 // Já existe publicação registrada para (dia, run, lang)? Fail-open: em erro de
 // banco devolve false (NÃO bloqueia o publish — preferimos publicar a travar).
 export async function runAlreadyPublished(day: string, run: number, lang: string): Promise<boolean> {

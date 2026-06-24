@@ -5,7 +5,7 @@ import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } f
 import { parseContentJson } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentTopicsAllLangs, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga } from "@/lib/run-ledger";
+import { recordRun, recentTopicsAllLangs, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga, publishedId } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, pickFreshTopicIndexThreaded } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
@@ -403,8 +403,11 @@ async function publishCarousel(
     body: JSON.stringify({ creation_id: carId, access_token: token }),
   });
   if (!pubRes.ok) throw new Error(`Carousel publish error: ${await pubRes.text()}`);
-  const { id: postId } = await pubRes.json();
-  return postId;
+  // Publicação CONFIRMADA (200). Se a resposta vier sem `id`, o post está vivo mesmo
+  // assim → devolve o creation_id como sentinela não-nula p/ a vaga ser GRAVADA no
+  // livro-razão (senão vira "post-fantasma" e o watchdog redispara → tema duplicado).
+  const pubJson = await pubRes.json().catch(() => ({} as { id?: string }));
+  return publishedId(pubJson?.id, carId);
 }
 
 // ─── Salvar no banco ──────────────────────────────────────────────────────────

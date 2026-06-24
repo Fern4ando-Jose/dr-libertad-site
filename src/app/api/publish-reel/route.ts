@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
-import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga } from "@/lib/run-ledger";
+import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, publishedId } from "@/lib/run-ledger";
 
 // Publicação de REELS (vídeo) no @drlibertad via Instagram Graph API v25.
 // O vídeo já precisa estar hospedado em URL pública (ex.: Vercel Blob).
@@ -89,8 +89,11 @@ async function publishReel(videoUrl: string, caption: string, lang: Lang = "es")
     body: JSON.stringify({ creation_id: creationId, access_token: token }),
   });
   if (!pubRes.ok) throw new Error(`Publish error: ${await pubRes.text()}`);
-  const { id: postId } = await pubRes.json();
-  return postId;
+  // Publicação CONFIRMADA. Se vier sem `id`, o Reel está vivo → devolve o creation_id
+  // como sentinela não-nula p/ a vaga ser gravada (anti "post-fantasma" → sem isso o
+  // watchdog redispara a mesma vaga). Ver publishedId em run-ledger.
+  const pubJson = await pubRes.json().catch(() => ({} as { id?: string }));
+  return publishedId(pubJson?.id, creationId);
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
