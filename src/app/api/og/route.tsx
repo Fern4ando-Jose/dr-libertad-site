@@ -515,7 +515,7 @@ function InsightSlide({ text, num, total, kw, issue, cat, motif, seed, lang }: {
           {mainText.toUpperCase()}
         </div>
         {subText ? (
-          <div style={{ fontSize: 30, lineHeight: 1.5, color: INK_70, marginTop: 30, maxWidth: 780, display: "flex" }}>
+          <div style={{ fontSize: 40, lineHeight: 1.5, color: INK_70, marginTop: 30, maxWidth: 780, display: "flex" }}>
             {subText}
           </div>
         ) : null}
