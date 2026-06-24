@@ -21,14 +21,35 @@ const ACCENTS: Record<string, { word: string; hex: string }> = {
   mind:     { word: "olive green",       hex: "#5B6B3C" },
 };
 
-// Bloco de estilo de marca (fixo) + slot de subject por tema.
+// Enquadramentos ROTATIVOS — quebram a monotonia "figura solitária centralizada na
+// porta" (47/62 subjects eram figura humana → o feed repetia o mesmo quadro). Escolhido
+// de forma DETERMINÍSTICA por `subject`: cada tema tem o SEU, mas temas diferentes
+// (posts vizinhos no feed) saem com quadros diferentes. ES e PT batem (mesmo subject →
+// mesmo enquadramento). São vantagens de escala/ângulo que funcionam p/ figura E objeto
+// (não brigam com o subject). Ver erro "Repetição VISUAL" no HISTORICO-ERROS.
+const FRAMINGS = [
+  "framed as an intimate mid-shot with generous negative space, like a literary-magazine cover",
+  "framed as an extreme close-up, one telling detail filling most of the frame, shallow depth of field",
+  "framed as a wide establishing shot, the subject small within a vast atmospheric space",
+  "framed from a high angle looking down on the scene",
+  "framed from a low, dramatic angle looking upward",
+  "framed strongly off-center, asymmetric, with rule-of-thirds tension",
+];
+
+export function framingFor(subject: string): string {
+  let h = 0;
+  for (let i = 0; i < subject.length; i++) h = (h * 31 + subject.charCodeAt(i)) | 0;
+  return FRAMINGS[Math.abs(h) % FRAMINGS.length];
+}
+
+// Bloco de estilo de marca (fixo) + slot de subject por tema + enquadramento rotativo.
 // Direção: cinematográfico/escultural editorial (escolha do usuário, 2026-06-13).
-function buildPrompt(subject: string, accentWord: string, accentHex: string): string {
+export function buildPrompt(subject: string, accentWord: string, accentHex: string): string {
   return [
     `Cinematic conceptual editorial illustration: ${subject}.`,
     `Dramatic chiaroscuro lighting, sculptural and atmospheric, fine film grain and subtle texture.`,
     `Restricted, desaturated palette: warm off-white paper tone (#F4F0E8) and deep ink black (#0B0B0C), with a single muted accent of ${accentWord} (${accentHex}).`,
-    `One bold central metaphor, generous negative space, sober and refined like a literary-magazine cover.`,
+    `One bold central metaphor, ${framingFor(subject)}, sober and refined.`,
     // Blindagem anatômica — reduz a chance de mão/dedo/membro extra (defeito nº 1 da difusão).
     `Anatomically correct and photoreal in structure: each person has exactly two arms and two hands, each hand with exactly five fingers; natural, correctly formed limbs, hands and faces. No extra, missing or fused fingers, hands, arms or limbs; no duplicated or distorted body parts.`,
     `No text, no letters, no words, no logo, no watermark. No neon, no purple gradient, no corporate clip-art, no busy clutter.`,
