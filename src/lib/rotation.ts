@@ -62,3 +62,16 @@ export function pickFreshTopicIndex(rotation: number[], startSlot: number, used:
   }
   return rotation[((startSlot % n) + n) % n]; // tudo usado → base (não deve ocorrer: N > 6×7)
 }
+
+// Threading intra-dia + pick, em UMA função PURA (testável). Monta o `used` =
+// recentes ∪ picks DETERMINÍSTICOS dos runs anteriores do dia, e devolve o índice
+// do tema do run. Invariante-chave: com o MESMO `recentIndices`, ES e PT devolvem o
+// MESMO índice (mesmo vídeo) — por isso o chamador EXCLUI hoje do recent (senão o
+// tema do 1º idioma poluiria o do 2º). E os 6 runs do dia saem DISTINTOS (threading).
+export function pickFreshTopicIndexThreaded(rotation: number[], date: Date, runIndex: number, recentIndices: Set<number>): number {
+  const used = new Set<number>(recentIndices);
+  for (let i = 0; i < runIndex; i++) {
+    used.add(pickFreshTopicIndex(rotation, slotForRun(date, i), used));
+  }
+  return pickFreshTopicIndex(rotation, slotForRun(date, runIndex), used);
+}

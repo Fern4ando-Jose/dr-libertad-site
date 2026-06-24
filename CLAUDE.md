@@ -17,7 +17,7 @@ Claude; mídia é renderizada e publicada via GitHub Actions.
 
 A marca **acredita na liberdade de expressão e NÃO teme a polêmica — ao contrário,
 a polêmica é uma ferramenta** (é o que gera alcance/debate). A voz é direta, corajosa,
-diz verdades incômodas e desafia o politicamente correto. Os **56 temas** (fonte única
+diz verdades incômodas e desafia o politicamente correto. Os **61 temas** (fonte única
 `THEMES` em `api/publish/route.ts`) giram em **5 pilares**:
 
 1. **Dopamina e seus seguimentos** (recompensa imediata, vício, hiperestimulação, porn/cérebro, detox).
@@ -33,7 +33,7 @@ diz verdades incômodas e desafia o politicamente correto. Os **56 temas** (font
 > de `generateContent`. **As ideias do dono são mantidas íntegras; só esse limite protege o canal.**
 
 > **Trava anti-amenização (temas-convicção):** os temas que SÃO uma frase-verdade do dono
-> (flag `literal: true` no `THEMES`, hoje **19**) NUNCA podem ser suavizados nem ter a frase
+> (flag `literal: true` no `THEMES`, hoje **27**) NUNCA podem ser suavizados nem ter a frase
 > trocada por "libertad"/palavra de marca — o **título preserva a frase** e a libertad vai num
 > insight. Foi o bug do **ED 106** ("No necesitas ser amado: necesitas LIBERTAD" no lugar de
 > "...necesita cariño, respeto y admiración"). Mecanismo: `buildLiteralDirective`
@@ -69,10 +69,10 @@ A fonte de **visualização é ÚNICA** e fica na máquina do dono: `D:\Claude\.
 - **Aprovar gasto antes de executar.** Toda chamada a API **paga** (fal, Anthropic)
   exige mostrar o custo estimado e ter OK do usuário antes. Footage Pexels e render
   no CI são grátis. Ver `cost-governance` / `approve-spend-before-executing`.
-- **Temas em FONTE ÚNICA `THEMES` (`api/publish/route.ts`)**: cada entrada tem `topic`+`cat`+`motif`+`subject`; `TOPICS`/`TOPIC_CAT`/`TOPIC_MOTIF`/`TOPIC_SUBJECT` são DERIVADOS (impossível dessincronizar). `cat`/`motif` **DEVEM** existir em `CATS`/`MOTIF_IDS` de `api/og/route.tsx` — tema novo = usar cat/motif válidos (ou adicionar lá primeiro). Hoje são **56 temas** (5 pilares da Linha editorial + cânone das obras); **19** são temas-convicção (`literal: true`) — título/slide preservam a frase, NUNCA viram "libertad" (trava `src/lib/literal-lock.ts`).
+- **Temas em FONTE ÚNICA `THEMES` (`api/publish/route.ts`)**: cada entrada tem `topic`+`cat`+`motif`+`subject`; `TOPICS`/`TOPIC_CAT`/`TOPIC_MOTIF`/`TOPIC_SUBJECT` são DERIVADOS (impossível dessincronizar). `cat`/`motif` **DEVEM** existir em `CATS`/`MOTIF_IDS` de `api/og/route.tsx` — tema novo = usar cat/motif válidos (ou adicionar lá primeiro). Hoje são **61 temas** (5 pilares + cânone das obras + §4 verdades incômodas); **27** são temas-convicção (`literal: true`) — título/slide preservam a frase, NUNCA viram "libertad" (trava `src/lib/literal-lock.ts`).
 - **Fonte: só Fraunces 700** embutida (não adicionar pesos — incha o bundle edge).
 - **CSS satori-safe** em `/api/og` (flexbox em todo elemento multi-filho; CSS não suportado → 500).
-- **Trava anti-dup: 7 dias, CROSS-FORMATO, na SELEÇÃO do tema.** Histórico do bug: a trava antiga só olhava `posts` (carrossel) e o Reel não gravava tópico → o mesmo tema saía Reel num dia e carrossel no outro ("El padre ausente", 21→22/06). Hoje: (1) **todo formato grava o `topic`** — carrossel em `posts`, reel em `published_runs.topic` (passado pelos workflows ao `/api/publish-reel`); (2) a seleção (`getFreshTopicForRun` em `api/publish`) **pula** qualquer tema usado nos últimos 7d em **qualquer formato**, caminhando a rotação (`pickFreshTopicIndex` em `src/lib/rotation.ts`); (3) base de recentes **UNIFICADA ES/PT** (`recentTopicsAllLangs`) → as duas contas escolhem o **MESMO tema por vaga** (vídeo compartilhado) e nenhuma repete; (4) **threading intra-dia** (inclui os picks dos runs anteriores do dia) → 6 temas DISTINTOS/dia, sem depender de timing de gravação (robusto ao re-disparo do catchup). Tudo **fail-open** (erro de banco → tema-base da rotação). Pool de 56 temas a 6/dia ≈ 9,3 dias > 7d. **`force=1`** em `/api/publish` burla o backstop de carrossel (republicar/backfill). Invariantes em `rotation.invariants.test.ts`.
+- **Trava anti-dup: 7 dias, CROSS-FORMATO, na SELEÇÃO do tema.** Histórico do bug: a trava antiga só olhava `posts` (carrossel) e o Reel não gravava tópico → o mesmo tema saía Reel num dia e carrossel no outro ("El padre ausente", 21→22/06). Hoje: (1) **todo formato grava o `topic`** — carrossel em `posts`, reel em `published_runs.topic` (passado pelos workflows ao `/api/publish-reel`); (2) a seleção (`getFreshTopicForRun` em `api/publish`) **pula** qualquer tema usado nos últimos 7d em **qualquer formato**, caminhando a rotação (`pickFreshTopicIndex` em `src/lib/rotation.ts`); (3) base de recentes **UNIFICADA ES/PT** (`recentTopicsAllLangs`) → as duas contas escolhem o **MESMO tema por vaga** (vídeo compartilhado) e nenhuma repete — o `recent` **EXCLUI hoje** (robusto ao timing: ES e PT batem mesmo com os crons escalonados :17/:22; o intra-dia é garantido pelo threading, não pelo recent); (4) **threading intra-dia** (inclui os picks dos runs anteriores do dia) → 6 temas DISTINTOS/dia, sem depender de timing de gravação (robusto ao re-disparo do catchup). Tudo **fail-open** (erro de banco → tema-base da rotação). Pool de 61 temas a 6/dia ≈ 10,2 dias > 7d. **`force=1`** em `/api/publish` burla o backstop de carrossel (republicar/backfill). Invariantes em `rotation.invariants.test.ts`.
 - **Agendamento no GitHub Actions**, não no Vercel (limite de cron do Hobby). Não recriar crons no `vercel.json`. O scheduler do GitHub atrasa/derruba crons → **`catchup.yml`** (de hora em hora) consulta `/api/runs-status` e **redispara só os runs faltantes do dia**. Idempotente: carrossel trava por (tópico,conta,7d); reel por (dia,run,conta) no livro-razão `published_runs` (`src/lib/run-ledger.ts`). Reel publicado registra `run` (workflows passam `run` ao `/api/publish-reel`).
 - Antes de valer em produção: confirmar **deploy Vercel verde** no commit.
 - **Não desestabilizar a automação** num experimento de criação; mudança de criação
@@ -110,7 +110,7 @@ fundo" checa `scripts/reel-media.cjs` `hasVisualMedia` (≥1 clipe **ou** ilustr
 tenta ilustração da fal (`illus=1`, raro) e, se ainda faltar, **pula** render/upload/publish
 (`has_media=0`, `::warning::`) — invariante `reel-media.invariants.test.ts`. **Uma faixa por
 TEMA**: `scripts/generate-music.mjs` gera (author-time, fal, ~US$0,05/tema) `public/music/bed-<NN>-<slug>.mp3`
-+ `manifest.json` (`topic`→arquivo) lendo os 56 temas de `THEMES`; `pick-music.cjs`
++ `manifest.json` (`topic`→arquivo) lendo os 61 temas de `THEMES`; `pick-music.cjs`
 escolhe pelo `topic` do post (não pelo slot). Reuso pra sempre (tema repetido = mesmo
 arquivo; CI não gera). Fail-open: sem faixa do tema → rotação legado `bed-N` → mudo.
 ES/PT compartilham os arquivos. **Nunca** commitar áudio de serviço pago (repo público).

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildRotation, topicIndexForRun, slotForRun, pickFreshTopicIndex } from "./rotation";
+import { buildRotation, topicIndexForRun, slotForRun, pickFreshTopicIndex, pickFreshTopicIndexThreaded } from "./rotation";
 
 // Espelha THEMES[].cat de api/publish/route.ts (51 temas, em ordem). Se THEMES
 // mudar, atualizar aqui. O bug antigo: reembaralho semanal repetia o mesmo tema
@@ -116,5 +116,30 @@ describe("pickFreshTopicIndex — não repete tema usado recentemente", () => {
     }
     expect(new Set(picks).size).toBe(6);            // 6 distintos (sem colisão)
     for (const p of picks) expect(baseUsed.has(p)).toBe(false); // nenhum recente
+  });
+});
+
+// Conserto do DESCASAMENTO ES/PT: pickFreshTopicIndexThreaded é PURO e determinístico.
+// Com o MESMO recentIndices, ES e PT devolvem o MESMO índice (mesmo vídeo) — a chave do
+// fix é o chamador EXCLUIR hoje do recent (senão o tema do 1º idioma poluiria o do 2º).
+describe("pickFreshTopicIndexThreaded — ES e PT batem; runs do dia distintos", () => {
+  const rot = buildRotation(CATS);
+  const day = new Date(Date.UTC(2026, 5, 24, 12));
+
+  it("determinístico: mesmo recent → mesmo índice (ES e PT pegam o mesmo tema)", () => {
+    const a = pickFreshTopicIndexThreaded(rot, day, 0, new Set());
+    const b = pickFreshTopicIndexThreaded(rot, day, 0, new Set());
+    expect(a).toBe(b);
+  });
+
+  it("os 6 runs do dia saem DISTINTOS (threading)", () => {
+    const picks = [0, 1, 2, 3, 4, 5].map((run) => pickFreshTopicIndexThreaded(rot, day, run, new Set()));
+    expect(new Set(picks).size).toBe(6);
+  });
+
+  it("pula o índice recente", () => {
+    const base = pickFreshTopicIndexThreaded(rot, day, 0, new Set());
+    const pick = pickFreshTopicIndexThreaded(rot, day, 0, new Set([base]));
+    expect(pick).not.toBe(base);
   });
 });
