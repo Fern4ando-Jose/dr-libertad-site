@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
-import { dayUTC, runAlreadyPublished, recordRun } from "@/lib/run-ledger";
+import { dayUTC, runAlreadyPublished, recordRun, topicUsedInOtherVaga } from "@/lib/run-ledger";
 
 // Publicação de REELS (vídeo) no @drlibertad via Instagram Graph API v25.
 // O vídeo já precisa estar hospedado em URL pública (ex.: Vercel Blob).
@@ -119,6 +119,7 @@ async function handle(req: NextRequest) {
   const run = runParam !== null && runParam !== "" ? parseInt(runParam, 10) : null;
   let topic = params.get("topic") ?? "";   // tópico do Reel → livro-razão (anti-dup cross-formato)
   const day = dayUTC();
+  const force = params.get("force") === "1"; // backfill manual burla a trava de tópico
 
   if ((!video || !caption || !topic) && req.method === "POST") {
     try {
@@ -141,6 +142,14 @@ async function handle(req: NextRequest) {
   // republica. Reel não tinha trava (carrossel tinha por tópico) — esta é a dele.
   if (run !== null && Number.isFinite(run) && await runAlreadyPublished(day, run, lang)) {
     return NextResponse.json({ ok: true, skipped: true, reason: `run ${run} (${lang}) já publicado hoje`, log });
+  }
+
+  // TRAVA DE PUBLICAÇÃO por TÓPICO (independente da seleção, a menos de force=1): se este
+  // tema já saiu em OUTRA vaga (dia,run) em 7d — qualquer formato/idioma — NÃO republica.
+  // EXCLUI a própria vaga → o par ES/PT do mesmo run (mesmo vídeo) passa. O reel não tinha
+  // trava de tópico nenhuma; esta é a dele.
+  if (!force && run !== null && Number.isFinite(run) && topic && await topicUsedInOtherVaga(day, run, topic)) {
+    return NextResponse.json({ ok: true, skipped: true, reason: `tópico "${topic}" já saiu em outra vaga em 7d — trava de publicação`, log });
   }
 
   try {

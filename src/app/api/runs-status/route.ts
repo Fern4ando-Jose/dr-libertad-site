@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dayUTC, publishedRunsToday } from "@/lib/run-ledger";
+import { dayUTC, publishedRunsToday, recentDuplicateTopics } from "@/lib/run-ledger";
 
 // Status dos 6 runs do dia por idioma — o que JÁ publicou e o que está FALTANDO
 // (vencido por agora e ainda sem publicação). O watchdog (catchup.yml) consome
@@ -34,5 +34,8 @@ export async function GET(req: NextRequest) {
       if (nowMin >= dueMin && !done.has(run)) missing.push({ lang, run });
     }
   }
-  return NextResponse.json({ ok: true, day, nowMin, missing, published });
+  // Detecção: temas repetidos em 7d (2+ vagas distintas). Vazio = saudável; se vier algo,
+  // é alarme — captamos um repeat ANTES do dono ver no feed.
+  const duplicates = await recentDuplicateTopics(7);
+  return NextResponse.json({ ok: true, day, nowMin, missing, published, duplicates });
 }
