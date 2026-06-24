@@ -7,9 +7,9 @@
 //      os runs ausentes — sobrevive ao atraso/derrubada de cron do GitHub.
 // Tudo best-effort/fail-open: erro de banco nunca bloqueia/derruba a publicação.
 
-export function dayUTC(date = new Date()): string {
-  return date.toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
-}
+// "Dia" da automação — ÂNCORA BRT (UTC-3), não UTC. Fonte única em `./day`.
+// (Ver day.ts: por que BRT corrige o reel que renderizava-e-pulava.)
+export { dayBRT } from "./day";
 
 // Já existe publicação registrada para (dia, run, lang)? Fail-open: em erro de
 // banco devolve false (NÃO bloqueia o publish — preferimos publicar a travar).
