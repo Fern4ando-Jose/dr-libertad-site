@@ -4,9 +4,32 @@
 // FALTAVA — modela o cenário real (cross-formato/idioma/dia por vaga), não a rotação
 // pura. Foi o buraco que deixou "Si no pones límites" repetir reel+carrossel em 24/06.
 import { describe, it, expect } from "vitest";
-import { hasOtherVaga } from "./run-ledger";
+import { hasOtherVaga, publishedId } from "./run-ledger";
 
 const D = "2026-06-24";
+
+// Anti "post-fantasma": uma publicação CONFIRMADA sempre gera um id NÃO-NULO p/ gravar
+// no livro-razão. Sem isso, o post vivo-sem-id ficava invisível ao anti-dup e o watchdog
+// redisparava a vaga (tema duplicado no mesmo dia — ED 112 "O amor que morre de tédio").
+describe("publishedId — id a gravar após publicação confirmada", () => {
+  it("media id presente → usa o media id", () => {
+    expect(publishedId("17900000000000000", "cre_1")).toBe("17900000000000000");
+  });
+  it("media id ausente/ruim → cai no creation_id (sentinela, NUNCA nulo)", () => {
+    expect(publishedId(null, "cre_1")).toBe("cre_1");
+    expect(publishedId(undefined, "cre_1")).toBe("cre_1");
+    expect(publishedId("", "cre_1")).toBe("cre_1");
+    expect(publishedId("   ", "cre_1")).toBe("cre_1");
+    expect(publishedId(42, "cre_1")).toBe("cre_1");
+  });
+  it("o resultado é SEMPRE uma string não-vazia (a vaga sempre fica gravável)", () => {
+    for (const m of [null, undefined, "", "  ", 0, {}, "id_real"]) {
+      const r = publishedId(m, "cre_x");
+      expect(typeof r).toBe("string");
+      expect(r.length).toBeGreaterThan(0);
+    }
+  });
+});
 
 describe("hasOtherVaga — trava de publicação por vaga", () => {
   it("tema inédito (sem vagas) → false (publica)", () => {
