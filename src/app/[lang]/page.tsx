@@ -39,7 +39,7 @@ function ScrollHint() {
 }
 
 export default function Page() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -435,6 +435,12 @@ export default function Page() {
                   {link.label}
                 </a>
               ))}
+              <a
+                className="text-warm-gray/70 hover:text-offwhite transition"
+                href={`/${lang}/privacidade`}
+              >
+                {t.footer.legal}
+              </a>
             </div>
           </div>
         </StudioContainer>

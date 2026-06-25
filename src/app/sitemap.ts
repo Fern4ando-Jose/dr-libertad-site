@@ -8,6 +8,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "x-default": `${base}/pt`,
   };
 
+  const privacy = {
+    "pt-BR": `${base}/pt/privacidade`,
+    "es-ES": `${base}/es/privacidade`,
+    "x-default": `${base}/pt/privacidade`,
+  };
+
   // Uma entrada por idioma, cada uma declarando as alternativas (hreflang).
   return [
     {
@@ -21,6 +27,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily",
       priority: 1,
       alternates: { languages },
+    },
+    {
+      url: `${base}/pt/privacidade`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+      alternates: { languages: privacy },
+    },
+    {
+      url: `${base}/es/privacidade`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+      alternates: { languages: privacy },
     },
   ];
 }

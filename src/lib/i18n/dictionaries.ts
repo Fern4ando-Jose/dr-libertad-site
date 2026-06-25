@@ -239,8 +239,87 @@ export const pt = {
     ctaLead: "As ideias em formato longo — guias e ensaios para ler com calma.",
     ctaButton: "Ver os livros",
   },
+  privacy: {
+    eyebrow: "LEGAL",
+    title: "Política de Privacidade",
+    updated: "Última atualização: junho de 2026",
+    intro:
+      "Esta política explica quais dados a Dr. Liberdade trata, por quê, com quem os compartilha e como você pode pedir acesso ou exclusão. Vale para este site e para o perfil @dr.liberdade.br no Instagram.",
+    sections: [
+      {
+        h: "1. Quem é responsável",
+        p: [
+          "A marca Dr. Liberdade (“nós”) é a responsável pelo tratamento dos dados descritos aqui. Para qualquer questão de privacidade, fale com contato@drlibertad.com.",
+        ],
+      },
+      {
+        h: "2. Que dados tratamos",
+        p: [
+          "Newsletter: quando você se inscreve, guardamos seu e-mail e o idioma escolhido, para enviar os conteúdos que você pediu.",
+          "Interações no Instagram: quando você comenta em nossos posts ou nos envia uma mensagem direta (DM), recebemos — pela API oficial do Instagram — o conteúdo da mensagem, seu nome de usuário e o identificador da conta, para podermos responder.",
+          "Dados técnicos: como qualquer site, registramos dados de uso anônimos (página visitada, tipo de dispositivo) para medir audiência. Não os usamos para identificar você.",
+        ],
+      },
+      {
+        h: "3. Para que usamos",
+        p: [
+          "Para responder seus comentários e mensagens no Instagram, na voz da marca; para enviar a newsletter que você assinou; e para entender o que funciona e melhorar o conteúdo. Não tomamos decisões automatizadas com efeito jurídico sobre você.",
+        ],
+      },
+      {
+        h: "4. Base legal",
+        p: [
+          "Tratamos seus dados com base no seu consentimento (inscrição na newsletter, o ato de nos escrever) e no nosso legítimo interesse em responder e manter a comunidade. Você pode retirar o consentimento a qualquer momento.",
+        ],
+      },
+      {
+        h: "5. Com quem compartilhamos",
+        p: [
+          "Não vendemos seus dados. Compartilhamos o mínimo necessário com operadores que viabilizam o serviço: Meta/Instagram (a plataforma onde a interação acontece), Vercel (hospedagem), Neon (banco de dados), Anthropic (geração do texto das respostas) e nosso provedor de e-mail. Cada um trata os dados apenas para nos prestar o serviço.",
+        ],
+      },
+      {
+        h: "6. Por quanto tempo guardamos",
+        p: [
+          "Guardamos os dados enquanto forem necessários: o e-mail da newsletter, até você cancelar; o registro de interações, pelo tempo necessário para evitar respostas duplicadas e cumprir obrigações legais. Depois disso, apagamos ou anonimizamos.",
+        ],
+      },
+      {
+        h: "7. Seus direitos",
+        p: [
+          "Você pode pedir acesso, correção, portabilidade ou exclusão dos seus dados, e revogar o consentimento, a qualquer momento. Para exercer, escreva para contato@drlibertad.com.",
+        ],
+      },
+      {
+        h: "8. Como excluir seus dados",
+        p: [
+          "Para apagar os dados que temos sobre você, envie um e-mail para contato@drlibertad.com com o assunto “Exclusão de dados” e o nome de usuário do Instagram que você usou, ou nos mande uma DM pedindo a exclusão. Confirmamos e concluímos a exclusão em até 30 dias.",
+        ],
+      },
+      {
+        h: "9. Cookies",
+        p: [
+          "Usamos apenas o essencial: um item que lembra o idioma escolhido (pt/es) e medição de audiência anônima. Não usamos cookies de publicidade nem de rastreamento de terceiros.",
+        ],
+      },
+      {
+        h: "10. Menores",
+        p: [
+          "Este conteúdo é destinado a adultos. Não coletamos intencionalmente dados de menores de idade.",
+        ],
+      },
+      {
+        h: "11. Alterações",
+        p: [
+          "Podemos atualizar esta política. Mudanças relevantes serão sinalizadas aqui, com nova data de atualização no topo.",
+        ],
+      },
+    ],
+    contactNote: "Dúvidas sobre privacidade? Fale com contato@drlibertad.com.",
+  },
   footer: {
     tagline: "Filosofia aplicada à atenção e ao comportamento.",
+    legal: "Privacidade",
     links: [
       { label: "Manifesto", id: "manifesto" },
       { label: "Tópicos", id: "topics" },
@@ -482,8 +561,87 @@ export const es: Dict = {
     ctaLead: "Las ideas en formato largo — guías y ensayos para leer con calma.",
     ctaButton: "Ver los libros",
   },
+  privacy: {
+    eyebrow: "LEGAL",
+    title: "Política de Privacidad",
+    updated: "Última actualización: junio de 2026",
+    intro:
+      "Esta política explica qué datos trata Dr. Libertad, por qué, con quién los comparte y cómo puedes pedir acceso o eliminación. Aplica a este sitio y al perfil @dr.liberdad en Instagram.",
+    sections: [
+      {
+        h: "1. Quién es responsable",
+        p: [
+          "La marca Dr. Libertad (“nosotros”) es responsable del tratamiento de los datos descritos aquí. Para cualquier cuestión de privacidad, escribe a contacto@drlibertad.com.",
+        ],
+      },
+      {
+        h: "2. Qué datos tratamos",
+        p: [
+          "Newsletter: cuando te suscribes, guardamos tu correo y el idioma elegido, para enviarte el contenido que pediste.",
+          "Interacciones en Instagram: cuando comentas en nuestras publicaciones o nos envías un mensaje directo (DM), recibimos —mediante la API oficial de Instagram— el contenido del mensaje, tu nombre de usuario y el identificador de la cuenta, para poder responder.",
+          "Datos técnicos: como cualquier sitio, registramos datos de uso anónimos (página visitada, tipo de dispositivo) para medir audiencia. No los usamos para identificarte.",
+        ],
+      },
+      {
+        h: "3. Para qué los usamos",
+        p: [
+          "Para responder tus comentarios y mensajes en Instagram, con la voz de la marca; para enviar la newsletter que suscribiste; y para entender qué funciona y mejorar el contenido. No tomamos decisiones automatizadas con efecto jurídico sobre ti.",
+        ],
+      },
+      {
+        h: "4. Base legal",
+        p: [
+          "Tratamos tus datos sobre la base de tu consentimiento (suscripción a la newsletter, el acto de escribirnos) y de nuestro interés legítimo en responder y mantener la comunidad. Puedes retirar el consentimiento en cualquier momento.",
+        ],
+      },
+      {
+        h: "5. Con quién compartimos",
+        p: [
+          "No vendemos tus datos. Compartimos lo mínimo necesario con los proveedores que hacen posible el servicio: Meta/Instagram (la plataforma donde ocurre la interacción), Vercel (alojamiento), Neon (base de datos), Anthropic (generación del texto de las respuestas) y nuestro proveedor de correo. Cada uno trata los datos solo para prestarnos el servicio.",
+        ],
+      },
+      {
+        h: "6. Cuánto tiempo los guardamos",
+        p: [
+          "Guardamos los datos mientras sean necesarios: el correo de la newsletter, hasta que te des de baja; el registro de interacciones, el tiempo necesario para evitar respuestas duplicadas y cumplir obligaciones legales. Después, los borramos o anonimizamos.",
+        ],
+      },
+      {
+        h: "7. Tus derechos",
+        p: [
+          "Puedes pedir acceso, rectificación, portabilidad o eliminación de tus datos, y revocar el consentimiento, en cualquier momento. Para ejercerlos, escribe a contacto@drlibertad.com.",
+        ],
+      },
+      {
+        h: "8. Cómo eliminar tus datos",
+        p: [
+          "Para borrar los datos que tenemos sobre ti, envía un correo a contacto@drlibertad.com con el asunto “Eliminación de datos” y el nombre de usuario de Instagram que usaste, o mándanos un DM pidiendo la eliminación. Confirmamos y completamos la eliminación en un máximo de 30 días.",
+        ],
+      },
+      {
+        h: "9. Cookies",
+        p: [
+          "Usamos solo lo esencial: un elemento que recuerda el idioma elegido (pt/es) y medición de audiencia anónima. No usamos cookies de publicidad ni de rastreo de terceros.",
+        ],
+      },
+      {
+        h: "10. Menores",
+        p: [
+          "Este contenido está dirigido a adultos. No recopilamos intencionadamente datos de menores de edad.",
+        ],
+      },
+      {
+        h: "11. Cambios",
+        p: [
+          "Podemos actualizar esta política. Los cambios relevantes se señalarán aquí, con nueva fecha de actualización en la parte superior.",
+        ],
+      },
+    ],
+    contactNote: "¿Dudas sobre privacidad? Escribe a contacto@drlibertad.com.",
+  },
   footer: {
     tagline: "Filosofía aplicada a la atención y al comportamiento.",
+    legal: "Privacidad",
     links: [
       { label: "Manifiesto", id: "manifesto" },
       { label: "Temas", id: "topics" },
