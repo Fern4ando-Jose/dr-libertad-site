@@ -47,7 +47,9 @@ const CAT_ACCENT: Record<string, string> = {
 };
 
 // Scrim sobre o footage — escurece topo e (forte) a base, onde mora o texto.
-const SCRIM =
+// `export` (apenas) para o ReelV2 reusar o MESMO scrim/grade sem copiar valores
+// (evita drift). A produção segue idêntica — só a visibilidade do símbolo mudou.
+export const SCRIM =
   "linear-gradient(180deg, rgba(11,11,12,0.58) 0%, rgba(11,11,12,0.20) 30%, rgba(11,11,12,0.22) 58%, rgba(11,11,12,0.90) 100%)";
 
 // ─── Grade cinematográfica QUENTE/VINTAGE (padrão de marca em todo footage) ───
@@ -61,10 +63,12 @@ const SCRIM =
 //   3. multiply(LUZ âmbar) → luzes viram dourado quente (sem estourar);
 //   4. soft-light(WASH quente) → base sempre quente, coesa mesmo em clipe frio;
 //   5. soft-light(acento) → cor da categoria por cima.
-const GRADE_FILTER = "saturate(0.5) contrast(1.1) brightness(0.95) sepia(0.2)";
-const DUO_FLOOR = "#1F1A18";      // piso levemente quente (marrom-neutro — matte, sem laranja)
-const DUO_HIGHLIGHT = "#ECDCC4";  // teto creme quente suave (entre creme e âmbar)
-const WARM_WASH = "#5A4636";      // unificador quente discreto (marrom-neutro, não vermelho)
+// `export` (apenas) destes valores de grade p/ o ReelV2 montar o MESMO duotone
+// quente sem copiar números (fonte única — sem drift). Produção intocada.
+export const GRADE_FILTER = "saturate(0.5) contrast(1.1) brightness(0.95) sepia(0.2)";
+export const DUO_FLOOR = "#1F1A18";      // piso levemente quente (marrom-neutro — matte, sem laranja)
+export const DUO_HIGHLIGHT = "#ECDCC4";  // teto creme quente suave (entre creme e âmbar)
+export const WARM_WASH = "#5A4636";      // unificador quente discreto (marrom-neutro, não vermelho)
 
 // ─── Zona segura do FEED do Instagram ─────────────────────────────────────────
 // O Reel é 1080×1920 (9:16), mas o FEED mostra um recorte CENTRADO 4:5 (1080×1350)
@@ -155,7 +159,8 @@ function Handle({ color = PAPER, handle = "@dr.liberdad" }: { color?: string; ha
 }
 
 // Grão de filme + vinheta — textura sutil da marca por cima do footage.
-function Texture() {
+// `export` (apenas) p/ o ReelV2 reusar a MESMA textura sem copiar — produção igual.
+export function Texture() {
   return (
     <>
       <AbsoluteFill
