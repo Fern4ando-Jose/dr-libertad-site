@@ -253,7 +253,9 @@ function SceneBg({
 }
 
 // Envelope comum de cena: fundo graded + scrim + textura + conteúdo (texto).
-function Scene({
+// `export` (apenas) para o ReelV2 reusar a MESMA cena/grade comprovada sem copiar —
+// não muda nada do que o Reel de produção renderiza.
+export function Scene({
   clip,
   img,
   kw,

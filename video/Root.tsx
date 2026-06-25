@@ -8,6 +8,7 @@ import React from "react";
 import { Composition } from "remotion";
 import { Reel, reelDefaultProps, reelDurations, ReelProps, FPS } from "./Reel";
 import { ReelClassic, reelClassicDefaultProps, ReelClassicProps } from "./ReelClassic";
+import { ReelV2, reelV2DefaultProps, reelDurationsV2 } from "./ReelV2";
 
 // Duração do motor clássico (mesma matemática inline do componente original).
 function classicDuration(slidesCount: number): number {
@@ -32,6 +33,23 @@ export const RemotionRoot: React.FC = () => {
           const p = props as ReelProps;
           const count = p.slides && p.slides.length ? p.slides.length : reelDefaultProps.slides.length;
           return { durationInFrames: reelDurations(count).total };
+        }}
+      />
+
+      {/* Composição EXPERIMENTAL de retenção (capa curta + legenda cinética).
+          NÃO usada em produção — só pra render de teste (--composition=ReelV2). */}
+      <Composition
+        id="ReelV2"
+        component={ReelV2}
+        durationInFrames={reelDurationsV2(reelV2DefaultProps.slides.length).total}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={reelV2DefaultProps}
+        calculateMetadata={({ props }) => {
+          const p = props as ReelProps;
+          const count = p.slides && p.slides.length ? p.slides.length : reelV2DefaultProps.slides.length;
+          return { durationInFrames: reelDurationsV2(count).total };
         }}
       />
 
