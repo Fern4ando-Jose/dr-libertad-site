@@ -115,6 +115,16 @@ export async function GET(req: NextRequest) {
     results.push("published_runs.topic: " + String(e));
   }
 
+  // Coluna published_runs.attempts — DISJUNTOR anti-martelo: conta tentativas FALHAS
+  // por vaga/dia; após MAX o catchup para de redisparar (evita o bloqueio da conta no
+  // IG por excesso de tentativas). Ver bumpAttempt/attemptsToday em src/lib/run-ledger.ts.
+  try {
+    await sql`ALTER TABLE published_runs ADD COLUMN IF NOT EXISTS attempts INT NOT NULL DEFAULT 0`;
+    results.push("published_runs.attempts: ok");
+  } catch (e) {
+    results.push("published_runs.attempts: " + String(e));
+  }
+
   // Tabela editions — número de edição (Nº na capa) por VAGA (dia, run), o MESMO
   // p/ ES e PT (é o mesmo conteúdo traduzido). Antes o Nº vinha de COUNT(posts)+1,
   // que NÃO andava pra Reels (só carrossel grava em posts) → "Nº 102" repetia em

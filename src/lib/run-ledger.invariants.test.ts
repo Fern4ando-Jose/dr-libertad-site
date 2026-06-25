@@ -4,9 +4,39 @@
 // FALTAVA — modela o cenário real (cross-formato/idioma/dia por vaga), não a rotação
 // pura. Foi o buraco que deixou "Si no pones límites" repetir reel+carrossel em 24/06.
 import { describe, it, expect } from "vitest";
-import { hasOtherVaga, publishedId } from "./run-ledger";
+import { hasOtherVaga, publishedId, shouldStopRetrying, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS } from "./run-ledger";
 
 const D = "2026-06-24";
+
+// DISJUNTOR anti-martelo: uma vaga que falha publicação era redisparada pra sempre
+// (a cada 15min) → martelou a conta PT até o Instagram BLOQUEAR. Regra: para após MAX
+// falhas no dia; erro DURO do IG (limite/bloqueio/429) para na hora.
+describe("disjuntor de publicação (anti-martelo / anti-bloqueio de conta)", () => {
+  it("abaixo do teto → ainda tenta; no teto ou acima → desiste", () => {
+    expect(shouldStopRetrying(0)).toBe(false);
+    expect(shouldStopRetrying(MAX_PUBLISH_ATTEMPTS - 1)).toBe(false);
+    expect(shouldStopRetrying(MAX_PUBLISH_ATTEMPTS)).toBe(true);
+    expect(shouldStopRetrying(MAX_PUBLISH_ATTEMPTS + 5)).toBe(true);
+  });
+
+  it("detecta bloqueio/limite DURO do Instagram (não adianta insistir)", () => {
+    const block = 'Carousel publish error: {"error":{"message":"Application request limit reached","code":4,"error_subcode":2207051,"error_user_title":"action is blocked"}}';
+    expect(isHardPublishBlock(block)).toBe(true);
+    expect(isHardPublishBlock("HTTP 429 Too Many Requests")).toBe(true);
+    expect(isHardPublishBlock("rate limit exceeded")).toBe(true);
+  });
+
+  it("NÃO marca como bloqueio duro um erro comum (ex.: timeout) — esse só conta +1", () => {
+    expect(isHardPublishBlock("Timeout: reel não finalizou")).toBe(false);
+    expect(isHardPublishBlock("Carousel child error: bad image url")).toBe(false);
+    expect(isHardPublishBlock(null)).toBe(false);
+  });
+
+  it("códigos 40x/46x NÃO são bloqueio duro (o '\"code\":4' exige a vírgula)", () => {
+    expect(isHardPublishBlock('{"error":{"code":400,"message":"bad request"}}')).toBe(false);
+    expect(isHardPublishBlock('{"error":{"code":463,"message":"reauthenticate"}}')).toBe(false);
+  });
+});
 
 // Anti "post-fantasma": uma publicação CONFIRMADA sempre gera um id NÃO-NULO p/ gravar
 // no livro-razão. Sem isso, o post vivo-sem-id ficava invisível ao anti-dup e o watchdog

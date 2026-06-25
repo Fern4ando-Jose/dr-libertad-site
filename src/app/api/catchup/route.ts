@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dayBRT, publishedRunsToday } from "@/lib/run-ledger";
+import { dayBRT, publishedRunsToday, attemptsToday, shouldStopRetrying } from "@/lib/run-ledger";
 import { minOfDayBRT } from "@/lib/day";
 
 // ─── Catch-up acionável DE FORA (agendador externo) ──────────────────────────
@@ -48,12 +48,18 @@ export async function GET(req: NextRequest) {
 
   const dispatched: { lang: string; run: number; file: string }[] = [];
   const failed: { lang: string; run: number; file: string; status: number; body: string }[] = [];
+  // DISJUNTOR: vagas que já falharam demais hoje — não redisparamos (anti-martelo).
+  const gaveUp: { lang: string; run: number; attempts: number }[] = [];
 
   for (const lang of ACTIVE_LANGS) {
     const done = new Set(published[lang] ?? []);
     for (let run = 0; run <= 5; run++) {
       const dueMin = RUN_HOUR_BRT[run] * 60 + GRACE_MIN;
       if (nowMin < dueMin || done.has(run)) continue;
+      // Disjuntor: se a vaga já falhou MAX vezes hoje, PARA de redisparar (até amanhã).
+      // Foi a falta disso que martelou a conta PT até o Instagram bloquear.
+      const attempts = await attemptsToday(day, run, lang);
+      if (shouldStopRetrying(attempts)) { gaveUp.push({ lang, run, attempts }); continue; }
       const wf = workflowFor(run, lang);
       if (!wf) continue;
       try {
@@ -76,5 +82,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, day, nowMin, published, dispatched, failed });
+  return NextResponse.json({ ok: true, day, nowMin, published, dispatched, failed, gaveUp });
 }

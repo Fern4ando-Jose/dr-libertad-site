@@ -60,6 +60,60 @@ export async function recordRun(
   } catch { /* livro-razão é best-effort — nunca quebra o pipeline */ }
 }
 
+// ── Disjuntor de publicação (anti-martelo) ────────────────────────────────────
+// Uma vaga que FALHA a publicação era redisparada pelo watchdog (catchup) a cada
+// 15min, pra SEMPRE — sem limite. Isso martelou a conta PT e o Instagram a BLOQUEOU
+// ("Application request limit reached", code 4). Regra: conta as tentativas FALHAS por
+// vaga/dia; depois de MAX, o catchup para de redisparar a vaga até o dia seguinte.
+// Erro DURO do IG (limite/bloqueio/429) já estoura o contador na hora (insistir piora).
+// Guardado na coluna published_runs.attempts. FAIL-OPEN: sem a coluna (pré-migrate) ou
+// erro de banco → contador 0 → comportamento antigo (sem disjuntor), nunca quebra.
+export const MAX_PUBLISH_ATTEMPTS = 3;
+
+export function shouldStopRetrying(attempts: number): boolean {
+  return attempts >= MAX_PUBLISH_ATTEMPTS;
+}
+
+// O erro de publicação é um bloqueio/limite DURO do Instagram? (não adianta insistir)
+export function isHardPublishBlock(err: unknown): boolean {
+  const s = String(err ?? "").toLowerCase();
+  // "code":4 (limite) precisa do delimitador — senão casaria com 40x/46x e desistiria à toa.
+  return s.includes("request limit") || s.includes("action is blocked")
+    || s.includes('"code":4,') || s.includes("(#4)") || s.includes("2207051")
+    || s.includes("429") || s.includes("rate limit") || s.includes("temporarily blocked");
+}
+
+// Registra uma tentativa FALHA da vaga. `hard` (bloqueio do IG) já leva ao teto.
+export async function bumpAttempt(day: string, run: number, lang: string, hard = false): Promise<void> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    if (hard) {
+      await sql`
+        INSERT INTO published_runs (day, run, lang, ts, attempts)
+        VALUES (${day}, ${run}, ${lang}, NOW(), ${MAX_PUBLISH_ATTEMPTS})
+        ON CONFLICT (day, run, lang) DO UPDATE SET attempts = ${MAX_PUBLISH_ATTEMPTS}, ts = NOW()
+      `;
+    } else {
+      await sql`
+        INSERT INTO published_runs (day, run, lang, ts, attempts)
+        VALUES (${day}, ${run}, ${lang}, NOW(), 1)
+        ON CONFLICT (day, run, lang) DO UPDATE SET attempts = published_runs.attempts + 1, ts = NOW()
+      `;
+    }
+  } catch { /* best-effort: pré-migrate (sem coluna) → no-op, sem disjuntor */ }
+}
+
+// Quantas tentativas FALHAS a vaga já teve hoje (0 se publicada/inexistente/erro).
+export async function attemptsToday(day: string, run: number, lang: string): Promise<number> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql<{ attempts: number }>`
+      SELECT attempts FROM published_runs WHERE day = ${day} AND run = ${run} AND lang = ${lang}
+    `;
+    return Number(r.rows[0]?.attempts ?? 0);
+  } catch { return 0; }
+}
+
 // Tópicos publicados na conta (lang) nos últimos `days` dias, em QUALQUER formato:
 // reels (livro-razão `published_runs.topic`) ∪ carrosséis (`posts.topic`). É a
 // base da trava anti-dup REAL na seleção do tema. Fail-open: erro → conjunto vazio
