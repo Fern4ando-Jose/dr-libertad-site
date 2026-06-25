@@ -12,8 +12,10 @@
 // Chave INCLUI o idioma (≠ reel-shared, que é língua-independente): a copy é
 // regerada por mercado (ES ≠ PT), então cada idioma tem sua entrada.
 
+// Sufixo de versão: subir invalida o cache anterior (regera limpo). v2 = trava de
+// pureza de idioma (lang-guard) — descarta entradas PT contaminadas com espanhol.
 export function contentCacheKey(topic: string, day: string, lang: string): string {
-  return `${topic}|${day}|${lang}`;
+  return `${topic}|${day}|${lang}|v2`;
 }
 
 // Lê a copy cacheada (≤24h). Só devolve se tiver o mínimo válido (postTitle + slides),

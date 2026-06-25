@@ -159,6 +159,20 @@ Mesma máquina (footage, render, design); muda só a **copy**, o **@handle**, o
 > nova entrada em `ACCOUNTS` com seu próprio `marketBrief`** (nunca reaproveitar o
 > roteiro de outro país).
 
+> **Trava de PUREZA DE IDIOMA — "BR é BR; ES é ES" (`src/lib/lang-guard.ts`).** O `marketBrief`
+> sozinho não basta: o haiku **reaproveitava a frase do TEMA (canônica em ESPANHOL nos `THEMES`)
+> como 1º slide/título** e deixava espanholismos nas hashtags → mescla PT+ES no Reel/feed (Reel BR
+> 25/06: *"Voar más alto no es traición…"*, `#MenteLibre`). É defeito de QUALIDADE — publica "com
+> sucesso", não quebra CI, revisão de código não pega (texto vive em runtime, não no repo). A trava
+> é o detector determinístico que faltava: depois do parse em `generateContent`,
+> `scanContentForeign(content, lang)` varre os campos que vão pro feed/Reel (título, slides, cta,
+> legenda, **hashtags** — camelCase separado; `postBody`/`videoQueries` fora) procurando palavra
+> **inequívoca** do outro idioma (alta precisão: falso positivo = vaga perdida). Achou → **regenera**
+> com a lista (até 3×); não limpou → **BLOQUEIA** a publicação (post com mescla NÃO chega ao feed; o
+> catchup tenta depois). Prompt reforçado proíbe copiar o tema ES literal e estende a revisão final
+> às hashtags. `content_cache` em `v2` (descarta copy contaminada). Invariantes em
+> `lang-guard.invariants.test.ts`.
+
 - **Registro:** `src/lib/accounts.ts` — `ACCOUNTS[lang]` com handle, brand, freedom,
   hashtags, as **envs do token/account-id** e o **`marketBrief`** (voz nativa) por conta.
 - **ES** (atual): `@dr.liberdad`, "Dr. Libertad", envs `META_ACCESS_TOKEN` /

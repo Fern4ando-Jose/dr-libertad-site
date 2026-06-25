@@ -10,6 +10,7 @@ import { buildRotation, topicIndexForRun, pickFreshTopicIndexThreaded } from "@/
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
 import { buildLiteralDirective } from "@/lib/literal-lock";
+import { scanContentForeign, summarizeHits } from "@/lib/lang-guard";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -255,7 +256,7 @@ async function generateContent(
 
   const prompt = `Eres el editor de ${acc.brand}, estudio editorial sobre psicología, atención y ${acc.freedom} mental.
 
-IMPORTANTE — IDIOMA: genera ABSOLUTAMENTE TODA la salida (postTitle, postBody, slides, cta, instagramCaption, tags) en ${L}. NO mezcles idiomas. (videoQueries es la ÚNICA excepción: va en inglés.)
+IMPORTANTE — IDIOMA: genera ABSOLUTAMENTE TODA la salida (postTitle, postBody, slides, cta, instagramCaption, tags/hashtags) en ${L}. NO mezcles idiomas — ni una sola palabra del otro idioma, INCLUIDAS LAS HASHTAGS (ej. en portugués es "livre", NUNCA "libre"; "encontro", NUNCA "cita"). El "Tema" de abajo está escrito en ESPAÑOL como semilla interna: PROHIBIDO copiarlo literal — el postTitle y el PRIMER slide deben estar 100% REESCRITOS en ${L}, nunca el enunciado del Tema palabra por palabra. (videoQueries es la ÚNICA excepción: va en inglés.)
 ${marketSection}
 Tema: "${topic}"
 ${SLOT_INSTRUCTIONS[slot]}
@@ -306,10 +307,15 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
 
 Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmables (no ilustraciones ni metáforas). Deben poder encontrarse en un banco de video como Pexels y conectar con el tema del post.`;
 
-  // O haiku ocasionalmente devolve JSON malformado → o post falhava silencioso.
-  // Tentamos 2×: extrai o objeto (parseContentJson) e, se o parse falhar, regenera.
-  const MAX_CONTENT_TRIES = 2;
+  // O haiku ocasionalmente devolve JSON malformado OU deixa o outro idioma vazar
+  // (clássico: copia a frase do Tema, que é ES, como 1º slide). Tentamos 3×: extrai
+  // o objeto (parseContentJson) e roda a TRAVA DE PUREZA DE IDIOMA (lang-guard). Se
+  // o parse falhar OU o conteúdo vier contaminado, regenera — na contaminação, com
+  // uma NOTA listando as palavras achadas. Esgotou sem ficar limpo → BLOQUEIA (não
+  // publica post com mescla de idioma; o catchup tenta de novo depois). "BR é BR; ES é ES".
+  const MAX_CONTENT_TRIES = 3;
   let lastErr: unknown;
+  let contaminationNote = "";
   for (let attempt = 1; attempt <= MAX_CONTENT_TRIES; attempt++) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -321,7 +327,7 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 4096,
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: "user", content: prompt + contaminationNote }],
       }),
     });
 
@@ -329,13 +335,20 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
     const data = await res.json();
     await logSpend({ automation, platform: "anthropic", operation: "content", model: "claude-haiku-4-5-20251001", units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0), costUsd: anthropicCost("claude-haiku-4-5-20251001", data?.usage) });
     const raw = data.content?.[0]?.text ?? "";
+    let content: GeneratedContent;
     try {
-      return parseContentJson<GeneratedContent>(raw);
+      content = parseContentJson<GeneratedContent>(raw);
     } catch (e) {
       lastErr = e; // JSON malformado → regenera na próxima volta
+      continue;
     }
+    // Trava de pureza: nenhuma palavra do outro idioma nos campos que vão pro feed/Reel.
+    const hits = scanContentForeign(content, lang);
+    if (hits.length === 0) return content;
+    lastErr = new Error(`idioma contaminado (${lang}): ${summarizeHits(hits)}`);
+    contaminationNote = `\n\n⚠️ CORRECCIÓN OBLIGATORIA: tu respuesta anterior dejó palabras del OTRO idioma (debe ser 100% ${L}). Palabras detectadas → ${summarizeHits(hits)}. Reescribe TODO el contenido en ${L}, sin copiar el enunciado del Tema; revisa también las hashtags.`;
   }
-  throw new Error(`generateContent: JSON inválido após ${MAX_CONTENT_TRIES} tentativas: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`);
+  throw new Error(`generateContent: conteúdo não-publicável após ${MAX_CONTENT_TRIES} tentativas: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`);
 }
 
 // ─── Token do Instagram ───────────────────────────────────────────────────────
