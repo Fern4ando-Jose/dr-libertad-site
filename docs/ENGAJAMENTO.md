@@ -106,17 +106,22 @@ dá pra validar tudo, mas não atinge o público. Submeta assim que possível.
 
 ## Lead magnet (isca do funil)
 
-Guia grátis **"El Reinicio / O Reinício"** — 7 dias de detox de dopamina/atenção, na
-voz da marca, **bilíngue regenerado por mercado** (não traduzido), 11 páginas, sem
-promessa de saúde e com o "Dr." blindado (estúdio editorial, não médico real).
+Prévia editorial do livro **"I Love Dopamina"** — recorte fiel das primeiras partes
+(o reframe da dopamina + o diagnóstico do sequestro + os 4 primeiros movimentos), na
+voz da marca, **bilíngue regenerado por mercado** (não traduzido), 14 páginas, sem
+promessa de saúde e com o "Dr." blindado (estúdio editorial, não médico real). Fecha o
+loop: comenta a palavra → recebe a prévia → responde `LIVRO`/`LIBRO` → lista de espera
+do livro.
 
-- **Servido pelo site:** `public/lead/El-Reinicio_DrLibertad_ES.pdf` (ES) e
-  `public/lead/O-Reinicio_DrLiberdade_PT.pdf` (PT) → `https://www.drlibertad.com/lead/…`.
-  É o **default embutido** do funil por idioma (não precisa setar env pra funcionar).
-- **Fonte (offline, fora do Git):** `D:\Claude\.marca\dr-libertad\lead-magnet\build.mjs`
-  (HTML + Fraunces embutida → Chrome `--print-to-pdf`). Regerar = `node build.mjs`,
-  recopiar os PDFs pra `public/lead/`, commit. Só o PDF entra no Git; o source é ativo
-  de marca (AGENTS.md §1.7).
+- **Servido pelo site:** `public/lead/I-Love-Dopamina_Previa_ES.pdf` (ES) e
+  `public/lead/I-Love-Dopamina_Previa_PT.pdf` (PT) → `https://www.drlibertad.com/lead/…`.
+  É o **default embutido** do funil por idioma (`LEAD_DEFAULTS` em `webhooks/instagram/route.ts`;
+  não precisa setar env pra funcionar).
+- **Fonte (offline, fora do Git):** `D:\Claude\Livros-Escrevendo\I love Dopamina\`
+  (`design/build-interior.mjs` + `build-interior-es.mjs` → Chrome `--print-to-pdf`;
+  trava `preflight.mjs` no PDF real antes de publicar). Só o PDF entra no Git; o source é
+  ativo de marca. O guia anterior "O Reinício" segue em `public/lead/` mas **não é mais a
+  isca default**.
 
 ## Custo
 
