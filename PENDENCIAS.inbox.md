@@ -3,15 +3,11 @@
 > Acrescente UMA pendência por linha em `- [ ] texto`. A máquina local drena isto pro
 > painel central (D:\Claude\.pendencias\) e ESVAZIA. Não é fonte de verdade — é só fila.
 
-- [ ] Projetos (curtas de clássicos, PR #19): sentar e definir o projeto com calma antes de produzir
-- [ ] Coração Valente: definir foco — peça única (arco inteiro) ou série de micro-curtas (amor+humilhação / perda+revolta / sacrifício+esperança)
-- [ ] Coração Valente: decidir a figura do "filho que carrega a chama" (licença criativa) vs. outra forma de mostrar a esperança a passar
-- [ ] Coração Valente: escolher a voz — 1.ª pessoa / 3.ª / só imagem+texto+música
-- [ ] Coração Valente: como nomear (ou sugerir sem nomear) o direito de pernada / ius primae noctis no guião
-- [ ] Coração Valente: escrever guião e passar na validação emocional (ler em voz alta) antes de produzir
-- [ ] Fernão Capelo Gaivota: aprofundar o núcleo emocional (qual passagem marca mais) com o dono
-- [ ] Fernão Capelo Gaivota: definir tom (contemplativo/poético vs. inspiracional) e voz/imagem
-- [ ] Projetos: decidir "assinatura" comum entre as duas curtas (liberdade: luta externa vs. interior)
-- [ ] Projetos: definir forma final de créditos/disclaimer por curta antes de publicar
-- [ ] Projetos: decidir se a produção reaproveita a máquina do Dr. Libertad (footage/render/voz)
-- [ ] Música (LOCAL, tem FAL_KEY): gerar as faixas dos 6 temas novos com `FAL_KEY=... node scripts/generate-music.mjs --only=18-23` e commitar mp3+manifest (~US$0,30, gasto aprovado pelo dono 2026-06-21). Piano+violino; harmônica nos índices 19 e 22. A nuvem não roda (sem FAL_KEY/ffmpeg).
+## Funil comment→DM (@drlibertad)
+- [x] Endpoint webhook /api/webhooks/instagram (GET verify + POST validação X-Hub-Signature-256) + voice.ts + engagement.ts (decisões puras + funil private reply) + testes invariantes — CONSTRUÍDO e mergeado, flags DESLIGADAS. Runbook: docs/ENGAJAMENTO.md
+- [x] Palavra-chave do funil "LIBERTAD"(ES)/"LIBERDADE"(PT) — agora é DEFAULT automático (= palavra de marca da conta); dono pode trocar via ENGAGEMENT_FUNNEL_KEYWORD_ES/_PT sem deploy
+- [ ] DONO: setar na Vercel (prod) META_APP_SECRET (painel Meta → app → Config → Básico → Chave secreta) + META_WEBHOOK_VERIFY_TOKEN = 5b560cb797143aa52495ef28bd25eecf0327250dd57e8f23fd97198cb205708a
+- [ ] DONO: no painel da Meta → Webhooks → Instagram → Callback URL https://<domínio>/api/webhooks/instagram, Verify token = o mesmo acima, Subscribe ao campo "comments"
+- [ ] DONO: App Review (Advanced Access) dos 2 escopos: instagram_business_manage_comments + instagram_business_manage_messages — texto da submissão + roteiro do screencast prontos em docs/ENGAJAMENTO.md. Submeter SÓ depois de testar na conta-dona (Standard Access)
+- [ ] DONO: ligar as flags ENGAGEMENT_ENABLED=on (e depois ENGAGEMENT_FUNNEL_ENABLED=on) na Vercel quando o App Review aprovar
+- [ ] Lead magnet = guia grátis bilíngue (PDF ES+PT, ~10pág, 1 dos 5 pilares) — isca do funil; eu produzo via skill lancamento-ebook-bilingue e hospedo o link → daí setar ENGAGEMENT_LEAD_NAME/_URL
