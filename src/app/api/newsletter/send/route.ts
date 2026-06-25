@@ -106,9 +106,19 @@ export async function POST(req: NextRequest) {
   const recent = await sql<{ title: string; topic: string }>`
     SELECT title, topic FROM posts
     WHERE lang = ${lang} AND published_at >= NOW() - INTERVAL '7 days'
-    ORDER BY published_at DESC LIMIT 6
+    ORDER BY published_at DESC LIMIT 20
   `;
-  const curadoria = recent.rows.map((r) => ({ title: r.title })).filter((c) => c.title);
+  // Deduplica títulos (o mesmo tema pode ter sido republicado/duplicado em `posts`)
+  // e limita a 4 — a curadoria é um aperitivo, não a lista inteira.
+  const curadoria: { title: string }[] = [];
+  const seenTitles = new Set<string>();
+  for (const r of recent.rows) {
+    const t = (r.title ?? "").trim();
+    if (!t || seenTitles.has(t)) continue;
+    seenTitles.add(t);
+    curadoria.push({ title: t });
+    if (curadoria.length >= 4) break;
+  }
   const recentTopics = [...new Set(recent.rows.map((r) => r.topic).filter(Boolean))];
 
   // Ensaio (Anthropic) — gera mesmo no dry-run, p/ a prévia ser real.
