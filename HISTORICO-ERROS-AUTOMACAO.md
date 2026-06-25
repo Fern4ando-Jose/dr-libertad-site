@@ -11,6 +11,37 @@
 
 ---
 
+## ✅ 2026-06-25 — Mescla de ESPANHOL no conteúdo PT-BR (Reel + carrossel + hashtags)
+
+- **Sintoma:** o dono viu, no Reel BR (@dr.liberdade.br), texto na TELA misturando português e
+  espanhol. Confirmado no `content_cache`: o 1º slide do Reel de 25/06 (tema "Volar más alto…")
+  saiu **"Voar más alto no es traición: es lealtad a lo que eres"** — praticamente o tema em
+  espanhol, só "Volar"→"Voar". Hashtags do mesmo post: **`#MenteLibre`** (devia ser `#MenteLivre`)
+  e o typo `#CrexerSemCulpa` (Crescer). O Reel clássico anterior abria com **"na cita aparece
+  outra pessoa"** ("cita" = encontro, em espanhol).
+- **Causa-raiz:** o `generateContent` (haiku) **reaproveita a frase do TEMA — que é canônica em
+  espanhol (`THEMES`) — como 1º slide/título**, trocando uma palavra ou nenhuma, e deixa
+  espanholismos nas hashtags. A `REVISÃO FINAL` do `marketBrief` (`accounts.ts`) dependia 100% do
+  modelo se policiar e **não cobria as hashtags**; o prompt-base não proibia copiar o enunciado do
+  tema. As hashtags saem DENTRO do `instagramCaption` (`route.ts:298`), num lance só do modelo.
+- **Por que NÃO apareceu nos relatórios de erro / "revisar o código":** é um defeito de
+  **QUALIDADE do texto gerado**, não de automação — não lança exceção, não quebra o CI, e o post
+  **publica com sucesso** (`instagram_post_id` não-nulo). O catálogo de erros e as revisões de
+  código olham **falhas** (cron, orçamento, duplicata, publish que estoura) e **invariantes de
+  função pura** — nunca **liam o texto publicado**. Além disso o texto vive em **runtime**
+  (`content_cache` / IG), não no repo → ler o código não revela. **Lição/processo:** defeito de
+  conteúdo precisa de **detector automático** (abaixo) ou de amostragem do output real; revisão de
+  código sozinha não pega.
+- **✅ SOLUÇÃO (mesma sessão):** trava de pureza de idioma `src/lib/lang-guard.ts` (função PURA,
+  alta precisão — só marca palavra INEQUÍVOCA do outro idioma; hashtags camelCase são separadas
+  antes). Ligada no `generateContent`: depois do parse, `scanContentForeign(content, lang)` varre
+  os campos que vão pro feed/Reel (título, slides, cta, legenda, hashtags); se houver espanhol no
+  PT (ou PT no ES), **regenera** com a lista das palavras achadas (até 3×) e, se não limpar,
+  **BLOQUEIA** a publicação (catchup tenta depois) — post com mescla **não chega ao feed**.
+  Prompt reforçado (proíbe copiar o tema ES literal + revisão cobre hashtags). `content_cache`
+  subiu p/ `v2` (descarta as entradas PT contaminadas). Invariantes em
+  `lang-guard.invariants.test.ts` (casos reais 25/06). **"BR é BR; ES é ES."**
+
 ## ✅ 2 ERROS DE 24/06 — AMBOS RESOLVIDOS (decisão do dono aplicada)
 
 > A=A+B (repetição visual) e B=carrossel+reel (post-fantasma) foram decididos pelo dono em 24/06 e
