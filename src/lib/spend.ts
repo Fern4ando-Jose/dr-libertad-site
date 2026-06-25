@@ -11,7 +11,7 @@
 // O modelo de governança está documentado na memória `cost-governance`.
 
 export type Platform = "fal" | "anthropic" | "tavily";
-export type Automation = "ig-posts" | "ig-reels" | "ig-engagement" | "manual";
+export type Automation = "ig-posts" | "ig-reels" | "ig-engagement" | "newsletter" | "manual";
 
 // Preço Anthropic por 1M tokens (entrada/saída). Confirmado via skill claude-api.
 const ANTHROPIC_PRICES: Record<string, { in: number; out: number }> = {
@@ -43,6 +43,9 @@ const DEFAULT_BUDGETS: Record<Automation, number> = {
   // curto (~US$0,005–0,01); ES e PT dividem este balde. Conta nova = quase US$0/dia;
   // teto protege contra um surto de comentários (ex.: post viral) virar conta de luz.
   "ig-engagement": 0.25,
+  // Newsletter semanal: 1 ensaio haiku por idioma/semana (~US$0,01–0,02). Envio
+  // pelo Resend é grátis no free tier. Teto folgado p/ testes manuais (dry-run).
+  newsletter: 0.1,
   manual: 0.5, // testes manuais (dryrun &fresh=1) — cap evita o pico de dev (~US$10)
 };
 
@@ -185,7 +188,7 @@ export async function spendSummary(): Promise<{
     WHERE ts >= date_trunc('month', NOW() AT TIME ZONE 'utc')
     GROUP BY automation, platform ORDER BY cost_usd DESC
   `;
-  const autos: Automation[] = ["ig-posts", "ig-reels", "ig-engagement", "manual"];
+  const autos: Automation[] = ["ig-posts", "ig-reels", "ig-engagement", "newsletter", "manual"];
   const budgets = await Promise.all(
     autos.map(async (a) => ({ automation: a, budget: await getBudget(a), spentToday: await spentToday(a) }))
   );
