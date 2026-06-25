@@ -183,6 +183,33 @@ banco (Pexels)** com texto/música como camada por cima. **i2v por IA foi abando
 clássico (slide animado) é **mantido em paralelo** (não é o padrão de criação novo,
 mas performa e o usuário quer manter).
 
+## Engajamento automático — interação de verdade (inbound, API oficial)
+
+Postar não basta pra crescer: o algoritmo premia **conversa**. A automação responde os
+comentários nos NOSSOS posts e roda um **funil comment→DM** (alguém comenta uma
+palavra-chave → 1 DM com o lead magnet), **tudo na voz da marca** e **só via API
+oficial**. Runbook completo: `docs/ENGAJAMENTO.md`.
+
+- **Só INBOUND. Outbound é PROIBIDO automatizar.** A Graph API **não permite** curtir/
+  comentar em posts de TERCEIROS — a única via é bot de navegador, que **viola o ToS e
+  derruba a conta** (pior numa conta nova: ação alta + pouca idade = assinatura de spam).
+  Inbound (responder quem já interage) é o que mais pesa no algoritmo e é 100% sancionado.
+  Se for fazer outbound, é **fila + 1 clique** (humano no loop), nunca bot.
+- **Peças:** `src/lib/voice.ts` (voz reutilizável — espelha a VOZ EDITORIAL do
+  `generateContent`; mora no repo porque o `LINHA-EDITORIAL.md` é OFFLINE), `src/lib/
+  engagement.ts` (decisões PURAS + prompt builders + geração haiku), `/api/webhooks/instagram`
+  (receiver Node: valida `X-Hub-Signature-256`, roteia ES/PT por `entry.id`, idempotente).
+- **Travas (invariantes em `engagement.invariants.test.ts`):** anti-loop (nunca responde
+  a própria conta nem uma resposta nossa — gravadas em `engagement_events`), **não engaja
+  veneno** (comentário tóxico/spam → SKIP, não revida), guarda anti-ódio SEMPRE na voz.
+- **Flags (nascem DESLIGADAS — ligar só após App Review + secrets):** `ENGAGEMENT_ENABLED`
+  (comentários), `ENGAGEMENT_FUNNEL_ENABLED` (DM), `ENGAGEMENT_FUNNEL_KEYWORD`,
+  `ENGAGEMENT_LEAD_NAME`/`_URL`. Com a mestra OFF o webhook valida e dá 200 sem agir.
+- **Gargalo = App Review da Meta** (`instagram_business_manage_comments` + `instagram_business_manage_messages`
+  em Advanced Access): até aprovar, só atinge contas tester. Texto da submissão no runbook.
+- **Custo:** haiku curto (~US$0,005–0,01/interação), balde `ig-engagement` (teto US$0,25/dia,
+  ES+PT dividem). Estoura → webhook pula a geração, não bloqueia o 200.
+
 ## Custo
 
 - **fal** (`FAL_KEY`): só para **ilustração** (carrossel + Reel clássico via `illus=1`)
