@@ -37,8 +37,8 @@ prompt builders + geração haiku), `src/app/api/webhooks/instagram/route.ts` (I
 | `ENGAGEMENT_FUNNEL_ENABLED` | off | DM do funil comment→DM (Fase 2) |
 | `ENGAGEMENT_FUNNEL_KEYWORD_ES` / `_PT` | — | palavra-chave por idioma. **Default = a palavra de marca da conta** (ES `LIBERTAD`, PT `LIBERDADE`) — não precisa setar p/ usar a decisão do dono |
 | `ENGAGEMENT_FUNNEL_KEYWORD` | — | override global (vale p/ os dois idiomas se os por-idioma não existirem) |
-| `ENGAGEMENT_LEAD_NAME` | — | nome do lead magnet entregue na DM |
-| `ENGAGEMENT_LEAD_URL` | — | link do lead magnet (sem ele, a DM só abre conversa, não inventa link) |
+| `ENGAGEMENT_LEAD_NAME_ES` / `_PT` (+ global `ENGAGEMENT_LEAD_NAME`) | **default embutido** | nome do lead magnet entregue na DM |
+| `ENGAGEMENT_LEAD_URL_ES` / `_PT` (+ global `ENGAGEMENT_LEAD_URL`) | **default embutido** | link do lead magnet. Default = o guia **"El Reinicio / O Reinício"** servido em `/lead/*.pdf` (já no repo). Sem URL → a DM só abre conversa, não inventa link |
 
 ## Secrets a setar (Vercel + GitHub) — AÇÃO DO DONO
 
@@ -89,6 +89,20 @@ dá pra validar tudo, mas não atinge o público. Submeta assim que possível.
 4. Uma conta tester comenta a palavra-chave (ex.: "GUIA"); mostre o DM chegando no
    Direct com o material.
 5. Narre que tudo ocorre só em mídia da própria conta conectada.
+
+## Lead magnet (isca do funil)
+
+Guia grátis **"El Reinicio / O Reinício"** — 7 dias de detox de dopamina/atenção, na
+voz da marca, **bilíngue regenerado por mercado** (não traduzido), 11 páginas, sem
+promessa de saúde e com o "Dr." blindado (estúdio editorial, não médico real).
+
+- **Servido pelo site:** `public/lead/El-Reinicio_DrLibertad_ES.pdf` (ES) e
+  `public/lead/O-Reinicio_DrLiberdade_PT.pdf` (PT) → `https://www.drlibertad.com/lead/…`.
+  É o **default embutido** do funil por idioma (não precisa setar env pra funcionar).
+- **Fonte (offline, fora do Git):** `D:\Claude\.marca\dr-libertad\lead-magnet\build.mjs`
+  (HTML + Fraunces embutida → Chrome `--print-to-pdf`). Regerar = `node build.mjs`,
+  recopiar os PDFs pra `public/lead/`, commit. Só o PDF entra no Git; o source é ativo
+  de marca (AGENTS.md §1.7).
 
 ## Custo
 
