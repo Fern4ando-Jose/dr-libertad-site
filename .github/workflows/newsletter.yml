@@ -1,0 +1,69 @@
+name: Newsletter — envio semanal
+
+# Newsletter HÍBRIDA (curadoria da semana + ensaio na voz da marca), ES + PT.
+# Domingo 12:00 UTC (~09h BRT). O ENVIO REAL é duplamente travado NA API
+# (flag NEWSLETTER_ENABLED=1 + RESEND_API_KEY) — enquanto não estiverem setados,
+# a rota só responde "skipped" e NADA é enviado. Seguro deixar o cron ligado.
+#
+# Disparo manual: por padrão DRY-RUN (dry=true) → gera o e-mail e devolve a prévia,
+# sem enviar. Use dry=false só quando o Resend estiver configurado e quiser enviar.
+on:
+  schedule:
+    - cron: "0 12 * * 0" # domingo 12:00 UTC (~09h BRT)
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: "Dry-run (gera e mostra a prévia, NÃO envia). Desmarque só p/ enviar de verdade."
+        type: boolean
+        required: false
+        default: true
+
+concurrency:
+  group: newsletter
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Definir dry-run
+        id: params
+        env:
+          EVENT: ${{ github.event_name }}
+          IN_DRY: ${{ github.event.inputs.dry }}
+        run: |
+          # Agendado = envio real (gated na API). Manual = dry conforme o input (default true).
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "$IN_DRY" = "false" ]; then
+            echo "dry=0" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "dry=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "dry=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Enviar (ES + PT)
+        env:
+          AUTH: ${{ secrets.CRON_SECRET }}
+          SITE: ${{ secrets.SITE_URL }}
+          DRY: ${{ steps.params.outputs.dry }}
+        run: |
+          fail=0
+          for LANG in es pt; do
+            ARGS=(-sS -o "resp-$LANG.json" -w "%{http_code}" -X POST -G)
+            ARGS+=(-H "Authorization: Bearer $AUTH")
+            ARGS+=(--data-urlencode "lang=$LANG")
+            [ "$DRY" = "1" ] && ARGS+=(--data-urlencode "dry=1")
+            echo "=== newsletter lang=$LANG dry=$DRY ==="
+            HTTP_CODE=$(curl "${ARGS[@]}" "$SITE/api/newsletter/send")
+            echo "HTTP $HTTP_CODE"
+            # No dry-run o HTML da prévia é grande — mostra só os campos-resumo.
+            node -e "try{const r=require('./resp-$LANG.json');const {html, ...rest}=r;console.log(JSON.stringify(rest,null,2))}catch(e){console.log('(sem JSON)')}" || cat "resp-$LANG.json"
+            echo ""
+            if [ "$HTTP_CODE" -ge 400 ]; then
+              echo "::warning::Newsletter $LANG retornou HTTP $HTTP_CODE"
+              fail=1
+            fi
+          done
+          # 402 (orçamento) / 502 (ensaio) não derrubam o workflow inteiro — só avisam.
+          exit 0

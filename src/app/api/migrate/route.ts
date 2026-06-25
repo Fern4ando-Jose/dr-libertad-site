@@ -162,6 +162,27 @@ export async function GET(req: NextRequest) {
     results.push("run_topics table: " + String(e));
   }
 
+  // Tabela subscribers — inscritos na newsletter (já criada pelo /api/subscribe).
+  // Colunas de envio: token de descadastro, soft-unsubscribe e marca do último envio.
+  // Ver src/lib/newsletter.ts e /api/newsletter/send.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS subscribers (
+        id              SERIAL PRIMARY KEY,
+        email           TEXT NOT NULL UNIQUE,
+        lang            TEXT NOT NULL DEFAULT 'pt',
+        created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    await sql`ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS unsub_token TEXT`;
+    await sql`ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS unsubscribed_at TIMESTAMPTZ`;
+    await sql`ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS last_sent_at TIMESTAMPTZ`;
+    await sql`UPDATE subscribers SET unsub_token = md5(random()::text || id::text || clock_timestamp()::text) WHERE unsub_token IS NULL`;
+    results.push("subscribers (newsletter): ok");
+  } catch (e) {
+    results.push("subscribers (newsletter): " + String(e));
+  }
+
   // Tabela spend_log — contabiliza cada chamada paga (fal/Anthropic/Tavily) por
   // automação, p/ a visão de /api/spend e o teto diário por automação (src/lib/spend.ts).
   try {

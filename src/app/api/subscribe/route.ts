@@ -23,15 +23,20 @@ export async function POST(req: NextRequest) {
     const { sql } = await import("@vercel/postgres");
     await sql`
       CREATE TABLE IF NOT EXISTS subscribers (
-        id           SERIAL PRIMARY KEY,
-        email        TEXT NOT NULL UNIQUE,
-        lang         TEXT NOT NULL DEFAULT 'pt',
-        created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        id              SERIAL PRIMARY KEY,
+        email           TEXT NOT NULL UNIQUE,
+        lang            TEXT NOT NULL DEFAULT 'pt',
+        unsub_token     TEXT,
+        unsubscribed_at TIMESTAMPTZ,
+        last_sent_at    TIMESTAMPTZ,
+        created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `;
+    // Token de descadastro gerado na inscrição (cada e-mail leva o seu link).
+    const token = crypto.randomUUID().replace(/-/g, "");
     await sql`
-      INSERT INTO subscribers (email, lang)
-      VALUES (${email}, ${lang})
+      INSERT INTO subscribers (email, lang, unsub_token)
+      VALUES (${email}, ${lang}, ${token})
       ON CONFLICT (email) DO NOTHING
     `;
     return NextResponse.json({ ok: true });
