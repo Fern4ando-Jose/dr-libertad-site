@@ -11,7 +11,10 @@
 
 ---
 
-## 🔴 2 ERROS EM ABERTO (24/06/2026 — aguardando decisão do dono)
+## ✅ 2 ERROS DE 24/06 — AMBOS RESOLVIDOS (decisão do dono aplicada)
+
+> A=A+B (repetição visual) e B=carrossel+reel (post-fantasma) foram decididos pelo dono em 24/06 e
+> implementados na mesma sessão. Mantidos abaixo como registro.
 
 ### ERRO A — Repetição VISUAL: capas quase idênticas (figura solitária na "porta")
 - **Sintoma:** o feed (ES e PT) repete o mesmo quadro — homem só, de costas, retroiluminado num
@@ -35,7 +38,11 @@
 - **✅ PARTE A IMPLEMENTADA (24/06):** `framingFor(subject)` + `buildPrompt` em `illustration.ts` —
   6 enquadramentos rotativos (close-up, plano aberto, ângulo alto/baixo, off-center, mid-shot)
   determinísticos por subject (ES/PT batem). Teste em `illustration.invariants.test.ts`.
-- **⏳ PARTE B (subjects):** aguardando o dono vetar a lista de ~10-15 subjects de porta/figura → objeto.
+- **✅ PARTE B IMPLEMENTADA (24/06):** **12 subjects** reescritos de "figura humana na porta/luz" →
+  metáfora de OBJETO/símbolo (`no people`), nos `THEMES` de `api/publish/route.ts` — inclui os 4 que o
+  dono apontou no print (Nunca cambies, Si no pones límites, Nadie te debe nada, No necesitas ser amado).
+  Nos temas `literal`, o **título preserva a frase** (a trava cuida); só a ilustração muda. "Figura
+  humana" caiu de **46→26 / 62** subjects. **ERRO A FECHADO.**
 
 ### ERRO B — Tema duplicado no MESMO dia: o "post-fantasma" (vaga publicada sem id)
 - **Sintoma:** "O amor que morre de tédio" saiu **2× no mesmo dia** na conta PT — mesma vaga
