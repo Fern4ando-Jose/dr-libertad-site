@@ -23,6 +23,10 @@ Comentário no nosso post ──webhook──► POST /api/webhooks/instagram
    6. gate de orçamento (balde ig-engagement) → estourou? SKIP, não falha o webhook
    7. gera resposta (haiku, voz da marca) → POST /{comment-id}/replies
    8. [flag ENGAGEMENT_FUNNEL_ENABLED] palavra-chave bateu? → private reply (1 DM)
+
+DM no Direct (inbound) ──webhook (campo "messages")──► POST /api/webhooks/instagram
+   [flag ENGAGEMENT_DM_ENABLED] decideDm (anti-eco/própria-conta/vazio/tóxico) →
+   gera resposta 1:1 na voz → POST /{ig-id}/messages recipient.id (janela 24h)
 ```
 
 Peças: `src/lib/voice.ts` (voz reutilizável), `src/lib/engagement.ts` (decisões puras +
@@ -35,6 +39,7 @@ prompt builders + geração haiku), `src/app/api/webhooks/instagram/route.ts` (I
 |---|---|---|
 | `ENGAGEMENT_ENABLED` | off | auto-resposta a comentários (Fase 1) |
 | `ENGAGEMENT_FUNNEL_ENABLED` | off | DM do funil comment→DM (Fase 2) |
+| `ENGAGEMENT_DM_ENABLED` | off | auto-resposta a DMs do Direct (inbound) |
 | `ENGAGEMENT_FUNNEL_KEYWORD_ES` / `_PT` | — | palavra-chave por idioma. **Default = a palavra de marca da conta** (ES `LIBERTAD`, PT `LIBERDADE`) — não precisa setar p/ usar a decisão do dono |
 | `ENGAGEMENT_FUNNEL_KEYWORD` | — | override global (vale p/ os dois idiomas se os por-idioma não existirem) |
 | `ENGAGEMENT_LEAD_NAME_ES` / `_PT` (+ global `ENGAGEMENT_LEAD_NAME`) | **default embutido** | nome do lead magnet entregue na DM |
@@ -53,7 +58,8 @@ já existem e são reaproveitados.
 
 ## Configurar o webhook no painel da Meta — AÇÃO DO DONO
 
-1. Meta App → **Webhooks** → produto **Instagram** → **Subscribe** ao campo `comments`.
+1. Meta App → **Webhooks** → produto **Instagram** → **Subscribe** aos campos `comments`
+   **e `messages`** (`messages` é o que entrega os DMs do Direct pro auto-responder).
 2. **Callback URL:** `https://<seu-domínio-vercel>/api/webhooks/instagram`
 3. **Verify token:** o mesmo valor de `META_WEBHOOK_VERIFY_TOKEN`.
 4. A Meta chama o GET de verificação; deve aceitar (devolve o `hub.challenge`).

@@ -4,9 +4,11 @@ import { ACCOUNTS, accountFor, type Lang, type AccountCfg } from "@/lib/accounts
 import { buildVoiceDirective } from "@/lib/voice";
 import {
   decideComment,
+  decideDm,
   detectKeyword,
   buildReplyPrompt,
   buildDmPrompt,
+  buildDmReplyPrompt,
   generateText,
   type PostContext,
 } from "@/lib/engagement";
@@ -24,6 +26,7 @@ import { checkBudget } from "@/lib/spend";
 // FLAGS (merge seguro — nascem DESLIGADAS até o App Review aprovar + secrets setados):
 //   ENGAGEMENT_ENABLED=on         → liga a auto-resposta a comentários (Fase 1)
 //   ENGAGEMENT_FUNNEL_ENABLED=on  → liga o DM do funil comment→DM (Fase 2 / lead magnet)
+//   ENGAGEMENT_DM_ENABLED=on      → liga a auto-resposta a DMs do Direct (inbound)
 // Com as flags OFF, o webhook valida e responde 200, mas NÃO gera nem publica nada.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -171,6 +174,62 @@ async function postPrivateReply(accountId: string, commentId: string, message: s
   return res.ok;
 }
 
+// DM direto a um usuário (Direct), pelo IGSID do remetente. Janela padrão de 24h.
+async function postDirectMessage(accountId: string, recipientId: string, message: string, token: string): Promise<boolean> {
+  const res = await fetch(`https://graph.instagram.com/v25.0/${accountId}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ recipient: { id: recipientId }, message: { text: message }, access_token: token }),
+  });
+  if (!res.ok) console.error("[ig-webhook] DM reply falhou:", res.status);
+  return res.ok;
+}
+
+// ── Processa UM DM inbound (best-effort; nunca lança p/ fora) ───────────────────
+async function processDirectMessage(
+  entryId: string,
+  acc: AccountCfg,
+  m: { mid?: string; text?: string; senderId?: string; isEcho?: boolean },
+): Promise<void> {
+  const mid = m?.mid;
+  if (!mid) return;
+  if (await alreadyProcessed(mid)) return;
+
+  const decision = decideDm({
+    messageId: mid,
+    text: m?.text ?? "",
+    senderId: m?.senderId ?? "",
+    selfId: entryId,
+    isEcho: m?.isEcho,
+  });
+  if (!decision.reply) {
+    await markProcessed(mid, entryId, `skip:${decision.reason}`);
+    return;
+  }
+
+  const budget = await checkBudget("ig-engagement", EST_REPLY_COST);
+  if (!budget.ok) {
+    await markProcessed(mid, entryId, "skip:budget");
+    return;
+  }
+
+  const voice = buildVoiceDirective(acc);
+  const ctx: PostContext = { langName: acc.langName, topic: null, title: null };
+  const token = await resolveToken(acc);
+  try {
+    const reply = await generateText(buildDmReplyPrompt(voice, m.text ?? "", ctx));
+    if (reply && m.senderId) {
+      await postDirectMessage(entryId, m.senderId, reply, token);
+      await markProcessed(mid, entryId, "dm-replied");
+    } else {
+      await markProcessed(mid, entryId, "skip:empty-gen");
+    }
+  } catch (e) {
+    console.error("[ig-webhook] geração/DM erro:", e);
+    // sem marcar → a Meta re-tenta; idempotência (mid) impede dupla resposta
+  }
+}
+
 // ── Processa UM comentário (best-effort; nunca lança p/ fora) ───────────────────
 async function processComment(
   entryId: string,
@@ -246,7 +305,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, skipped: "disabled" });
   }
 
-  let body: { object?: string; entry?: Array<{ id?: string; changes?: Array<{ field?: string; value?: unknown }> }> };
+  let body: {
+    object?: string;
+    entry?: Array<{
+      id?: string;
+      changes?: Array<{ field?: string; value?: unknown }>;
+      messaging?: Array<{
+        sender?: { id?: string };
+        recipient?: { id?: string };
+        message?: { mid?: string; text?: string; is_echo?: boolean };
+      }>;
+    }>;
+  };
   try {
     body = JSON.parse(raw);
   } catch {
@@ -263,6 +333,18 @@ export async function POST(req: NextRequest) {
         if (change.field !== "comments") continue;
         const v = change.value as { id?: string; text?: string; from?: { id?: string } };
         await processComment(entryId, route.acc, route.lang, v);
+      }
+      // Auto-resposta a DMs do Direct (inbound) — atrás de flag própria.
+      if (flagOn("ENGAGEMENT_DM_ENABLED")) {
+        for (const ev of entry.messaging ?? []) {
+          if (!ev?.message) continue;
+          await processDirectMessage(entryId, route.acc, {
+            mid: ev.message.mid,
+            text: ev.message.text,
+            senderId: ev.sender?.id,
+            isEcho: ev.message.is_echo,
+          });
+        }
       }
     }
   } catch (e) {
