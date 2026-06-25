@@ -37,13 +37,13 @@ function flagOn(name: string): boolean {
   return (process.env[name] ?? "").toLowerCase() === "on";
 }
 
-// Lead magnet "El Reinicio / O Reinício" (guia dopamina/detox) — servido pelo próprio
+// Lead magnet "I Love Dopamina" (prévia/adelanto do livro) — servido pelo próprio
 // site em /lead/*.pdf. Default POR IDIOMA aponta pro PDF certo de cada conta; o dono
 // pode trocar por env sem deploy. Sem URL → a DM só abre conversa (não inventa link).
 const SITE_URL = "https://www.drlibertad.com";
 const LEAD_DEFAULTS: Record<Lang, { name: string; url: string }> = {
-  es: { name: "El Reinicio — 7 días para recuperar tu atención del algoritmo", url: `${SITE_URL}/lead/El-Reinicio_DrLibertad_ES.pdf` },
-  pt: { name: "O Reinício — 7 dias para retomar sua atenção do algoritmo", url: `${SITE_URL}/lead/O-Reinicio_DrLiberdade_PT.pdf` },
+  es: { name: "I Love Dopamina — adelanto del libro (Dr. Libertad)", url: `${SITE_URL}/lead/I-Love-Dopamina_Previa_ES.pdf` },
+  pt: { name: "I Love Dopamina — prévia do livro (Dr. Liberdade)", url: `${SITE_URL}/lead/I-Love-Dopamina_Previa_PT.pdf` },
 };
 
 // Palavra-chave do funil e lead magnet (configuráveis por env — sem deploy p/ trocar).
@@ -88,11 +88,43 @@ function validSignature(raw: string, header: string | null): boolean {
   return crypto.timingSafeEqual(a, b);
 }
 
-// ── Roteamento por conta: entry.id (IG account id) → idioma ────────────────────
-function accountForEntryId(entryId: string): { lang: Lang; acc: AccountCfg } | null {
+// ── Roteamento por conta: entry.id → idioma ────────────────────────────────────
+// O entry.id do webhook do Instagram é o **user_id** da conta (formato 17841…),
+// DIFERENTE do id de publicação em META_INSTAGRAM_ACCOUNT_ID (formato graph.instagram.com,
+// ex. 27…). Por isso casamos pelos DOIS: o id de publicação (env) e o user_id resolvido
+// do token (cacheado por instância). Sem isso, o webhook chega (200) mas não roteia.
+const webhookIdCache = new Map<string, string>(); // accountIdEnv → user_id
+
+async function resolveWebhookId(acc: AccountCfg): Promise<string | null> {
+  const cacheKey = acc.accountIdEnv;
+  const cached = webhookIdCache.get(cacheKey);
+  if (cached) return cached;
+  try {
+    const token = await resolveToken(acc);
+    if (!token) return null;
+    const r = await fetch(
+      `https://graph.instagram.com/v21.0/me?fields=user_id&access_token=${encodeURIComponent(token)}`,
+    ).then((x) => x.json());
+    const uid = r?.user_id ? String(r.user_id) : null;
+    if (uid) webhookIdCache.set(cacheKey, uid);
+    return uid;
+  } catch {
+    return null;
+  }
+}
+
+async function accountForEntryId(entryId: string): Promise<{ lang: Lang; acc: AccountCfg } | null> {
+  if (!entryId) return null;
+  // 1) match direto pelo id de publicação (env)
   for (const lang of Object.keys(ACCOUNTS) as Lang[]) {
     const acc = ACCOUNTS[lang];
-    if (entryId && process.env[acc.accountIdEnv] === entryId) return { lang, acc };
+    if (process.env[acc.accountIdEnv] === entryId) return { lang, acc };
+  }
+  // 2) match pelo user_id (= entry.id real do webhook), resolvido do token
+  for (const lang of Object.keys(ACCOUNTS) as Lang[]) {
+    const acc = ACCOUNTS[lang];
+    const uid = await resolveWebhookId(acc);
+    if (uid && uid === entryId) return { lang, acc };
   }
   return null;
 }
@@ -327,7 +359,7 @@ export async function POST(req: NextRequest) {
     await ensureTable();
     for (const entry of body.entry ?? []) {
       const entryId = entry?.id ?? "";
-      const route = accountForEntryId(entryId);
+      const route = await accountForEntryId(entryId);
       if (!route) continue; // evento de conta que não conhecemos → ignora
       for (const change of entry.changes ?? []) {
         if (change.field !== "comments") continue;
