@@ -621,6 +621,13 @@ export async function GET(req: NextRequest) {
           anyBlocked = true;
           slotLog.blocked = true;
           slotLog.reason = `Orçamento diário ig-posts estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)}). Suba budget:ig-posts em config p/ liberar.`;
+          // DESISTE DO DIA (hard): o orçamento é um balde DIÁRIO — não reabre até amanhã.
+          // Sem isto, a vaga ficava "faltando" e o watchdog redisparava de 15 em 15 min;
+          // cada redisparo que passava o portão REGERAVA ilustração (fal) → o gasto subia
+          // (chegou a US$0,573 em 24/06), o que causava MAIS 402 → tempestade. Foi a RAIZ
+          // real das duplicatas no PT (não o "bloqueio da conta"): o 2º idioma da vaga
+          // pega o balde já gasto pelo 1º. Marcar hard = catchup para na hora (anti-martelo).
+          await bumpAttempt(dayBRT(now), runIndex, lang, true);
           results.push(slotLog);
           continue;
         }
