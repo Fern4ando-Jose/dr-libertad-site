@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dayBRT, publishedRunsToday, recentDuplicateTopics } from "@/lib/run-ledger";
+import { dayBRT, publishedRunsToday, recentDuplicateTopics, attemptsToday, shouldStopRetrying } from "@/lib/run-ledger";
 import { minOfDayBRT } from "@/lib/day";
 
 // Status dos 6 runs do dia por idioma — o que JÁ publicou e o que está FALTANDO
@@ -29,15 +29,21 @@ export async function GET(req: NextRequest) {
   const published = await publishedRunsToday(day);
 
   const missing: { lang: string; run: number }[] = [];
+  // Vagas que vencerem mas já falharam demais hoje (disjuntor) — NÃO entram em
+  // `missing` (senão o watchdog redispara à toa e martela a conta). Reportadas à parte.
+  const gaveUp: { lang: string; run: number; attempts: number }[] = [];
   for (const lang of ACTIVE_LANGS) {
     const done = new Set(published[lang] ?? []);
     for (let run = 0; run <= 5; run++) {
       const dueMin = RUN_HOUR_BRT[run] * 60 + GRACE_MIN; // venceu por agora?
-      if (nowMin >= dueMin && !done.has(run)) missing.push({ lang, run });
+      if (nowMin < dueMin || done.has(run)) continue;
+      const attempts = await attemptsToday(day, run, lang);
+      if (shouldStopRetrying(attempts)) gaveUp.push({ lang, run, attempts });
+      else missing.push({ lang, run });
     }
   }
   // Detecção: temas repetidos em 7d (2+ vagas distintas). Vazio = saudável; se vier algo,
   // é alarme — captamos um repeat ANTES do dono ver no feed.
   const duplicates = await recentDuplicateTopics(7);
-  return NextResponse.json({ ok: true, day, nowMin, missing, published, duplicates });
+  return NextResponse.json({ ok: true, day, nowMin, missing, gaveUp, published, duplicates });
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
-import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, publishedId } from "@/lib/run-ledger";
+import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock } from "@/lib/run-ledger";
 
 // Publicação de REELS (vídeo) no @drlibertad via Instagram Graph API v25.
 // O vídeo já precisa estar hospedado em URL pública (ex.: Vercel Blob).
@@ -165,6 +165,9 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ ok: true, postId, log });
   } catch (err) {
     console.error("[publish-reel] erro:", err);
+    // Conta a tentativa falha (disjuntor): após MAX, o catchup para de redisparar a
+    // vaga; bloqueio/limite do IG já estoura o contador na hora (insistir piora).
+    if (run !== null && Number.isFinite(run)) await bumpAttempt(day, run, lang, isHardPublishBlock(err));
     return NextResponse.json({ ok: false, error: "erro ao publicar reel", log }, { status: 500 });
   }
 }
