@@ -73,6 +73,14 @@ Responder comentário e mandar DM a quem **não é admin do app** exige **Advanc
 Enquanto o review não aprova, o webhook só atinge contas que são **testers** do app —
 dá pra validar tudo, mas não atinge o público. Submeta assim que possível.
 
+> **Política de Privacidade (exigência da submissão — já no ar):** o formulário do App
+> Review pede uma **URL pública de política de privacidade** e um **caminho de exclusão
+> de dados**. Use `https://www.drlibertad.com/pt/privacidade` (ES: `/es/privacidade`).
+> A página cobre os dados da automação (comentários/DMs via API oficial), terceiros,
+> retenção e tem **seção dedicada de exclusão de dados** por e-mail/DM (≤30 dias) —
+> que é o que a Meta exige no campo de data deletion. Fonte: bloco `privacy` em
+> `src/lib/i18n/dictionaries.ts` (PT/ES).
+
 ### Texto sugerido do caso de uso (cole no formulário, ajuste o domínio)
 
 > **instagram_business_manage_comments** — "Our app is the official content studio for the
