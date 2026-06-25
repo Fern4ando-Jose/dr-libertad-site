@@ -76,8 +76,9 @@ export interface CommentInput {
 }
 
 export type SkipReason =
-  | "own-account"      // comentário da própria conta (anti-loop)
+  | "own-account"      // comentário/DM da própria conta (anti-loop)
   | "authored-by-us"   // é uma resposta que nós criamos (anti-loop)
+  | "echo"             // eco da NOSSA própria mensagem enviada (anti-loop de DM)
   | "empty"            // sem texto útil
   | "toxic-or-spam";   // veneno/spam → não engajamos
 
@@ -91,6 +92,31 @@ export function decideComment(input: CommentInput): Decision {
   // Anti-loop (rede dupla): a própria conta OU um comentário que nós autoramos.
   if (fromId && selfId && fromId === selfId) return { reply: false, reason: "own-account" };
   if (authoredIds && authoredIds.has(commentId)) return { reply: false, reason: "authored-by-us" };
+  const clean = (text ?? "").trim();
+  if (clean.length < 2) return { reply: false, reason: "empty" };
+  if (looksToxicOrSpam(clean)) return { reply: false, reason: "toxic-or-spam" };
+  return { reply: true };
+}
+
+// ── Decisão p/ DM do Direct (inbound): devemos auto-responder? (PURA) ───────────
+export interface DmInput {
+  /** id da mensagem (mid) na Graph API. */
+  messageId: string;
+  /** texto da mensagem. */
+  text: string;
+  /** IGSID de quem enviou. */
+  senderId: string;
+  /** id da NOSSA conta (recipient.id do evento). */
+  selfId: string;
+  /** echo da nossa própria mensagem (message.is_echo) → NUNCA responder. */
+  isEcho?: boolean;
+}
+
+export function decideDm(input: DmInput): Decision {
+  const { text, senderId, selfId, isEcho } = input;
+  // Anti-loop (rede dupla): eco da nossa mensagem OU mensagem cujo remetente é a conta.
+  if (isEcho) return { reply: false, reason: "echo" };
+  if (senderId && selfId && senderId === selfId) return { reply: false, reason: "own-account" };
   const clean = (text ?? "").trim();
   if (clean.length < 2) return { reply: false, reason: "empty" };
   if (looksToxicOrSpam(clean)) return { reply: false, reason: "toxic-or-spam" };
@@ -125,6 +151,22 @@ Responde a ese comentario en ${ctx.langName}, con la VOZ de la marca:
 - Si el comentario aporta, profundiza; si rebate, sostén la idea con altura (sin insultar).
 - Sin hashtags, sin emojis de relleno, sin sonar bot ni coach.
 Devuelve SOLO el texto de la respuesta, sin comillas ni prefijos.`;
+}
+
+// Resposta a um DM inbound (alguém te mandou mensagem no Direct). Conversa privada
+// 1:1 — mais próxima e direta que a resposta pública de um comentário.
+export function buildDmReplyPrompt(voiceDirective: string, message: string, ctx: PostContext): string {
+  return `${voiceDirective}
+
+ALGUIEN TE ESCRIBIÓ POR MENSAJE PRIVADO (Direct):
+"""${message.trim()}"""
+
+Respóndele en ${ctx.langName}, con la VOZ de la marca, en conversación 1:1:
+- 1 a 3 frases. Es un chat, no un ensayo. Cercano pero con alma de marca, a "tú".
+- Responde lo que preguntó o aporta una idea con filo; nada de respuesta de bot ni de soporte.
+- Si te ataca, sostén la idea con altura, sin insultar; si es spam/veneno, no entres.
+- Sin hashtags, sin enlaces inventados.
+Devuelve SOLO el texto del mensaje, sin comillas ni prefijos.`;
 }
 
 export function buildDmPrompt(
