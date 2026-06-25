@@ -202,9 +202,13 @@ oficial**. Runbook completo: `docs/ENGAJAMENTO.md`.
 - **Travas (invariantes em `engagement.invariants.test.ts`):** anti-loop (nunca responde
   a própria conta nem uma resposta nossa — gravadas em `engagement_events`), **não engaja
   veneno** (comentário tóxico/spam → SKIP, não revida), guarda anti-ódio SEMPRE na voz.
+- **3 frentes inbound:** (1) auto-resposta a **comentários** nos nossos posts; (2) **funil
+  comment→DM** (palavra-chave → private reply com lead magnet); (3) auto-resposta a **DMs do
+  Direct** (campo `messages`, anti-eco). Tudo na voz, balde `ig-engagement`.
 - **Flags (nascem DESLIGADAS — ligar só após App Review + secrets):** `ENGAGEMENT_ENABLED`
-  (comentários), `ENGAGEMENT_FUNNEL_ENABLED` (DM), `ENGAGEMENT_FUNNEL_KEYWORD`,
-  `ENGAGEMENT_LEAD_NAME`/`_URL`. Com a mestra OFF o webhook valida e dá 200 sem agir.
+  (mestra/comentários), `ENGAGEMENT_FUNNEL_ENABLED` (funil DM), `ENGAGEMENT_DM_ENABLED`
+  (resposta a DM inbound), `ENGAGEMENT_FUNNEL_KEYWORD`, `ENGAGEMENT_LEAD_NAME`/`_URL`
+  (por idioma `_ES`/`_PT`). Com a mestra OFF o webhook valida e dá 200 sem agir.
 - **Gargalo = App Review da Meta** (`instagram_business_manage_comments` + `instagram_business_manage_messages`
   em Advanced Access): até aprovar, só atinge contas tester. Texto da submissão no runbook.
 - **Custo:** haiku curto (~US$0,005–0,01/interação), balde `ig-engagement` (teto US$0,25/dia,
