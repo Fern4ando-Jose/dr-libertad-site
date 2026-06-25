@@ -121,3 +121,26 @@ igual às outras automações). Estoura → o webhook PULA a geração (não blo
 Um único webhook serve ES e PT: roteia pelo `entry.id` (account-id que recebeu o
 evento) → conta certa em `accounts.ts` → responde no idioma e com o `marketBrief` da
 conta. Espelha a regra "rodar = ES + PT".
+
+## Esteira de comentário assistida (OUTBOUND — humano no loop, 1 clique)
+
+Crescimento de alcance frio: comentar em posts de contas GRANDES do nicho. A Graph API
+**não permite** comentar em terceiros (só inbound) → quem posta é o DONO. A esteira só
+PREPARA: acha o post fresco + escreve o comentário na voz. **Nunca bot** (bot derruba a
+conta). Lista-guia (contas 1M+, decisão de rodar 1 mês e reavaliar) mora OFFLINE em
+`D:\Claude\.marca\dr-libertad\contas-guia.md`.
+
+- **Alvos:** `src/lib/comment-targets.ts` (contas 1M+ por idioma + teto de cadência:
+  ES 10/dia, PT 5/dia — ES é a conta antiga, mais agressiva).
+- **Lógica pura:** `src/lib/comment-queue.ts` — frescor do post (comentar nos 1ºs minutos
+  é o que faz a mega pagar; senão afunda), ranqueamento frescor×engajamento, dedup,
+  prompt do comentário (curto, **sem citar a marca/@**, sem puxa-saco). Testes em
+  `comment-queue.invariants.test.ts`.
+- **FASE 1 — `/api/comment-queue` (PROBE, grátis):** lê via `business_discovery` (oficial,
+  read-only) os posts recentes das contas-alvo → devolve quais são lendíveis, seguidores
+  AO VIVO e engajamento dos últimos posts, já ranqueando os frescos. Protegido por
+  `CRON_SECRET`. ⚠️ `business_discovery` exige Instagram API **com Facebook Login** + alvo
+  Business/Creator público — o probe confirma se o nosso token lê.
+- **FASE 2 (após probe OK + aprovação de custo ~US$5/mês):** ligar a geração dos
+  comentários na voz (haiku, balde `ig-engagement`) + a entrega da fila com aviso de
+  "post fresco". O dono lê e posta com 1 toque.
