@@ -173,6 +173,7 @@ a sensação de "conserta e volta".
 | 2026-06-24 | reel/rotação | reel renderizava e PULAVA (dia em UTC roubava vagas do dia seguinte) | **dia ancorado em BRT** (PR #76) | **família anti-dup (raiz de fuso)** |
 | 2026-06-24 | reel | **Reel clássico (run 3, 4º reel) não saía** — 402/erro na ilustração derrubava o workflow sem fallback (saía ~6× em 7d) | cascata ilustração→**footage**→pular nos `instagram-reels-classic*.yml` (PR #78) | família budget/ilustração |
 | 2026-06-24 | budget | **402 FALSO no carrossel** — estimativa US$0,15 (assumia ilustração nova em todo carrossel) tombava o gate, mas o gasto real nunca passou de US$0,469/dia e o 2º idioma reusa a ilustração | auditoria + `EST_RUN_COST.publish` 0,15→0,10 (`spend.ts`); teto e QA inalterados | **família budget (finalizada)** |
+| 2026-06-24 | watchdog | **conta PT BLOQUEADA pelo IG** ("Application request limit reached", code 4) — o catchup redisparava a vaga que falhava a cada 15min, pra sempre, SEM limite (mesma origem do loop de 402 e do post-fantasma: watchdog sem freio) | **disjuntor**: conta falhas/vaga/dia (`published_runs.attempts`); após 3 o catchup para; erro duro do IG para na hora (PR #85) + migrate | **RAIZ UNIFICADA: watchdog sem freio** |
 
 ---
 
