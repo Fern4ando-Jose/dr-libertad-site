@@ -34,20 +34,31 @@ function flagOn(name: string): boolean {
   return (process.env[name] ?? "").toLowerCase() === "on";
 }
 
+// Lead magnet "El Reinicio / O Reinício" (guia dopamina/detox) — servido pelo próprio
+// site em /lead/*.pdf. Default POR IDIOMA aponta pro PDF certo de cada conta; o dono
+// pode trocar por env sem deploy. Sem URL → a DM só abre conversa (não inventa link).
+const SITE_URL = "https://www.drlibertad.com";
+const LEAD_DEFAULTS: Record<Lang, { name: string; url: string }> = {
+  es: { name: "El Reinicio — 7 días para recuperar tu atención del algoritmo", url: `${SITE_URL}/lead/El-Reinicio_DrLibertad_ES.pdf` },
+  pt: { name: "O Reinício — 7 dias para retomar sua atenção do algoritmo", url: `${SITE_URL}/lead/O-Reinicio_DrLiberdade_PT.pdf` },
+};
+
 // Palavra-chave do funil e lead magnet (configuráveis por env — sem deploy p/ trocar).
 // Palavra-chave é POR IDIOMA: default = a palavra de marca da conta (ES "libertad" →
 // "LIBERTAD"; PT "liberdade" → "LIBERDADE"), que é a decisão do dono no painel.
 // Override por env: ENGAGEMENT_FUNNEL_KEYWORD_ES / _PT, ou o global ENGAGEMENT_FUNNEL_KEYWORD.
+// Lead idem: ENGAGEMENT_LEAD_NAME_ES/_PT + _URL_ES/_PT (ou os globais), senão o default acima.
 function funnelConfig(acc: AccountCfg, lang: Lang) {
+  const U = lang.toUpperCase();
   const keyword =
-    process.env[`ENGAGEMENT_FUNNEL_KEYWORD_${lang.toUpperCase()}`] ||
+    process.env[`ENGAGEMENT_FUNNEL_KEYWORD_${U}`] ||
     process.env.ENGAGEMENT_FUNNEL_KEYWORD ||
     acc.freedom;
-  const leadName = process.env.ENGAGEMENT_LEAD_NAME ?? "";
-  const leadUrl = process.env.ENGAGEMENT_LEAD_URL ?? "";
+  const name = process.env[`ENGAGEMENT_LEAD_NAME_${U}`] || process.env.ENGAGEMENT_LEAD_NAME || LEAD_DEFAULTS[lang].name;
+  const url = process.env[`ENGAGEMENT_LEAD_URL_${U}`] || process.env.ENGAGEMENT_LEAD_URL || LEAD_DEFAULTS[lang].url;
   return {
     keyword,
-    lead: leadName ? { name: leadName, url: leadUrl || null } : null,
+    lead: name ? { name, url: url || null } : null,
   };
 }
 

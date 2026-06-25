@@ -10,4 +10,5 @@
 - [ ] DONO: no painel da Meta → Webhooks → Instagram → Callback URL https://<domínio>/api/webhooks/instagram, Verify token = o mesmo acima, Subscribe ao campo "comments"
 - [ ] DONO: App Review (Advanced Access) dos 2 escopos: instagram_business_manage_comments + instagram_business_manage_messages — texto da submissão + roteiro do screencast prontos em docs/ENGAJAMENTO.md. Submeter SÓ depois de testar na conta-dona (Standard Access)
 - [ ] DONO: ligar as flags ENGAGEMENT_ENABLED=on (e depois ENGAGEMENT_FUNNEL_ENABLED=on) na Vercel quando o App Review aprovar
-- [ ] Lead magnet = guia grátis bilíngue (PDF ES+PT, ~10pág, 1 dos 5 pilares) — isca do funil; eu produzo via skill lancamento-ebook-bilingue e hospedo o link → daí setar ENGAGEMENT_LEAD_NAME/_URL
+- [x] Lead magnet PRODUZIDO: guia bilíngue "El Reinicio / O Reinício" (dopamina/detox, 11pág, voz da marca, regenerado por mercado). PDFs em public/lead/, servidos em drlibertad.com/lead/. É o DEFAULT do funil por idioma (sem env). Source offline em D:\Claude\.marca\dr-libertad\lead-magnet\. Runbook: docs/ENGAJAMENTO.md
+- [ ] DONO: confirmar o VISUAL do lead magnet (abrir os 2 PDFs em public/lead/) — eu não vejo PDF localmente; se quiser ajuste de texto/design, eu regero
