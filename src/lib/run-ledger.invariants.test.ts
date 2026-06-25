@@ -36,6 +36,20 @@ describe("disjuntor de publicação (anti-martelo / anti-bloqueio de conta)", ()
     expect(isHardPublishBlock('{"error":{"code":400,"message":"bad request"}}')).toBe(false);
     expect(isHardPublishBlock('{"error":{"code":463,"message":"reauthenticate"}}')).toBe(false);
   });
+
+  // RAIZ real das duplicatas no PT (24/06): NÃO foi bloqueio da conta — foi 402 de
+  // ORÇAMENTO. O balde ig-posts é DIÁRIO e o 2º idioma da vaga pegava o balde já gasto
+  // pelo 1º → 402 → vaga "faltando" → watchdog redisparava de 15/15min → cada redisparo
+  // regerava ilustração (fal) → gasto subia (US$0,573) → MAIS 402 = tempestade. O publish
+  // passa a tratar 402 como DESISTÊNCIA DO DIA (bumpAttempt hard), pois o orçamento não
+  // reabre até amanhã. Contrato: desistência-do-dia (hard) = teto na hora, igual ao bloqueio
+  // duro do IG → o catchup para de redisparar imediatamente.
+  it("orçamento estourado e bloqueio do IG são da MESMA classe: desiste do dia (teto na hora)", () => {
+    // ambos chegam via bumpAttempt(hard=true) → attempts = MAX → shouldStopRetrying = true
+    expect(shouldStopRetrying(MAX_PUBLISH_ATTEMPTS)).toBe(true);
+    // uma falha transitória (timeout) NÃO é desistência: conta +1 e ainda pode tentar
+    expect(shouldStopRetrying(1)).toBe(false);
+  });
 });
 
 // Anti "post-fantasma": uma publicação CONFIRMADA sempre gera um id NÃO-NULO p/ gravar
