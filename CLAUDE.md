@@ -99,11 +99,16 @@ colide com o run vizinho). 3 workflows:
 `/api/publish?preview=1&run=N` (conteúdo + `videoQueries` do Claude, **sem** ilustração;
 já devolve `clips` = footage escolhido) → `scripts/fetch-footage.mjs` (FALLBACK: só busca
 na **Pexels** se a API não trouxe `clips`) → **passo "Garantir fundo"** (cascata anti-preto,
-ver abaixo) → `scripts/render-reel.mjs` (Remotion) →
+ver abaixo) → `scripts/render-reel.mjs --composition=ReelV2` (Remotion) →
 `scripts/upload-blob.mjs` (Vercel Blob) → `/api/publish-reel` (Graph API).
-Fundo = footage real + **grade da marca** + **música** (opcional). **Duração ~25s / 5 cenas**
-(capa 5s + **3 insights** 5,2s + CTA 4,6s; fonte única `reelDurations` em `video/Reel.tsx`,
-`Root.tsx` ajusta sozinho). **Grade = duotone QUENTE/VINTAGE** que NORMALIZA qualquer footage
+Fundo = footage real + **grade da marca** + **música** (opcional). **Composição de produção =
+`ReelV2`** (RETENÇÃO, promovido 26/06, PR #102): **capa curta 3s** + **gancho/insights cinéticos**
+(palavra a palavra = movimento, ataca o watch de 4,3s que sangrava na capa de 5s) + **capa com cor
+de marca** (kicker/acento/glow) + **de-dup capa×insight 1** (`dedupeSlides`). **Duração ~18,8–24s**
+por vídeo (nº de insights distintos; ~28s da música acomoda). Fontes `reelDurationsV2`/`dedupeSlides`
+em `video/ReelV2.tsx`, `Root.tsx` ajusta sozinho. O `Reel` clássico (`video/Reel.tsx`, capa 5s estática)
+fica de RESERVA — o de-dup da repetição capa×insight 1 também age na ORIGEM (`generateContent`,
+`titleDupedInSlides`) → conserta o carrossel. **Grade = duotone QUENTE/VINTAGE** que NORMALIZA qualquer footage
 do Pexels na mesma faixa tonal da marca (cor parcial+sépia; `screen`(piso marrom) mata o preto
 puro, `multiply`(âmbar) mata o estouro, wash quente + acento por categoria) — sem isso as capas
 saíam divergentes (umas claras, outras pretas). **Nunca publicar Reel preto:** o passo "Garantir
@@ -226,6 +231,14 @@ oficial**. Runbook completo: `docs/ENGAJAMENTO.md`.
   (por idioma `_ES`/`_PT`). Com a mestra OFF o webhook valida e dá 200 sem agir.
 - **Gargalo = App Review da Meta** (`instagram_business_manage_comments` + `instagram_business_manage_messages`
   em Advanced Access): até aprovar, só atinge contas tester. Texto da submissão no runbook.
+- **⚠️ Setup/config do webhook na Meta = por API/`curl`, NUNCA scriptar o painel pelo navegador.**
+  Não automatizar `developers.facebook.com` com `browser:execute_javascript` (conector "Claude in
+  Chrome"): essa tool tem **portão de permissão não-burlável** — `allow` não casa, "Sempre permitir"
+  não persiste, bypass não suprime → dispara prompt a CADA chamada (provado 2026-06-25). Inscrição do
+  webhook (callback URL `https://www.drlibertad.com/api/webhooks/instagram` + verify token + subscribe
+  nos campos `comments`/`messages`) é `POST /{app-id}/subscriptions` / `/me/subscribed_apps` via `curl`,
+  lendo `META_APP_ID`/`META_APP_SECRET`/`META_WEBHOOK_VERIFY_TOKEN` do cofre. **Regra geral de internet
+  sem prompt: AGENTS.md §5 → "Roteamento de INTERNET"** (WebFetch/WebSearch/`curl`; nunca `execute_javascript`).
 - **Custo:** haiku curto (~US$0,005–0,01/interação), balde `ig-engagement` (teto US$0,25/dia,
   ES+PT dividem). Estoura → webhook pula a geração, não bloqueia o 200.
 
