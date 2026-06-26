@@ -263,6 +263,15 @@ async function generateContent(
     ? `\nMERCADO / VOZ NATIVA — LEIA ANTES DE TUDO (vale mais que qualquer exemplo abaixo):\n${acc.marketBrief}\n`
     : "";
 
+  // Funil comment→DM: quando LIGADO, a leyenda convida a comentar a palavra de marca
+  // (LIBERTAD/LIBERDADE) p/ receber a prévia do livro. A palavra exata casa com a
+  // detecção do funil; o nome do livro é universal (não traduzir). Desligado → "".
+  const funnelOn = (process.env.ENGAGEMENT_FUNNEL_ENABLED ?? "").toLowerCase() === "on";
+  const guideWord = acc.freedom.toUpperCase();
+  const guideCaptionRule = funnelOn
+    ? ` + una invitación clara a COMENTAR exactamente la palabra «${guideWord}» para recibir GRATIS por mensaje privado el adelanto del libro «I Love Dopamina» (escribe «${guideWord}» y «I Love Dopamina» TAL CUAL, sin traducir ni alterar)`
+    : "";
+
   const prompt = `Eres el editor de ${acc.brand}, estudio editorial sobre psicología, atención y ${acc.freedom} mental.
 
 IMPORTANTE — IDIOMA: genera ABSOLUTAMENTE TODA la salida (postTitle, postBody, slides, cta, instagramCaption, tags/hashtags) en ${L}. NO mezcles idiomas — ni una sola palabra del otro idioma, INCLUIDAS LAS HASHTAGS (ej. en portugués es "livre", NUNCA "libre"; "encontro", NUNCA "cita"). El "Tema" de abajo está escrito en ESPAÑOL como semilla interna: PROHIBIDO copiarlo literal — el postTitle y el PRIMER slide deben estar 100% REESCRITOS en ${L}, nunca el enunciado del Tema palabra por palabra. (videoQueries es la ÚNICA excepción: va en inglés.)
@@ -305,7 +314,7 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
     "insight 3 — reencuadre o micro-método GUARDABLE de MÁXIMO 80 chars que remata"
   ],
   "cta": "pregunta de 60-100 chars que invite a comentar y a etiquetar/compartir con alguien, en ${L}",
-  "instagramCaption": "leyenda IG máx 2200 chars: gancho fuerte en la 1ª línea + desarrollo + cierre con CTA de SEGUIR a ${acc.handle} (con razón provocadora de marca) + guardar (🔖) + compartir (📩) + 4-5 hashtags, en ${L}",
+  "instagramCaption": "leyenda IG máx 2200 chars: gancho fuerte en la 1ª línea + desarrollo + cierre con CTA de SEGUIR a ${acc.handle} (con razón provocadora de marca) + guardar (🔖) + compartir (📩)${guideCaptionRule} + 4-5 hashtags, en ${L}",
   "tags": ["tag1", "tag2", "tag3", "tag4"],
   "videoQueries": [
     "término de búsqueda EN INGLÉS para video de stock que represente VISUALMENTE la escena/emoción de ESTE post — concreto y filmable (personas, gestos, objetos, lugares), NO metáfora abstracta. Ej: 'person scrolling phone in bed at night'",
@@ -741,7 +750,12 @@ export async function GET(req: NextRequest) {
         // Construir URLs dos slides
         const base = process.env.PRODUCTION_URL ?? "https://www.drlibertad.com";
         const enc  = (s: string) => encodeURIComponent(s.slice(0, 120));
-        const totalSlides = 2 + content.slides.length; // capa + insights + cta
+        // Slide-final do FUNIL (comment→DM): só entra quando o funil está LIGADO (assim
+        // a chamada "comente a palavra" só aparece quando a DM consegue mesmo entregar).
+        const funnelOn = (process.env.ENGAGEMENT_FUNNEL_ENABLED ?? "").toLowerCase() === "on";
+        const guideKw  = accountFor(lang).freedom.toUpperCase(); // LIBERTAD / LIBERDADE
+        const totalSlides = 2 + content.slides.length + (funnelOn ? 1 : 0); // capa + insights + cta + [guia]
+        const ctaNum = 2 + content.slides.length; // posição do cta (capa=1, insights=2..N+1, cta=N+2)
 
         // Primeira tag como categoria do rodapé
         const tag = enc(content.tags[0] ?? kw);
@@ -782,7 +796,11 @@ export async function GET(req: NextRequest) {
           ...content.slides.map((text, i) =>
             `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text)}&num=${i + 2}&total=${totalSlides}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}&lang=${lang}`
           ),
-          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}&num=${totalSlides}&total=${totalSlides}&lang=${lang}`,
+          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}&num=${ctaNum}&total=${totalSlides}&lang=${lang}`,
+          // Slide-final do funil (comente a palavra → DM com a prévia). Só quando ligado.
+          ...(funnelOn
+            ? [`${base}/api/og?slide=guide&slot=${slot}&kw=${enc(guideKw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}&num=${totalSlides}&total=${totalSlides}&lang=${lang}`]
+            : []),
         ];
 
         // Publicar carrossel
