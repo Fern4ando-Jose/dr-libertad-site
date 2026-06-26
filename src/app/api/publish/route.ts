@@ -11,6 +11,7 @@ import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
 import { buildLiteralDirective } from "@/lib/literal-lock";
 import { scanContentForeign, summarizeHits } from "@/lib/lang-guard";
+import { titleDupedInSlides } from "@/lib/slide-dedup";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -291,7 +292,7 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
   "postTitle": "GANCHO que detiene el scroll, máx 55 chars, concreto y dirigido a 'tú', en ${L}",
   "postBody": "artículo en markdown mín 300 palabras, TODO EN ${L}",
   "slides": [
-    "insight 1 — GANCHO contundente de MÁXIMO 80 chars que abre una brecha de curiosidad",
+    "insight 1 — GANCHO contundente de MÁXIMO 80 chars que abre una brecha de curiosidad. NO repitas el postTitle: el slide 1 DESARROLLA el gancho con una IDEA NUEVA, no lo replantea con otras palabras",
     "insight 2 — frase contundente de MÁXIMO 80 chars que profundiza",
     "insight 3 — reencuadre o micro-método GUARDABLE de MÁXIMO 80 chars que remata"
   ],
@@ -342,11 +343,29 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
       lastErr = e; // JSON malformado → regenera na próxima volta
       continue;
     }
-    // Trava de pureza: nenhuma palavra do outro idioma nos campos que vão pro feed/Reel.
+    // Duas travas de QUALIDADE antes de aceitar a copy:
+    //  (1) PUREZA DE IDIOMA (lang-guard) — bloqueio DURO (mescla não vai ao feed).
+    //  (2) DE-DUP: o 1º slide não pode repetir o título (capa × insight 1 idênticos).
+    //      Conserta Reel E carrossel na origem. NÃO é bloqueio: se persistir no fim,
+    //      publica mesmo assim (perder a vaga é pior; o ReelV2 ainda de-dupa no render).
     const hits = scanContentForeign(content, lang);
-    if (hits.length === 0) return content;
-    lastErr = new Error(`idioma contaminado (${lang}): ${summarizeHits(hits)}`);
-    contaminationNote = `\n\n⚠️ CORRECCIÓN OBLIGATORIA: tu respuesta anterior dejó palabras del OTRO idioma (debe ser 100% ${L}). Palabras detectadas → ${summarizeHits(hits)}. Reescribe TODO el contenido en ${L}, sin copiar el enunciado del Tema; revisa también las hashtags.`;
+    const duped = titleDupedInSlides(content.postTitle, content.slides);
+    if (hits.length === 0 && !duped) return content;
+
+    let note = "";
+    if (hits.length) {
+      lastErr = new Error(`idioma contaminado (${lang}): ${summarizeHits(hits)}`);
+      note += `\n\n⚠️ CORRECCIÓN OBLIGATORIA: tu respuesta anterior dejó palabras del OTRO idioma (debe ser 100% ${L}). Palabras detectadas → ${summarizeHits(hits)}. Reescribe TODO el contenido en ${L}, sin copiar el enunciado del Tema; revisa también las hashtags.`;
+    }
+    if (duped) {
+      if (!hits.length) lastErr = new Error("slide repete o título");
+      note += `\n\n⚠️ El slide 1 REPITE el postTitle (capa e insight idénticos). Reescribe los slides para que NINGUNO repita el título: el slide 1 DESARROLLA el gancho con una idea NUEVA.`;
+    }
+    contaminationNote = note;
+
+    // Última tentativa: idioma contaminado BLOQUEIA (cai no throw); repetição sozinha
+    // NÃO bloqueia — devolve a copy (melhor publicar que perder a vaga).
+    if (attempt === MAX_CONTENT_TRIES && !hits.length) return content;
   }
   throw new Error(`generateContent: conteúdo não-publicável após ${MAX_CONTENT_TRIES} tentativas: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`);
 }
