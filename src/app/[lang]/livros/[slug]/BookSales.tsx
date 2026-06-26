@@ -30,8 +30,12 @@ export default function BookSales({ slug }: { slug: string }) {
   const book = getBook(slug);
   if (!book) return null;
   const L = t[book.dictKey];
-  const checkout = book.checkout[lang] ?? book.checkout.pt;
+  // Modo GRÁTIS (prévia): entrega um PDF por download, sem checkout pago.
+  const free = !!book.free && !!book.leadPdf;
+  const leadPdf = book.leadPdf?.[lang] ?? book.leadPdf?.pt ?? "#";
+  const checkout = book.checkout?.[lang] ?? book.checkout?.pt ?? "#";
   const cover = book.cover[lang] ?? book.cover.pt;
+  const spreads = book.insideImages ?? [];
   const promoVideo = book.promoVideo?.[lang] ?? null;
   const promoPoster = book.promoPoster?.[lang] ?? null;
 
@@ -90,12 +94,11 @@ export default function BookSales({ slug }: { slug: string }) {
 
               <div className="mt-9 flex flex-wrap items-center gap-4">
                 <a
-                  href={checkout}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={free ? leadPdf : checkout}
+                  {...(free ? { download: true } : { target: "_blank", rel: "noopener noreferrer" })}
                   className="group inline-flex items-center rounded-full bg-gradient-to-b from-[#cf6259] to-[#9e433d] px-8 py-4 text-[0.95rem] font-bold tracking-[0.01em] text-white shadow-[0_16px_44px_rgba(207,98,89,0.55)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_20px_56px_rgba(207,98,89,0.72)]"
                 >
-                  {L.ctaBuy}
+                  {free ? L.ctaDownload : L.ctaBuy}
                   <span className="ml-3 transition group-hover:translate-x-1">
                     {String.fromCharCode(8594)}
                   </span>
@@ -105,7 +108,7 @@ export default function BookSales({ slug }: { slug: string }) {
                   <div className="text-xs tracking-[0.04em] text-warm-gray/75">{L.priceNote}</div>
                 </div>
               </div>
-              <div className="mt-3 text-xs tracking-[0.04em] text-warm-gray/65">{L.ctaBuyNote}</div>
+              <div className="mt-3 text-xs tracking-[0.04em] text-warm-gray/65">{free ? L.downloadNote : L.ctaBuyNote}</div>
             </div>
 
             <div className="lg:col-span-5">
@@ -212,10 +215,7 @@ export default function BookSales({ slug }: { slug: string }) {
             {L.insideLead}
           </p>
           <div className="mt-10 space-y-6">
-            {[
-              { src: "/images/livro-spread-1.jpg", cap: L.insideCaption1 },
-              { src: "/images/livro-spread-2.jpg", cap: L.insideCaption2 },
-            ].map((s, i) => (
+            {spreads.slice(0, 2).map((src, i) => ({ src, cap: i === 0 ? L.insideCaption1 : L.insideCaption2 })).map((s, i) => (
               <motion.figure
                 key={s.src}
                 initial={{ opacity: 0, y: 20 }}
@@ -305,17 +305,16 @@ export default function BookSales({ slug }: { slug: string }) {
             </p>
             <div className="mt-9 flex flex-col items-center gap-3">
               <a
-                href={checkout}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={free ? leadPdf : checkout}
+                {...(free ? { download: true } : { target: "_blank", rel: "noopener noreferrer" })}
                 className="group inline-flex items-center rounded-full bg-gradient-to-b from-[#cf6259] to-[#9e433d] px-10 py-5 text-[1.05rem] font-bold text-white shadow-[0_18px_50px_rgba(207,98,89,0.6)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_24px_64px_rgba(207,98,89,0.78)]"
               >
-                {L.ctaBuy} · {L.price}
+                {(free ? L.ctaDownload : L.ctaBuy)} · {L.price}
                 <span className="ml-3 transition group-hover:translate-x-1">
                   {String.fromCharCode(8594)}
                 </span>
               </a>
-              <div className="text-xs tracking-[0.04em] text-warm-gray/65">{L.ctaBuyNote}</div>
+              <div className="text-xs tracking-[0.04em] text-warm-gray/65">{free ? L.downloadNote : L.ctaBuyNote}</div>
             </div>
             <p className="mx-auto mt-8 max-w-2xl text-[0.72rem] leading-[1.6] text-warm-gray/55">
               {L.disclaimer}
