@@ -185,6 +185,73 @@ ${deliver}
 Reglas: 2-4 frases, cálido pero con alma de marca, a "tú", sin sonar plantilla ni bot. Devuelve SOLO el texto del mensaje, sin comillas.`;
 }
 
+// ── Anti-repetição (NUNCA enviar a MESMA resposta 2x no mesmo post/janela) ───────
+// Bug do funil (25/06, @dr.liberdade.br): a MESMA frase saía em comentários
+// DIFERENTES. Causa: o haiku colapsa quando o input é quase-constante (comentário
+// curto/genérico ou só a palavra-chave do funil + lead magnet fixo) e a idempotência
+// só olhava o `comment_id` (impede responder 2x o MESMO comentário, não o mesmo TEXTO
+// em comentários distintos). A blindagem é uma trava de TEXTO: normaliza a resposta e
+// recusa enviar uma que já mandamos nesta janela/post. Funções puras (testáveis); o
+// loop de regeneração (I/O) usa `generateText`.
+
+// Forma canônica p/ comparar respostas: minúsculas, sem acento, só letras/números
+// (descarta pontuação, emoji e espaços). Duas respostas que diferem só em pontuação/
+// emoji são "a mesma" — é exatamente o colapso que queremos pegar.
+export function normalizeReply(s: string): string {
+  return (s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "")
+    .trim();
+}
+
+// true se `candidate` é, em essência, IGUAL a alguma resposta já enviada (`recent`).
+// Candidato que normaliza p/ vazio (ex.: só emoji) NÃO bloqueia aqui (tratado fora).
+export function isDuplicateReply(candidate: string, recent: string[]): boolean {
+  const c = normalizeReply(candidate);
+  if (!c) return false;
+  return recent.some((r) => normalizeReply(r) === c);
+}
+
+// Diretiva injetada no prompt listando as frases JÁ usadas, para o haiku NÃO repeti-las
+// (proativo: diversifica já na 1ª geração, não só no retry). Idioma-neutra: é instrução;
+// a língua da saída vem da voz/marketBrief da conta. "" se não há histórico.
+export function buildAntiRepeatDirective(recent: string[]): string {
+  const list = recent.filter((t) => (t ?? "").trim().length > 0).slice(0, 8);
+  if (!list.length) return "";
+  const bullets = list.map((t) => `— "${t.trim()}"`).join("\n");
+  return `
+
+YA RESPONDISTE ANTES (EVITA repetir o parafrasear estas frases; di algo CLARAMENTE DISTINTO, otro ángulo, otras palabras):
+${bullets}`;
+}
+
+// Gera uma resposta DISTINTA das recentes. `makePrompt(avoid)` recebe a lista a evitar
+// (injetada via buildAntiRepeatDirective pelo chamador) e devolve o prompt. Tenta até
+// `tries` vezes; se ainda colidir, devolve `duplicate:true` com a última tentativa em
+// `text` — o CHAMADOR decide: resposta PÚBLICA de comentário pula (não repete no feed);
+// DM 1:1/funil pode enviar mesmo assim (entregar o lead importa e não é visível lado a
+// lado). Cada tentativa é uma chamada haiku do balde. `gen` é injetável p/ teste.
+export async function generateDistinctText(
+  makePrompt: (avoid: string[]) => string,
+  recent: string[],
+  opts?: { tries?: number; gen?: (prompt: string) => Promise<string> },
+): Promise<{ text: string; duplicate: boolean }> {
+  const tries = Math.max(1, opts?.tries ?? 3);
+  const gen = opts?.gen ?? generateText;
+  let avoid = [...recent];
+  let last = "";
+  for (let i = 0; i < tries; i++) {
+    const txt = await gen(makePrompt(avoid));
+    if (!txt) return { text: "", duplicate: false }; // geração vazia: trata como skip:empty-gen
+    if (!isDuplicateReply(txt, avoid)) return { text: txt, duplicate: false };
+    last = txt;
+    avoid = [...avoid, txt]; // a próxima tentativa também evita esta
+  }
+  return { text: last, duplicate: true };
+}
+
 // ── Geração via haiku (ÚNICA parte com I/O) ─────────────────────────────────────
 // Mesmo contrato do generateContent: chama a API da Anthropic e registra o gasto no
 // balde `ig-engagement`. Devolve o texto limpo. Lança em erro de rede (o chamador

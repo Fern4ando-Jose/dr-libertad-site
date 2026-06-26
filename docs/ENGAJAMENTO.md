@@ -64,9 +64,9 @@ Ligar é **faseado e reversível** (é flag de env). Ordem recomendada:
       post nosso → resposta automática aparece. Custo no balde `ig-engagement` (~US$0/dia conta nova).
 
 **Fase 2 — funil comment→DM e DM inbound:**
-- [ ] ⚠️ **BLOQUEIO:** corrigir antes o bug de **auto-reply duplicado no PT**
-      (`@dr.liberdade.br`, prints 25/06) — senão duplica DM no público. Está no 🔴 do painel.
-- [ ] Depois do fix: `ENGAGEMENT_FUNNEL_ENABLED=on` e `ENGAGEMENT_DM_ENABLED=on`.
+- [x] ✅ **BLOQUEIO RESOLVIDO:** o bug de **auto-reply duplicado** (`@dr.liberdade.br`,
+      prints 25/06) está corrigido pela **trava anti-repetição** (abaixo). Pode ligar.
+- [ ] `ENGAGEMENT_FUNNEL_ENABLED=on` e `ENGAGEMENT_DM_ENABLED=on`.
 - [ ] Palavra-chave/lead usam default embutido (`LIBERTAD`/`LIBERDADE` → prévia "I Love
       Dopamina") — só setar env se for mudar.
 
@@ -130,6 +130,31 @@ dá pra validar tudo, mas não atinge o público. Submeta assim que possível.
 4. Uma conta tester comenta a palavra-chave (ex.: "GUIA"); mostre o DM chegando no
    Direct com o material.
 5. Narre que tudo ocorre só em mídia da própria conta conectada.
+
+## Trava anti-repetição (nunca a MESMA resposta 2x no mesmo post/janela)
+
+**Bug (25/06, `@dr.liberdade.br`):** a MESMA frase saía em comentários DIFERENTES.
+Causa: a idempotência só olhava o `comment_id` (impede responder 2x o MESMO comentário,
+não o mesmo TEXTO em comentários distintos) e o haiku **colapsa** quando o input é
+quase-constante — comentário curto/genérico (emoji, "verdad") ou, no funil, só a
+palavra-chave + um lead magnet **fixo**. Sem post-context, a saída repetia.
+
+**Fix (defesa em profundidade):**
+- `engagement_events` passou a gravar o TEXTO enviado (`reply_text`/`reply_norm`) e o
+  post (`media_id`) — migração idempotente (`ADD COLUMN IF NOT EXISTS`), fail-open.
+- **Proativo:** toda geração injeta `buildAntiRepeatDirective(recentes)` no prompt —
+  o haiku já recebe as frases JÁ usadas e é mandado dizer algo distinto.
+- **Garantia dura:** `generateDistinctText` regenera (até 3×) e compara por forma
+  canônica (`normalizeReply`: minúsculas, sem acento, só letras/números — pontuação e
+  emoji não contam). Se ainda colidir: **resposta PÚBLICA de comentário PULA** (não
+  repete no feed → `skip:dup-reply`); **DM 1:1/funil ENVIA mesmo assim** (entregar o
+  lead importa mais e a DM não fica visível lado a lado).
+- **Escopo ES≠PT:** os recentes são por conta (`account_id` = user_id do idioma) e a
+  regeneração usa a voz/`marketBrief` da conta → a frase nova é **nativa por idioma**
+  (BR é BR, ES é ES), nunca reaproveitada.
+- Invariantes em `engagement.invariants.test.ts` (normalizeReply/isDuplicateReply/
+  buildAntiRepeatDirective/generateDistinctText). Custo: no pior caso ~3 chamadas haiku
+  por interação (raro), tudo no balde `ig-engagement` já aprovado.
 
 ## Lead magnet (isca do funil)
 

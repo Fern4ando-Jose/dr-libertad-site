@@ -17,6 +17,10 @@ import {
   buildReplyPrompt,
   buildDmPrompt,
   buildDmReplyPrompt,
+  normalizeReply,
+  isDuplicateReply,
+  buildAntiRepeatDirective,
+  generateDistinctText,
 } from "./engagement";
 
 const base = { commentId: "c1", selfId: "ACC", fromId: "user1" };
@@ -170,5 +174,76 @@ describe("buildDmPrompt — funil entrega o lead OU abre conversa (sem inventar 
   it("sem lead magnet: NÃO inventa link nem promessa", () => {
     const p = buildDmPrompt(v, "quero", ctx, null);
     expect(p).toMatch(/NO inventes enlaces/);
+  });
+});
+
+// ── Trava ANTI-REPETIÇÃO (bug do funil 25/06: mesma frase em comentários distintos) ──
+// Invariante: NUNCA enviar uma resposta que normaliza-igual a uma já enviada no
+// mesmo post/janela. A blindagem é de TEXTO (a idempotência por comment_id não pega).
+describe("anti-repetição — normalizeReply / isDuplicateReply", () => {
+  it("normaliza p/ comparar: caixa, acento, pontuação e emoji não contam", () => {
+    expect(normalizeReply("Ninguém te deve nada.")).toBe(normalizeReply("ninguem te deve nada"));
+    expect(normalizeReply("Ninguém te deve nada! 🔥")).toBe(normalizeReply("ninguem, te  deve nada"));
+  });
+
+  it("detecta resposta IGUAL já enviada (mesmo que difira só em pontuação/emoji)", () => {
+    const recent = ["Ninguém te deve nada.", "Voar mais alto não é traição."];
+    expect(isDuplicateReply("ninguem te deve nada!!! 🔥", recent)).toBe(true);
+    expect(isDuplicateReply("Você decide a quem dá esse poder.", recent)).toBe(false);
+  });
+
+  it("candidato que normaliza p/ vazio (só emoji/pontuação) NÃO bloqueia", () => {
+    expect(isDuplicateReply("🔥🔥🔥", ["qualquer coisa"])).toBe(false);
+    expect(isDuplicateReply("...", [])).toBe(false);
+  });
+
+  it("histórico vazio nunca é duplicado", () => {
+    expect(isDuplicateReply("primeira resposta do post", [])).toBe(false);
+  });
+});
+
+describe("anti-repetição — buildAntiRepeatDirective", () => {
+  it("lista as frases a evitar quando há histórico", () => {
+    const d = buildAntiRepeatDirective(["frase A", "frase B"]);
+    expect(d).toContain("frase A");
+    expect(d).toContain("frase B");
+    expect(d).toMatch(/EVITA repetir/);
+  });
+  it("vazio quando não há histórico (não polui o prompt)", () => {
+    expect(buildAntiRepeatDirective([])).toBe("");
+    expect(buildAntiRepeatDirective(["   ", ""])).toBe("");
+  });
+});
+
+describe("anti-repetição — generateDistinctText (loop de regeneração, gerador injetável)", () => {
+  it("gerador que SEMPRE devolve a mesma frase → duplicate:true (chamador público pula)", async () => {
+    let calls = 0;
+    const r = await generateDistinctText(() => "p", ["Ninguém te deve nada"], {
+      tries: 3,
+      gen: async () => { calls++; return "ninguém te deve nada!"; },
+    });
+    expect(r.duplicate).toBe(true);
+    expect(calls).toBe(3); // tentou de novo, não desistiu na 1ª
+  });
+
+  it("regenera até sair DISTINTA e devolve a nova (duplicate:false)", async () => {
+    const outs = ["Ninguém te deve nada", "Você decide a quem dá esse poder"];
+    let i = 0;
+    const r = await generateDistinctText(() => "p", ["ninguem te deve nada"], {
+      tries: 3,
+      gen: async () => outs[i++] ?? "",
+    });
+    expect(r.duplicate).toBe(false);
+    expect(r.text).toBe("Você decide a quem dá esse poder");
+  });
+
+  it("o prompt recebe as frases a evitar (diversifica já na 1ª geração)", async () => {
+    let seen = "";
+    await generateDistinctText(
+      (avoid) => "BASE" + buildAntiRepeatDirective(avoid),
+      ["frase usada antes"],
+      { tries: 1, gen: async (p) => { seen = p; return "nova"; } },
+    );
+    expect(seen).toContain("frase usada antes");
   });
 });
