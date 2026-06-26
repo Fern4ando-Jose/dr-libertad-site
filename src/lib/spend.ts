@@ -61,7 +61,7 @@ const DEFAULT_BUDGETS: Record<Automation, number> = {
 // elimina o bloqueio à toa e mantém margem. TETO inalterado (0,50); ilustração e QA
 // best-of-3 inalterados (o gasto não é o problema — a estimativa era).
 export const EST_RUN_COST: Record<"publish" | "preview" | "dryrun", number> = {
-  publish: 0.10, // haiku + ilustração compartilhada ES/PT (real médio ~0,07; era 0,15)
+  publish: 0.13, // haiku + ilustração best-of-5 compartilhada ES/PT (real médio ~0,13; era 0,10 no best-of-3). Estimativa do GATE, não o teto (teto ig-posts segue US$0,50).
   preview: 0.07, // haiku + 1×(fal+QA)  (pesquisa Wikipedia = grátis)
   dryrun: 0.04,  // 1×(fal+QA)
 };
