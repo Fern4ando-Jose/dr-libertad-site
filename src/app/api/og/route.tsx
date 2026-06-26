@@ -105,13 +105,20 @@ const MOTIF_IDS: readonly MotifId[] = [
 
 interface CatStyle { accent: string; label: string }
 
+// ACENTO ÚNICO = a cor do SITE (drlibertad.com): rosa/vinho `#A45A5A` (globals.css,
+// junto de creme #f4f0e8 e dark #0B0B0C). Antes cada categoria tinha um acento próprio
+// (azul/verde/âmbar…) → "fugia muito" da identidade do site (pedido do dono 2026-06-26:
+// "acentuar as cores do site"). Agora os slides usam o MESMO acento do site em tudo
+// (número, rodapé, kicker, subtítulo, tom do motivo) → carrossel e site falam a mesma
+// língua visual. A CATEGORIA segue distinguindo o MOTIVO (desenho) e o RÓTULO, não a cor.
+const SITE_ACCENT = "#A45A5A";
 const CATS: Record<Cat, CatStyle> = {
-  freedom:  { accent: "#A45A5A", label: "LIBERTAD"   },
-  dopamine: { accent: "#BE7A2A", label: "RECOMPENSA" },
-  anxiety:  { accent: "#3D6360", label: "ANSIEDAD"   },
-  network:  { accent: "#3F5E78", label: "CONEXIÓN"   },
-  self:     { accent: "#835A6E", label: "EL YO"      },
-  mind:     { accent: "#5B6B3C", label: "LA MENTE"   },
+  freedom:  { accent: SITE_ACCENT, label: "LIBERTAD"   },
+  dopamine: { accent: SITE_ACCENT, label: "RECOMPENSA" },
+  anxiety:  { accent: SITE_ACCENT, label: "ANSIEDAD"   },
+  network:  { accent: SITE_ACCENT, label: "CONEXIÓN"   },
+  self:     { accent: SITE_ACCENT, label: "EL YO"      },
+  mind:     { accent: SITE_ACCENT, label: "LA MENTE"   },
 };
 
 // ─── i18n do criativo (ES default / PT-BR) ───────────────────────────────────
@@ -515,7 +522,11 @@ function InsightSlide({ text, num, total, kw, issue, cat, motif, seed, lang }: {
           {mainText.toUpperCase()}
         </div>
         {subText ? (
-          <div style={{ fontSize: 40, lineHeight: 1.5, color: INK_70, marginTop: 30, maxWidth: 780, display: "flex" }}>
+          // Subtítulo do insight: maior + na COR DA MARCA (acento da categoria) em vez do
+          // cinza estático — dá destaque sem competir com o título (pedido do dono 2026-06-26,
+          // "muito estático, sem chamativos"). fontFamily SERIF p/ casar com o resto (satori
+          // não herda fonte de forma confiável). Fica abaixo do mainText, leitura preservada.
+          <div style={{ fontFamily: SERIF, fontSize: 50, lineHeight: 1.4, letterSpacing: "-0.01em", color: c.accent, marginTop: 30, maxWidth: 820, display: "flex" }}>
             {subText}
           </div>
         ) : null}
