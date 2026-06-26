@@ -8,7 +8,7 @@ import React from "react";
 import { Composition } from "remotion";
 import { Reel, reelDefaultProps, reelDurations, ReelProps, FPS } from "./Reel";
 import { ReelClassic, reelClassicDefaultProps, ReelClassicProps } from "./ReelClassic";
-import { ReelV2, reelV2DefaultProps, reelDurationsV2 } from "./ReelV2";
+import { ReelV2, reelV2DefaultProps, reelDurationsV2, dedupeSlides } from "./ReelV2";
 
 // Duração do motor clássico (mesma matemática inline do componente original).
 function classicDuration(slidesCount: number): number {
@@ -48,7 +48,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={reelV2DefaultProps}
         calculateMetadata={({ props }) => {
           const p = props as ReelProps;
-          const count = p.slides && p.slides.length ? p.slides.length : reelV2DefaultProps.slides.length;
+          const count = dedupeSlides(p.title, p.slides).length; // de-dup → duração bate c/ os insights reais
           return { durationInFrames: reelDurationsV2(count).total };
         }}
       />
