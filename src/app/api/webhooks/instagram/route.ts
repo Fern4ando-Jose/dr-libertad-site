@@ -9,7 +9,9 @@ import {
   buildReplyPrompt,
   buildDmPrompt,
   buildDmReplyPrompt,
-  generateText,
+  buildAntiRepeatDirective,
+  generateDistinctText,
+  normalizeReply,
   type PostContext,
 } from "@/lib/engagement";
 import { checkBudget } from "@/lib/spend";
@@ -143,6 +145,11 @@ async function resolveToken(acc: AccountCfg): Promise<string> {
 }
 
 // ── Dedup / idempotência (tabela engagement_events) ────────────────────────────
+// Guarda DUAS coisas: (1) idempotência por `comment_id` (não responder 2x o MESMO
+// comentário); (2) o TEXTO que enviamos (`reply_text`/`reply_norm`) + o post (`media_id`),
+// para a trava anti-repetição — nunca enviar a MESMA resposta em comentários DISTINTOS
+// do mesmo post/janela (bug do funil 25/06). Colunas novas via ADD COLUMN IF NOT EXISTS
+// (migração idempotente, fail-open).
 async function ensureTable(): Promise<void> {
   const { sql } = await import("@vercel/postgres");
   await sql`
@@ -153,6 +160,41 @@ async function ensureTable(): Promise<void> {
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+  await sql`ALTER TABLE engagement_events ADD COLUMN IF NOT EXISTS media_id   TEXT`;
+  await sql`ALTER TABLE engagement_events ADD COLUMN IF NOT EXISTS reply_text TEXT`;
+  await sql`ALTER TABLE engagement_events ADD COLUMN IF NOT EXISTS reply_norm TEXT`;
+}
+
+// Respostas que JÁ enviamos nesta janela (7d) p/ esta conta — base da trava anti-dup.
+// Escopo: comentário → por POST (media_id); DM/funil (sem post) → por conta + ação.
+// Fail-open: erro de banco devolve [] (não bloqueia o webhook, só perde a proteção).
+async function recentReplyTexts(
+  accountId: string,
+  opts: { mediaId?: string | null; action?: string },
+): Promise<string[]> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    if (opts.mediaId) {
+      const rows = await sql<{ reply_text: string }>`
+        SELECT reply_text FROM engagement_events
+        WHERE account_id = ${accountId} AND media_id = ${opts.mediaId}
+          AND reply_text IS NOT NULL
+          AND created_at > NOW() - INTERVAL '7 days'
+        ORDER BY created_at DESC LIMIT 50
+      `;
+      return rows.rows.map((r) => r.reply_text).filter(Boolean);
+    }
+    const rows = await sql<{ reply_text: string }>`
+      SELECT reply_text FROM engagement_events
+      WHERE account_id = ${accountId} AND action = ${opts.action ?? ""}
+        AND reply_text IS NOT NULL
+        AND created_at > NOW() - INTERVAL '7 days'
+      ORDER BY created_at DESC LIMIT 50
+    `;
+    return rows.rows.map((r) => r.reply_text).filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 // true se já agimos sobre este comentário (idempotência + anti-loop definitivo:
@@ -168,12 +210,19 @@ async function alreadyProcessed(commentId: string): Promise<boolean> {
   }
 }
 
-async function markProcessed(commentId: string, accountId: string, action: string): Promise<void> {
+async function markProcessed(
+  commentId: string,
+  accountId: string,
+  action: string,
+  opts?: { mediaId?: string | null; replyText?: string | null },
+): Promise<void> {
   try {
     const { sql } = await import("@vercel/postgres");
+    const replyText = opts?.replyText ?? null;
+    const replyNorm = replyText ? normalizeReply(replyText) : null;
     await sql`
-      INSERT INTO engagement_events (comment_id, account_id, action)
-      VALUES (${commentId}, ${accountId}, ${action})
+      INSERT INTO engagement_events (comment_id, account_id, action, media_id, reply_text, reply_norm)
+      VALUES (${commentId}, ${accountId}, ${action}, ${opts?.mediaId ?? null}, ${replyText}, ${replyNorm})
       ON CONFLICT (comment_id) DO NOTHING
     `;
   } catch { /* best-effort */ }
@@ -249,10 +298,14 @@ async function processDirectMessage(
   const ctx: PostContext = { langName: acc.langName, topic: null, title: null };
   const token = await resolveToken(acc);
   try {
-    const reply = await generateText(buildDmReplyPrompt(voice, m.text ?? "", ctx));
+    const recent = await recentReplyTexts(entryId, { action: "dm-replied" });
+    const { text: reply } = await generateDistinctText(
+      (avoid) => buildDmReplyPrompt(voice, m.text ?? "", ctx) + buildAntiRepeatDirective(avoid),
+      recent,
+    );
     if (reply && m.senderId) {
       await postDirectMessage(entryId, m.senderId, reply, token);
-      await markProcessed(mid, entryId, "dm-replied");
+      await markProcessed(mid, entryId, "dm-replied", { replyText: reply });
     } else {
       await markProcessed(mid, entryId, "skip:empty-gen");
     }
@@ -267,11 +320,12 @@ async function processComment(
   entryId: string,
   acc: AccountCfg,
   lang: Lang,
-  c: { id?: string; text?: string; from?: { id?: string } },
+  c: { id?: string; text?: string; from?: { id?: string }; media?: { id?: string } },
 ): Promise<void> {
   const commentId = c?.id;
   if (!commentId) return;
   if (await alreadyProcessed(commentId)) return;
+  const mediaId = c?.media?.id ?? null; // post onde veio o comentário (escopo da anti-dup)
 
   const decision = decideComment({
     commentId,
@@ -280,14 +334,14 @@ async function processComment(
     selfId: entryId,
   });
   if (!decision.reply) {
-    await markProcessed(commentId, entryId, `skip:${decision.reason}`);
+    await markProcessed(commentId, entryId, `skip:${decision.reason}`, { mediaId });
     return;
   }
 
   // Gate de orçamento (balde ig-engagement). Estoura → não gera (não falha o webhook).
   const budget = await checkBudget("ig-engagement", EST_REPLY_COST);
   if (!budget.ok) {
-    await markProcessed(commentId, entryId, "skip:budget");
+    await markProcessed(commentId, entryId, "skip:budget", { mediaId });
     return;
   }
 
@@ -295,16 +349,23 @@ async function processComment(
   const ctx: PostContext = { langName: acc.langName, topic: null, title: null };
   const token = await resolveToken(acc);
 
-  // 1) Resposta pública ao comentário (Fase 1).
+  // 1) Resposta pública ao comentário (Fase 1) — DISTINTA das já enviadas neste post.
   try {
-    const reply = await generateText(buildReplyPrompt(voice, c.text ?? "", ctx));
-    if (reply) {
+    const recent = await recentReplyTexts(entryId, { mediaId });
+    const { text: reply, duplicate } = await generateDistinctText(
+      (avoid) => buildReplyPrompt(voice, c.text ?? "", ctx) + buildAntiRepeatDirective(avoid),
+      recent,
+    );
+    if (duplicate) {
+      // Não repete a MESMA resposta no feed: pula e registra (não fica re-tentando).
+      await markProcessed(commentId, entryId, "skip:dup-reply", { mediaId });
+    } else if (reply) {
       const replyId = await postReply(commentId, reply, token);
-      await markProcessed(commentId, entryId, "replied");
+      await markProcessed(commentId, entryId, "replied", { mediaId, replyText: reply });
       // Grava a NOSSA resposta como já-processada → anti-loop se o webhook refizer.
-      if (replyId) await markProcessed(replyId, entryId, "authored");
+      if (replyId) await markProcessed(replyId, entryId, "authored", { mediaId });
     } else {
-      await markProcessed(commentId, entryId, "skip:empty-gen");
+      await markProcessed(commentId, entryId, "skip:empty-gen", { mediaId });
     }
   } catch (e) {
     console.error("[ig-webhook] geração/reply erro:", e);
@@ -312,12 +373,21 @@ async function processComment(
   }
 
   // 2) Funil comment→DM (Fase 2) — atrás de flag; só se a palavra-chave bater.
+  // Diversifica o DM (anti-repeat directive) mas ENVIA mesmo se colidir: entregar o
+  // lead importa mais e a DM é 1:1 (não fica visível lado a lado como no feed).
   if (flagOn("ENGAGEMENT_FUNNEL_ENABLED")) {
     const { keyword, lead } = funnelConfig(acc, lang);
     if (keyword && detectKeyword(c.text ?? "", keyword)) {
       try {
-        const dm = await generateText(buildDmPrompt(voice, c.text ?? "", ctx, lead));
-        if (dm) await postPrivateReply(entryId, commentId, dm, token);
+        const recentDm = await recentReplyTexts(entryId, { action: "funnel-dm" });
+        const { text: dm } = await generateDistinctText(
+          (avoid) => buildDmPrompt(voice, c.text ?? "", ctx, lead) + buildAntiRepeatDirective(avoid),
+          recentDm,
+        );
+        if (dm) {
+          const ok = await postPrivateReply(entryId, commentId, dm, token);
+          if (ok) await markProcessed(`funnel:${commentId}`, entryId, "funnel-dm", { mediaId, replyText: dm });
+        }
       } catch (e) {
         console.error("[ig-webhook] funil DM erro:", e);
       }
@@ -363,7 +433,7 @@ export async function POST(req: NextRequest) {
       if (!route) continue; // evento de conta que não conhecemos → ignora
       for (const change of entry.changes ?? []) {
         if (change.field !== "comments") continue;
-        const v = change.value as { id?: string; text?: string; from?: { id?: string } };
+        const v = change.value as { id?: string; text?: string; from?: { id?: string }; media?: { id?: string } };
         await processComment(entryId, route.acc, route.lang, v);
       }
       // Auto-resposta a DMs do Direct (inbound) — atrás de flag própria.
