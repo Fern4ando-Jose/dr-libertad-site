@@ -1,0 +1,45 @@
+name: Limpeza do Vercel Blob (reels/)
+
+# Os Reels mp4 são intermediários: depois que o /api/publish-reel os consome, o
+# Instagram hospeda a cópia e a do Blob vira lixo. Sem limpeza, acumulam até estourar
+# o teto de 1GB do Hobby → o upload falha e NENHUM Reel publica (incidente 26/06).
+# Este job poda `reels/` mantendo os mais recentes (folga p/ publish em andamento).
+on:
+  schedule:
+    - cron: "30 6 * * *" # diário 03:30 BRT — mantém o store enxuto sozinho
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: "Só listar (não apaga)?"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+      hours:
+        description: "Apagar mp4 com mais de N horas"
+        required: false
+        default: "48"
+
+concurrency:
+  group: blob-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - run: npm install --no-audit --no-fund
+      - name: Podar reels/ antigos do Blob
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: |
+          # Schedule sempre apaga (dry=false); dispatch respeita o input (default dry=true).
+          DRY_FLAG=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.dry }}" = "true" ]; then DRY_FLAG="--dry"; fi
+          node scripts/clean-blob.mjs --hours=${{ github.event.inputs.hours || 48 }} --keep=6 $DRY_FLAG
