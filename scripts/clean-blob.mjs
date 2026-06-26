@@ -19,7 +19,13 @@ const HOURS = Number(arg("hours", "48")) || 48;
 const KEEP = Number(arg("keep", "6")) || 6; // nunca apaga os N mais recentes
 const PREFIX = arg("prefix", "reels/");
 
-if (!process.env.BLOB_READ_WRITE_TOKEN) {
+// O secret às vezes vem como bloco .env colado ou com quebra de linha → o fetch do
+// @vercel/blob lança "invalid header value". Extrai o token puro e passa explícito
+// (mesma lógica do upload-blob.mjs).
+const rawTok = process.env.BLOB_READ_WRITE_TOKEN || "";
+const tokMatch = rawTok.match(/vercel_blob_rw_[A-Za-z0-9_-]+/);
+const TOKEN = tokMatch ? tokMatch[0] : rawTok.trim();
+if (!TOKEN) {
   console.error("[clean-blob] BLOB_READ_WRITE_TOKEN ausente"); process.exit(1);
 }
 
@@ -28,7 +34,7 @@ async function main() {
   const all = [];
   let cursor;
   do {
-    const page = await list({ prefix: PREFIX, cursor, limit: 1000 });
+    const page = await list({ prefix: PREFIX, cursor, limit: 1000, token: TOKEN });
     all.push(...page.blobs);
     cursor = page.cursor;
   } while (cursor);
@@ -53,7 +59,7 @@ async function main() {
 
   // del aceita array de URLs; fatia em lotes p/ não estourar payload.
   for (let i = 0; i < toDelete.length; i += 100) {
-    await del(toDelete.slice(i, i + 100).map((b) => b.url));
+    await del(toDelete.slice(i, i + 100).map((b) => b.url), { token: TOKEN });
     console.log(`[clean-blob] apagados ${Math.min(i + 100, toDelete.length)}/${toDelete.length}`);
   }
   console.log(`[clean-blob] concluído. Liberados ~${freedMB.toFixed(1)} MB.`);
