@@ -4,7 +4,11 @@
 // FALTAVA — modela o cenário real (cross-formato/idioma/dia por vaga), não a rotação
 // pura. Foi o buraco que deixou "Si no pones límites" repetir reel+carrossel em 24/06.
 import { describe, it, expect } from "vitest";
-import { hasOtherVaga, publishedId, shouldStopRetrying, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS, orphanedPairs } from "./run-ledger";
+import { hasOtherVaga, publishedId, shouldStopRetrying, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS, orphanedPairs, publishFailureMode } from "./run-ledger";
+
+// Erro REAL do incidente (carrossel PT "O casal fake…", 26/06): o media_publish do IG
+// devolveu este corpo, MAS o post foi pro feed assim mesmo (action-block publica-e-erra).
+const ACTION_BLOCK_ERR = 'Carousel publish error: {"error":{"message":"Application request limit reached","type":"OAuthException","is_transient":false,"code":4,"error_subcode":2207051,"error_user_title":"action is blocked","error_user_msg":"We restrict certain activity to protect our community."}}';
 
 const D = "2026-06-24";
 
@@ -49,6 +53,39 @@ describe("disjuntor de publicação (anti-martelo / anti-bloqueio de conta)", ()
     expect(shouldStopRetrying(MAX_PUBLISH_ATTEMPTS)).toBe(true);
     // uma falha transitória (timeout) NÃO é desistência: conta +1 e ainda pode tentar
     expect(shouldStopRetrying(1)).toBe(false);
+  });
+
+  // RAIZ da DUPLICATA do carrossel PT (26/06): o action-block do IG responde ERRO no
+  // media_publish MAS publica o post no feed. Se o publishCarousel LANÇA, o chamador grava
+  // instagram_post_id NULL → o post-fantasma é invisível ao runAlreadyPublished (exige id
+  // NOT NULL) → o catchup REPUBLICA → 2 posts idênticos. publishFailureMode resolve: erro
+  // DURO (post provavelmente vivo) → "sentinel" (grava a vaga, ninguém republica); erro
+  // não-duro (post NÃO vivo) → "throw" (falha real, pode tentar de novo).
+  describe("publishFailureMode — anti-fantasma no erro de media_publish", () => {
+    it("action-block REAL do incidente (publica-e-erra) → sentinel (grava a vaga, NÃO republica)", () => {
+      expect(publishFailureMode(ACTION_BLOCK_ERR)).toBe("sentinel");
+    });
+    it("429 / rate limit / temporarily blocked → sentinel (mesma classe)", () => {
+      expect(publishFailureMode("HTTP 429 Too Many Requests")).toBe("sentinel");
+      expect(publishFailureMode("user is temporarily blocked")).toBe("sentinel");
+    });
+    it("erro transitório (media not ready / timeout) → throw (post NÃO vivo, pode tentar)", () => {
+      expect(publishFailureMode("media not ready to publish")).toBe("throw");
+      expect(publishFailureMode("Timeout")).toBe("throw");
+      expect(publishFailureMode('{"error":{"code":400,"message":"bad request"}}')).toBe("throw");
+    });
+  });
+
+  // O GATE que FALTAVA: o disjuntor (attempts/bumpAttempt) era lido SÓ pelo watchdog
+  // (runs-status → gaveUp), nunca pelo próprio /api/publish. Quando o catchup redisparava
+  // o workflow, o publish re-entrava SEM freio e publicava de novo. O gate de fronteira é
+  // `shouldStopRetrying(attemptsToday(...))`: na 1ª falha DURA, bumpAttempt(hard) crava
+  // attempts=MAX → a partir daí TODA re-entrada do publish pula a vaga (até o dia seguinte).
+  it("contrato do gate de fronteira: 1ª falha dura (attempts=MAX) → toda re-entrada pula", () => {
+    // após um action-block, bumpAttempt(hard) deixa attempts no teto…
+    const attemptsAposHardBlock = MAX_PUBLISH_ATTEMPTS;
+    // …e o gate de fronteira do /api/publish e do /api/publish-reel passa a pular a vaga.
+    expect(shouldStopRetrying(attemptsAposHardBlock)).toBe(true);
   });
 });
 

@@ -83,6 +83,19 @@ export function isHardPublishBlock(err: unknown): boolean {
     || s.includes("429") || s.includes("rate limit") || s.includes("temporarily blocked");
 }
 
+// Decisão pós-`media_publish` que volta com ERRO (HTTP !ok). O action-block/limite DURO
+// do IG ("Application request limit reached", code 4 / 2207051) responde ERRO mas PUBLICA
+// o post no feed assim mesmo (observado: carrossel PT "O casal fake…", 26/06). Se a gente
+// LANÇA, o chamador grava id NULL → a vaga fica invisível ao runAlreadyPublished → o
+// catchup REPUBLICA → DUPLICATA. Como o post provavelmente está VIVO num bloqueio duro,
+// devolve "sentinel" (gravar a vaga com o creation_id e NÃO republicar). Erro NÃO-duro
+// (ex.: "media not ready", transitório, post NÃO vivo) → "throw" (falha real; o disjuntor
+// conta a tentativa e o catchup pode tentar de novo). PURE/testável. Doutrina "tem de ser
+// ÚNICA": melhor uma vaga marcada-publicada que uma duplicata no feed.
+export function publishFailureMode(errText: unknown): "sentinel" | "throw" {
+  return isHardPublishBlock(errText) ? "sentinel" : "throw";
+}
+
 // Registra uma tentativa FALHA da vaga. `hard` (bloqueio do IG) já leva ao teto.
 export async function bumpAttempt(day: string, run: number, lang: string, hard = false): Promise<void> {
   try {

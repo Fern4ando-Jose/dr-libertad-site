@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
-import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock } from "@/lib/run-ledger";
+import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
 
 // Publicação de REELS (vídeo) no @drlibertad via Instagram Graph API v25.
 // O vídeo já precisa estar hospedado em URL pública (ex.: Vercel Blob).
@@ -88,7 +88,16 @@ async function publishReel(videoUrl: string, caption: string, lang: Lang = "es")
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ creation_id: creationId, access_token: token }),
   });
-  if (!pubRes.ok) throw new Error(`Publish error: ${await pubRes.text()}`);
+  if (!pubRes.ok) {
+    const errText = await pubRes.text();
+    // ANTI-FANTASMA no ERRO DURO (mesmo do carrossel): action-block/limite do IG
+    // responde erro no media_publish MAS o Reel pode ir pro feed → se a gente lança,
+    // a vaga fica com id NULL → catchup republica → Reel duplicado. Post provavelmente
+    // VIVO → devolve o creation_id como SENTINELA (vaga gravada, ninguém republica).
+    // Erro não-duro (post NÃO vivo) → lança; o disjuntor conta e o catchup pode tentar.
+    if (publishFailureMode(errText) === "sentinel") return publishedId(undefined, creationId);
+    throw new Error(`Publish error: ${errText}`);
+  }
   // Publicação CONFIRMADA. Se vier sem `id`, o Reel está vivo → devolve o creation_id
   // como sentinela não-nula p/ a vaga ser gravada (anti "post-fantasma" → sem isso o
   // watchdog redispara a mesma vaga). Ver publishedId em run-ledger.
@@ -145,6 +154,14 @@ async function handle(req: NextRequest) {
   // republica. Reel não tinha trava (carrossel tinha por tópico) — esta é a dele.
   if (run !== null && Number.isFinite(run) && await runAlreadyPublished(day, run, lang)) {
     return NextResponse.json({ ok: true, skipped: true, reason: `run ${run} (${lang}) já publicado hoje`, log });
+  }
+
+  // DISJUNTOR na FRONTEIRA do publish (mesmo do carrossel): se a vaga já desistiu hoje
+  // (≥MAX tentativas — bloqueio duro do IG), NÃO republica. Sem isto, um action-block
+  // que publica-mas-erra deixava id NULL e o catchup redisparava → Reel duplicado.
+  // force=1 burla (backfill). Fail-open: attemptsToday=0 em erro → comportamento antigo.
+  if (!force && run !== null && Number.isFinite(run) && shouldStopRetrying(await attemptsToday(day, run, lang))) {
+    return NextResponse.json({ ok: true, skipped: true, reason: `run ${run} (${lang}) desistiu hoje (≥${MAX_PUBLISH_ATTEMPTS} tentativas) — disjuntor de publicação`, log });
   }
 
   // TRAVA DE PUBLICAÇÃO por TÓPICO (independente da seleção, a menos de force=1): se este
