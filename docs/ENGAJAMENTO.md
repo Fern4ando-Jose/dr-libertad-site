@@ -165,10 +165,13 @@ promessa de saúde e com o "Dr." blindado (estúdio editorial, não médico real
 loop: comenta a palavra → recebe a prévia → responde `LIVRO`/`LIBRO` → lista de espera
 do livro.
 
-- **Servido pelo site:** `public/lead/I-Love-Dopamina_Previa_ES.pdf` (ES) e
-  `public/lead/I-Love-Dopamina_Previa_PT.pdf` (PT) → `https://www.drlibertad.com/lead/…`.
-  É o **default embutido** do funil por idioma (`LEAD_DEFAULTS` em `webhooks/instagram/route.ts`;
-  não precisa setar env pra funcionar).
+- **O DM manda a PÁGINA do livro, não o PDF cru:** `https://www.drlibertad.com/{lang}/livros/i-love-dopamina`
+  (ES/PT). A página apresenta o livro e tem **botão de download 1-clique** que serve o PDF
+  (`public/lead/I-Love-Dopamina_Previa_{ES,PT}.pdf`). Aquece o lead, fica sob a marca e abre upsell
+  do livro completo. É o **default embutido** do funil (`LEAD_DEFAULTS` em `webhooks/instagram/route.ts`;
+  trocável por env `ENGAGEMENT_LEAD_URL_*` sem deploy). A página é o livro `i-love-dopamina` em
+  `src/lib/books.ts` (`free:true` + `leadPdf`), renderizada por `BookSales` (modo grátis = download).
+  ⚠️ Capa ES ainda usa a PT (localizar depois).
 - **Fonte (offline, fora do Git):** `D:\Claude\Livros-Escrevendo\I love Dopamina\`
   (`design/build-interior.mjs` + `build-interior-es.mjs` → Chrome `--print-to-pdf`;
   trava `preflight.mjs` no PDF real antes de publicar). Só o PDF entra no Git; o source é

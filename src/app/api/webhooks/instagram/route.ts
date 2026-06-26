@@ -39,13 +39,14 @@ function flagOn(name: string): boolean {
   return (process.env[name] ?? "").toLowerCase() === "on";
 }
 
-// Lead magnet "I Love Dopamina" (prévia/adelanto do livro) — servido pelo próprio
-// site em /lead/*.pdf. Default POR IDIOMA aponta pro PDF certo de cada conta; o dono
-// pode trocar por env sem deploy. Sem URL → a DM só abre conversa (não inventa link).
+// Lead magnet "I Love Dopamina" (prévia/adelanto do livro). O DM manda a PÁGINA do
+// livro no site (apresenta + botão de download 1-clique da prévia), não o .pdf cru:
+// aquece o lead, fica sob a marca e abre upsell do livro completo. A página serve o
+// PDF de `public/lead/`. Trocável por env sem deploy; sem URL → a DM só abre conversa.
 const SITE_URL = "https://www.drlibertad.com";
 const LEAD_DEFAULTS: Record<Lang, { name: string; url: string }> = {
-  es: { name: "I Love Dopamina — adelanto del libro (Dr. Libertad)", url: `${SITE_URL}/lead/I-Love-Dopamina_Previa_ES.pdf` },
-  pt: { name: "I Love Dopamina — prévia do livro (Dr. Liberdade)", url: `${SITE_URL}/lead/I-Love-Dopamina_Previa_PT.pdf` },
+  es: { name: "I Love Dopamina — adelanto del libro (Dr. Libertad)", url: `${SITE_URL}/es/livros/i-love-dopamina` },
+  pt: { name: "I Love Dopamina — prévia do livro (Dr. Liberdade)", url: `${SITE_URL}/pt/livros/i-love-dopamina` },
 };
 
 // Palavra-chave do funil e lead magnet (configuráveis por env — sem deploy p/ trocar).
