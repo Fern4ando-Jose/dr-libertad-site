@@ -1,13 +1,21 @@
 // ─── ReelV2 — composição EXPERIMENTAL de RETENÇÃO (separada da produção) ───────
-// NÃO roda em produção. É a versão de teste pra atacar o gargalo medido no /insights:
-// watch médio 4,3s de ~25s (17%) → a galera sai DURANTE a capa de 5s. Mudanças:
-//   1. CAPA 5,0s → 2,6s: mata o "vão" parado e leva a pessoa pro 1º insight rápido.
-//   2. LEGENDA CINÉTICA: o insight entra palavra-por-palavra (movimento constante =
-//      retenção; o olho não "para" como num slide estático).
-//   3. Ritmo: insights um tico mais longos (onde mora o valor), capa curta.
+// NÃO roda em produção (os workflows renderizam "Reel"). É a versão de teste pra atacar
+// o gargalo medido no /insights: watch médio 4,3s de ~25s (17%) → a galera sai DURANTE
+// a capa de 5s. Mudanças vs. o Reel de produção:
+//   1. CAPA 5,0s → 3,0s: mata o "vão" parado e leva a pessoa pro 1º insight rápido
+//      (curta o bastante p/ retenção, longa o bastante p/ o gancho cinético landar).
+//   2. LEGENDA CINÉTICA: capa E insights entram palavra-por-palavra (movimento constante
+//      = retenção; o olho não "para" como num slide estático).
+//   3. CAPA VIVA, COR DE MARCA: kicker da marca em acento no topo + palavra-chave do
+//      gancho na cor da marca + glow do acento (a capa branca/"morta" foi rejeitada).
+//   4. DE-DUP (dedupeSlides): a geração às vezes faz slides[0] === título → capa e
+//      insight 1 mostravam a MESMA frase (~8s repetidos). Aqui o insight ~igual ao
+//      título é descartado (e a duração ajusta, sem cena preta no fim).
 // Reusa a CENA/GRADE comprovada do Reel (mesma cara de marca) via `Scene` exportado —
 // sem copiar, sem drift. A produção (composição "Reel") fica intocada.
 //
+// PENDENTE p/ promover a produção (decisão do dono): trocar a composição renderizada
+// nos workflows; de-dup na ORIGEM (prompt, conserta o carrossel também); loop; voz/TTS.
 // Render de teste: `render-reel.mjs --composition=ReelV2` (CI), publish:no.
 
 import React from "react";
@@ -44,8 +52,20 @@ const SAFE_BOTTOM_TEXT = 420;
 const SAFE_BOTTOM_HANDLE = 300;
 
 // ─── Tempos V2 (capa curta) ───────────────────────────────────────────────────
+// DE-DUP compartilhado (componente E Root.calculateMetadata usam o MESMO) → a duração
+// da composição bate com o nº de insights REALMENTE renderizados (senão sobra cena preta
+// no fim). A geração às vezes faz slides[0] === título; aqui descartamos os ~iguais.
+export function dedupeSlides(title: string, slides: string[] | undefined): string[] {
+  const raw = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 3);
+  const norm = (s: string) =>
+    (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  const tnorm = norm(title);
+  const distinct = raw.filter((s) => norm(s) !== tnorm);
+  return distinct.length ? distinct : raw;
+}
+
 export function reelDurationsV2(slidesCount: number) {
-  const COVER = Math.round(FPS * 2.6); // era 5,0 — mata o vão
+  const COVER = Math.round(FPS * 3.0); // era 5,0 — capa curta, mas com tempo do gancho cinético LANDAR
   const INSIGHT = Math.round(FPS * 5.6);
   const CTA = Math.round(FPS * 4.6);
   const n = Math.min(Math.max(slidesCount || 1, 1), 3);
@@ -101,26 +121,42 @@ function KineticText({
   );
 }
 
-// ─── Capa V2: gancho quase imediato (capa só 2,6s) ────────────────────────────
-function CoverTextV2({ title, ed, accent, brand, handle }: { title: string; ed: string; accent: string; brand: string; handle: string }) {
+// Palavra de realce da CAPA: o kw da marca se aparece no título; senão a última
+// palavra (a "essência" do dono costuma cair no fim da frase). Vai na cor da marca.
+function pickCoverAccent(title: string, kw: string): string {
+  const words = (title || "").split(/\s+/).filter(Boolean);
+  const strip = (w: string) => w.toLowerCase().replace(/[^\p{L}]/gu, "");
+  if (kw) {
+    const m = words.find((w) => strip(w).includes(strip(kw)) && strip(kw).length > 2);
+    if (m) return strip(m);
+  }
+  return strip(words[words.length - 1] || "");
+}
+
+// ─── Capa V2: gancho cinético + IDENTIDADE DE MARCA (cor, kicker, movimento) ───
+// Antes a capa era "morta": título branco embaixo + "Nº" no topo (ruído p/ quem
+// chega frio). Agora: kicker da marca em ACENTO no topo, gancho que entra palavra
+// a palavra com a palavra-chave na cor da marca, fundo com glow do acento. Frame 0
+// segue limpo (o texto entra no play ~0,1s) — respeita a capa-de-grid sem título.
+function CoverTextV2({ title, accent, brand, handle, kw }: { title: string; accent: string; brand: string; handle: string; kw: string }) {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const settle = spring({ frame, fps, config: { damping: 200, stiffness: 260 }, durationInFrames: 10 });
-  const y = interpolate(settle, [0, 1], [26, 0]);
-  const scale = interpolate(settle, [0, 1], [1.04, 1]);
-  const o = interpolate(frame, [1, 6], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const coverAccent = pickCoverAccent(title, kw);
+  const kickerO = interpolate(frame, [1, 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const barW = interpolate(frame, [2, 14], [0, 96], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <AbsoluteFill>
-      <div style={{ position: "absolute", top: SAFE_TOP, left: 90, fontFamily: FRAUNCES, fontSize: 34, letterSpacing: 6, color: PAPER, opacity: 0.7 }}>
-        {brand.toUpperCase()} · Nº {ed}
+      {/* Glow do acento atrás do texto → tira o "morto", dá profundidade de marca */}
+      <AbsoluteFill style={{ background: `radial-gradient(60% 38% at 26% 78%, ${accent}38 0%, rgba(0,0,0,0) 70%)` }} />
+      {/* Kicker da marca no topo, EM COR DE ACENTO (identidade sem o "Nº") */}
+      <div style={{ position: "absolute", top: SAFE_TOP, left: 90, display: "flex", alignItems: "center", gap: 22, opacity: kickerO }}>
+        <div style={{ width: barW, height: 7, backgroundColor: accent, borderRadius: 4 }} />
+        <div style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 700, letterSpacing: 5, color: accent }}>
+          {brand.toUpperCase()}
+        </div>
       </div>
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: `0 90px ${SAFE_BOTTOM_TEXT}px` }}>
-        <div style={{ transform: `translateY(${y}px) scale(${scale})`, transformOrigin: "left bottom", opacity: o }}>
-          <div style={{ width: 110, height: 8, backgroundColor: accent, marginBottom: 40, borderRadius: 4 }} />
-          <div style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 100, lineHeight: 1.05, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}>
-            {title}
-          </div>
-        </div>
+        {/* Gancho cinético, maior, com a palavra-chave na cor da marca */}
+        <KineticText text={title} accent={coverAccent} accentColor={accent} startFrame={3} perWord={2} fontSize={108} />
       </AbsoluteFill>
       <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: 90 }}>
         <Handle color={PAPER} handle={handle} />
@@ -175,9 +211,11 @@ function CtaTextV2({ cta, accent, handle }: { cta: string; accent: string; handl
 }
 
 // ─── Composição V2 ─────────────────────────────────────────────────────────────
-export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, clips, clip, music, cat, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
+export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, img, clips, clip, music, cat, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
-  const safeSlides = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 3);
+  // DE-DUP (mesmo helper do Root.calculateMetadata) → capa e insight 1 nunca repetem,
+  // e a duração da composição bate com os insights de verdade (sem cena preta no fim).
+  const safeSlides = dedupeSlides(title, slides);
   const { COVER, INSIGHT, CTA, n, total } = reelDurationsV2(safeSlides.length);
   const usedSlides = safeSlides.slice(0, n);
 
@@ -198,7 +236,7 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
     <AbsoluteFill style={{ backgroundColor: "#0B0B0C" }}>
       <Sequence from={next(COVER)} durationInFrames={COVER}>
         <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER}>
-          <CoverTextV2 title={title} ed={ed} accent={accent} brand={brand} handle={handle} />
+          <CoverTextV2 title={title} accent={accent} brand={brand} handle={handle} kw={kw} />
         </Scene>
       </Sequence>
 
