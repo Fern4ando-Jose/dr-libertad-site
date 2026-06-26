@@ -81,12 +81,16 @@ const SAFE_BOTTOM_HANDLE = 300; // @ em y≈1620, logo acima da borda do recorte
 export const FPS = 30;
 
 // Até 3 insights entre capa e CTA → Reel mais LONGO e com mais cenas (decisão do
-// dono: ~25s p/ casar com a música de ~28s; antes eram só 2 insights/~20s e o
-// vídeo parecia curto). Capa 5s + 3×5,2s + CTA 4,6s ≈ 25,2s. Com 3 insights são
-// 5 cenas (capa + 3 + CTA) → 5 clipes de footage distintos (ver FOOTAGE_NUM_CLIPS).
+// dono: casar com a música de ~28s). Capa 5s + 3×6,0s + CTA 4,6s ≈ 27,6s (cabe nos
+// 28s da faixa). Com 3 insights são 5 cenas (capa + 3 + CTA) → 5 clipes de footage
+// distintos (ver FOOTAGE_NUM_CLIPS).
+// ⚠️ Insight = 6,0s (não 5,2s): o dono apontou que os insights "passavam rápido
+// demais p/ ler" (cena 1 e 2). Descontado o settle do texto, ~5,4s de leitura
+// estável — antes eram ~4,3s. Teto = 28s da música; não passar disso (senão sobra
+// silêncio no fim). Casa com o settle mais curto do InsightText (entry 18 frames).
 export function reelDurations(slidesCount: number) {
   const COVER = Math.round(FPS * 5.0);
-  const INSIGHT = Math.round(FPS * 5.2);
+  const INSIGHT = Math.round(FPS * 6.0);
   const CTA = Math.round(FPS * 4.6);
   const n = Math.min(Math.max(slidesCount || 1, 1), 3);
   return { COVER, INSIGHT, CTA, n, total: COVER + INSIGHT * n + CTA };
@@ -321,7 +325,9 @@ function CoverText({ title, ed, accent, brand, handle }: { title: string; ed: st
 function InsightText({ text, accent, accentColor, index, total, handle }: { text: string; accent: string; accentColor: string; index: number; total: number; handle: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 26 });
+  // Settle mais curto (18 frames ≈ 0,6s, era 26 ≈ 0,87s) → o texto fica ESTÁVEL/legível
+  // antes na cena, dando mais tempo de leitura (o dono apontou "passa rápido p/ ler").
+  const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 18 });
   const x = interpolate(entry, [0, 1], [-50, 0]);
   const o = interpolate(entry, [0, 1], [0, 1]);
   return (
