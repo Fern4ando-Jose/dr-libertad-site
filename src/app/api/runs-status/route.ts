@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dayBRT, publishedRunsToday, recentDuplicateTopics, attemptsToday, shouldStopRetrying } from "@/lib/run-ledger";
+import { dayBRT, publishedRunsToday, recentDuplicateTopics, attemptsToday, shouldStopRetrying, orphanedPairs } from "@/lib/run-ledger";
 import { minOfDayBRT } from "@/lib/day";
 
 // Status dos 6 runs do dia por idioma — o que JÁ publicou e o que está FALTANDO
@@ -45,5 +45,8 @@ export async function GET(req: NextRequest) {
   // Detecção: temas repetidos em 7d (2+ vagas distintas). Vazio = saudável; se vier algo,
   // é alarme — captamos um repeat ANTES do dono ver no feed.
   const duplicates = await recentDuplicateTopics(7);
-  return NextResponse.json({ ok: true, day, nowMin, missing, gaveUp, published, duplicates });
+  // Pares ÓRFÃOS: vaga em que uma língua publicou e a irmã DESISTIU (assimetria ES/PT
+  // permanente). Vazio = saudável; se vier algo, o par quebrou — alarme antes do feed.
+  const orphans = orphanedPairs(published, gaveUp, ACTIVE_LANGS);
+  return NextResponse.json({ ok: true, day, nowMin, missing, gaveUp, published, duplicates, orphans });
 }

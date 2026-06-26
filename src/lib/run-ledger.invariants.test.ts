@@ -4,7 +4,7 @@
 // FALTAVA — modela o cenário real (cross-formato/idioma/dia por vaga), não a rotação
 // pura. Foi o buraco que deixou "Si no pones límites" repetir reel+carrossel em 24/06.
 import { describe, it, expect } from "vitest";
-import { hasOtherVaga, publishedId, shouldStopRetrying, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS } from "./run-ledger";
+import { hasOtherVaga, publishedId, shouldStopRetrying, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS, orphanedPairs } from "./run-ledger";
 
 const D = "2026-06-24";
 
@@ -95,5 +95,41 @@ describe("hasOtherVaga — trava de publicação por vaga", () => {
 
   it("mistura própria vaga + outra → true (a outra vaga manda)", () => {
     expect(hasOtherVaga([{ day: D, run: 0 }, { day: D, run: 2 }], D, 0)).toBe(true);
+  });
+});
+
+// ATOMICIDADE ES+PT: a vaga tem de sair nas DUAS contas ou em nenhuma ("publicou numa,
+// tem de sair na outra"). `orphanedPairs` é o ALARME: detecta a vaga em que UMA língua
+// publicou e a irmã DESISTIU (gaveUp) — assimetria permanente no feed. Foi o defeito que
+// o dono apontou (ES-only). A causa nº1 (balde de orçamento compartilhado) é tratada à
+// parte pelo `siblingPublished` no gate; este alarme cobre o resíduo (ex.: lang-guard).
+const LANGS = ["es", "pt"];
+describe("orphanedPairs — alarme de par ES/PT quebrado", () => {
+  it("ambas publicaram → sem órfão (par íntegro)", () => {
+    expect(orphanedPairs({ es: [4], pt: [4] }, [], LANGS)).toEqual([]);
+  });
+
+  it("uma publicou e a irmã ainda está tentando (missing, não gaveUp) → ainda NÃO é órfão", () => {
+    // gaveUp vazio = a irmã não desistiu; o catchup ainda pode parear
+    expect(orphanedPairs({ es: [4], pt: [] }, [], LANGS)).toEqual([]);
+  });
+
+  it("ES publicou e PT DESISTIU na MESMA vaga → órfão (alarme)", () => {
+    const r = orphanedPairs({ es: [4], pt: [] }, [{ lang: "pt", run: 4 }], LANGS);
+    expect(r).toEqual([{ run: 4, publishedLang: "es", orphanLang: "pt" }]);
+  });
+
+  it("PT publicou e ES desistiu → órfão simétrico (não importa qual lado saiu)", () => {
+    const r = orphanedPairs({ es: [], pt: [5] }, [{ lang: "es", run: 5 }], LANGS);
+    expect(r).toEqual([{ run: 5, publishedLang: "pt", orphanLang: "es" }]);
+  });
+
+  it("NENHUMA publicou (as duas desistiram) → NÃO é órfão (é falha total, não assimetria)", () => {
+    expect(orphanedPairs({ es: [], pt: [] }, [{ lang: "es", run: 4 }, { lang: "pt", run: 4 }], LANGS)).toEqual([]);
+  });
+
+  it("desistência em run DIFERENTE do publicado → não pareia como órfão", () => {
+    // ES publicou run4; PT desistiu de run5 (vaga distinta) → não é o par do run4
+    expect(orphanedPairs({ es: [4], pt: [] }, [{ lang: "pt", run: 5 }], LANGS)).toEqual([]);
   });
 });

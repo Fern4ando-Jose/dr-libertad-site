@@ -5,7 +5,7 @@ import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } f
 import { parseContentJson } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentTopicsAllLangs, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock } from "@/lib/run-ledger";
+import { recordRun, recentTopicsAllLangs, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, pickFreshTopicIndexThreaded } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
@@ -612,9 +612,9 @@ export async function GET(req: NextRequest) {
     for (const runIndex of runs) {
       const slot = SLOT_FOR_RUN[runIndex];
       const slotLog: Record<string, unknown> = { slot, run: runIndex };
+      const now = new Date(); // hoisted: o catch externo (disjuntor) também precisa do dia
 
       try {
-        const now   = new Date();
 
         // IDEMPOTÊNCIA por (dia, run, conta) — a MESMA trava que o Reel já tinha.
         // Sem ela, quando o catchup recupera um run E o cron atrasado do GitHub
@@ -650,18 +650,27 @@ export async function GET(req: NextRequest) {
         // orçamento, BLOQUEIA (não gasta) e sinaliza p/ o GitHub Actions falhar.
         const gate = await checkBudget("ig-posts", EST_RUN_COST.publish);
         if (!gate.ok) {
-          anyBlocked = true;
-          slotLog.blocked = true;
-          slotLog.reason = `Orçamento diário ig-posts estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)}). Suba budget:ig-posts em config p/ liberar.`;
-          // DESISTE DO DIA (hard): o orçamento é um balde DIÁRIO — não reabre até amanhã.
-          // Sem isto, a vaga ficava "faltando" e o watchdog redisparava de 15 em 15 min;
-          // cada redisparo que passava o portão REGERAVA ilustração (fal) → o gasto subia
-          // (chegou a US$0,573 em 24/06), o que causava MAIS 402 → tempestade. Foi a RAIZ
-          // real das duplicatas no PT (não o "bloqueio da conta"): o 2º idioma da vaga
-          // pega o balde já gasto pelo 1º. Marcar hard = catchup para na hora (anti-martelo).
-          await bumpAttempt(dayBRT(now), runIndex, lang, true);
-          results.push(slotLog);
-          continue;
+          // ATOMICIDADE ES+PT (regra do dono "tem de sair nas DUAS contas"): se a língua-
+          // IRMÃ desta MESMA vaga JÁ publicou, NÃO bloqueia por orçamento — senão a vaga
+          // fica ÓRFÃ (ES-only). Era a causa nº1 de órfão: o balde ig-posts é compartilhado,
+          // o 1º idioma gasta e o 2º bate no teto. Bounded: no máx +1 publish por vaga; a
+          // ilustração do 2º vem do cache (barato). Liberar aqui COMPLETA o par.
+          if (await siblingPublished(dayBRT(now), runIndex, lang)) {
+            slotLog.budgetBypassPair = true; // segue p/ não orfanar o par ES+PT
+          } else {
+            anyBlocked = true;
+            slotLog.blocked = true;
+            slotLog.reason = `Orçamento diário ig-posts estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)}). Suba budget:ig-posts em config p/ liberar.`;
+            // DESISTE DO DIA (hard): o orçamento é um balde DIÁRIO — não reabre até amanhã.
+            // Sem isto, a vaga ficava "faltando" e o watchdog redisparava de 15 em 15 min;
+            // cada redisparo que passava o portão REGERAVA ilustração (fal) → o gasto subia
+            // (chegou a US$0,573 em 24/06), o que causava MAIS 402 → tempestade. Foi a RAIZ
+            // real das duplicatas no PT (não o "bloqueio da conta"): o 2º idioma da vaga
+            // pega o balde já gasto pelo 1º. Marcar hard = catchup para na hora (anti-martelo).
+            await bumpAttempt(dayBRT(now), runIndex, lang, true);
+            results.push(slotLog);
+            continue;
+          }
         }
 
         // Copy: reusa o cache por (tópico, dia, idioma) → redisparo NÃO repaga
@@ -750,7 +759,18 @@ export async function GET(req: NextRequest) {
       } catch (slotErr) {
         console.error("[publish] erro no slot:", slotErr);
         slotLog.ok    = false;
-        slotLog.error = "erro ao publicar slot";
+        // Erro REAL (era a string genérica "erro ao publicar slot" → diagnóstico CEGO no
+        // incidente 25/06; agora vai na resposta HTTP que o catchup/log enxerga).
+        slotLog.error = String(slotErr).slice(0, 300);
+        // DISJUNTOR — TODA saída "não publicou" tem de FREAR (doutrina CLAUDE.md). Uma falha
+        // FORA do publishCarousel (ilustração fal, montagem do slide, savePost) caía aqui e
+        // NÃO contava tentativa → o catchup redisparava p/ sempre, REGERANDO ilustração a
+        // cada vez → ralo de orçamento (25/06: 12 ilustrações, balde estourado, 0 carrossel,
+        // os 2 carrosséis ES+PT órfãos com att=3 só pelo hard do 402). Conta a tentativa:
+        // após MAX o catchup para. hard se for bloqueio duro do IG.
+        try {
+          await bumpAttempt(dayBRT(now), runIndex, lang, isHardPublishBlock(slotLog.error));
+        } catch { /* best-effort: nunca quebra o pipeline por causa do freio */ }
       }
 
       results.push(slotLog);
