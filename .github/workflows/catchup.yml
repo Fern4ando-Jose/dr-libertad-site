@@ -40,19 +40,36 @@ jobs:
             "https://www.drlibertad.com/api/runs-status")
           echo "runs-status: $RESP"
 
+          # Workflows FUNDIDOS (1 disparo publica ES+PT na mesma tanda) → dedupe por
+          # (workflow,run): se a vaga falta nos 2 idiomas, redisparamos UMA vez só.
+          # Os que ainda são espelhados (-pt) seguem per-idioma. Carrossel (runs 4,5) já
+          # foi fundido; reels (0..3) entram na Fase 2.
+          declare -A SEEN
           echo "$RESP" | jq -c '.missing[]?' | while read -r item; do
             lang=$(echo "$item" | jq -r '.lang')
             run=$(echo "$item" | jq -r '.run')
 
             case "$run" in
-              0|1|2) base="instagram-reels";          extra="-f publish=yes" ;;
-              3)     base="instagram-reels-classic";  extra="-f publish=yes" ;;
-              4|5)   base="instagram-posts";          extra="" ;;
+              0|1|2) base="instagram-reels";          extra="-f publish=yes"; merged=0 ;;
+              3)     base="instagram-reels-classic";  extra="-f publish=yes"; merged=0 ;;
+              4|5)   base="instagram-posts";          extra="";               merged=1 ;; # FUNDIDO ES+PT
               *)     echo "run $run desconhecido — pulando"; continue ;;
             esac
-            if [ "$lang" = "pt" ]; then wf="${base}-pt.yml"; else wf="${base}.yml"; fi
 
-            echo "::notice title=Catch-up::redisparando $wf run=$run ($lang)"
+            if [ "$merged" = "1" ]; then
+              wf="${base}.yml"; key="${wf}:${run}"   # 1 disparo = as 2 contas
+            else
+              if [ "$lang" = "pt" ]; then wf="${base}-pt.yml"; else wf="${base}.yml"; fi
+              key="${wf}:${run}:${lang}"
+            fi
+
+            if [ -n "${SEEN[$key]:-}" ]; then
+              echo "já redisparado nesta rodada: $key — pulando"; continue
+            fi
+            SEEN[$key]=1
+
+            if [ "$merged" = "1" ]; then tag=" — fundido ES+PT"; else tag=" ($lang)"; fi
+            echo "::notice title=Catch-up::redisparando $wf run=$run$tag"
             # shellcheck disable=SC2086
             gh workflow run "$wf" -f run="$run" $extra \
               || echo "::warning::falha ao disparar $wf run=$run ($lang)"
