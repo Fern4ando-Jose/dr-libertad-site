@@ -11,6 +11,48 @@
 
 ---
 
+## ✅ 2026-06-26 — Carrossel PT DUPLICADO no feed (post-fantasma do action-block)
+
+- **Sintoma:** o dono viu no grid do @dr.liberdade.br **dois carrosséis IDÊNTICOS** seguidos —
+  "O casal fake que você segue não existe", **mesma edição (ED 131)**, mesma capa. Pergunta dele:
+  *"isso não estava nos erros já corrigidos? por que volta o mesmo erro se temos banco de erros?"*
+- **Evidência (puxada do banco, não deduzida):** na tabela `posts`, **TODA** linha `pt` tinha
+  `instagram_post_id` **NULL**; toda `es` tinha id real. "O casal fake" (pt) aparecia **2×** hoje
+  (13:17 e 14:49), as duas com `igid=NULL`; "Nunca mude quem você é" e "O amor que morre de tédio"
+  (pt) saíram **4× cada** em 24→25/06, todas NULL. No log do workflow, o `instagramError` real do
+  `media_publish`: **`code 4` / `error_subcode 2207051` — "Application request limit reached" /
+  "action is blocked"** (`is_transient:false`).
+- **Causa-raiz (buraco NOVO, não reincidência):** o IG aplica um **action-block** e o `media_publish`
+  responde **ERRO**, mas **publica o post no feed assim mesmo**. O `publishCarousel` **lançava** esse
+  erro → o chamador gravava `instagram_post_id = NULL` ("post-fantasma") → e **TODAS** as travas
+  (`runAlreadyPublished`, `topicUsedInOtherVaga`) filtram `igid IS NOT NULL`, então **não enxergam o
+  fantasma** → o catchup acha que a vaga "não publicou" e **redispara** → **2º post idêntico**. Além
+  disso, o disjuntor (`attempts`/`bumpAttempt`) **só era lido pelo watchdog** (`/api/runs-status` →
+  `gaveUp`), **nunca pelo próprio `/api/publish`** — então quando o catchup redisparava o workflow, o
+  publish **re-entrava sem freio**, regenerava ilustração (custo fal) e publicava de novo.
+- **Por que NÃO é o mesmo erro de 24-25/06 (e por que o "banco de erros" não impediu):** os fixes
+  anteriores fecharam outros buracos da MESMA família "duplicata por redisparo" — **24/06:** o **402
+  de orçamento** dava `continue` sem contar tentativa; **25/06:** o **catch EXTERNO** da slot não
+  chamava `bumpAttempt`. Ambos eram sobre **NÃO contar a tentativa**. ESTE é diferente: a tentativa
+  até era contada (`att=3`), mas **(a)** faltava o **gate que LÊ esse contador na fronteira do
+  publish** e **(b)** ninguém tratava o caso "**publicou no feed MAS a chamada lançou erro**". O
+  catálogo registra causas-raiz específicas; uma família de bug pode ter **vários pontos de entrada**
+  e cada um precisa ser fechado. **Lição/processo:** o disjuntor tem de ser checado **no ato de
+  publicar**, não só no watchdog; e **exceção do publish ≠ "não publicou"** (o IG publica-e-erra).
+- **✅ SOLUÇÃO (mesma sessão):** **(1)** gate do disjuntor na **fronteira do publish** (`/api/publish`
+  **e** `/api/publish-reel`): se a vaga já desistiu hoje (`shouldStopRetrying(attemptsToday())`),
+  **não republica** nem regenera ilustração (`force=1` burla). **(2)** anti-fantasma no erro DURO:
+  `publishFailureMode(errText)` — num action-block/limite (post provavelmente VIVO) o `publishCarousel`/
+  `publishReel` **devolve o creation_id como SENTINELA** em vez de lançar → a vaga é GRAVADA no
+  livro-razão (`igid` não-nulo) e ninguém republica; erro transitório (post NÃO vivo) ainda lança e o
+  catchup pode tentar. Doutrina do dono: "tem de ser **ÚNICA**". Invariantes em
+  `run-ledger.invariants.test.ts` (com a string REAL do incidente). **(3) Bônus do mesmo print —
+  "PAREJA" em espanhol no feed BR:** o rótulo de categoria usava `kw = extractKeyword(topic)`, e
+  `topic` é a chave **canônica em espanhol** dos `THEMES` → "RECOMPENSA · **PAREJA**" no @dr.liberdade.br.
+  Agora o BR deriva o `kw` do **título PT** (stopwords PT) → "RECOMPENSA · **CASAL**". ES **byte-idêntico**.
+- **Resíduo:** as 2 duplicatas que já estão no feed **não dá pra apagar via API** (o IG não deleta) —
+  o dono remove 1 manualmente no app. A partir do deploy, a repetição **não chega mais ao feed**.
+
 ## ✅ 2026-06-26 — Vercel Blob CHEIO (1GB) travava TODA publicação de Reel
 
 - **Sintoma:** o upload do Reel pro Vercel Blob falhava com `Vercel Blob: Storage quota

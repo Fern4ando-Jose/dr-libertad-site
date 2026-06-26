@@ -5,7 +5,7 @@ import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } f
 import { parseContentJson } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentTopicsAllLangs, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock } from "@/lib/run-ledger";
+import { recordRun, recentTopicsAllLangs, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, pickFreshTopicIndexThreaded } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
@@ -123,10 +123,18 @@ const TOPIC_LITERAL: Record<string, boolean> = Object.fromEntries(THEMES.filter(
 
 // ─── Extrai keyword curta do tópico ──────────────────────────────────────────
 
-function extractKeyword(topic: string): string {
-  const STOP = new Set(["y","e","o","de","del","la","el","los","las","a","en","con","por","un","una","sus","su","al","se","lo"]);
-  const word = topic.split(/\s+/).find(w => !STOP.has(w.toLowerCase())) ?? topic.split(" ")[0];
-  return word.toUpperCase().replace(/[^A-ZÁÉÍÓÚÜÑ]/g, "");
+// Palavra-chave do rótulo de categoria ("RECOMPENSA · {kw}"). DEVE respeitar o idioma:
+// o `topic` é a chave CANÔNICA em ESPANHOL dos THEMES, então usá-lo no BR vazava espanhol
+// no feed ("RECOMPENSA · PAREJA" no @dr.liberdade.br, 26/06) — defeito "BR é BR; ES é ES".
+// Por isso o chamador passa o TÍTULO já no idioma (PT) e o lang escolhe os stopwords. ES
+// fica IDÊNTICO: STOP_ES é o conjunto original e a regex só GANHOU acentos PT (que não
+// aparecem em palavra ES) → mesma saída p/ espanhol.
+const STOP_ES = new Set(["y","e","o","de","del","la","el","los","las","a","en","con","por","un","una","sus","su","al","se","lo"]);
+const STOP_PT = new Set(["e","ou","o","a","os","as","de","do","da","dos","das","no","na","nos","nas","um","uma","em","com","por","para","pra","sem","que","se","ao","à","você","voce","não","nao","seu","sua","mais","te","me"]);
+function extractKeyword(text: string, lang: Lang = "es"): string {
+  const STOP = lang === "pt" ? STOP_PT : STOP_ES;
+  const word = text.split(/\s+/).find(w => !STOP.has(w.toLowerCase())) ?? text.split(" ")[0];
+  return word.toUpperCase().replace(/[^A-ZÁÉÍÓÚÜÑÃÕÂÊÔÀÇ]/g, "");
 }
 
 // runIndex 0..5 → um dos 6 horários do dia. Garante 6 tópicos DISTINTOS por dia
@@ -434,7 +442,20 @@ async function publishCarousel(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ creation_id: carId, access_token: token }),
   });
-  if (!pubRes.ok) throw new Error(`Carousel publish error: ${await pubRes.text()}`);
+  if (!pubRes.ok) {
+    const errText = await pubRes.text();
+    // ANTI-FANTASMA no ERRO DURO: um action-block/limite do IG ("Application request
+    // limit reached", code 4 / 2207051) responde ERRO no media_publish MAS o post VAI
+    // pro feed mesmo assim (observado: carrossel PT "O casal fake…", 26/06). Se a gente
+    // LANÇA aqui, o chamador grava id NULL → a vaga fica invisível ao runAlreadyPublished
+    // → o catchup re-publica → DUPLICATA. Como o post provavelmente está VIVO, devolve o
+    // creation_id como SENTINELA (a vaga é gravada no livro-razão e ninguém republica).
+    // Erro NÃO-duro (ex.: "media not ready", transitório, post NÃO vivo) → lança normal,
+    // o disjuntor conta a tentativa e o catchup pode tentar de novo. Doutrina do dono:
+    // "tem de ser ÚNICA" — melhor uma vaga marcada que uma duplicata no feed.
+    if (publishFailureMode(errText) === "sentinel") return publishedId(undefined, carId);
+    throw new Error(`Carousel publish error: ${errText}`);
+  }
   // Publicação CONFIRMADA (200). Se a resposta vier sem `id`, o post está vivo mesmo
   // assim → devolve o creation_id como sentinela não-nula p/ a vaga ser GRAVADA no
   // livro-razão (senão vira "post-fantasma" e o watchdog redispara → tema duplicado).
@@ -567,7 +588,8 @@ export async function GET(req: NextRequest) {
       } catch { editionNum = 1; }
     }
     const ed = String(editionNum).padStart(2, "0");
-    const kw = extractKeyword(topic);
+    // BR usa o TÍTULO PT (não a chave ES do tema) → sem espanhol no rótulo. ES inalterado.
+    const kw = extractKeyword(lang === "pt" ? content.postTitle : topic, lang);
 
     // O Reel de VÍDEO usa FOOTAGE de banco (Pexels) — NÃO gera ilustração na fal
     // aqui (economia; o preview roda várias vezes/dia). EXCEÇÃO: ?illus=1 — o Reel
@@ -612,9 +634,9 @@ export async function GET(req: NextRequest) {
     for (const runIndex of runs) {
       const slot = SLOT_FOR_RUN[runIndex];
       const slotLog: Record<string, unknown> = { slot, run: runIndex };
+      const now = new Date(); // hoisted: o catch externo (disjuntor) também precisa do dia
 
       try {
-        const now   = new Date();
 
         // IDEMPOTÊNCIA por (dia, run, conta) — a MESMA trava que o Reel já tinha.
         // Sem ela, quando o catchup recupera um run E o cron atrasado do GitHub
@@ -624,6 +646,23 @@ export async function GET(req: NextRequest) {
         if (!force && await runAlreadyPublished(dayBRT(now), runIndex, lang)) {
           slotLog.skipped = true;
           slotLog.reason = `run ${runIndex} (${lang}) já publicado hoje — idempotência`;
+          results.push(slotLog);
+          continue;
+        }
+
+        // DISJUNTOR na FRONTEIRA do publish (não só no watchdog). O `bumpAttempt`
+        // crava attempts, mas até aqui SÓ o /api/runs-status (watchdog) lia esse teto —
+        // o próprio /api/publish re-entrava sem freio quando o catchup redisparava o
+        // workflow (timing). Aí está a RAIZ da DUPLICATA do carrossel PT (26/06, "O casal
+        // fake…"): um action-block do IG ("Application request limit reached", code 4)
+        // PUBLICA o post no feed MAS lança erro → instagram_post_id fica NULL → o
+        // runAlreadyPublished (que exige id NOT NULL) é cego ao post-fantasma → o catchup
+        // re-publica → 2º post idêntico. Com a vaga já tendo desistido hoje (≥MAX
+        // tentativas), NÃO re-publica (e nem regenera ilustração, cortando o ralo da fal).
+        // force=1 burla (backfill manual). Fail-open: attemptsToday=0 em erro → sem freio.
+        if (!force && shouldStopRetrying(await attemptsToday(dayBRT(now), runIndex, lang))) {
+          slotLog.skipped = true;
+          slotLog.reason = `run ${runIndex} (${lang}) desistiu hoje (≥${MAX_PUBLISH_ATTEMPTS} tentativas) — disjuntor de publicação`;
           results.push(slotLog);
           continue;
         }
@@ -650,18 +689,27 @@ export async function GET(req: NextRequest) {
         // orçamento, BLOQUEIA (não gasta) e sinaliza p/ o GitHub Actions falhar.
         const gate = await checkBudget("ig-posts", EST_RUN_COST.publish);
         if (!gate.ok) {
-          anyBlocked = true;
-          slotLog.blocked = true;
-          slotLog.reason = `Orçamento diário ig-posts estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)}). Suba budget:ig-posts em config p/ liberar.`;
-          // DESISTE DO DIA (hard): o orçamento é um balde DIÁRIO — não reabre até amanhã.
-          // Sem isto, a vaga ficava "faltando" e o watchdog redisparava de 15 em 15 min;
-          // cada redisparo que passava o portão REGERAVA ilustração (fal) → o gasto subia
-          // (chegou a US$0,573 em 24/06), o que causava MAIS 402 → tempestade. Foi a RAIZ
-          // real das duplicatas no PT (não o "bloqueio da conta"): o 2º idioma da vaga
-          // pega o balde já gasto pelo 1º. Marcar hard = catchup para na hora (anti-martelo).
-          await bumpAttempt(dayBRT(now), runIndex, lang, true);
-          results.push(slotLog);
-          continue;
+          // ATOMICIDADE ES+PT (regra do dono "tem de sair nas DUAS contas"): se a língua-
+          // IRMÃ desta MESMA vaga JÁ publicou, NÃO bloqueia por orçamento — senão a vaga
+          // fica ÓRFÃ (ES-only). Era a causa nº1 de órfão: o balde ig-posts é compartilhado,
+          // o 1º idioma gasta e o 2º bate no teto. Bounded: no máx +1 publish por vaga; a
+          // ilustração do 2º vem do cache (barato). Liberar aqui COMPLETA o par.
+          if (await siblingPublished(dayBRT(now), runIndex, lang)) {
+            slotLog.budgetBypassPair = true; // segue p/ não orfanar o par ES+PT
+          } else {
+            anyBlocked = true;
+            slotLog.blocked = true;
+            slotLog.reason = `Orçamento diário ig-posts estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)}). Suba budget:ig-posts em config p/ liberar.`;
+            // DESISTE DO DIA (hard): o orçamento é um balde DIÁRIO — não reabre até amanhã.
+            // Sem isto, a vaga ficava "faltando" e o watchdog redisparava de 15 em 15 min;
+            // cada redisparo que passava o portão REGERAVA ilustração (fal) → o gasto subia
+            // (chegou a US$0,573 em 24/06), o que causava MAIS 402 → tempestade. Foi a RAIZ
+            // real das duplicatas no PT (não o "bloqueio da conta"): o 2º idioma da vaga
+            // pega o balde já gasto pelo 1º. Marcar hard = catchup para na hora (anti-martelo).
+            await bumpAttempt(dayBRT(now), runIndex, lang, true);
+            results.push(slotLog);
+            continue;
+          }
         }
 
         // Copy: reusa o cache por (tópico, dia, idioma) → redisparo NÃO repaga
@@ -685,7 +733,8 @@ export async function GET(req: NextRequest) {
           } catch { editionNum = 1; }
         }
         const ed   = String(editionNum).padStart(2, "0");
-        const kw   = extractKeyword(topic);
+        // BR usa o TÍTULO PT (não a chave ES do tema) → sem espanhol no rótulo. ES inalterado.
+        const kw   = extractKeyword(lang === "pt" ? content.postTitle : topic, lang);
         // mood alterna: red para ímpares, ink para pares (igual ao EditorialGrid do site)
         const mood = editionNum % 2 === 0 ? "ink" : "red";
 
@@ -750,7 +799,18 @@ export async function GET(req: NextRequest) {
       } catch (slotErr) {
         console.error("[publish] erro no slot:", slotErr);
         slotLog.ok    = false;
-        slotLog.error = "erro ao publicar slot";
+        // Erro REAL (era a string genérica "erro ao publicar slot" → diagnóstico CEGO no
+        // incidente 25/06; agora vai na resposta HTTP que o catchup/log enxerga).
+        slotLog.error = String(slotErr).slice(0, 300);
+        // DISJUNTOR — TODA saída "não publicou" tem de FREAR (doutrina CLAUDE.md). Uma falha
+        // FORA do publishCarousel (ilustração fal, montagem do slide, savePost) caía aqui e
+        // NÃO contava tentativa → o catchup redisparava p/ sempre, REGERANDO ilustração a
+        // cada vez → ralo de orçamento (25/06: 12 ilustrações, balde estourado, 0 carrossel,
+        // os 2 carrosséis ES+PT órfãos com att=3 só pelo hard do 402). Conta a tentativa:
+        // após MAX o catchup para. hard se for bloqueio duro do IG.
+        try {
+          await bumpAttempt(dayBRT(now), runIndex, lang, isHardPublishBlock(slotLog.error));
+        } catch { /* best-effort: nunca quebra o pipeline por causa do freio */ }
       }
 
       results.push(slotLog);

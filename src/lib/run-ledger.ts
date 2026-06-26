@@ -83,6 +83,19 @@ export function isHardPublishBlock(err: unknown): boolean {
     || s.includes("429") || s.includes("rate limit") || s.includes("temporarily blocked");
 }
 
+// Decisão pós-`media_publish` que volta com ERRO (HTTP !ok). O action-block/limite DURO
+// do IG ("Application request limit reached", code 4 / 2207051) responde ERRO mas PUBLICA
+// o post no feed assim mesmo (observado: carrossel PT "O casal fake…", 26/06). Se a gente
+// LANÇA, o chamador grava id NULL → a vaga fica invisível ao runAlreadyPublished → o
+// catchup REPUBLICA → DUPLICATA. Como o post provavelmente está VIVO num bloqueio duro,
+// devolve "sentinel" (gravar a vaga com o creation_id e NÃO republicar). Erro NÃO-duro
+// (ex.: "media not ready", transitório, post NÃO vivo) → "throw" (falha real; o disjuntor
+// conta a tentativa e o catchup pode tentar de novo). PURE/testável. Doutrina "tem de ser
+// ÚNICA": melhor uma vaga marcada-publicada que uma duplicata no feed.
+export function publishFailureMode(errText: unknown): "sentinel" | "throw" {
+  return isHardPublishBlock(errText) ? "sentinel" : "throw";
+}
+
 // Registra uma tentativa FALHA da vaga. `hard` (bloqueio do IG) já leva ao teto.
 export async function bumpAttempt(day: string, run: number, lang: string, hard = false): Promise<void> {
   try {
@@ -243,6 +256,54 @@ export async function recentDuplicateTopics(days = 7): Promise<{ topic: string; 
   } catch {
     return [];
   }
+}
+
+// ── ATOMICIDADE ES+PT por vaga ────────────────────────────────────────────────
+// A vaga (dia,run) é UMA unidade lógica: tem de sair nas DUAS contas (ES e PT) ou em
+// NENHUMA — "publicou numa, tem de sair na outra; tem de ser única" (regra do dono). A
+// causa nº1 de ÓRFÃO (uma língua sai, a irmã não) é o balde de orçamento COMPARTILHADO
+// ig-posts: o 1º idioma gasta e o 2º bate no teto → 402 → órfão ES-only (documentado em
+// posting-stalls-cron-and-budget). `siblingPublished` deixa o gate de orçamento LIBERAR
+// o 2º idioma quando o 1º já saiu — completa o par. Bounded: no máx +1 publish por vaga;
+// a ilustração do 2º idioma já vem do cache compartilhado (custo marginal ~só haiku).
+// FAIL-OPEN: erro de banco → false (NÃO libera; volta ao comportamento anterior).
+export async function siblingPublished(day: string, run: number, lang: string): Promise<boolean> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql`
+      SELECT 1 FROM published_runs
+      WHERE day = ${day} AND run = ${run} AND lang <> ${lang}
+        AND instagram_post_id IS NOT NULL
+      LIMIT 1
+    `;
+    return r.rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// DETECÇÃO de par ÓRFÃO (PURE, testável): vaga (run) em que UMA língua publicou e a
+// OUTRA já DESISTIU (no `gaveUp` do disjuntor) → assimetria PERMANENTE no feed. Alimenta
+// /api/runs-status como ALARME (igual a `duplicates`) — captamos a quebra do par ANTES do
+// dono ver. Só conta como órfão quando a irmã NÃO vai mais tentar (gaveUp); se ainda está
+// em `missing`, o catchup pode parear, então não alarma. Vazio = saudável.
+export function orphanedPairs(
+  publishedByLang: Record<string, number[]>,
+  gaveUp: { lang: string; run: number }[],
+  langs: string[],
+): { run: number; publishedLang: string; orphanLang: string }[] {
+  const out: { run: number; publishedLang: string; orphanLang: string }[] = [];
+  const gaveUpSet = new Set(gaveUp.map((g) => `${g.lang}:${g.run}`));
+  const runsSeen = new Set<number>();
+  for (const l of langs) for (const r of publishedByLang[l] ?? []) runsSeen.add(r);
+  for (const g of gaveUp) runsSeen.add(g.run);
+  for (const run of runsSeen) {
+    const publishedLang = langs.find((l) => (publishedByLang[l] ?? []).includes(run));
+    if (!publishedLang) continue;
+    const orphanLang = langs.find((l) => l !== publishedLang && gaveUpSet.has(`${l}:${run}`));
+    if (orphanLang) out.push({ run, publishedLang, orphanLang });
+  }
+  return out;
 }
 
 // Quais runs do dia já têm publicação, por idioma. Usado pelo watchdog (via
