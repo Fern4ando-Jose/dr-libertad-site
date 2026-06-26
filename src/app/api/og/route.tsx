@@ -436,9 +436,11 @@ function Folio({ issue, accent, dark, brand }: { issue: string; accent: string; 
   const dim = dark ? rgba("#F4F0E8", 0.6) : INK_70;
   return (
     <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+      {/* Contagem de edição "ED. NNN" REMOVIDA do carrossel (decisão do dono 2026-06-26):
+          fica só a marca + a régua de acento. `issue` segue computado (alimenta o seed do
+          motivo), só não é mais exibido. */}
+      <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "baseline" }}>
         <span style={{ fontFamily: SERIF, fontSize: 30, letterSpacing: "0.30em", color: dim }}>{brand.toUpperCase()}</span>
-        <span style={{ fontFamily: SERIF, fontSize: 30, letterSpacing: "0.18em", color: accent }}>{issue}</span>
       </div>
       <div style={{ marginTop: 22, height: 2, width: "100%", background: accent, display: "flex" }} />
     </div>
