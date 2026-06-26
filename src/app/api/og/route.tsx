@@ -515,7 +515,11 @@ function InsightSlide({ text, num, total, kw, issue, cat, motif, seed, lang }: {
           {mainText.toUpperCase()}
         </div>
         {subText ? (
-          <div style={{ fontSize: 40, lineHeight: 1.5, color: INK_70, marginTop: 30, maxWidth: 780, display: "flex" }}>
+          // Subtítulo do insight: maior + na COR DA MARCA (acento da categoria) em vez do
+          // cinza estático — dá destaque sem competir com o título (pedido do dono 2026-06-26,
+          // "muito estático, sem chamativos"). fontFamily SERIF p/ casar com o resto (satori
+          // não herda fonte de forma confiável). Fica abaixo do mainText, leitura preservada.
+          <div style={{ fontFamily: SERIF, fontSize: 50, lineHeight: 1.4, letterSpacing: "-0.01em", color: c.accent, marginTop: 30, maxWidth: 820, display: "flex" }}>
             {subText}
           </div>
         ) : null}
