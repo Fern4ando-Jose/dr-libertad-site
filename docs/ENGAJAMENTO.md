@@ -45,6 +45,33 @@ prompt builders + geração haiku), `src/app/api/webhooks/instagram/route.ts` (I
 | `ENGAGEMENT_LEAD_NAME_ES` / `_PT` (+ global `ENGAGEMENT_LEAD_NAME`) | **default embutido** | nome do lead magnet entregue na DM |
 | `ENGAGEMENT_LEAD_URL_ES` / `_PT` (+ global `ENGAGEMENT_LEAD_URL`) | **default embutido** | link do lead magnet. Default = o guia **"El Reinicio / O Reinício"** servido em `/lead/*.pdf` (já no repo). Sem URL → a DM só abre conversa, não inventa link |
 
+## Go-live (pós-aprovação) — ✅ App Review APROVADO 2026-06-25
+
+Os escopos `instagram_business_manage_comments` + `instagram_business_manage_messages`
+estão em **Acesso Avançado** → a automação pode atingir o **público** (não só testers).
+Ligar é **faseado e reversível** (é flag de env). Ordem recomendada:
+
+**Fase 0 — pré-checagem (1x):**
+- [ ] Secrets na **Vercel**: `META_APP_SECRET` (= secret do app **Instagram**, não o do
+      Facebook) + `META_WEBHOOK_VERIFY_TOKEN`. Os tokens de publicação já existem.
+- [ ] App **publicado** (Go Live) — sem isso a Meta não entrega webhook.
+- [ ] Webhook inscrito por conta em `comments`+`messages`:
+      `GET graph.instagram.com/v21.0/me/subscribed_apps`. **ES já confirmada** (`["comments","messages"]`, 25/06).
+      **PT `@dr.liberdade.br`: CONFERIR** (não checável local — token PT não está no `.env.local`).
+
+**Fase 1 — comentários (menor risco, escopo aprovado):**
+- [ ] Setar `ENGAGEMENT_ENABLED=on` (Vercel). Valida em **comentário público real** num
+      post nosso → resposta automática aparece. Custo no balde `ig-engagement` (~US$0/dia conta nova).
+
+**Fase 2 — funil comment→DM e DM inbound:**
+- [ ] ⚠️ **BLOQUEIO:** corrigir antes o bug de **auto-reply duplicado no PT**
+      (`@dr.liberdade.br`, prints 25/06) — senão duplica DM no público. Está no 🔴 do painel.
+- [ ] Depois do fix: `ENGAGEMENT_FUNNEL_ENABLED=on` e `ENGAGEMENT_DM_ENABLED=on`.
+- [ ] Palavra-chave/lead usam default embutido (`LIBERTAD`/`LIBERDADE` → prévia "I Love
+      Dopamina") — só setar env se for mudar.
+
+> Tudo OFF reverte na hora (apagar/`off` a flag). Espelhar ES + PT ("rodar = ES + PT").
+
 ## Secrets a setar (Vercel + GitHub) — AÇÃO DO DONO
 
 - `META_APP_SECRET` — App Secret do app Meta (valida a assinatura do webhook).

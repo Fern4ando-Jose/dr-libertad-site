@@ -102,11 +102,16 @@ uma **segunda conta** (B) que comenta. Narre em inglês (ou legende).
 
 ## 4. Checklist antes de apertar "Enviar"
 
+> **✅ STATUS 2026-06-25: ENVIADO e APROVADO** (dono confirmou). Os escopos
+> `instagram_business_manage_comments` + `instagram_business_manage_messages` estão em
+> **Acesso Avançado**. Esta submissão fica como referência/reuso. **Próximo passo agora é
+> o GO-LIVE das flags** — ver `docs/ENGAJAMENTO.md` → seção "Go-live (pós-aprovação)".
+
 **Pré-requisitos da conta/app**
-- [ ] Verificação de Negócio **aprovada** ("conta verificada"). ✅ (25/06)
-- [ ] App é **Tech Provider** (irreversível, já feito 25/06).
-- [ ] **Verificação de acesso** concluída (menu Analisar → Verificação).
-- [ ] App **publicado** (Go Live) — exige Privacidade + Exclusão de dados + Categoria.
+- [x] Verificação de Negócio **aprovada** ("conta verificada"). (25/06)
+- [x] App é **Tech Provider** (irreversível, feito 25/06).
+- [x] **Verificação de acesso** concluída (menu Analisar → Verificação).
+- [x] App **publicado** (Go Live) — Privacidade + Exclusão de dados + Categoria.
 
 **Webhook / técnico (já validado pra testers)**
 - [ ] Campo `comments` inscrito no painel **e** `subscribed_apps` da conta com `comments`
@@ -115,8 +120,8 @@ uma **segunda conta** (B) que comenta. Narre em inglês (ou legende).
 - [ ] `META_APP_SECRET` = secret do app **Instagram** (não o do Facebook) → assinatura 200.
 - [ ] Resposta automática confirmada chegando em post real de tester (PR #93).
 
-**Formulário**
-- [ ] Texto do caso de uso colado (seção 1).
+**Formulário** _(concluído — submissão aprovada)_
+- [x] Texto do caso de uso colado (seção 1).
 - [ ] Justificativa/detalhes colados (seção 2).
 - [ ] **Advanced Access** selecionado (não Standard).
 - [ ] Privacy Policy URL preenchida e pública.
