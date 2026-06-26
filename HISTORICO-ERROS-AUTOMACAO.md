@@ -11,6 +11,27 @@
 
 ---
 
+## ✅ 2026-06-26 — Vercel Blob CHEIO (1GB) travava TODA publicação de Reel
+
+- **Sintoma:** o upload do Reel pro Vercel Blob falhava com `Vercel Blob: Storage quota
+  exceeded for Hobby plan (1GB maximum)`. Como **todo Reel passa pelo Blob** antes do
+  `/api/publish-reel`, isso **bloqueava a publicação de TODOS os Reels** (ES+PT), não só o
+  preview que eu tentava renderizar. Descoberto ao tentar mostrar um preview do ReelV2.
+- **Causa-raiz:** os mp4 dos Reels são **intermediários** — depois que o `/api/publish-reel`
+  os consome, o **Instagram hospeda a própria cópia** e a do Blob vira lixo. O pipeline
+  **nunca apagava** → semanas de Reels (4/dia × 2 idiomas) acumularam **1003 MB** → estourou
+  o teto de 1GB do Hobby. Falha **silenciosa por acúmulo**: cada Reel funcionava, até o store
+  encher.
+- **✅ SOLUÇÃO (mesma sessão, PRs #98/#99):** `scripts/clean-blob.mjs` poda `reels/` (apaga
+  mp4 > 48h, mantém sempre os 6 mais novos) + `.github/workflows/blob-cleanup.yml` (diário
+  03:30 BRT, auto-heal + dispatch manual com dry-run default). **Purga aplicada: −702 MB**
+  (134 blobs → manteve 6 recentes; sobra ~300 MB). A limpeza diária impede reencher.
+  **Bug de cauda (#99):** o `BLOB_READ_WRITE_TOKEN` vem como **bloco .env colado** no secret
+  → `list()/del()` lançavam `Headers.append: invalid header value` → extrai/trim o token puro
+  (regex `vercel_blob_rw_…`) e passa explícito, igual ao `upload-blob.mjs`. **Lição:** todo
+  recurso de armazenamento intermediário precisa de retenção/limpeza desde o dia 1 — senão
+  enche e derruba em silêncio; e secret colado como .env exige extração antes de virar header.
+
 ## ✅ 2026-06-25 — Mescla de ESPANHOL no conteúdo PT-BR (Reel + carrossel + hashtags)
 
 - **Sintoma:** o dono viu, no Reel BR (@dr.liberdade.br), texto na TELA misturando português e
