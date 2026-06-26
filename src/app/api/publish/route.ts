@@ -751,13 +751,31 @@ export async function GET(req: NextRequest) {
 
         // CAPA do carrossel: ILUSTRAÇÃO editorial por IA (fal `flux/dev`, "Cinematic
         // conceptual editorial illustration") — DECISÃO TRAVADA do dono (ver
-        // DECISOES-TRAVADAS.md A1/A2; referência ED 82/83). Falha no QA (3 tentativas) →
-        // og cai no MOTIVO abstrato como REDE DE SEGURANÇA (nunca publica defeito).
+        // DECISOES-TRAVADAS.md A1/A2; referência ED 82/83).
         // [Histórico: o PR #33 pôs o motivo por padrão por um mal-entendido de "motivo";
         //  o dono confirmou (2026-06-19) que "o motivo de ontem" = ESTAS ilustrações. Revertido.]
-        const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { automation: "ig-posts", meta: { topic, lang } });
+        // 2026-06-26: best-of-3 → best-of-5. Mais candidatas → o juiz quase sempre aprova
+        // uma, então a capa abstrata (motivo) some do feed. ES e PT usam o MESMO baseSeed →
+        // mesmos 5 candidatos → mesma decisão (sem órfão). Surgical: SÓ a capa do carrossel;
+        // o Reel clássico (linha ~605) segue best-of-3.
+        const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { automation: "ig-posts", maxTries: 5, meta: { topic, lang } });
         slotLog.illustration = ill.url ? "ia" : `fallback: ${ill.error ?? "?"}`;
-        const imgParam = ill.url ? `&img=${encodeURIComponent(ill.url)}` : "";
+
+        // O carrossel NÃO sai sem ilustração (decisão do dono 2026-06-26): a capa abstrata
+        // (motivo) QUEBRA o padrão visual do feed — "sem capa quebra o padrão; com capa fica
+        // muito melhor". Trocou a antiga "REDE DE SEGURANÇA" (que publicava o motivo) por "ou
+        // com capa, ou não publica". Se o best-of-5 reprovar TUDO (raríssimo), PULA a vaga.
+        // Marca desistência do dia (hard) → o catchup NÃO regenera (anti-storm/custo, lição de
+        // 25/06); ES e PT pulam juntos (mesmos candidatos → mesma decisão), sem órfão. Melhor
+        // 1 post a menos que 1 fora do padrão. `force=1` não chega aqui sem ilustração também.
+        if (!ill.url) {
+          slotLog.skipped = true;
+          slotLog.reason = `capa reprovada no QA (best-of-5) — carrossel NÃO publica sem ilustração (padrão do feed). ${ill.error ?? ""}`.trim();
+          await bumpAttempt(dayBRT(now), runIndex, lang, true);
+          results.push(slotLog);
+          continue;
+        }
+        const imgParam = `&img=${encodeURIComponent(ill.url)}`;
 
         const slideUrls: string[] = [
           `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}${imgParam}&total=${totalSlides}&lang=${lang}`,
