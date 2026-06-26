@@ -173,9 +173,11 @@ jobs:
           fi
 
       # 6. Renderiza o Reel para out/reel.mp4 (só se há fundo de verdade).
+      #    Composição RETENÇÃO (ReelV2): capa curta 3s + gancho cinético + capa com
+      #    cor de marca + de-dup capa×insight 1. Promovido a produção 2026-06-26.
       - name: Renderizar Reel (Remotion)
         if: ${{ steps.media.outputs.has_media == '1' }}
-        run: node scripts/render-reel.mjs --props=reel-props.json
+        run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelV2
 
       # 7. Sobe o mp4 para o Vercel Blob e captura a URL pública (stdout)
       - name: Upload do mp4 para o Vercel Blob
