@@ -178,6 +178,28 @@ async function searchTerm(term: string, key: string): Promise<any[]> {
   return vids.filter((v: any) => v.height >= v.width && (v.duration || 0) >= 4);
 }
 
+// IDs de clipe Pexels usados em Reels recentes (últimos 14 dias) — lidos da própria
+// reel_shared_cache. Servem p/ NÃO repetir o mesmo clipe entre Reels/dias (o dono pegou
+// o "mão+celular" aparecendo em vários). Fail-open: erro de banco → conjunto vazio.
+async function recentClipIds(): Promise<Set<number>> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const rows = await sql<{ clips: unknown }>`
+      SELECT clips FROM reel_shared_cache WHERE created_at > now() - interval '14 days'`;
+    const ids = new Set<number>();
+    for (const r of rows.rows) {
+      const arr = Array.isArray(r.clips) ? (r.clips as string[]) : [];
+      for (const u of arr) {
+        const m = String(u).match(/video-files\/(\d+)/);
+        if (m) ids.add(Number(m[1]));
+      }
+    }
+    return ids;
+  } catch {
+    return new Set<number>();
+  }
+}
+
 // Seleciona até numClips URLs de footage no tema. seed é (tópico,dia) → idêntico
 // entre ES e PT. Retorna [] se Pexels indisponível (→ fallback no script de CI).
 export async function selectFootage(
@@ -195,7 +217,8 @@ export async function selectFootage(
   const seen = new Set<number>();
 
   // Round-robin entre os termos: 1 clipe de CADA termo por passada → diverso e no tema.
-  async function harvest(termList: string[]) {
+  // `avoid` = IDs já usados em Reels recentes (não repetir entre Reels).
+  async function harvest(termList: string[], avoid: Set<number>) {
     const queues: { vids: any[]; i: number }[] = [];
     for (let t = 0; t < termList.length; t++) {
       if (picked.length >= numClips) break;
@@ -209,7 +232,7 @@ export async function selectFootage(
         if (picked.length >= numClips) break;
         while (q.i < q.vids.length) {
           const v = q.vids[q.i++];
-          if (seen.has(v.id)) continue;
+          if (seen.has(v.id) || avoid.has(v.id)) continue;
           const link = pickFile(v);
           if (!link) continue;
           seen.add(v.id);
@@ -222,8 +245,17 @@ export async function selectFootage(
   }
 
   try {
-    if (fromClaude.length) await harvest(fromClaude);
-    if (!picked.length) await harvest(fallback);
+    // 1ª passada: evita clipes usados em Reels recentes (não repetir entre Reels/dias).
+    const avoid = await recentClipIds();
+    if (fromClaude.length) await harvest(fromClaude, avoid);
+    if (picked.length < numClips) await harvest(fallback, avoid);
+    // Relaxa: se excluir os recentes deixou poucos clipes, completa permitindo repetir
+    // (melhor 1 clipe repetido que Reel sem footage). O dedup DENTRO do Reel (`seen`) fica.
+    if (picked.length < numClips) {
+      const none = new Set<number>();
+      if (fromClaude.length) await harvest(fromClaude, none);
+      if (picked.length < numClips) await harvest(fallback, none);
+    }
   } catch {
     return picked; // o que deu pra pegar (pode ser [])
   }

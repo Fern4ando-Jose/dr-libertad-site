@@ -307,6 +307,8 @@ MOTOR DE ALCANCE (reglas basadas en datos reales del perfil — lo que más empu
 - GUARDABLE: al menos UN insight debe ser un reencuadre o micro-método accionable que la persona quiera GUARDAR para releer (algo aplicable, no solo bonito).
 - COMPARTIBLE: el cta debe invitar a comentar Y a etiquetar/compartir con alguien ("¿Conoces a alguien que…?", "Etiqueta a quien…"), porque etiquetar = compartir.
 - SEGUIDORES (objetivo PRINCIPAL): mucha gente que ve esto AÚN NO te sigue. La leyenda debe cerrar SIEMPRE, antes de los hashtags, con un CTA explícito a SEGUIR a ${acc.handle} dándole una RAZÓN con la voz de la marca — provocadora, nunca genérica ("Sígueme si prefieres la verdad incómoda al aplauso fácil" SÍ; "Síguenos para más consejos" NO) — además del CTA de guardar (🔖) y compartir (📩).
+- CREDIBILIDAD: PROHIBIDO inventar estadísticas, porcentajes o estudios ("el 67% tiene más ansiedad", "los estudios dicen…"). Si no es un dato real y verificable, NO lo pongas — la fuerza viene de la VERDAD cruda, no de cifras falsas. PROHIBIDO años o fechas concretas ("en 2024…"): la frase debe ser ATEMPORAL.
+- BREVEDAD: los slides son CORTOS de verdad — máx 80 chars, frases que se leen en 1-2 segundos. El PT-BR ya sale así de punzante; el ES también debe serlo (nada de slides de 110 chars).
 
 Contexto investigado:
 ${context}
@@ -324,13 +326,13 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
   "instagramCaption": "leyenda IG máx 2200 chars: gancho fuerte en la 1ª línea + desarrollo + cierre con CTA de SEGUIR a ${acc.handle} (con razón provocadora de marca) + guardar (🔖) + compartir (📩)${guideCaptionRule} + 4-5 hashtags, en ${L}",
   "tags": ["tag1", "tag2", "tag3", "tag4"],
   "videoQueries": [
-    "término de búsqueda EN INGLÉS para video de stock que represente VISUALMENTE la escena/emoción de ESTE post — concreto y filmable (personas, gestos, objetos, lugares), NO metáfora abstracta. Ej: 'person scrolling phone in bed at night'",
-    "segundo término distinto EN INGLÉS, mismo criterio. Ej: 'tired woman staring at glowing screen'",
-    "tercer término distinto EN INGLÉS, mismo criterio. Ej: 'hands holding smartphone dark room'"
+    "término de búsqueda EN INGLÉS para video de stock que represente VISUALMENTE la escena/emoción de ESTE post — concreto y filmable (personas, gestos, objetos, lugares), NO metáfora abstracta. Ej: 'lone man walking empty street at dusk'",
+    "segundo término DISTINTO en tipo de escena (otro sujeto/lugar/gesto, NO repitas el primero). Ej: 'close up tense hands gripping coffee cup'",
+    "tercer término DISTINTO otra vez (varía: persona sola, gesto, naturaleza, objeto, lugar…). Ej: 'woman alone looking out rainy window'"
   ]
 }
 
-Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmables (no ilustraciones ni metáforas). Deben poder encontrarse en un banco de video como Pexels y conectar con el tema del post.`;
+Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmables (no ilustraciones ni metáforas). Deben poder encontrarse en un banco de video como Pexels y conectar con el tema del post. Las 3 tienen que ser VISUALMENTE DISTINTAS entre sí (distinto sujeto/lugar/gesto). ⚠️ EVITA el plano genérico de teléfono/pantalla — se repite en TODOS los Reels y aburre: úsalo COMO MÁXIMO en 1 de las 3, y solo si el teléfono ES el tema; prefiere escenas humanas, gestos, rostros, lugares, naturaleza, objetos.`;
 
   // O haiku ocasionalmente devolve JSON malformado OU deixa o outro idioma vazar
   // (clássico: copia a frase do Tema, que é ES, como 1º slide). Tentamos 3×: extrai
