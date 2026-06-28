@@ -107,6 +107,10 @@ export type ReelProps = {
   cat?: string; // categoria → cor de acento
   handle?: string; // @ da conta por idioma (ex.: "@dr.liberdad" | "@dr.liberdade.br")
   brand?: string; // nome de exibição (ex.: "Dr. Libertad" | "Dr. Liberdade")
+  // End-card do FUNIL (comment→DM) — só presente quando o funil está LIGADO (a API
+  // injeta no preview). `cover` = caminho/URL da capa do livro (fundo da cena). Ausente
+  // → o Reel não muda (ReelV2 só renderiza a cena do funil se `funnel` existir).
+  funnel?: { keyword: string; action: string; note: string; cover?: string };
 };
 
 export const reelDefaultProps: ReelProps = {

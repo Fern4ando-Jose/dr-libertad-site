@@ -49,7 +49,7 @@ export const RemotionRoot: React.FC = () => {
         calculateMetadata={({ props }) => {
           const p = props as ReelProps;
           const count = dedupeSlides(p.title, p.slides).length; // de-dup → duração bate c/ os insights reais
-          return { durationInFrames: reelDurationsV2(count).total };
+          return { durationInFrames: reelDurationsV2(count, !!p.funnel).total };
         }}
       />
 

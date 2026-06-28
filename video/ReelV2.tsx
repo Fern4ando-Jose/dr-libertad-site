@@ -64,12 +64,13 @@ export function dedupeSlides(title: string, slides: string[] | undefined): strin
   return distinct.length ? distinct : raw;
 }
 
-export function reelDurationsV2(slidesCount: number) {
+export function reelDurationsV2(slidesCount: number, hasFunnel = false) {
   const COVER = Math.round(FPS * 3.0); // era 5,0 — capa curta, mas com tempo do gancho cinético LANDAR
   const INSIGHT = Math.round(FPS * 5.6);
   const CTA = Math.round(FPS * 4.6);
+  const FUNNEL = hasFunnel ? Math.round(FPS * 4.8) : 0; // end-card do funil (comment→DM) com a arte do livro
   const n = Math.min(Math.max(slidesCount || 1, 1), 3);
-  return { COVER, INSIGHT, CTA, n, total: COVER + INSIGHT * n + CTA };
+  return { COVER, INSIGHT, CTA, FUNNEL, n, total: COVER + INSIGHT * n + CTA + FUNNEL };
 }
 
 export const reelV2DefaultProps: ReelProps = reelDefaultProps;
@@ -210,14 +211,53 @@ function CtaTextV2({ cta, accent, handle }: { cta: string; accent: string; handl
   );
 }
 
+// ─── End-card do FUNIL (comment→DM): "Comenta [palavra]" PULSANDO sobre a arte do livro ─
+// Só entra quando o funil está ligado (a API manda `funnel` no preview). Fundo = a CAPA
+// do "I Love Dopamina" (cérebro + gradiente) via <Scene img>. A palavra-chave pulsa
+// (escala + halo) pra chamar o olho — o "movimento" que o dono pediu.
+const FUNNEL_MAGENTA = "#D4357E"; // magenta do gradiente da capa (= pílula do carrossel)
+function FunnelTextV2({ keyword, action, note, handle }: { keyword: string; action: string; note: string; handle: string }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 22 });
+  const rise = interpolate(entry, [0, 1], [44, 0]);
+  // PULSO da palavra-chave: escala ±7% + halo que respira (~1,1 Hz)
+  const t = (frame / fps) * Math.PI * 2 * 1.1;
+  const pulse = 1 + 0.07 * Math.sin(t);
+  const halo = 34 + 48 * (0.5 + 0.5 * Math.sin(t));
+  return (
+    <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", padding: `0 80px ${SAFE_BOTTOM_TEXT}px` }}>
+      <div style={{ opacity: entry, transform: `translateY(${rise}px)`, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+        <div style={{ fontFamily: FRAUNCES, fontWeight: 600, fontSize: 50, color: WHITE, textShadow: "0 2px 22px rgba(0,0,0,0.6)", marginBottom: 38 }}>
+          {action}
+        </div>
+        <div style={{ transform: `scale(${pulse})`, borderRadius: 9999, padding: "32px 86px", background: FUNNEL_MAGENTA, boxShadow: `0 0 ${halo}px ${FUNNEL_MAGENTA}` }}>
+          <div style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 104, letterSpacing: 8, color: WHITE, textTransform: "uppercase" }}>
+            {keyword}
+          </div>
+        </div>
+        <div style={{ fontFamily: FRAUNCES, fontWeight: 400, fontSize: 46, color: PAPER, opacity: 0.92, marginTop: 38, maxWidth: 900, textShadow: "0 2px 18px rgba(0,0,0,0.6)" }}>
+          {note}
+        </div>
+      </div>
+      <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: 90 }}>
+        <Handle color={PAPER} handle={handle} />
+      </div>
+    </AbsoluteFill>
+  );
+}
+
 // ─── Composição V2 ─────────────────────────────────────────────────────────────
-export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, img, clips, clip, music, cat, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
+export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, img, clips, clip, music, cat, funnel, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
   // DE-DUP (mesmo helper do Root.calculateMetadata) → capa e insight 1 nunca repetem,
   // e a duração da composição bate com os insights de verdade (sem cena preta no fim).
   const safeSlides = dedupeSlides(title, slides);
-  const { COVER, INSIGHT, CTA, n, total } = reelDurationsV2(safeSlides.length);
+  const { COVER, INSIGHT, CTA, FUNNEL, n, total } = reelDurationsV2(safeSlides.length, !!funnel);
   const usedSlides = safeSlides.slice(0, n);
+  const funnelCover = funnel?.cover
+    ? (/^https?:\/\//.test(funnel.cover) ? funnel.cover : staticFile(funnel.cover))
+    : undefined;
 
   const pool = clips && clips.length ? clips : clip ? [clip] : [];
   const sceneClip = (i: number) => (pool.length ? pool[i % pool.length] : undefined);
@@ -253,6 +293,15 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
           <CtaTextV2 cta={cta} accent={accent} handle={handle} />
         </Scene>
       </Sequence>
+
+      {funnel && (
+        <Sequence from={next(FUNNEL)} durationInFrames={FUNNEL}>
+          {/* fundo = ARTE DO LIVRO (capa) em vez de footage → end-card do funil */}
+          <Scene img={funnelCover} kw={kw} accent={accent} dur={FUNNEL}>
+            <FunnelTextV2 keyword={funnel.keyword} action={funnel.action} note={funnel.note} handle={handle} />
+          </Scene>
+        </Sequence>
+      )}
 
       {musicSrc && (
         <Audio

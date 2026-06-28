@@ -617,6 +617,23 @@ export async function GET(req: NextRequest) {
       illustrationError = ill.error ?? null;
     }
 
+    // End-card do FUNIL no Reel (comment→DM) — SÓ quando o funil está LIGADO (a chamada
+    // "comenta a palavra" só aparece se a DM consegue mesmo entregar a prévia). Mesma
+    // palavra-chave/voz do slide-final do carrossel; fundo = a capa do livro (por idioma).
+    const funnelOn = (process.env.ENGAGEMENT_FUNNEL_ENABLED ?? "").toLowerCase() === "on";
+    const FUNNEL_TXT: Record<string, { action: string; note: string }> = {
+      es: { action: "Comenta esta palabra:", note: "y te lo enviamos al Direct — gratis." },
+      pt: { action: "Comente esta palavra:", note: "e mandamos no seu Direct — grátis." },
+    };
+    const funnel = funnelOn
+      ? {
+          keyword: accountFor(lang).freedom.toUpperCase(), // LIBERTAD / LIBERDADE
+          action: (FUNNEL_TXT[lang] ?? FUNNEL_TXT.es).action,
+          note: (FUNNEL_TXT[lang] ?? FUNNEL_TXT.es).note,
+          cover: `images/i-love-dopamina-capa-${lang === "pt" ? "pt" : "es"}.png`,
+        }
+      : undefined;
+
     return NextResponse.json({
       preview: true,
       slot, run: r, topic, cat,
@@ -629,6 +646,7 @@ export async function GET(req: NextRequest) {
       cta: content.cta,
       caption: content.instagramCaption,
       kw, ed,
+      funnel, // end-card do funil (só quando ENGAGEMENT_FUNNEL_ENABLED); ausente → Reel inalterado
       videoQueries, // canônicos (compartilhados entre idiomas)
       clips,        // footage COMPARTILHADO (mesmo vídeo ES/PT); [] → fetch-footage.mjs busca no CI
       sharedFootage: clips.length > 0, // diagnóstico: veio da base compartilhada?
