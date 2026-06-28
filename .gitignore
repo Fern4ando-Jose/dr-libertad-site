@@ -12,7 +12,10 @@ out/
 /preview.json
 
 # Arquivos de log e outros
-.env*.local
+# Segredos: ignora TODO .env (repo é PÚBLICO) — exceto o template versionável
+.env
+.env.*
+!.env.example
 .DS_Store
 *.log
 
