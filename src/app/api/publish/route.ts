@@ -303,7 +303,7 @@ NUNCA DIRÍA (filtro anti-IA-genérica — si la frase huele a esto, reescríbel
 MECÁNICA (que suene a él, no a IA): antítesis de punto y coma (dos mitades que giran en el pivote); veredicto corto y seco; segunda persona directa ("tú/te"); reversión (desmontar la promesa del sistema); concreto siempre (filtro, match, scroll, edición×realidad); termina en el hueso (la última palabra es la que queda).
 
 MOTOR DE ALCANCE (reglas basadas en datos reales del perfil — lo que más empuja el algoritmo es RETENCIÓN + GUARDADOS + COMPARTIDOS, hoy casi en cero):
-- GANCHO: el título y el PRIMER insight deben detener el scroll en 1-2 segundos. Háblale a "tú", abre una brecha de curiosidad o da un giro inesperado. Concreto y específico, nunca abstracto ni genérico (ej. "Revisas el móvil 144 veces al día" > "El uso del móvil es alto").
+- GANCHO (lo que MÁS mueve la retención — hoy casi en cero, y sin retención no hay seguidores): el título y el PRIMER insight deben CLAVAR el scroll en ~1 segundo. Preferí una PREGUNTA directa que te IMPLIQUE a "tú" y REENCUADRE el tema ("¿Y si lo que llamas amor es miedo a estar solo?", "¿Cuánto te cuesta fingir que estás bien?") — o un dato/giro crudo y concreto que incomode. Más CRUDO y más OSADO que cómodo: la incomodidad ES el gancho. Cuanto más corto y filoso, más pega. Nunca abstracto ni genérico (ej. "Revisas el móvil 144 veces al día" > "El uso del móvil es alto"). ⚠️ La osadía viene de la IDEA, JAMÁS del odio, el insulto ni la deshumanización (eso tumba la cuenta).
 - GUARDABLE: al menos UN insight debe ser un reencuadre o micro-método accionable que la persona quiera GUARDAR para releer (algo aplicable, no solo bonito).
 - COMPARTIBLE: el cta debe invitar a comentar Y a etiquetar/compartir con alguien ("¿Conoces a alguien que…?", "Etiqueta a quien…"), porque etiquetar = compartir.
 - SEGUIDORES (objetivo PRINCIPAL): mucha gente que ve esto AÚN NO te sigue. La leyenda debe cerrar SIEMPRE, antes de los hashtags, con un CTA explícito a SEGUIR a ${acc.handle} dándole una RAZÓN con la voz de la marca — provocadora, nunca genérica ("Sígueme si prefieres la verdad incómoda al aplauso fácil" SÍ; "Síguenos para más consejos" NO) — además del CTA de guardar (🔖) y compartir (📩).
@@ -313,10 +313,10 @@ ${context}
 
 Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
 {
-  "postTitle": "GANCHO que detiene el scroll, máx 55 chars, concreto y dirigido a 'tú', en ${L}",
+  "postTitle": "GANCHO que clava el scroll, máx 55 chars: preferí una PREGUNTA provocadora dirigida a 'tú' que reencuadre el tema (o un giro crudo y concreto). Osado e incómodo, no cómodo. En ${L}",
   "postBody": "artículo en markdown mín 300 palabras, TODO EN ${L}",
   "slides": [
-    "insight 1 — GANCHO contundente de MÁXIMO 80 chars que abre una brecha de curiosidad. NO repitas el postTitle: el slide 1 DESARROLLA el gancho con una IDEA NUEVA, no lo replantea con otras palabras",
+    "insight 1 — GANCHO de MÁXIMO 80 chars: una PREGUNTA filosa o una afirmación cruda que IMPLIQUE a 'tú' y abra una brecha de curiosidad. NO repitas el postTitle: el slide 1 DESARROLLA el gancho con una IDEA NUEVA, no lo replantea con otras palabras",
     "insight 2 — frase contundente de MÁXIMO 80 chars que profundiza",
     "insight 3 — reencuadre o micro-método GUARDABLE de MÁXIMO 80 chars que remata"
   ],
