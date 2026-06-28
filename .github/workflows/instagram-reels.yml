@@ -111,7 +111,10 @@ jobs:
               // Trilha embutida (camada de criação, opcional). UMA FAIXA POR TEMA:
               // o picker acha no manifest.json a faixa do `topic` do post; sem ela,
               // cai na rotação antiga por `run` (bed-0.mp3, …); sem nenhuma → mudo.
-              music: require("./scripts/pick-music.cjs").pickMusic({ topic: p.topic, run: ${{ steps.params.outputs.run }} }) || undefined
+              music: require("./scripts/pick-music.cjs").pickMusic({ topic: p.topic, run: ${{ steps.params.outputs.run }} }) || undefined,
+              // End-card do funil (comment→DM) — presente só quando ENGAGEMENT_FUNNEL_ENABLED;
+              // a API já manda a capa do livro + a voz por idioma. Ausente → Reel inalterado.
+              funnel: p.funnel || undefined
             };
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("slot.txt", p.slot || "noite");
