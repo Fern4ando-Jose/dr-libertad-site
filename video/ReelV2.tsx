@@ -69,7 +69,7 @@ export function reelDurationsV2(slidesCount: number, hasFunnel = false) {
   const COVER = Math.round(FPS * 3.0); // era 5,0 — capa curta, mas com tempo do gancho cinético LANDAR
   const INSIGHT = Math.round(FPS * 5.6);
   const CTA = Math.round(FPS * 4.6);
-  const FUNNEL = hasFunnel ? Math.round(FPS * 4.8) : 0; // end-card do funil (comment→DM) com a arte do livro
+  const FUNNEL = hasFunnel ? Math.round(FPS * 3.5) : 0; // end-card do funil (comment→DM) com a arte do livro — curto p/ retenção (casa c/ a música ~28s)
   const n = Math.min(Math.max(slidesCount || 1, 1), 3);
   return { COVER, INSIGHT, CTA, FUNNEL, n, total: COVER + INSIGHT * n + CTA + FUNNEL };
 }
