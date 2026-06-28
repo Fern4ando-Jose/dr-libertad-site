@@ -1,10 +1,13 @@
-name: Instagram — publicar posts
+name: Instagram — publicar posts (ES + PT)
 
 # Agendamento gratuito via GitHub Actions (substitui os crons do Vercel).
 # 2 CARROSSÉIS/dia (runs 4 e 5 — tópicos distintos dos Reels, que usam 0..3).
-# Reduzido de 6 → 2: os dados do /insights mostram que Reel supera carrossel em
-# alcance; o foco diário passou a ser vídeo. run é derivado da EXPRESSÃO cron que
-# disparou (github.event.schedule), NÃO da hora do relógio. slot/tom = run % 3.
+# UM workflow publica as DUAS contas (ES @dr.liberdad + PT @dr.liberdade.br) na MESMA
+# tanda: ES primeiro (gera+cacheia a ilustração) e PT logo depois (reusa o cache da
+# MESMA vaga → mesmo desenho, custo marginal). Antes eram 2 workflows espelhados que
+# DIVERGIAM (o -pt nasceu de branch antiga e atrasava melhorias → bug do áudio PT etc.);
+# fundir mata o drift de vez (regra do dono: "um publica → o outro publica").
+# run é derivado da EXPRESSÃO cron que disparou (github.event.schedule), NÃO do relógio.
 on:
   schedule:
     - cron: "17 12 * * *" # 09:17 BRT (run 4)
@@ -24,7 +27,7 @@ on:
         required: false
         default: ""
       force:
-        description: "Ignorar a trava anti-duplicata de 24h (republicar/backfill)."
+        description: "Ignorar a trava anti-duplicata de 24h (republicar/backfill). ⚠️ force NÃO pareia ES+PT."
         type: boolean
         required: false
         default: false
@@ -36,7 +39,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - name: Determinar parâmetros pelo horário
         id: params
@@ -69,7 +72,7 @@ jobs:
             echo "force=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Chamar endpoint de publicação
+      - name: Publicar a vaga nas 2 contas (ES → PT)
         env:
           AUTH: ${{ secrets.CRON_SECRET }}
           SITE: ${{ secrets.SITE_URL }}
@@ -78,20 +81,33 @@ jobs:
           TOPIC: ${{ steps.params.outputs.topic }}
           FORCE: ${{ steps.params.outputs.force }}
         run: |
-          # Monta a query com -G --data-urlencode (lida com espaços no tópico).
-          ARGS=(-sS -o response.json -w "%{http_code}" -G)
-          ARGS+=(-H "Authorization: Bearer $AUTH")
-          [ -n "$RUN" ]   && ARGS+=(--data-urlencode "run=$RUN")
-          [ -n "$SLOT" ]  && ARGS+=(--data-urlencode "slot=$SLOT")
-          [ -n "$TOPIC" ] && ARGS+=(--data-urlencode "topic=$TOPIC")
-          [ "$FORCE" = "true" ] && ARGS+=(--data-urlencode "force=1")
-          echo "Publicando: run='${RUN}' slot='${SLOT}' topic='${TOPIC}' force='${FORCE}'"
-          HTTP_CODE=$(curl "${ARGS[@]}" "$SITE/api/publish")
-          echo "HTTP $HTTP_CODE"
-          echo "--- resposta ---"
-          cat response.json
-          echo ""
-          if [ "$HTTP_CODE" -ge 400 ]; then
-            echo "::error::Falha na publicação (HTTP $HTTP_CODE)"
+          set -uo pipefail
+          # Publica UM idioma. Devolve 1 se HTTP>=400 ou falha de conexão (000).
+          publish_lang() {
+            label="$1"; url="$2"
+            ARGS=(-sS -o "resp-$label.json" -w "%{http_code}" -G)
+            ARGS+=(-H "Authorization: Bearer $AUTH")
+            [ -n "$RUN" ]   && ARGS+=(--data-urlencode "run=$RUN")
+            [ -n "$SLOT" ]  && ARGS+=(--data-urlencode "slot=$SLOT")
+            [ -n "$TOPIC" ] && ARGS+=(--data-urlencode "topic=$TOPIC")
+            [ "$FORCE" = "true" ] && ARGS+=(--data-urlencode "force=1")
+            echo "── [$label] run='${RUN}' slot='${SLOT}' topic='${TOPIC}' force='${FORCE}'"
+            code=$(curl "${ARGS[@]}" "$url")   # -w escreve o http_code; conn-fail = 000
+            [ -z "$code" ] && code="000"
+            echo "[$label] HTTP $code"
+            echo "--- resposta [$label] ---"; cat "resp-$label.json" 2>/dev/null; echo ""
+            case "$code" in
+              2*|3*) return 0 ;;   # 2xx/3xx = a API tratou a vaga (publicou/pulou por idempotência)
+              *)     return 1 ;;   # 000/4xx/5xx (inclui 402 de orçamento) = falha → catch-up redispara
+            esac
+          }
+          FAILED=0
+          # ES primeiro: gera e cacheia a ilustração da vaga. PT logo depois reusa o
+          # cache (mesma vaga, mesmo desenho) → só a copy muda, custo marginal.
+          publish_lang "ES" "$SITE/api/publish"         || FAILED=1
+          publish_lang "PT" "$SITE/api/publish?lang=pt" || FAILED=1
+          if [ "$FAILED" = "1" ]; then
+            echo "::error::Ao menos um idioma falhou (HTTP>=400) — o catch-up redispara a vaga (o que já saiu é deduplicado)."
             exit 1
           fi
+          echo "Carrossel ES+PT da vaga publicado."
