@@ -5,8 +5,8 @@ import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } f
 import { parseContentJson } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentTopicsAllLangs, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
-import { buildRotation, topicIndexForRun, pickFreshTopicIndexThreaded } from "@/lib/rotation";
+import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
+import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
 import { buildLiteralDirective } from "@/lib/literal-lock";
@@ -153,27 +153,33 @@ function getTopicForRun(date: Date, runIndex: number): string {
 // tópico → índice no array original (p/ a trava anti-dup mapear recentes p/ índices).
 const TOPIC_INDEX = new Map(TOPICS.map((t, i) => [t, i] as const));
 
-// Tópico do (data, run) com TRAVA ANTI-DUP CROSS-FORMATO: pula os temas já
-// publicados na conta nos últimos 7d em QUALQUER formato (reel ∪ carrossel).
-// É a trava REAL — robusta a mudanças de rotação e a repetição reel↔carrossel
-// (o bug em que "padre ausente" saiu Reel num dia e carrossel no outro). A
-// rotação determinística sozinha não bastava: trocar o algoritmo (ou o reel não
-// gravar tópico) reintroduzia repetições. Fail-open: erro de banco → tema-base.
+// Tópico do (data, run) pelo SHUFFLE BAG (saco de cartas): o catálogo é um baralho
+// balanceado por categoria e um tema só REPETE depois que ~todos os outros saíram
+// (janela de recência: pula os N-POOL temas mais recentes; gap ≥ 55 de 61 ≈ 9 dias).
+// O "usado" vem do que REALMENTE PUBLICOU (livro-razão) → tema que FALHOU continua no
+// baralho e ainda trabalha. Conserta o sub-uso (P1-Dopamina ia a 22%): agora os 61
+// temas trabalham antes de qualquer repetir, cross-formato (reel ∪ carrossel) e
+// cross-idioma. Determinístico → ES=PT (mesmo livro-razão) e catchup idempotente;
+// re-embaralho por ciclo dá a variação. Substitui a trava antiga de 7d (que era mais
+// curta e presa ao calendário → pulava vaga falhada pra sempre). Lógica pura/testada
+// em selectThemeIndex (rotation.ts). Fail-open: erro de banco → rotação-base legada.
+// A rede de segurança no PUBLISH (topicUsedInOtherVaga, 7d) segue intacta.
+const CATS = THEMES.map((t) => t.cat);
 async function getFreshTopicForRun(date: Date, runIndex: number, _lang: Lang): Promise<string> {
   try {
-    // `recent` INCLUI hoje → impede repetir o MESMO tema no dia entre formatos/runs/idiomas
-    // (era o bug: reel de manhã + carrossel à tarde com o mesmo tema). O descasamento ES/PT
-    // (mesmo vídeo) é resolvido pelo LIVRO-RAZÃO (dia,run)→tema — NÃO tirando hoje do recent.
-    const recent = await recentTopicsAllLangs(7);
-    const recentIdx = new Set<number>();
-    for (const t of recent) {
-      const i = TOPIC_INDEX.get(t);
-      if (i !== undefined) recentIdx.add(i);
+    const dayStr = dayBRT(date);
+    // Vagas já publicadas (qualquer formato/idioma) → índice + slot, pro shuffle bag
+    // saber o que já saiu NESTE ciclo. Só PUBLICADO entra (tema não-publicado fica no baralho).
+    const slots = await recentPublishedSlots(16);
+    const publishedIdxSlots: { idx: number; slot: number }[] = [];
+    for (const s of slots) {
+      const i = TOPIC_INDEX.get(s.topic);
+      if (i !== undefined) publishedIdxSlots.push({ idx: i, slot: slotForDayRun(s.day, s.run) });
     }
-    const candidate = TOPICS[pickFreshTopicIndexThreaded(ROTATION, date, runIndex, recentIdx)];
+    const candidate = TOPICS[selectThemeIndex(CATS, dayStr, runIndex, publishedIdxSlots)];
     // Livro-razão: 1º idioma grava (dia,run)→tema; 2º LÊ o mesmo → ES e PT no MESMO vídeo.
     // Fail-open dentro de getOrSetRunTopic → devolve `candidate` (que já não repete).
-    return await getOrSetRunTopic(dayBRT(date), runIndex, candidate);
+    return await getOrSetRunTopic(dayStr, runIndex, candidate);
   } catch {
     return getTopicForRun(date, runIndex);
   }

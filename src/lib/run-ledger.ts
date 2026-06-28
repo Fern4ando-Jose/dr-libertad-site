@@ -188,6 +188,26 @@ export async function recentTopicsAllLangs(days = 7): Promise<Set<string>> {
   return out;
 }
 
+// Vagas PUBLICADAS (topic, day, run) nos últimos `days` dias — base do SHUFFLE BAG
+// (rotação balanceada sem repetir até esgotar). Diferente do `recentTopicsAllLangs`
+// (que só dá o conjunto de tópicos): aqui devolve o (day,run) de cada um pra mapear a
+// vaga no CICLO certo. published_runs UNIFICA reel + carrossel + ES/PT (todo formato
+// grava via recordRun), então é a fonte completa por vaga. `days` cobre ≥ 1 ciclo
+// (61 temas a 6/dia ≈ 10,2 dias → 16 por folga). FAIL-OPEN: erro → [] (cai no legado).
+export async function recentPublishedSlots(days = 16): Promise<{ topic: string; day: string; run: number }[]> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql<{ topic: string; day: string; run: number }>`
+      SELECT DISTINCT topic, day, run FROM published_runs
+      WHERE topic IS NOT NULL AND instagram_post_id IS NOT NULL
+        AND ts > NOW() - (${days} || ' days')::interval
+    `;
+    return r.rows.map((x) => ({ topic: x.topic, day: String(x.day).slice(0, 10), run: Number(x.run) }));
+  } catch {
+    return [];
+  }
+}
+
 // Livro-razão (dia,run)→tema: o 1º idioma a computar uma vaga GRAVA o tema; o 2º LÊ o
 // MESMO (igual ao `editions`) → ES e PT pegam o MESMO tema/vídeo por vaga, mesmo que o
 // publish do 1º já tenha entrado no `recent`. INSERT ON CONFLICT DO NOTHING + SELECT
