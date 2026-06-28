@@ -629,7 +629,9 @@ function GuideSlide({ kw, issue, cat, motif, total, seed, lang, cover }: {
   const COVER_W = W;                            // 1080
   const COVER_H = Math.round(W * 1536 / 1024);  // capa é 2:3 → 1620
   const CREAM = "#F4EFE0";                      // o MESMO creme da capa (= fundo do slide, sem preto)
-  const MAGENTA = "#D4357E";                    // magenta vivo do gradiente da capa
+  const MAGENTA = "#D4357E";                    // magenta da capa (ponto ativo do rodapé)
+  // pílula do funil = o GRADIENTE da capa (laranja→magenta→roxo) — escolha do dono, = Reel
+  const PILL = "linear-gradient(120deg, #E8552F 0%, #D4357E 52%, #9B3FB5 100%)";
   const HERO = 968;                             // arte do livro (creme+gradiente+cérebro) no topo;
                                                 // o resto é o MESMO creme → sem nenhuma faixa escura
   return (
@@ -647,7 +649,7 @@ function GuideSlide({ kw, issue, cat, motif, total, seed, lang, cover }: {
             {G.action}
           </span>
           <div style={{ display: "flex" }}>
-            <div style={{ borderRadius: 9999, padding: "24px 66px", background: MAGENTA, display: "flex", boxShadow: "0 14px 34px rgba(212,53,126,0.34)" }}>
+            <div style={{ borderRadius: 9999, padding: "24px 66px", background: PILL, display: "flex", boxShadow: "0 14px 34px rgba(0,0,0,0.18)" }}>
               <span style={{ fontFamily: SERIF, fontSize: 76, letterSpacing: "0.14em", textTransform: "uppercase", color: CREAM, display: "flex" }}>
                 {kw}
               </span>
