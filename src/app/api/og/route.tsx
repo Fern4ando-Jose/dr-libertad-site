@@ -633,9 +633,9 @@ function GuideSlide({ kw, issue, cat, motif, total, seed, lang, cover }: {
   return (
     <div style={{ width: W, height: H, display: "flex", flexDirection: "column", background: INK }}>
       <div style={{ width: W, height: HERO, position: "relative", display: "flex", flexShrink: 0 }}>
-        <img src={cover} width={COVER_W} height={HERO} style={{ width: COVER_W, height: HERO, objectFit: "cover", objectPosition: "50% 31%" }} />
+        <img src={cover} width={COVER_W} height={HERO} style={{ width: COVER_W, height: HERO, objectFit: "cover", objectPosition: "50% 13%" }} />
         <div style={{ position: "absolute", top: 0, left: 0, width: W, height: HERO, display: "flex",
-          background: `linear-gradient(180deg, rgba(11,11,12,0) 56%, rgba(11,11,12,0.5) 80%, ${INK} 100%)` }} />
+          background: `linear-gradient(180deg, rgba(11,11,12,0) 78%, rgba(11,11,12,0.7) 90%, ${INK} 100%)` }} />
       </div>
       <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 80px" }}>
         <div style={{ position: "absolute", top: -150, left: 0, width: W, height: 470, display: "flex",
