@@ -116,7 +116,7 @@ jobs:
               // a API já manda a capa do livro + a voz por idioma. Ausente → Reel inalterado.
               // TEMP-PREVIEW: injeta funnel quando a API ainda não devolve (branch não-mergeado),
               // pra renderizar o end-card no preview. REMOVER antes do merge (volta a `p.funnel || undefined`).
-              funnel: p.funnel || { keyword: (p.kw || "LIBERTAD"), action: "Comenta esta palabra:", note: "y te lo enviamos al Direct — gratis.", cover: "images/i-love-dopamina-capa-es.png" }
+              funnel: p.funnel || { keyword: "LIBERTAD", action: "Comenta esta palabra:", note: "y te lo enviamos al Direct — gratis.", cover: "images/dopamina-funnel-bg-es.png" }
             };
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("slot.txt", p.slot || "noite");

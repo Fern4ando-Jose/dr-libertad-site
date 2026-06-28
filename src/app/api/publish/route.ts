@@ -630,7 +630,7 @@ export async function GET(req: NextRequest) {
           keyword: accountFor(lang).freedom.toUpperCase(), // LIBERTAD / LIBERDADE
           action: (FUNNEL_TXT[lang] ?? FUNNEL_TXT.es).action,
           note: (FUNNEL_TXT[lang] ?? FUNNEL_TXT.es).note,
-          cover: `images/i-love-dopamina-capa-${lang === "pt" ? "pt" : "es"}.png`,
+          cover: `images/dopamina-funnel-bg-${lang === "pt" ? "pt" : "es"}.png`,
         }
       : undefined;
 

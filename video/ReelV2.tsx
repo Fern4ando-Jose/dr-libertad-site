@@ -22,6 +22,7 @@ import React from "react";
 import {
   AbsoluteFill,
   Audio,
+  Img,
   Sequence,
   interpolate,
   spring,
@@ -215,33 +216,41 @@ function CtaTextV2({ cta, accent, handle }: { cta: string; accent: string; handl
 // Só entra quando o funil está ligado (a API manda `funnel` no preview). Fundo = a CAPA
 // do "I Love Dopamina" (cérebro + gradiente) via <Scene img>. A palavra-chave pulsa
 // (escala + halo) pra chamar o olho — o "movimento" que o dono pediu.
+const FUNNEL_CREAM = "#F4EFE0";   // creme do livro (= fundo do slide do carrossel aprovado)
 const FUNNEL_MAGENTA = "#D4357E"; // magenta do gradiente da capa (= pílula do carrossel)
-function FunnelTextV2({ keyword, action, note, handle }: { keyword: string; action: string; note: string; handle: string }) {
+const FUNNEL_ART_BOTTOM = 1230;   // onde a arte termina e começa o creme (= ARTH do fundo composto)
+// Fundo = imagem 9:16 composta (public/images/dopamina-funnel-bg-<lang>): a arte do livro
+// (kicker + I❤DOPAMINA + cérebro) no topo, derretendo no creme; o subtítulo/autor da capa
+// ficam de fora → zona creme LIMPA embaixo (sem colisão de texto). Só as cores do livro.
+function FunnelCardV2({ cover, keyword, action, note, handle }: { cover?: string; keyword: string; action: string; note: string; handle: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 22 });
-  const rise = interpolate(entry, [0, 1], [44, 0]);
-  // PULSO da palavra-chave: escala ±7% + halo que respira (~1,1 Hz)
+  const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 20 });
+  const rise = interpolate(entry, [0, 1], [40, 0]);
+  // PULSO da palavra-chave: escala ±7% + halo que respira (~1,1 Hz) → chama o olho
   const t = (frame / fps) * Math.PI * 2 * 1.1;
   const pulse = 1 + 0.07 * Math.sin(t);
-  const halo = 34 + 48 * (0.5 + 0.5 * Math.sin(t));
+  const halo = 26 + 48 * (0.5 + 0.5 * Math.sin(t));
   return (
-    <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", padding: `0 80px ${SAFE_BOTTOM_TEXT}px` }}>
-      <div style={{ opacity: entry, transform: `translateY(${rise}px)`, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-        <div style={{ fontFamily: FRAUNCES, fontWeight: 600, fontSize: 50, color: WHITE, textShadow: "0 2px 22px rgba(0,0,0,0.6)", marginBottom: 38 }}>
-          {action}
-        </div>
-        <div style={{ transform: `scale(${pulse})`, borderRadius: 9999, padding: "32px 86px", background: FUNNEL_MAGENTA, boxShadow: `0 0 ${halo}px ${FUNNEL_MAGENTA}` }}>
-          <div style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 104, letterSpacing: 8, color: WHITE, textTransform: "uppercase" }}>
-            {keyword}
+    <AbsoluteFill style={{ backgroundColor: FUNNEL_CREAM }}>
+      {cover ? <Img src={cover} style={{ width: 1080, height: 1920, objectFit: "cover" }} /> : null}
+      <div style={{ position: "absolute", top: FUNNEL_ART_BOTTOM, left: 0, width: 1080, height: 1920 - FUNNEL_ART_BOTTOM, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 80px" }}>
+        <div style={{ opacity: entry, transform: `translateY(${rise}px)`, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+          <div style={{ fontFamily: FRAUNCES, fontWeight: 600, fontSize: 50, color: "#3A2230", marginBottom: 32 }}>
+            {action}
+          </div>
+          <div style={{ transform: `scale(${pulse})`, borderRadius: 9999, padding: "30px 84px", background: FUNNEL_MAGENTA, boxShadow: `0 0 ${halo}px ${FUNNEL_MAGENTA}` }}>
+            <div style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 100, letterSpacing: 8, color: FUNNEL_CREAM, textTransform: "uppercase" }}>
+              {keyword}
+            </div>
+          </div>
+          <div style={{ fontFamily: FRAUNCES, fontWeight: 400, fontSize: 44, color: "rgba(42,20,30,0.72)", marginTop: 32, maxWidth: 900 }}>
+            {note}
           </div>
         </div>
-        <div style={{ fontFamily: FRAUNCES, fontWeight: 400, fontSize: 46, color: PAPER, opacity: 0.92, marginTop: 38, maxWidth: 900, textShadow: "0 2px 18px rgba(0,0,0,0.6)" }}>
-          {note}
-        </div>
       </div>
-      <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: 90 }}>
-        <Handle color={PAPER} handle={handle} />
+      <div style={{ position: "absolute", bottom: 70, width: 1080, display: "flex", justifyContent: "center" }}>
+        <div style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 600, letterSpacing: 2, color: "rgba(42,20,30,0.5)" }}>{handle}</div>
       </div>
     </AbsoluteFill>
   );
@@ -296,10 +305,8 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
 
       {funnel && (
         <Sequence from={next(FUNNEL)} durationInFrames={FUNNEL}>
-          {/* fundo = ARTE DO LIVRO (capa) em vez de footage → end-card do funil */}
-          <Scene img={funnelCover} kw={kw} accent={accent} dur={FUNNEL}>
-            <FunnelTextV2 keyword={funnel.keyword} action={funnel.action} note={funnel.note} handle={handle} />
-          </Scene>
+          {/* end-card do funil: arte do livro (fundo 9:16 composto) + funil na zona creme */}
+          <FunnelCardV2 cover={funnelCover} keyword={funnel.keyword} action={funnel.action} note={funnel.note} handle={handle} />
         </Sequence>
       )}
 
