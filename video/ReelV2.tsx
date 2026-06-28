@@ -22,6 +22,7 @@ import React from "react";
 import {
   AbsoluteFill,
   Audio,
+  Img,
   Sequence,
   interpolate,
   spring,
@@ -64,12 +65,13 @@ export function dedupeSlides(title: string, slides: string[] | undefined): strin
   return distinct.length ? distinct : raw;
 }
 
-export function reelDurationsV2(slidesCount: number) {
+export function reelDurationsV2(slidesCount: number, hasFunnel = false) {
   const COVER = Math.round(FPS * 3.0); // era 5,0 — capa curta, mas com tempo do gancho cinético LANDAR
   const INSIGHT = Math.round(FPS * 5.6);
   const CTA = Math.round(FPS * 4.6);
+  const FUNNEL = hasFunnel ? Math.round(FPS * 3.5) : 0; // end-card do funil (comment→DM) com a arte do livro — curto p/ retenção (casa c/ a música ~28s)
   const n = Math.min(Math.max(slidesCount || 1, 1), 3);
-  return { COVER, INSIGHT, CTA, n, total: COVER + INSIGHT * n + CTA };
+  return { COVER, INSIGHT, CTA, FUNNEL, n, total: COVER + INSIGHT * n + CTA + FUNNEL };
 }
 
 export const reelV2DefaultProps: ReelProps = reelDefaultProps;
@@ -210,14 +212,61 @@ function CtaTextV2({ cta, accent, handle }: { cta: string; accent: string; handl
   );
 }
 
+// ─── End-card do FUNIL (comment→DM): "Comenta [palavra]" PULSANDO sobre a arte do livro ─
+// Só entra quando o funil está ligado (a API manda `funnel` no preview). Fundo = a CAPA
+// do "I Love Dopamina" (cérebro + gradiente) via <Scene img>. A palavra-chave pulsa
+// (escala + halo) pra chamar o olho — o "movimento" que o dono pediu.
+const FUNNEL_CREAM = "#F4EFE0";   // creme do livro (= fundo do slide do carrossel aprovado)
+const FUNNEL_MAGENTA = "#D4357E"; // magenta do gradiente da capa (= pílula do carrossel)
+const FUNNEL_ART_BOTTOM = 1230;   // onde a arte termina e começa o creme (= ARTH do fundo composto)
+// Fundo = imagem 9:16 composta (public/images/dopamina-funnel-bg-<lang>): a arte do livro
+// (kicker + I❤DOPAMINA + cérebro) no topo, derretendo no creme; o subtítulo/autor da capa
+// ficam de fora → zona creme LIMPA embaixo (sem colisão de texto). Só as cores do livro.
+function FunnelCardV2({ cover, keyword, action, note, handle }: { cover?: string; keyword: string; action: string; note: string; handle: string }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 20 });
+  const rise = interpolate(entry, [0, 1], [40, 0]);
+  // PULSO da palavra-chave: escala ±7% + halo que respira (~1,1 Hz) → chama o olho
+  const t = (frame / fps) * Math.PI * 2 * 1.1;
+  const pulse = 1 + 0.07 * Math.sin(t);
+  const halo = 26 + 48 * (0.5 + 0.5 * Math.sin(t));
+  return (
+    <AbsoluteFill style={{ backgroundColor: FUNNEL_CREAM }}>
+      {cover ? <Img src={cover} style={{ width: 1080, height: 1920, objectFit: "cover" }} /> : null}
+      <div style={{ position: "absolute", top: FUNNEL_ART_BOTTOM, left: 0, width: 1080, height: 1920 - FUNNEL_ART_BOTTOM, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 80px" }}>
+        <div style={{ opacity: entry, transform: `translateY(${rise}px)`, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+          <div style={{ fontFamily: FRAUNCES, fontWeight: 600, fontSize: 50, color: "#3A2230", marginBottom: 32 }}>
+            {action}
+          </div>
+          <div style={{ transform: `scale(${pulse})`, borderRadius: 9999, padding: "30px 84px", background: FUNNEL_MAGENTA, boxShadow: `0 0 ${halo}px ${FUNNEL_MAGENTA}` }}>
+            <div style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 100, letterSpacing: 8, color: FUNNEL_CREAM, textTransform: "uppercase" }}>
+              {keyword}
+            </div>
+          </div>
+          <div style={{ fontFamily: FRAUNCES, fontWeight: 400, fontSize: 44, color: "rgba(42,20,30,0.72)", marginTop: 32, maxWidth: 900 }}>
+            {note}
+          </div>
+        </div>
+      </div>
+      <div style={{ position: "absolute", bottom: 70, width: 1080, display: "flex", justifyContent: "center" }}>
+        <div style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 600, letterSpacing: 2, color: "rgba(42,20,30,0.5)" }}>{handle}</div>
+      </div>
+    </AbsoluteFill>
+  );
+}
+
 // ─── Composição V2 ─────────────────────────────────────────────────────────────
-export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, img, clips, clip, music, cat, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
+export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, img, clips, clip, music, cat, funnel, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
   // DE-DUP (mesmo helper do Root.calculateMetadata) → capa e insight 1 nunca repetem,
   // e a duração da composição bate com os insights de verdade (sem cena preta no fim).
   const safeSlides = dedupeSlides(title, slides);
-  const { COVER, INSIGHT, CTA, n, total } = reelDurationsV2(safeSlides.length);
+  const { COVER, INSIGHT, CTA, FUNNEL, n, total } = reelDurationsV2(safeSlides.length, !!funnel);
   const usedSlides = safeSlides.slice(0, n);
+  const funnelCover = funnel?.cover
+    ? (/^https?:\/\//.test(funnel.cover) ? funnel.cover : staticFile(funnel.cover))
+    : undefined;
 
   const pool = clips && clips.length ? clips : clip ? [clip] : [];
   const sceneClip = (i: number) => (pool.length ? pool[i % pool.length] : undefined);
@@ -253,6 +302,13 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
           <CtaTextV2 cta={cta} accent={accent} handle={handle} />
         </Scene>
       </Sequence>
+
+      {funnel && (
+        <Sequence from={next(FUNNEL)} durationInFrames={FUNNEL}>
+          {/* end-card do funil: arte do livro (fundo 9:16 composto) + funil na zona creme */}
+          <FunnelCardV2 cover={funnelCover} keyword={funnel.keyword} action={funnel.action} note={funnel.note} handle={handle} />
+        </Sequence>
+      )}
 
       {musicSrc && (
         <Audio
