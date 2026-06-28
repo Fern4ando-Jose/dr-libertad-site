@@ -217,7 +217,8 @@ function CtaTextV2({ cta, accent, handle }: { cta: string; accent: string; handl
 // do "I Love Dopamina" (cérebro + gradiente) via <Scene img>. A palavra-chave pulsa
 // (escala + halo) pra chamar o olho — o "movimento" que o dono pediu.
 const FUNNEL_CREAM = "#F4EFE0";   // creme do livro (= fundo do slide do carrossel aprovado)
-const FUNNEL_MAGENTA = "#D4357E"; // magenta do gradiente da capa (= pílula do carrossel)
+const FUNNEL_MAGENTA = "#D4357E"; // magenta da capa (halo/glow do pulso — precisa ser cor sólida)
+const FUNNEL_GRAD = "linear-gradient(120deg, #E8552F 0%, #D4357E 52%, #9B3FB5 100%)"; // pílula = gradiente da capa (escolha do dono)
 const FUNNEL_ART_BOTTOM = 1230;   // onde a arte termina e começa o creme (= ARTH do fundo composto)
 // Fundo = imagem 9:16 composta (public/images/dopamina-funnel-bg-<lang>): a arte do livro
 // (kicker + I❤DOPAMINA + cérebro) no topo, derretendo no creme; o subtítulo/autor da capa
@@ -239,7 +240,7 @@ function FunnelCardV2({ cover, keyword, action, note, handle }: { cover?: string
           <div style={{ fontFamily: FRAUNCES, fontWeight: 600, fontSize: 50, color: "#3A2230", marginBottom: 32 }}>
             {action}
           </div>
-          <div style={{ transform: `scale(${pulse})`, borderRadius: 9999, padding: "30px 84px", background: FUNNEL_MAGENTA, boxShadow: `0 0 ${halo}px ${FUNNEL_MAGENTA}` }}>
+          <div style={{ transform: `scale(${pulse})`, borderRadius: 9999, padding: "30px 84px", background: FUNNEL_GRAD, boxShadow: `0 0 ${halo}px ${FUNNEL_MAGENTA}` }}>
             <div style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 100, letterSpacing: 8, color: FUNNEL_CREAM, textTransform: "uppercase" }}>
               {keyword}
             </div>
