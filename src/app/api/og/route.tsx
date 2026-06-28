@@ -581,42 +581,83 @@ function CTASlide({ text, issue, cat, motif, total, seed, lang }: {
 // ─── SLIDE FINAL: GUIA / FUNIL (comment→DM) ───────────────────────────────────
 // Convida a comentar a palavra-chave (kw) p/ receber a prévia do livro no Direct.
 // Só é acrescentado ao carrossel quando o funil está LIGADO (ver /api/publish).
-function GuideSlide({ kw, issue, cat, motif, total, seed, lang }: {
-  kw: string; issue: string; cat: Cat; motif: MotifId; total: number; seed: number; lang: OgLang;
+function GuideSlide({ kw, issue, cat, motif, total, seed, lang, cover }: {
+  kw: string; issue: string; cat: Cat; motif: MotifId; total: number; seed: number; lang: OgLang; cover?: string;
 }) {
   const c = CATS[cat];
   const G = GUIDE_TEXT[lang];
-  return (
-    <Surface dark={true} accent={c.accent} motif={motif} seed={seed}>
-      <Folio issue={issue} accent={c.accent} dark={true} brand={BRAND[lang]} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <span style={{ fontFamily: SERIF, fontSize: 28, letterSpacing: "0.30em", color: c.accent, marginBottom: 28, display: "flex" }}>
-          {G.eyebrow}
-        </span>
-        <div style={{ fontFamily: SERIF, fontSize: fitTitleSize(G.book, W - 2 * M), lineHeight: 0.9, letterSpacing: "-0.03em", color: OFFWHITE, maxWidth: W - 2 * M, display: "flex" }}>
-          {G.book}
-        </div>
-        <div style={{ fontSize: 38, lineHeight: 1.4, color: "rgba(244,240,232,0.74)", marginTop: 26, maxWidth: 820, display: "flex" }}>
-          {G.sub}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", marginTop: 52 }}>
-          <span style={{ fontSize: 34, color: "rgba(244,240,232,0.92)", marginBottom: 22, display: "flex" }}>
-            {G.action}
+
+  // Fail-open: sem a arte do livro (capa não embutiu) → slide editorial dark de antes.
+  if (!cover) {
+    return (
+      <Surface dark={true} accent={c.accent} motif={motif} seed={seed}>
+        <Folio issue={issue} accent={c.accent} dark={true} brand={BRAND[lang]} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <span style={{ fontFamily: SERIF, fontSize: 28, letterSpacing: "0.30em", color: c.accent, marginBottom: 28, display: "flex" }}>
+            {G.eyebrow}
           </span>
-          <div style={{ display: "flex" }}>
-            <div style={{ border: `2px solid ${c.accent}`, borderRadius: 9999, padding: "20px 52px", background: rgba(c.accent, 0.18), display: "flex" }}>
-              <span style={{ fontFamily: SERIF, fontSize: 60, letterSpacing: "0.12em", textTransform: "uppercase", color: OFFWHITE, display: "flex" }}>
-                {kw}
-              </span>
-            </div>
+          <div style={{ fontFamily: SERIF, fontSize: fitTitleSize(G.book, W - 2 * M), lineHeight: 0.9, letterSpacing: "-0.03em", color: OFFWHITE, maxWidth: W - 2 * M, display: "flex" }}>
+            {G.book}
           </div>
-          <span style={{ fontSize: 28, color: "rgba(244,240,232,0.6)", marginTop: 24, display: "flex" }}>
-            {G.note}
-          </span>
+          <div style={{ fontSize: 38, lineHeight: 1.4, color: "rgba(244,240,232,0.74)", marginTop: 26, maxWidth: 820, display: "flex" }}>
+            {G.sub}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", marginTop: 52 }}>
+            <span style={{ fontSize: 34, color: "rgba(244,240,232,0.92)", marginBottom: 22, display: "flex" }}>
+              {G.action}
+            </span>
+            <div style={{ display: "flex" }}>
+              <div style={{ border: `2px solid ${c.accent}`, borderRadius: 9999, padding: "20px 52px", background: rgba(c.accent, 0.18), display: "flex" }}>
+                <span style={{ fontFamily: SERIF, fontSize: 60, letterSpacing: "0.12em", textTransform: "uppercase", color: OFFWHITE, display: "flex" }}>
+                  {kw}
+                </span>
+              </div>
+            </div>
+            <span style={{ fontSize: 28, color: "rgba(244,240,232,0.6)", marginTop: 24, display: "flex" }}>
+              {G.note}
+            </span>
+          </div>
         </div>
+        <Footer left={BRAND[lang]} accent={c.accent} dark={true} num={total} total={total} />
+      </Surface>
+    );
+  }
+
+  // COM a ARTE FINAL DO LIVRO: a capa (cérebro + gradiente + título) sangra no
+  // topo e derrete no preto; o funil comment→DM vem embaixo, com glow magenta —
+  // pra dar choque e ser inconfundivelmente o livro. Acento = magenta vivo da capa.
+  const ACCENT = "#E85382";
+  const COVER_W = W;                            // 1080
+  const COVER_H = Math.round(W * 1536 / 1024);  // capa é 2:3 → 1620
+  const HERO = 920;                             // altura da faixa de arte (resto = funil)
+  return (
+    <div style={{ width: W, height: H, display: "flex", flexDirection: "column", background: INK }}>
+      <div style={{ width: W, height: HERO, position: "relative", display: "flex", flexShrink: 0 }}>
+        <img src={cover} width={COVER_W} height={HERO} style={{ width: COVER_W, height: HERO, objectFit: "cover", objectPosition: "50% 31%" }} />
+        <div style={{ position: "absolute", top: 0, left: 0, width: W, height: HERO, display: "flex",
+          background: `linear-gradient(180deg, rgba(11,11,12,0) 56%, rgba(11,11,12,0.5) 80%, ${INK} 100%)` }} />
       </div>
-      <Footer left={BRAND[lang]} accent={c.accent} dark={true} num={total} total={total} />
-    </Surface>
+      <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 80px" }}>
+        <div style={{ position: "absolute", top: -150, left: 0, width: W, height: 470, display: "flex",
+          background: `radial-gradient(56% 64% at 50% 50%, ${rgba(ACCENT, 0.34)}, transparent 72%)` }} />
+        <span style={{ fontSize: 36, color: "rgba(244,240,232,0.92)", marginBottom: 26, display: "flex" }}>
+          {G.action}
+        </span>
+        <div style={{ display: "flex" }}>
+          <div style={{ border: `3px solid ${ACCENT}`, borderRadius: 9999, padding: "24px 64px", background: rgba(ACCENT, 0.22), display: "flex" }}>
+            <span style={{ fontFamily: SERIF, fontSize: 76, letterSpacing: "0.14em", textTransform: "uppercase", color: OFFWHITE, display: "flex" }}>
+              {kw}
+            </span>
+          </div>
+        </div>
+        <span style={{ fontSize: 32, color: "rgba(244,240,232,0.72)", marginTop: 28, display: "flex" }}>
+          {G.note}
+        </span>
+      </div>
+      <div style={{ padding: `0 ${M}px 60px ${M}px`, display: "flex", flexShrink: 0 }}>
+        <Footer left={BRAND[lang]} accent={ACCENT} dark={true} num={total} total={total} />
+      </div>
+    </div>
   );
 }
 
@@ -691,11 +732,17 @@ export async function GET(req: NextRequest) {
       ? await fetchImageDataUri(imgUrl, 3000)
       : undefined;
 
+    // Slide do funil usa a ARTE FINAL DO LIVRO: busca a capa hospedada (mesma
+    // origem) e embute. Fail-open: falha/timeout → GuideSlide cai no editorial dark.
+    const guideCover = slide === "guide"
+      ? await fetchImageDataUri(`${req.nextUrl.origin}/images/i-love-dopamina-capa-${lang === "pt" ? "pt" : "es"}.png`, 3500)
+      : undefined;
+
     const fontBold = loadFraunces();
 
     let node;
     if (slide === "guide") {
-      node = <GuideSlide kw={kw} issue={issue} cat={cat} motif={motif} total={total} seed={seed} lang={lang} />;
+      node = <GuideSlide kw={kw} issue={issue} cat={cat} motif={motif} total={total} seed={seed} lang={lang} cover={guideCover} />;
     } else if (slide === "cta") {
       node = <CTASlide text={text || title} issue={issue} cat={cat} motif={motif} total={total} seed={seed} lang={lang} />;
     } else if (slide === "insight") {
