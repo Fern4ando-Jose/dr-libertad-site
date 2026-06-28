@@ -23,6 +23,8 @@ skills-lock.json
 
 # Notas e rascunhos locais (não versionados)
 _notas/
+# Mídia de teste guardada p/ reuso (AGENTS.md §1.11) — não versionar
+Arquivo-Midia/
 public_tmp/
 *.docx
 *.bck
