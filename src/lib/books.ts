@@ -39,10 +39,12 @@ export const BOOKS: BookMeta[] = [
   {
     // Prévia GRÁTIS do livro "I Love Dopamina" — página-destino do funil comment→DM.
     // Download 1-clique do PDF (já em public/lead). Livro completo: lançamento (lista
-    // de espera por enquanto). Capa ES usa a PT até a variante ES ser produzida.
+    // de espera por enquanto). Capa por idioma: a ES é a capa oficial do livro em
+    // espanhol (mesma arte, redação ES: "GUÍA·ADELANTO" / "DR. LIBERTAD"), extraída
+    // da capa do PDF de prévia ES.
     slug: "i-love-dopamina",
     dictKey: "dopamina",
-    cover: { pt: "/images/i-love-dopamina-capa-pt.png", es: "/images/i-love-dopamina-capa-pt.png" },
+    cover: { pt: "/images/i-love-dopamina-capa-pt.png", es: "/images/i-love-dopamina-capa-es.png" },
     free: true,
     leadPdf: { pt: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },
   },
