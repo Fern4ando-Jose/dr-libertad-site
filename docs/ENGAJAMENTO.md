@@ -43,7 +43,7 @@ prompt builders + geração haiku), `src/app/api/webhooks/instagram/route.ts` (I
 | `ENGAGEMENT_FUNNEL_KEYWORD_ES` / `_PT` | — | palavra-chave por idioma. **Default = a palavra de marca da conta** (ES `LIBERTAD`, PT `LIBERDADE`) — não precisa setar p/ usar a decisão do dono |
 | `ENGAGEMENT_FUNNEL_KEYWORD` | — | override global (vale p/ os dois idiomas se os por-idioma não existirem) |
 | `ENGAGEMENT_LEAD_NAME_ES` / `_PT` (+ global `ENGAGEMENT_LEAD_NAME`) | **default embutido** | nome do lead magnet entregue na DM |
-| `ENGAGEMENT_LEAD_URL_ES` / `_PT` (+ global `ENGAGEMENT_LEAD_URL`) | **default embutido** | link do lead magnet. Default = o guia **"El Reinicio / O Reinício"** servido em `/lead/*.pdf` (já no repo). Sem URL → a DM só abre conversa, não inventa link |
+| `ENGAGEMENT_LEAD_URL_ES` / `_PT` (+ global `ENGAGEMENT_LEAD_URL`) | **default embutido** | link do lead magnet. Default = a página da prévia **"I Love Dopamina"** (`/{lang}/livros/i-love-dopamina`, download 1-clique). Sem URL → a DM só abre conversa, não inventa link |
 
 ## Go-live (pós-aprovação) — ✅ App Review APROVADO 2026-06-25
 
@@ -171,12 +171,11 @@ do livro.
   do livro completo. É o **default embutido** do funil (`LEAD_DEFAULTS` em `webhooks/instagram/route.ts`;
   trocável por env `ENGAGEMENT_LEAD_URL_*` sem deploy). A página é o livro `i-love-dopamina` em
   `src/lib/books.ts` (`free:true` + `leadPdf`), renderizada por `BookSales` (modo grátis = download).
-  ⚠️ Capa ES ainda usa a PT (localizar depois).
+  Capa por idioma: PT e ES próprias (`/images/i-love-dopamina-capa-{pt,es}.png`).
 - **Fonte (offline, fora do Git):** `D:\Claude\Livros-Escrevendo\I love Dopamina\`
   (`design/build-interior.mjs` + `build-interior-es.mjs` → Chrome `--print-to-pdf`;
   trava `preflight.mjs` no PDF real antes de publicar). Só o PDF entra no Git; o source é
-  ativo de marca. O guia anterior "O Reinício" segue em `public/lead/` mas **não é mais a
-  isca default**.
+  ativo de marca.
 
 ## Custo
 
