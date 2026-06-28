@@ -6,10 +6,13 @@ import pickMusicMod from "../../scripts/pick-music.cjs";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INVARIANTE — MÚSICA POR TEMA. Cada tema tem faixa própria; pick-music.cjs escolhe
-// pelo `topic` via public/music/manifest.json (gerado por scripts/generate-music.mjs).
-// Garante: (1) todo arquivo do manifest existe e segue o padrão bed-NN-slug.mp3;
-// (2) o picker resolve o tema pelo manifest; (3) tema fora do manifest NÃO quebra
-// (fail-open → string vazia ou rotação legado). Ver CLAUDE.md (pipeline do Reel).
+// pelo `topic` via public/music/manifest.json (reconstruído por
+// scripts/build-music-manifest.mjs a partir dos THEMES + overrides.json).
+// Garante: (1) todo arquivo do manifest é um mp3 de public/music QUE EXISTE;
+// (2) COBERTURA — todo tema dos THEMES tem entrada no manifest (nenhum tema fica sem
+// trilha; cai no fallback do pilar até ganhar a faixa final via overrides);
+// (3) o picker resolve o tema pelo manifest; (4) tema fora do manifest NÃO quebra
+// (fail-open). Ver CLAUDE.md (pipeline do Reel).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { pickMusic } = pickMusicMod as unknown as { pickMusic: (a: unknown) => string };
@@ -18,13 +21,34 @@ const manifest = JSON.parse(
   readFileSync(resolve(ROOT, "public/music/manifest.json"), "utf8"),
 ) as Record<string, string>;
 
+// temas reais (fonte única THEMES em api/publish/route.ts) — uma entrada por linha;
+// `cat` pode vir após `literal: true`, então casa topic e cat separadamente.
+function readThemes(): string[] {
+  const src = readFileSync(resolve(ROOT, "src/app/api/publish/route.ts"), "utf8");
+  const topics: string[] = [];
+  for (const line of src.split("\n")) {
+    const t = line.match(/topic:\s*"([^"]+)"/);
+    const c = line.match(/cat:\s*"([a-z]+)"/);
+    if (t && c) topics.push(t[1]);
+  }
+  return topics;
+}
+
 describe("música por tema — manifest", () => {
-  it("não está vazio e todo arquivo existe no padrão music/bed-NN-slug.mp3", () => {
+  it("não está vazio e todo arquivo é um mp3 de music/ que existe", () => {
     const entries = Object.entries(manifest);
     expect(entries.length).toBeGreaterThan(0);
     for (const [, file] of entries) {
-      expect(file).toMatch(/^music\/bed-\d{2}-[a-z0-9-]+\.mp3$/);
+      expect(file).toMatch(/^music\/[a-z0-9._-]+\.mp3$/i);
       expect(existsSync(resolve(ROOT, "public", file))).toBe(true);
+    }
+  });
+
+  it("COBERTURA — todo tema dos THEMES tem trilha no manifest", () => {
+    const topics = readThemes();
+    expect(topics.length).toBeGreaterThan(50); // ~61
+    for (const topic of topics) {
+      expect(manifest[topic], `tema sem trilha: ${topic}`).toBeTruthy();
     }
   });
 });
