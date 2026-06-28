@@ -626,36 +626,40 @@ function GuideSlide({ kw, issue, cat, motif, total, seed, lang, cover }: {
   // COM a ARTE FINAL DO LIVRO: a capa (cérebro + gradiente + título) sangra no
   // topo e derrete no preto; o funil comment→DM vem embaixo, com glow magenta —
   // pra dar choque e ser inconfundivelmente o livro. Acento = magenta vivo da capa.
-  const ACCENT = "#E85382";
   const COVER_W = W;                            // 1080
   const COVER_H = Math.round(W * 1536 / 1024);  // capa é 2:3 → 1620
-  const HERO = 920;                             // altura da faixa de arte (resto = funil)
+  const CREAM = "#F4EFE0";                      // o MESMO creme da capa (= fundo do slide, sem preto)
+  const MAGENTA = "#D4357E";                    // magenta vivo do gradiente da capa
+  const HERO = 968;                             // arte do livro (creme+gradiente+cérebro) no topo;
+                                                // o resto é o MESMO creme → sem nenhuma faixa escura
   return (
-    <div style={{ width: W, height: H, display: "flex", flexDirection: "column", background: INK }}>
+    <div style={{ width: W, height: H, display: "flex", flexDirection: "column", background: CREAM }}>
       <div style={{ width: W, height: HERO, position: "relative", display: "flex", flexShrink: 0 }}>
-        <img src={cover} width={COVER_W} height={HERO} style={{ width: COVER_W, height: HERO, objectFit: "cover", objectPosition: "50% 13%" }} />
+        <img src={cover} width={COVER_W} height={HERO} style={{ width: COVER_W, height: HERO, objectFit: "cover", objectPosition: "50% 0%" }} />
+        {/* só um respiro de 4% pro creme do slide encostar no creme da capa, sem emenda */}
         <div style={{ position: "absolute", top: 0, left: 0, width: W, height: HERO, display: "flex",
-          background: `linear-gradient(180deg, rgba(11,11,12,0) 78%, rgba(11,11,12,0.7) 90%, ${INK} 100%)` }} />
+          background: `linear-gradient(180deg, rgba(244,239,224,0) 94%, ${CREAM} 100%)` }} />
       </div>
-      <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 80px" }}>
-        <div style={{ position: "absolute", top: -150, left: 0, width: W, height: 470, display: "flex",
-          background: `radial-gradient(56% 64% at 50% 50%, ${rgba(ACCENT, 0.34)}, transparent 72%)` }} />
-        <span style={{ fontSize: 36, color: "rgba(244,240,232,0.92)", marginBottom: 26, display: "flex" }}>
-          {G.action}
-        </span>
-        <div style={{ display: "flex" }}>
-          <div style={{ border: `3px solid ${ACCENT}`, borderRadius: 9999, padding: "24px 64px", background: rgba(ACCENT, 0.22), display: "flex" }}>
-            <span style={{ fontFamily: SERIF, fontSize: 76, letterSpacing: "0.14em", textTransform: "uppercase", color: OFFWHITE, display: "flex" }}>
-              {kw}
-            </span>
+      {/* funil no MESMO creme do livro — pílula magenta saltando, zero preto */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: CREAM }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 80px" }}>
+          <span style={{ fontSize: 36, color: "#3A2230", marginBottom: 26, display: "flex" }}>
+            {G.action}
+          </span>
+          <div style={{ display: "flex" }}>
+            <div style={{ borderRadius: 9999, padding: "24px 66px", background: MAGENTA, display: "flex", boxShadow: "0 14px 34px rgba(212,53,126,0.34)" }}>
+              <span style={{ fontFamily: SERIF, fontSize: 76, letterSpacing: "0.14em", textTransform: "uppercase", color: CREAM, display: "flex" }}>
+                {kw}
+              </span>
+            </div>
           </div>
+          <span style={{ fontSize: 32, color: "rgba(42,20,30,0.72)", marginTop: 28, display: "flex" }}>
+            {G.note}
+          </span>
         </div>
-        <span style={{ fontSize: 32, color: "rgba(244,240,232,0.72)", marginTop: 28, display: "flex" }}>
-          {G.note}
-        </span>
-      </div>
-      <div style={{ padding: `0 ${M}px 60px ${M}px`, display: "flex", flexShrink: 0 }}>
-        <Footer left={BRAND[lang]} accent={ACCENT} dark={true} num={total} total={total} />
+        <div style={{ padding: `0 ${M}px 56px ${M}px`, display: "flex", flexShrink: 0 }}>
+          <Footer left={BRAND[lang]} accent={MAGENTA} dark={false} num={total} total={total} />
+        </div>
       </div>
     </div>
   );
