@@ -114,7 +114,9 @@ jobs:
               music: require("./scripts/pick-music.cjs").pickMusic({ topic: p.topic, run: ${{ steps.params.outputs.run }} }) || undefined,
               // End-card do funil (comment→DM) — presente só quando ENGAGEMENT_FUNNEL_ENABLED;
               // a API já manda a capa do livro + a voz por idioma. Ausente → Reel inalterado.
-              funnel: p.funnel || undefined
+              // TEMP-PREVIEW: injeta funnel quando a API ainda não devolve (branch não-mergeado),
+              // pra renderizar o end-card no preview. REMOVER antes do merge (volta a `p.funnel || undefined`).
+              funnel: p.funnel || { keyword: (p.kw || "LIBERTAD"), action: "Comenta esta palabra:", note: "y te lo enviamos al Direct — gratis.", cover: "images/i-love-dopamina-capa-es.png" }
             };
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("slot.txt", p.slot || "noite");
