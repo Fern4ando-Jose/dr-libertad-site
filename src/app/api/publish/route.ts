@@ -12,6 +12,7 @@ import { searchDuckDuckGo } from "@/lib/ddg";
 import { buildLiteralDirective } from "@/lib/literal-lock";
 import { scanContentForeign, summarizeHits } from "@/lib/lang-guard";
 import { titleDupedInSlides } from "@/lib/slide-dedup";
+import { clipSlideText } from "@/lib/slide-text";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -269,7 +270,7 @@ async function generateContent(
   const funnelOn = (process.env.ENGAGEMENT_FUNNEL_ENABLED ?? "").toLowerCase() === "on";
   const guideWord = acc.freedom.toUpperCase();
   const guideCaptionRule = funnelOn
-    ? ` + una invitación clara a COMENTAR exactamente la palabra «${guideWord}» para recibir GRATIS por mensaje privado el adelanto del libro «I Love Dopamina» (escribe «${guideWord}» y «I Love Dopamina» TAL CUAL, sin traducir ni alterar)`
+    ? ` + una invitación clara a COMENTAR exactamente la palabra «${guideWord}» para recibir GRATIS, por mensaje privado, una PREVIA del libro «I Love Dopamina». ATENCIÓN: SOLO «${guideWord}» y «I Love Dopamina» van TAL CUAL (sin traducir); TODO LO DEMÁS de esta invitación va en ${L} NATURAL — en portugués «adelanto/avance»→«prévia», «libro»→«livro», «mensaje privado»→«mensagem privada», «gratis»→«grátis» (NUNCA dejes la palabra «adelanto» en un texto en portugués)`
     : "";
 
   const prompt = `Eres el editor de ${acc.brand}, estudio editorial sobre psicología, atención y ${acc.freedom} mental.
@@ -749,7 +750,10 @@ export async function GET(req: NextRequest) {
 
         // Construir URLs dos slides
         const base = process.env.PRODUCTION_URL ?? "https://www.drlibertad.com";
-        const enc  = (s: string) => encodeURIComponent(s.slice(0, 120));
+        // Corte WORD-SAFE (nunca no meio da palavra — bug "estar viv" do ED 04 PT, onde
+        // o slice(0,120) cego partia "vivo"). Default 120 (título/kw curtos); o insight e
+        // o CTA têm duas orações → orçamento maior, passado explícito (ver clipSlideText).
+        const enc  = (s: string, max = 120) => encodeURIComponent(clipSlideText(s, max));
         // Slide-final do FUNIL (comment→DM): só entra quando o funil está LIGADO (assim
         // a chamada "comente a palavra" só aparece quando a DM consegue mesmo entregar).
         const funnelOn = (process.env.ENGAGEMENT_FUNNEL_ENABLED ?? "").toLowerCase() === "on";
@@ -794,9 +798,9 @@ export async function GET(req: NextRequest) {
         const slideUrls: string[] = [
           `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}${imgParam}&total=${totalSlides}&lang=${lang}`,
           ...content.slides.map((text, i) =>
-            `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text)}&num=${i + 2}&total=${totalSlides}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}&lang=${lang}`
+            `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text, 200)}&num=${i + 2}&total=${totalSlides}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}&lang=${lang}`
           ),
-          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}&num=${ctaNum}&total=${totalSlides}&lang=${lang}`,
+          `${base}/api/og?slide=cta&slot=${slot}&text=${enc(content.cta, 160)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}&num=${ctaNum}&total=${totalSlides}&lang=${lang}`,
           // Slide-final do funil (comente a palavra → DM com a prévia). Só quando ligado.
           ...(funnelOn
             ? [`${base}/api/og?slide=guide&slot=${slot}&kw=${enc(guideKw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}&num=${totalSlides}&total=${totalSlides}&lang=${lang}`]

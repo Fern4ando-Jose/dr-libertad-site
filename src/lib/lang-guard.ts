@@ -29,6 +29,9 @@ const ES_WORDS = new Set([
   "libre", "móvil", "pantalla", "disfrutar", "disfruta", "disfrutas", "cita",
   "sin", "con", "una", "uno", "unos", "unas", "los", "las", "del", "esto", "eso",
   "esa", "ese", "es", "lo", "le", "les", "el", "la", "al",
+  // Família do funil comment→DM (vazou "el adelanto del libro" na legenda PT, ED 04):
+  // inequívocas em ES, inexistentes em PT (prévia/adiantamento, livro, mensagem).
+  "adelanto", "libro", "mensaje",
 ]);
 
 const PT_WORDS = new Set([

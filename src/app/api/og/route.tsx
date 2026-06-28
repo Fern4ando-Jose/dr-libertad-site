@@ -538,7 +538,9 @@ function InsightSlide({ text, num, total, kw, issue, cat, motif, seed, lang }: {
           // cinza estático — dá destaque sem competir com o título (pedido do dono 2026-06-26,
           // "muito estático, sem chamativos"). fontFamily SERIF p/ casar com o resto (satori
           // não herda fonte de forma confiável). Fica abaixo do mainText, leitura preservada.
-          <div style={{ fontFamily: SERIF, fontSize: 50, lineHeight: 1.4, letterSpacing: "-0.01em", color: c.accent, marginTop: 30, maxWidth: 820, display: "flex" }}>
+          // Encolhe SÓ quando longo (≳66 chars) p/ não estourar a largura/altura — o cap do
+          // insight subiu p/ 200, então uma 2ª oração longa pode chegar aqui; curto fica nos 50.
+          <div style={{ fontFamily: SERIF, fontSize: Math.max(32, Math.min(50, Math.floor(3300 / Math.max(subText.length, 1)))), lineHeight: 1.4, letterSpacing: "-0.01em", color: c.accent, marginTop: 30, maxWidth: 820, display: "flex" }}>
             {subText}
           </div>
         ) : null}
