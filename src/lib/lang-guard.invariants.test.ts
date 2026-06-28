@@ -24,6 +24,17 @@ describe("foreignTokens — espanhol vazando em conteúdo PT", () => {
     expect(foreignTokens("#MenteLibre", "pt")).toContain("libre");
   });
 
+  it("pega 'adelanto' vazado na legenda do funil (ED 04 PT)", () => {
+    const leak = "comenta LIBERDADE e te mando o adelanto do livro na DM";
+    expect(foreignTokens(leak, "pt")).toContain("adelanto");
+  });
+
+  it("pega 'libro'/'mensaje' (família do funil)", () => {
+    expect(foreignTokens("recebe o libro por mensaje privado", "pt")).toEqual(
+      expect.arrayContaining(["libro", "mensaje"]),
+    );
+  });
+
   it("pega outros espanholismos do marketBrief", () => {
     expect(foreignTokens("revisa el móvil", "pt")).toEqual(
       expect.arrayContaining(["el", "móvil"]),
