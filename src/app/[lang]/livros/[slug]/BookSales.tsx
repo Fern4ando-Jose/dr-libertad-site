@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
@@ -21,6 +22,73 @@ function Heading({ eyebrow, title }: { eyebrow: string; title: string }) {
         {title}
       </h2>
       <div className="mt-5 h-[1px] w-28 bg-gradient-to-r from-muted-red/70 via-warm-gray/25 to-transparent" />
+    </div>
+  );
+}
+
+// Lista de espera do livro completo (modo prévia grátis). Captura e-mail → /api/waitlist.
+function WaitlistForm({ slug }: { slug: string }) {
+  const { t, lang } = useLang();
+  const w = t.waitlist;
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [msg, setMsg] = useState("");
+
+  const submit = async () => {
+    const value = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setStatus("error");
+      setMsg(w.errorInvalid);
+      return;
+    }
+    setStatus("loading");
+    setMsg("");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: value, lang, slug }),
+      });
+      if (!res.ok) throw new Error();
+      setStatus("ok");
+    } catch {
+      setStatus("error");
+      setMsg(w.errorGeneric);
+    }
+  };
+
+  return (
+    <div className="mx-auto mt-10 max-w-xl border-t border-warm-gray/15 pt-8 text-left">
+      <div className="text-xs tracking-[0.26em] uppercase text-warm-gray/80">{w.eyebrow}</div>
+      <h3 className="mt-3 font-serif text-[clamp(1.4rem,2.6vw,1.9rem)] leading-[1.1] text-offwhite text-balance">
+        {w.title}
+      </h3>
+      <p className="mt-3 text-sm leading-[1.7] text-warm-gray/85">{w.lead}</p>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <input
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (status !== "idle") setStatus("idle");
+          }}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          placeholder={w.placeholder}
+          type="email"
+          disabled={status === "loading" || status === "ok"}
+          className="w-full rounded-2xl border border-warm-gray/15 bg-ink/35 px-4 py-3 text-offwhite placeholder:text-warm-gray/50 outline-none focus:border-muted-red/60 disabled:opacity-60"
+        />
+        <button
+          type="button"
+          onClick={submit}
+          disabled={status === "loading" || status === "ok"}
+          className="shrink-0 rounded-2xl bg-muted-red px-5 py-3 text-sm font-semibold text-offwhite transition hover:bg-muted-red/85 disabled:opacity-70"
+        >
+          {status === "ok" ? w.success : status === "loading" ? w.submitting : w.submit}
+        </button>
+      </div>
+      <div className="mt-3 text-xs leading-[1.6] text-warm-gray/70">
+        {status === "error" ? <span className="text-muted-red">{msg}</span> : w.disclaimer}
+      </div>
     </div>
   );
 }
@@ -316,6 +384,7 @@ export default function BookSales({ slug }: { slug: string }) {
               </a>
               <div className="text-xs tracking-[0.04em] text-warm-gray/65">{free ? L.downloadNote : L.ctaBuyNote}</div>
             </div>
+            {free && <WaitlistForm slug={slug} />}
             <p className="mx-auto mt-8 max-w-2xl text-[0.72rem] leading-[1.6] text-warm-gray/55">
               {L.disclaimer}
             </p>
