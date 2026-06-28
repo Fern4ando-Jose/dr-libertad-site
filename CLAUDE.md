@@ -52,6 +52,11 @@ A fonte de **visualização é ÚNICA** e fica na máquina do dono: `D:\Claude\.
 - **Agente LOCAL** (tem `D:\Claude\`): edite direto `D:\Claude\.claude\pendencias\dr-libertad.md` (`- [ ]` / `- [x]` sob 🔴/🟡/🟢/✅).
 - **Agente da NUVEM / remoto** (só tem ESTE repo, **não alcança `D:\Claude`**): acrescente ao arquivo **`PENDENCIAS.inbox.md`** na raiz do repo (`- [ ] texto`) e commit. É uma fila — a máquina local drena pro painel e esvazia. **Não crie `TODO.md` nem `PENDENCIAS.md`; não pergunte.**
 
+> ⛔ **NUNCA cole valor de segredo no `PENDENCIAS.inbox.md`** (nem em qualquer doc/exemplo) —
+> token, chave, secret, verify token. O repo é PÚBLICO e o arquivo vive no HEAD **e** no
+> histórico git (clonável p/ sempre). Use placeholder: `<REDACTED — ver cofre>` / `$NOME_DA_VAR`.
+> Houve vazamento de `META_WEBHOOK_VERIFY_TOKEN` por aqui (2026-06-28) → scrub do HEAD + nota.
+
 ## Ritual de início (SEMPRE seguir ao abrir o projeto)
 
 1. **Ler as memórias** do projeto antes de mexer — em especial `reel-i2v-engine`
