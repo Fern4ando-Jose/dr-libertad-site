@@ -9,7 +9,7 @@ describe("content-cache — chave por (tópico, dia, idioma)", () => {
     const es = contentCacheKey("Nadie te debe nada", "2026-06-20", "es");
     const pt = contentCacheKey("Nadie te debe nada", "2026-06-20", "pt");
     expect(es).not.toBe(pt);
-    expect(es).toBe("Nadie te debe nada|2026-06-20|es|v3");
+    expect(es).toBe("Nadie te debe nada|2026-06-20|es|v4");
   });
 
   it("muda por dia → expiração natural diária", () => {
