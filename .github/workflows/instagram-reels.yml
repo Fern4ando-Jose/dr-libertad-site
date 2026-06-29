@@ -114,7 +114,10 @@ jobs:
               music: require("./scripts/pick-music.cjs").pickMusic({ topic: p.topic, run: ${{ steps.params.outputs.run }} }) || undefined,
               // End-card do funil (comment→DM) — presente só quando ENGAGEMENT_FUNNEL_ENABLED;
               // a API já manda a capa do livro + a voz por idioma. Ausente → Reel inalterado.
-              funnel: p.funnel || undefined
+              funnel: p.funnel || undefined,
+              // Narração (voz TTS) — só quando REEL_NARRATION_ENABLED; a API já gerou e
+              // devolveu a URL. Ausente → Reel só com música (a música vira leito suave qd há voz).
+              narrationUrl: p.narrationUrl || undefined
             };
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("slot.txt", p.slot || "noite");

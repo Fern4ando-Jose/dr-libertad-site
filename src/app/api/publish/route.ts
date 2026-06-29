@@ -4,6 +4,7 @@ import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
 import { parseContentJson } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
+import { generateNarration } from "@/lib/narration";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
 import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun } from "@/lib/rotation";
@@ -29,6 +30,7 @@ interface GeneratedContent {
   instagramCaption: string;
   tags: string[];
   videoQueries?: string[]; // termos EN p/ buscar footage do Reel (opcional)
+  narration?: string;      // roteiro FALADO do Reel (~28s), tirado dos slides → voz = tela
 }
 
 type Slot = "manha" | "tarde" | "noite";
@@ -642,6 +644,20 @@ export async function GET(req: NextRequest) {
         }
       : undefined;
 
+    // Narração (voz TTS) — GATED por REEL_NARRATION_ENABLED. O roteiro é o TEXTO DA TELA
+    // (gancho + insights, VERBATIM, na ordem) + cierre de seguir → a voz SEMPRE bate com a
+    // tela (não é reescrita do modelo). Cache por (tópico,dia,idioma); fail-open (sem narração
+    // → Reel só com música). No ReelV2 a música vira leito suave (ducking).
+    const followLine = lang === "pt"
+      ? "Me siga se você prefere a verdade incômoda ao aplauso."
+      : "Sígueme si prefieres la verdad incómoda al aplauso.";
+    const narrationText =
+      [content.postTitle, ...(Array.isArray(content.slides) ? content.slides : [])]
+        .map((s) => String(s).trim()).filter(Boolean)
+        .map((s) => (/[.!?]$/.test(s) ? s : s + "."))
+        .join(" ") + " " + followLine;
+    const narr = await generateNarration(narrationText, lang, topic, day, { automation: "ig-reels", meta: { run: r } });
+
     return NextResponse.json({
       preview: true,
       slot, run: r, topic, cat,
@@ -658,6 +674,8 @@ export async function GET(req: NextRequest) {
       videoQueries, // canônicos (compartilhados entre idiomas)
       clips,        // footage COMPARTILHADO (mesmo vídeo ES/PT); [] → fetch-footage.mjs busca no CI
       sharedFootage: clips.length > 0, // diagnóstico: veio da base compartilhada?
+      narrationUrl: narr.url ?? undefined, // voz TTS (gated REEL_NARRATION_ENABLED); ausente → Reel só com música
+      narrationError: narr.error,
       illustration: illustrationUrl,
       illustrationError,
     });

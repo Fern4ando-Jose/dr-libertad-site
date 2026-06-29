@@ -258,7 +258,7 @@ function FunnelCardV2({ cover, keyword, action, note, handle }: { cover?: string
 }
 
 // ─── Composição V2 ─────────────────────────────────────────────────────────────
-export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, img, clips, clip, music, cat, funnel, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
+export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, img, clips, clip, music, narrationUrl, cat, funnel, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
   // DE-DUP (mesmo helper do Root.calculateMetadata) → capa e insight 1 nunca repetem,
   // e a duração da composição bate com os insights de verdade (sem cena preta no fim).
@@ -280,6 +280,9 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
   };
 
   const musicSrc = music ? (/^https?:\/\//.test(music) ? music : staticFile(music)) : null;
+  // Narração (voz) por cima; quando há narração, a música vira LEITO SUAVE (ducking).
+  const narrationSrc = narrationUrl ? (/^https?:\/\//.test(narrationUrl) ? narrationUrl : staticFile(narrationUrl)) : null;
+  const musicMax = narrationSrc ? 0.16 : 0.7;
   let sceneIdx = 0;
 
   return (
@@ -315,7 +318,15 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
         <Audio
           src={musicSrc}
           volume={(f) =>
-            interpolate(f, [0, 15, total - 24, total], [0, 0.7, 0.7, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+            interpolate(f, [0, 15, total - 24, total], [0, musicMax, musicMax, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+          }
+        />
+      )}
+      {narrationSrc && (
+        <Audio
+          src={narrationSrc}
+          volume={(f) =>
+            interpolate(f, [0, 6], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
           }
         />
       )}

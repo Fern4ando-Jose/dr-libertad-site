@@ -14,9 +14,11 @@
 
 // Sufixo de versão: subir invalida o cache anterior (regera limpo). v2 = trava de
 // pureza de idioma (lang-guard); v3 = reforço do lang-guard (adelanto/libro/mensaje)
-// + funil traduz "adelanto"→"prévia" — descarta legendas PT contaminadas já cacheadas.
+// + funil traduz "adelanto"→"prévia" — descarta legendas PT contaminadas já cacheadas;
+// v4 = gancho-pergunta + videoQueries DIVERSOS (anti-celular) + integridade/brevidade
+// (#125/#126) — descarta a copy velha pra os fixes valerem já na próxima geração.
 export function contentCacheKey(topic: string, day: string, lang: string): string {
-  return `${topic}|${day}|${lang}|v3`;
+  return `${topic}|${day}|${lang}|v4`;
 }
 
 // Lê a copy cacheada (≤24h). Só devolve se tiver o mínimo válido (postTitle + slides),
