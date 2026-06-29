@@ -322,13 +322,10 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
           }
         />
       )}
-      {/* Narração: volume CHEIO + um RESPIRO de ~0,5s antes da voz (entrava seca em 0ms e
-          o ouvido perdia a 1ª palavra). Cabe na janela (voz ~23s + 0,5s < end-card). */}
-      {narrationSrc && (
-        <Sequence from={Math.round(FPS * 0.5)}>
-          <Audio src={narrationSrc} />
-        </Sequence>
-      )}
+      {/* Narração em volume cheio. A clareza da abertura vem do TETO de velocidade (0,95,
+          sem cold-start) — não de fade/respiro. Cabe no vídeo; a frase de seguir entra
+          sobre o end-card em narração longa. */}
+      {narrationSrc && <Audio src={narrationSrc} />}
     </AbsoluteFill>
   );
 };
