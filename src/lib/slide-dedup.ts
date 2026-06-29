@@ -20,3 +20,15 @@ export function titleDupedInSlides(title: string, slides: string[] | undefined):
   if (!t) return false;
   return (slides ?? []).some((s) => normalizePhrase(s) === t);
 }
+
+/** Slides que o Reel REALMENTE mostra: os 3 primeiros menos os que repetem o título
+ *  (se sobrar 0, mantém os 3 — fail-safe). Espelha `video/ReelV2.dedupeSlides`. PURO.
+ *  Usado na API p/ dimensionar a JANELA DE VOZ da narração com a MESMA contagem do render
+ *  — senão a voz é calibrada p/ um vídeo mais longo do que o renderizado e a frase final
+ *  ("Me siga") é cortada (bug pego na auditoria 29/06). */
+export function dedupeSlides(title: string, slides: string[] | undefined): string[] {
+  const raw = (slides ?? []).slice(0, 3);
+  const t = normalizePhrase(title);
+  const distinct = raw.filter((s) => normalizePhrase(s) !== t);
+  return distinct.length ? distinct : raw;
+}

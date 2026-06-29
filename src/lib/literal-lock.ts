@@ -20,6 +20,6 @@ export function buildLiteralDirective(isLiteral: boolean, freedom: string): stri
 TEMA-CONVICCIÓN (INVIOLABLE) — este tema ES una frase-verdad del autor; su fuerza está en las palabras EXACTAS:
 - El "postTitle" PRESERVA las palabras clave de la frase del tema, intactas. Si no cabe en 55 caracteres, recorta relleno pero NUNCA el núcleo; jamás reformules, suavices ni sustituyas la frase por "${freedom}"/"libertad" u otra palabra de marca.
 - El PRIMER elemento de "slides" contiene la frase COMPLETA del tema, textual.
-- La conexión con la ${freedom} va en OTRO insight (2 o 3), NUNCA en el título ni en lugar de la frase. Esto ANULA, solo para este tema, la exigencia de conectar el título con la libertad.
+- La conexión con la ${freedom} va en OTRO insight (2 o 3), NUNCA en el título ni en lugar de la frase. Esto ANULA, SOLO para este tema, DOS exigencias generales del prompt: (a) conectar el título con la libertad, y (b) que el título sea una PREGUNTA o un reencuadre — aquí el título es la AFIRMACIÓN textual de la frase del tema, ni pregunta ni reformulación. (El insight 2/3 sí puede ser pregunta, el título no.)
 `;
 }
