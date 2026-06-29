@@ -15,8 +15,20 @@ import { type Automation, logSpend } from "@/lib/spend";
 
 const FAL_TTS_MODEL = "fal-ai/minimax/speech-02-hd";
 const VOICE_ID = "Deep_Voice_Man";        // aprovado pelo dono (grave/séria)
-const SPEED = 0.85;                         // lento o suficiente p/ LER e ouvir ao mesmo tempo
+const SPEED_FLOOR = 0.85;                   // piso: lento o suficiente p/ LER e ouvir (= o ES, que ficou certo)
+const SPEED_MAX = 1.30;                     // teto: não acelerar a ponto de atropelar
+const RATE_AT_1 = 13.7;                     // chars/seg a speed 1.0 (calibrado: ES 279ch @0.85 ≈ 24s)
 const COST_PER_1K = 0.10;                   // US$/1000 chars (MiniMax HD)
+
+// Velocidade dinâmica: ajusta a `speed` p/ a narração CABER na janela de voz do Reel
+// (capa+insights+cta, sem o end-card). Sem isso, um idioma mais VERBOSO (PT > ES no mesmo
+// tema) estoura o tempo e a voz "atrasa" (o texto acaba e a voz segue). Texto curto → fica
+// no piso 0,85 (ES, correto); texto longo → acelera só o necessário. Mesmo sincronismo ES/PT.
+function speedForFit(chars: number, targetSeconds: number): number {
+  const target = targetSeconds > 6 ? targetSeconds : 23.8; // fallback ~3 insights
+  const needed = chars / (target * RATE_AT_1);
+  return Math.min(SPEED_MAX, Math.max(SPEED_FLOOR, Number(needed.toFixed(3))));
+}
 
 function languageBoost(lang: string): string {
   return lang === "pt" ? "Portuguese" : "Spanish";
@@ -86,7 +98,7 @@ export async function generateNarration(
   lang: string,
   topic: string,
   day: string,
-  opts: { automation?: Automation; meta?: Record<string, unknown> } = {},
+  opts: { automation?: Automation; meta?: Record<string, unknown>; targetSeconds?: number } = {},
 ): Promise<NarrationResult> {
   if ((process.env.REEL_NARRATION_ENABLED ?? "").toLowerCase() !== "on") {
     return { url: null, error: "narração desligada (REEL_NARRATION_ENABLED≠on)" };
@@ -101,13 +113,14 @@ export async function generateNarration(
   if (hit) return { url: hit, cached: true };
 
   const automation: Automation = opts.automation ?? "ig-reels";
+  const speed = speedForFit(clean.length, opts.targetSeconds ?? 0); // cabe na janela de voz (ES/PT mesmo sync)
   try {
     const res = await fetch(`https://fal.run/${FAL_TTS_MODEL}`, {
       method: "POST",
       headers: { Authorization: `Key ${FAL_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         text: clean,
-        voice_setting: { voice_id: VOICE_ID, speed: SPEED, vol: 1, pitch: 0 },
+        voice_setting: { voice_id: VOICE_ID, speed, vol: 1, pitch: 0 },
         language_boost: languageBoost(lang),
         audio_setting: { sample_rate: 44100, bitrate: 256000, format: "mp3" },
       }),
@@ -122,7 +135,7 @@ export async function generateNarration(
     await logSpend({
       automation, platform: "fal", operation: "narration", model: FAL_TTS_MODEL,
       units: clean.length, costUsd: Math.max(0.005, (clean.length / 1000) * COST_PER_1K),
-      meta: { ...opts.meta, lang, topic, chars: clean.length },
+      meta: { ...opts.meta, lang, topic, chars: clean.length, speed },
     });
     if (!falUrl) return { url: null, error: `fal sem audio.url: ${JSON.stringify(data).slice(0, 200)}` };
 
