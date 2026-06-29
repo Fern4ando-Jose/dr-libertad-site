@@ -104,6 +104,7 @@ export type ReelProps = {
   clips?: string[]; // URLs de footage (Pexels) — 1 por cena (preferido)
   clip?: string; // compat: 1 clipe único (i2v antigo) — fallback se não houver clips
   music?: string; // caminho staticFile (ex.: "music/bed.mp3") ou URL — opcional
+  narrationUrl?: string; // URL do áudio de narração (voz TTS) — opcional; música vira leito suave
   cat?: string; // categoria → cor de acento
   handle?: string; // @ da conta por idioma (ex.: "@dr.liberdad" | "@dr.liberdade.br")
   brand?: string; // nome de exibição (ex.: "Dr. Libertad" | "Dr. Liberdade")
@@ -127,6 +128,7 @@ export const reelDefaultProps: ReelProps = {
   clips: undefined,
   clip: undefined,
   music: undefined,
+  narrationUrl: undefined,
   cat: "freedom",
   handle: "@dr.liberdad",
   brand: "Dr. Libertad",

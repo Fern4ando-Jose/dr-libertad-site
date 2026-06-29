@@ -86,6 +86,24 @@ export async function GET(req: NextRequest) {
     results.push("reel_shared_cache table: " + String(e));
   }
 
+  // Tabela narration_cache — voz TTS do Reel por (tópico, dia, idioma). Re-disparo
+  // reusa (não repaga a fal). ES e PT têm narração DIFERENTE (idiomas distintos).
+  // Ver src/lib/narration.ts.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS narration_cache (
+        cache_key  TEXT PRIMARY KEY,
+        url        TEXT NOT NULL,
+        topic      TEXT,
+        lang       TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    results.push("narration_cache table: ok");
+  } catch (e) {
+    results.push("narration_cache table: " + String(e));
+  }
+
   // Tabela published_runs — livro-razão (dia, run, idioma) de publicações. Dá
   // idempotência ao reel (dedup) e alimenta o watchdog (catchup.yml), que redispara
   // só os runs que faltaram no dia. Ver src/lib/run-ledger.ts.
