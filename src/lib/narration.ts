@@ -16,7 +16,11 @@ import { type Automation, logSpend } from "@/lib/spend";
 const FAL_TTS_MODEL = "fal-ai/minimax/speech-02-hd";
 const VOICE_ID = "Deep_Voice_Man";        // aprovado pelo dono (grave/séria)
 const SPEED_FLOOR = 0.85;                   // piso: lento o suficiente p/ LER e ouvir (= o ES, que ficou certo)
-const SPEED_MAX = 1.30;                     // teto: não acelerar a ponto de atropelar
+const SPEED_MAX = 0.95;                     // teto: acima de ~0,95 a voz EMBOLA a 1ª palavra
+                                            // (cold-start: "público"→"publi e zeco"). 0,95 = limpo
+                                            // (verificado por transcrição Whisper). Texto longo passa
+                                            // a caber no vídeo INTEIRO (a frase de seguir entra sobre
+                                            // o end-card), em vez de acelerar e embolar a abertura.
 const RATE_AT_1 = 13.7;                     // chars/seg a speed 1.0 (calibrado: ES 279ch @0.85 ≈ 24s)
 const COST_PER_1K = 0.10;                   // US$/1000 chars (MiniMax HD)
 
