@@ -656,7 +656,12 @@ export async function GET(req: NextRequest) {
         .map((s) => String(s).trim()).filter(Boolean)
         .map((s) => (/[.!?]$/.test(s) ? s : s + "."))
         .join(" ") + " " + followLine;
-    const narr = await generateNarration(narrationText, lang, topic, day, { automation: "ig-reels", meta: { run: r } });
+    // Janela de voz = capa(3) + insights(5,6×n) + cta(4,6), SEM o end-card. A narração ajusta
+    // a velocidade p/ CABER nela → o texto acaba junto com a voz (mesmo sincronismo ES/PT, sem
+    // a voz "atrasada" quando o idioma é mais verboso). n = nº de slides mostrados (cap 3).
+    const nSlides = Math.min(Math.max((Array.isArray(content.slides) ? content.slides.length : 1), 1), 3);
+    const voiceWindowSec = 3.0 + 5.6 * nSlides + 4.6 - 0.6;
+    const narr = await generateNarration(narrationText, lang, topic, day, { automation: "ig-reels", meta: { run: r }, targetSeconds: voiceWindowSec });
 
     return NextResponse.json({
       preview: true,
