@@ -122,6 +122,9 @@ export async function generateNarration(
         text: clean,
         voice_setting: { voice_id: VOICE_ID, speed, vol: 1, pitch: 0 },
         language_boost: languageBoost(lang),
+        // DESLIGA a normalização "à inglesa" — com ela ligada (default) a voz lia "público"
+        // como "publisher" (anglicizado). Desligada, fala ES/PT corretamente. (S1, OK do dono.)
+        english_normalization: false,
         audio_setting: { sample_rate: 44100, bitrate: 256000, format: "mp3" },
       }),
     });
