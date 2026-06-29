@@ -4,6 +4,7 @@ import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
 import { parseContentJson } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
+import { generateNarration } from "@/lib/narration";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
 import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun } from "@/lib/rotation";
@@ -29,6 +30,7 @@ interface GeneratedContent {
   instagramCaption: string;
   tags: string[];
   videoQueries?: string[]; // termos EN p/ buscar footage do Reel (opcional)
+  narration?: string;      // roteiro FALADO do Reel (~28s), tirado dos slides → voz = tela
 }
 
 type Slot = "manha" | "tarde" | "noite";
@@ -329,7 +331,8 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
     "término de búsqueda EN INGLÉS para video de stock que represente VISUALMENTE la escena/emoción de ESTE post — concreto y filmable (personas, gestos, objetos, lugares), NO metáfora abstracta. Ej: 'lone man walking empty street at dusk'",
     "segundo término DISTINTO en tipo de escena (otro sujeto/lugar/gesto, NO repitas el primero). Ej: 'close up tense hands gripping coffee cup'",
     "tercer término DISTINTO otra vez (varía: persona sola, gesto, naturaleza, objeto, lugar…). Ej: 'woman alone looking out rainy window'"
-  ]
+  ],
+  "narration": "GUIÓN HABLADO del Reel (~55-70 palabras, ~25 seg) en ${L}, ARMADO A PARTIR DE LOS SLIDES: arranca con el gancho (el postTitle/insight 1), sigue los insights EN ORDEN y cierra invitando a SEGUIR ('sígueme si prefieres la verdad incómoda al aplauso'). Es la MISMA idea de la pantalla — la voz ACOMPAÑA el texto, NO inventa contenido nuevo. Frases cortas y habladas, con ritmo: golpe seco al inicio, luego claro y pausado para que se pueda LEER y ESCUCHAR a la vez. SIN emojis, SIN hashtags, SIN '@' ni nombres de usuario (la voz no los lee)."
 }
 
 Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmables (no ilustraciones ni metáforas). Deben poder encontrarse en un banco de video como Pexels y conectar con el tema del post. Las 3 tienen que ser VISUALMENTE DISTINTAS entre sí (distinto sujeto/lugar/gesto). ⚠️ EVITA el plano genérico de teléfono/pantalla — se repite en TODOS los Reels y aburre: úsalo COMO MÁXIMO en 1 de las 3, y solo si el teléfono ES el tema; prefiere escenas humanas, gestos, rostros, lugares, naturaleza, objetos.`;
@@ -642,6 +645,13 @@ export async function GET(req: NextRequest) {
         }
       : undefined;
 
+    // Narração (voz TTS) — GATED por REEL_NARRATION_ENABLED. Voz do roteiro `narration`
+    // (tirado dos slides → voz = tela); cache por (tópico,dia,idioma); fail-open (sem
+    // narração → Reel só com música, como hoje). No ReelV2 a música vira leito suave.
+    const narr = content.narration
+      ? await generateNarration(content.narration, lang, topic, day, { automation: "ig-reels", meta: { run: r } })
+      : { url: null as string | null, error: undefined as string | undefined };
+
     return NextResponse.json({
       preview: true,
       slot, run: r, topic, cat,
@@ -658,6 +668,8 @@ export async function GET(req: NextRequest) {
       videoQueries, // canônicos (compartilhados entre idiomas)
       clips,        // footage COMPARTILHADO (mesmo vídeo ES/PT); [] → fetch-footage.mjs busca no CI
       sharedFootage: clips.length > 0, // diagnóstico: veio da base compartilhada?
+      narrationUrl: narr.url ?? undefined, // voz TTS (gated REEL_NARRATION_ENABLED); ausente → Reel só com música
+      narrationError: narr.error,
       illustration: illustrationUrl,
       illustrationError,
     });
