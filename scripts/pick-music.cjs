@@ -1,6 +1,8 @@
 // ─── Seleção da trilha do Reel — UMA FAIXA POR TEMA ──────────────────────────
-// Por quê: cada TEMA tem som próprio. O gerador (scripts/generate-music.mjs)
-// produz bed-<NN>-<slug>.mp3 por tema e um manifest.json (topic → arquivo).
+// Por quê: cada TEMA tem som próprio. `scripts/build-music-manifest.mjs` monta o
+// manifest.json (topic → arquivo) a partir dos THEMES + overrides.json; hoje cada tema
+// aponta pro instrumental do seu PILAR (bed-pilar-<cat>.mp3). [A música de IA por tema
+// foi aposentada — dono rejeitou; o gerador fal antigo e os bed-NN-slug foram removidos.]
 // Aqui escolhemos a faixa pelo TEMA do post — quando o tema repete (a cada ~8
 // dias), o picker reusa o MESMO arquivo já commitado (nada regenera).
 //
@@ -26,7 +28,7 @@ const MANIFEST = path.join(MUSIC_DIR, "manifest.json");
 // NÃO casa bed-<NN>-<slug>.mp3 (faixas por tema) — essas só vêm via manifest.
 const RE = /^bed(?:-(\d+))?\.(wav|mp3)$/i;
 
-// topic → "music/bed-..mp3" lido do manifest (gerado por generate-music.mjs).
+// topic → "music/bed-..mp3" lido do manifest (gerado por build-music-manifest.mjs).
 function readManifest() {
   try {
     return JSON.parse(fs.readFileSync(MANIFEST, "utf8"));
