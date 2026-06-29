@@ -15,7 +15,7 @@ import { type Automation, logSpend } from "@/lib/spend";
 
 const FAL_TTS_MODEL = "fal-ai/minimax/speech-02-hd";
 const VOICE_ID = "Deep_Voice_Man";        // aprovado pelo dono (grave/séria)
-const SPEED = 0.88;                         // lento o suficiente p/ ler E ouvir
+const SPEED = 0.85;                         // lento o suficiente p/ LER e ouvir ao mesmo tempo
 const COST_PER_1K = 0.10;                   // US$/1000 chars (MiniMax HD)
 
 function languageBoost(lang: string): string {
