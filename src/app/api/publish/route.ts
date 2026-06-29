@@ -12,7 +12,7 @@ import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
 import { buildLiteralDirective } from "@/lib/literal-lock";
 import { scanContentForeign, summarizeHits } from "@/lib/lang-guard";
-import { titleDupedInSlides } from "@/lib/slide-dedup";
+import { titleDupedInSlides, dedupeSlides } from "@/lib/slide-dedup";
 import { clipSlideText } from "@/lib/slide-text";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
@@ -659,7 +659,9 @@ export async function GET(req: NextRequest) {
     // Janela de voz = capa(3) + insights(5,6×n) + cta(4,6), SEM o end-card. A narração ajusta
     // a velocidade p/ CABER nela → o texto acaba junto com a voz (mesmo sincronismo ES/PT, sem
     // a voz "atrasada" quando o idioma é mais verboso). n = nº de slides mostrados (cap 3).
-    const nSlides = Math.min(Math.max((Array.isArray(content.slides) ? content.slides.length : 1), 1), 3);
+    // nº de slides que o RENDER mostra (dedupado, cap 3) — MESMA contagem do ReelV2.
+    // Usar slides.length CRU calibrava a voz p/ um vídeo mais longo → a frase final cortava.
+    const nSlides = Math.min(Math.max(dedupeSlides(content.postTitle, content.slides).length, 1), 3);
     const voiceWindowSec = 3.0 + 5.6 * nSlides + 4.6 - 0.6;
     const narr = await generateNarration(narrationText, lang, topic, day, { automation: "ig-reels", meta: { run: r }, targetSeconds: voiceWindowSec });
 
