@@ -11,7 +11,7 @@
 // Custo: MiniMax HD ~US$0,10/1000 chars (~US$0,03/Reel). Cache por (tópico,dia,
 // idioma) → re-disparo reusa, não repaga. Re-hospeda no Blob (URL permanente).
 
-import { type Automation, logSpend } from "@/lib/spend";
+import { type Automation, logSpend, checkBudget } from "@/lib/spend";
 
 const FAL_TTS_MODEL = "fal-ai/minimax/speech-02-hd";
 const VOICE_ID = "Deep_Voice_Man";        // aprovado pelo dono (grave/séria)
@@ -117,6 +117,16 @@ export async function generateNarration(
   if (hit) return { url: hit, cached: true };
 
   const automation: Automation = opts.automation ?? "ig-reels";
+  // GATE DE ORÇAMENTO — a narração é PAGA (fal) e o balde `ig-reels` é compartilhado.
+  // Se a estimativa estoura o teto, PULA a narração (fail-open → Reel sai só com música,
+  // sem 402/tempestade). Cost-safe: se nem dá pra checar o orçamento, também pula.
+  const estCost = Math.max(0.005, (clean.length / 1000) * COST_PER_1K);
+  try {
+    const gate = await checkBudget(automation, estCost);
+    if (!gate.ok) return { url: null, error: `orçamento ${automation} estourado (US$${gate.spent.toFixed(3)}+${estCost.toFixed(3)} > US$${gate.budget.toFixed(2)}) — narração pulada` };
+  } catch {
+    return { url: null, error: "orçamento indisponível — narração pulada (cost-safe)" };
+  }
   const speed = speedForFit(clean.length, opts.targetSeconds ?? 0); // cabe na janela de voz (ES/PT mesmo sync)
   try {
     const res = await fetch(`https://fal.run/${FAL_TTS_MODEL}`, {
