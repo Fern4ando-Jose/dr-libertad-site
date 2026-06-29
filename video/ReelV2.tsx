@@ -322,14 +322,8 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
           }
         />
       )}
-      {narrationSrc && (
-        <Audio
-          src={narrationSrc}
-          volume={(f) =>
-            interpolate(f, [0, 6], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-          }
-        />
-      )}
+      {/* Narração em volume CHEIO desde o início — sem fade-in (o fade comia a 1ª palavra). */}
+      {narrationSrc && <Audio src={narrationSrc} />}
     </AbsoluteFill>
   );
 };
