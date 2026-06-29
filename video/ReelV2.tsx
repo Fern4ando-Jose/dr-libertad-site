@@ -322,8 +322,13 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
           }
         />
       )}
-      {/* Narração em volume CHEIO desde o início — sem fade-in (o fade comia a 1ª palavra). */}
-      {narrationSrc && <Audio src={narrationSrc} />}
+      {/* Narração: volume CHEIO + um RESPIRO de ~0,5s antes da voz (entrava seca em 0ms e
+          o ouvido perdia a 1ª palavra). Cabe na janela (voz ~23s + 0,5s < end-card). */}
+      {narrationSrc && (
+        <Sequence from={Math.round(FPS * 0.5)}>
+          <Audio src={narrationSrc} />
+        </Sequence>
+      )}
     </AbsoluteFill>
   );
 };
