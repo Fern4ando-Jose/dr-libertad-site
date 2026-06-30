@@ -6,7 +6,7 @@ import { parseContentJson } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { generateNarration } from "@/lib/narration";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
+import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
@@ -699,29 +699,27 @@ export async function GET(req: NextRequest) {
 
       try {
 
-        // IDEMPOTÊNCIA por (dia, run, conta) — a MESMA trava que o Reel já tinha.
-        // Sem ela, quando o catchup recupera um run E o cron atrasado do GitHub
-        // dispara o MESMO run depois, o carrossel publicava 2× (o anti-dup por
-        // TÓPICO não pega porque a seleção fresca dá um tema diferente a cada hora).
-        // Aqui: se a vaga já saiu hoje nesta conta, pula (force=1 burla p/ backfill).
-        if (!force && await runAlreadyPublished(dayBRT(now), runIndex, lang)) {
+        // As DUAS primeiras portas da vaga, na ORDEM load-bearing (slotSkipGate, PURA +
+        // invariante): (1) IDEMPOTÊNCIA — se a vaga já saiu hoje nesta conta, pula (sem
+        // ela, catchup + cron atrasado publicavam o carrossel 2×; o anti-dup por TÓPICO
+        // não pega porque a seleção fresca dá tema diferente a cada hora). (2) DISJUNTOR de
+        // fronteira — antes SÓ o watchdog lia o teto de tentativas; o próprio /api/publish
+        // re-entrava sem freio no redisparo do catchup. Foi a RAIZ da DUPLICATA do carrossel
+        // PT (26/06, "O casal fake…"): action-block do IG publica-e-erra → id NULL → o
+        // runAlreadyPublished (exige id NOT NULL) é cego ao post-fantasma → catchup republica.
+        // A ordem "publicada ANTES de desistiu" é o que impede o fantasma de reabrir, então
+        // vive numa função pura testada. Só consulta attemptsToday se NÃO já publicou
+        // (curto-circuito). force=1 burla as duas (backfill). Fail-open: attempts=0 → sem freio.
+        const alreadyPub = !force && await runAlreadyPublished(dayBRT(now), runIndex, lang);
+        const slotAttempts = (force || alreadyPub) ? 0 : await attemptsToday(dayBRT(now), runIndex, lang);
+        const skipGate = slotSkipGate(alreadyPub, slotAttempts, force);
+        if (skipGate === "published") {
           slotLog.skipped = true;
           slotLog.reason = `run ${runIndex} (${lang}) já publicado hoje — idempotência`;
           results.push(slotLog);
           continue;
         }
-
-        // DISJUNTOR na FRONTEIRA do publish (não só no watchdog). O `bumpAttempt`
-        // crava attempts, mas até aqui SÓ o /api/runs-status (watchdog) lia esse teto —
-        // o próprio /api/publish re-entrava sem freio quando o catchup redisparava o
-        // workflow (timing). Aí está a RAIZ da DUPLICATA do carrossel PT (26/06, "O casal
-        // fake…"): um action-block do IG ("Application request limit reached", code 4)
-        // PUBLICA o post no feed MAS lança erro → instagram_post_id fica NULL → o
-        // runAlreadyPublished (que exige id NOT NULL) é cego ao post-fantasma → o catchup
-        // re-publica → 2º post idêntico. Com a vaga já tendo desistido hoje (≥MAX
-        // tentativas), NÃO re-publica (e nem regenera ilustração, cortando o ralo da fal).
-        // force=1 burla (backfill manual). Fail-open: attemptsToday=0 em erro → sem freio.
-        if (!force && shouldStopRetrying(await attemptsToday(dayBRT(now), runIndex, lang))) {
+        if (skipGate === "circuit-open") {
           slotLog.skipped = true;
           slotLog.reason = `run ${runIndex} (${lang}) desistiu hoje (≥${MAX_PUBLISH_ATTEMPTS} tentativas) — disjuntor de publicação`;
           results.push(slotLog);
@@ -742,6 +740,10 @@ export async function GET(req: NextRequest) {
         if (!force && await topicUsedInOtherVaga(dayBRT(now), runIndex, topic)) {
           slotLog.skipped = true;
           slotLog.reason = "Tópico já publicado em outra vaga nos últimos 7d — trava de publicação";
+          // Tema BLOQUEADO → libera o pin (run_topics) para a vaga recomputar um tema fresco
+          // na próxima retentativa do dia. Sem isto o pin congelava o tema bloqueado e a vaga
+          // ficava presa o dia todo (regressão do sub-uso). O caminho feliz não passa aqui.
+          await clearRunTopic(dayBRT(now), runIndex);
           results.push(slotLog);
           continue;
         }

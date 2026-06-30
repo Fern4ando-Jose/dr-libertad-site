@@ -58,6 +58,18 @@ export async function recordRun(
         topic = COALESCE(${topic ?? null}, published_runs.topic), ts = NOW()
     `;
   } catch { /* livro-razão é best-effort — nunca quebra o pipeline */ }
+  // ZERA o disjuntor numa publicação CONFIRMADA (id não-nulo): sem isto a vaga ficava
+  // "publicada" E com attempts>0 — estado contraditório que só não mordia porque o gate
+  // checa runAlreadyPublished ANTES de shouldStopRetrying (ordem load-bearing, ver
+  // slotSkipGate). Query SEPARADA e best-effort de propósito: se a coluna `attempts` não
+  // existir (pré-migrate), só ela falha — o registro de idempotência acima NUNCA depende
+  // dela (acoplar quebraria a dedup e reabriria a duplicata). (Auditoria 30/06.)
+  if (instagramPostId != null) {
+    try {
+      const { sql } = await import("@vercel/postgres");
+      await sql`UPDATE published_runs SET attempts = 0 WHERE day = ${day} AND run = ${run} AND lang = ${lang}`;
+    } catch { /* sem coluna attempts (pré-migrate) → no-op */ }
+  }
 }
 
 // ── Disjuntor de publicação (anti-martelo) ────────────────────────────────────
@@ -72,6 +84,21 @@ export const MAX_PUBLISH_ATTEMPTS = 3;
 
 export function shouldStopRetrying(attempts: number): boolean {
   return attempts >= MAX_PUBLISH_ATTEMPTS;
+}
+
+// As DUAS primeiras portas da vaga, na ORDEM correta (load-bearing). A regra "publicada
+// ANTES de desistiu" é o que impede o post-fantasma de reabrir: uma vaga publicada NUNCA
+// pode ser tratada como "desistiu" pelo disjuntor (mascararia uma publicação real e o
+// catchup poderia republicar). Antes a ordem morava solta em dois `if` no /api/publish, sem
+// teste; aqui ela é PURA e coberta por invariante. `force=1` (backfill manual) burla as duas.
+// Retorna a 1ª porta que BARRA, ou null (a vaga segue para a trava de tema + publish).
+export function slotSkipGate(
+  alreadyPublished: boolean, attempts: number, force: boolean,
+): "published" | "circuit-open" | null {
+  if (force) return null;
+  if (alreadyPublished) return "published";        // SEMPRE antes do disjuntor
+  if (shouldStopRetrying(attempts)) return "circuit-open";
+  return null;
 }
 
 // O erro de publicação é um bloqueio/limite DURO do Instagram? (não adianta insistir)
@@ -226,6 +253,20 @@ export async function getOrSetRunTopic(day: string, run: number, candidate: stri
   } catch {
     return candidate;
   }
+}
+
+// Libera o pin (dia,run)→tema. Chamado quando a TRAVA DE PUBLICAÇÃO bloqueia o tema da
+// vaga: sem isto o `run_topics` congelava o tema BLOQUEADO e toda retentativa do dia relia
+// o mesmo → vaga presa, nunca publica (regressão do sub-uso que o shuffle bag corrigiu). Ao
+// limpar, a próxima retentativa recomputa um candidato fresco — e como o `publishedIdxSlots`
+// cresce ao longo do dia, o `selectThemeIndex` tende a dar um tema NÃO bloqueado → a vaga
+// recupera. O caminho feliz (tema não bloqueado) NÃO chama isto: o pin persiste e ES/PT
+// seguem no mesmo tema/vídeo. Best-effort/fail-open. (Auditoria 30/06.)
+export async function clearRunTopic(day: string, run: number): Promise<void> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    await sql`DELETE FROM run_topics WHERE day = ${day} AND run = ${run}`;
+  } catch { /* best-effort — sem tabela/erro → no-op */ }
 }
 
 // ── TRAVA DE PUBLICAÇÃO (rede de segurança INDEPENDENTE da seleção) ────────────

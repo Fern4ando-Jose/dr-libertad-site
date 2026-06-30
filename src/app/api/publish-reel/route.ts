@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
-import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
+import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, clearRunTopic, publishedId, bumpAttempt, isHardPublishBlock, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
 
 // Publicação de REELS (vídeo) no @drlibertad via Instagram Graph API v25.
 // O vídeo já precisa estar hospedado em URL pública (ex.: Vercel Blob).
@@ -169,6 +169,9 @@ async function handle(req: NextRequest) {
   // EXCLUI a própria vaga → o par ES/PT do mesmo run (mesmo vídeo) passa. O reel não tinha
   // trava de tópico nenhuma; esta é a dele.
   if (!force && run !== null && Number.isFinite(run) && topic && await topicUsedInOtherVaga(day, run, topic)) {
+    // Tema BLOQUEADO → libera o pin (run_topics) p/ a vaga recomputar um tema fresco na
+    // próxima retentativa (igual ao carrossel; sem isto o pin congelava o tema bloqueado).
+    await clearRunTopic(day, run);
     return NextResponse.json({ ok: true, skipped: true, reason: `tópico "${topic}" já saiu em outra vaga em 7d — trava de publicação`, log });
   }
 
