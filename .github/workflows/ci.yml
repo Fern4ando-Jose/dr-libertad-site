@@ -19,4 +19,9 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run test
+      - name: Typecheck (tsc --noEmit)
+        run: npx tsc --noEmit
+      - name: Testes (vitest)
+        run: npm run test
+      - name: Build de produção (next build)
+        run: npm run build
