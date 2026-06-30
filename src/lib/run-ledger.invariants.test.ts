@@ -4,7 +4,7 @@
 // FALTAVA — modela o cenário real (cross-formato/idioma/dia por vaga), não a rotação
 // pura. Foi o buraco que deixou "Si no pones límites" repetir reel+carrossel em 24/06.
 import { describe, it, expect } from "vitest";
-import { hasOtherVaga, publishedId, shouldStopRetrying, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS, orphanedPairs, publishFailureMode } from "./run-ledger";
+import { hasOtherVaga, publishedId, shouldStopRetrying, slotSkipGate, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS, orphanedPairs, publishFailureMode } from "./run-ledger";
 
 // Erro REAL do incidente (carrossel PT "O casal fake…", 26/06): o media_publish do IG
 // devolveu este corpo, MAS o post foi pro feed assim mesmo (action-block publica-e-erra).
@@ -86,6 +86,35 @@ describe("disjuntor de publicação (anti-martelo / anti-bloqueio de conta)", ()
     const attemptsAposHardBlock = MAX_PUBLISH_ATTEMPTS;
     // …e o gate de fronteira do /api/publish e do /api/publish-reel passa a pular a vaga.
     expect(shouldStopRetrying(attemptsAposHardBlock)).toBe(true);
+  });
+
+  // ORDEM load-bearing das duas primeiras portas (slotSkipGate). Antes morava solta em dois
+  // `if` no /api/publish, sem teste: a regra "publicada ANTES de desistiu" é o que impede o
+  // post-fantasma de reabrir. Se um refactor invertesse, uma vaga publicada-mas-com-attempts
+  // (estado que recordRun agora evita, mas defensivo) seria tratada como "desistiu" e o
+  // catchup poderia republicar. Aqui a ordem é PURA e travada.
+  describe("slotSkipGate — ordem das portas (publicada vence o disjuntor)", () => {
+    it("vaga limpa (não publicada, sem tentativas) → null (segue p/ a trava + publish)", () => {
+      expect(slotSkipGate(false, 0, false)).toBe(null);
+    });
+    it("já publicada → 'published' (idempotência)", () => {
+      expect(slotSkipGate(true, 0, false)).toBe("published");
+    });
+    it("PUBLICADA vence mesmo com attempts no teto (estado contraditório) — nunca vira 'desistiu'", () => {
+      // é o coração do anti-fantasma: published SEMPRE curto-circuita antes do disjuntor
+      expect(slotSkipGate(true, MAX_PUBLISH_ATTEMPTS, false)).toBe("published");
+      expect(slotSkipGate(true, MAX_PUBLISH_ATTEMPTS + 9, false)).toBe("published");
+    });
+    it("não publicada + attempts no teto → 'circuit-open' (disjuntor)", () => {
+      expect(slotSkipGate(false, MAX_PUBLISH_ATTEMPTS, false)).toBe("circuit-open");
+    });
+    it("não publicada + abaixo do teto → null (ainda tenta)", () => {
+      expect(slotSkipGate(false, MAX_PUBLISH_ATTEMPTS - 1, false)).toBe(null);
+    });
+    it("force=1 (backfill manual) burla as DUAS portas", () => {
+      expect(slotSkipGate(true, MAX_PUBLISH_ATTEMPTS, true)).toBe(null);
+      expect(slotSkipGate(false, MAX_PUBLISH_ATTEMPTS, true)).toBe(null);
+    });
   });
 });
 
