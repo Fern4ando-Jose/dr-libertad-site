@@ -201,6 +201,24 @@ export async function GET(req: NextRequest) {
     results.push("subscribers (newsletter): " + String(e));
   }
 
+  // Tabela waitlist — lista de espera do livro (captação na página i-love-dopamina).
+  // Criada AQUI (não mais a cada POST em /api/waitlist — evita DDL por request; auditoria 29/06).
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS waitlist (
+        id         SERIAL PRIMARY KEY,
+        email      TEXT NOT NULL,
+        book_slug  TEXT NOT NULL,
+        lang       TEXT NOT NULL DEFAULT 'pt',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (email, book_slug)
+      )
+    `;
+    results.push("waitlist: ok");
+  } catch (e) {
+    results.push("waitlist: " + String(e));
+  }
+
   // Tabela spend_log — contabiliza cada chamada paga (fal/Anthropic/Tavily) por
   // automação, p/ a visão de /api/spend e o teto diário por automação (src/lib/spend.ts).
   try {
@@ -228,12 +246,16 @@ export async function GET(req: NextRequest) {
   try {
     const token = process.env.META_ACCESS_TOKEN;
     if (token) {
+      // DO NOTHING (não DO UPDATE): só SEMEIA o token se ainda não existir. Após o seed,
+      // a fonte da verdade é o DB (renovado por /api/refresh-token). Com DO UPDATE, todo
+      // GET /api/migrate REVERTIA o token renovado pelo valor (talvez velho) da env →
+      // podia derrubar a publicação. (Auditoria 2026-06-29.)
       await sql`
         INSERT INTO config (key, value, updated_at)
         VALUES ('meta_access_token', ${token}, NOW())
-        ON CONFLICT (key) DO UPDATE SET value = ${token}, updated_at = NOW()
+        ON CONFLICT (key) DO NOTHING
       `;
-      results.push("config seed token: ok");
+      results.push("config seed token: ok (seed-if-absent)");
     } else {
       results.push("config seed token: META_ACCESS_TOKEN env var nao definida");
     }

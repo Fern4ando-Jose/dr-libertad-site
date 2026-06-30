@@ -30,16 +30,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { sql } = await import("@vercel/postgres");
-    await sql`
-      CREATE TABLE IF NOT EXISTS waitlist (
-        id         SERIAL PRIMARY KEY,
-        email      TEXT NOT NULL,
-        book_slug  TEXT NOT NULL,
-        lang       TEXT NOT NULL DEFAULT 'pt',
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        UNIQUE (email, book_slug)
-      )
-    `;
+    // (tabela `waitlist` criada em /api/migrate — sem DDL por request; auditoria 29/06)
     await sql`
       INSERT INTO waitlist (email, book_slug, lang)
       VALUES (${email}, ${slug}, ${lang})

@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
+import { isAllowedFetchUrl } from "@/lib/safe-fetch";
 
 export const runtime = "edge";
 
@@ -685,6 +686,7 @@ function arrayBufferToBase64(buf: ArrayBuffer): string {
 }
 
 async function fetchImageDataUri(url: string, timeoutMs: number): Promise<string | undefined> {
+  if (!isAllowedFetchUrl(url)) return undefined; // anti-SSRF (src/lib/safe-fetch): só host conhecido, HTTPS
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {

@@ -21,17 +21,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { sql } = await import("@vercel/postgres");
-    await sql`
-      CREATE TABLE IF NOT EXISTS subscribers (
-        id              SERIAL PRIMARY KEY,
-        email           TEXT NOT NULL UNIQUE,
-        lang            TEXT NOT NULL DEFAULT 'pt',
-        unsub_token     TEXT,
-        unsubscribed_at TIMESTAMPTZ,
-        last_sent_at    TIMESTAMPTZ,
-        created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `;
+    // (tabela `subscribers` criada em /api/migrate — sem DDL por request; auditoria 29/06)
     // Token de descadastro gerado na inscrição (cada e-mail leva o seu link).
     const token = crypto.randomUUID().replace(/-/g, "");
     await sql`
