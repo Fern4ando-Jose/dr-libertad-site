@@ -8,7 +8,10 @@ export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
+  // Token READ-ONLY do dashboard: se INSIGHTS_TOKEN estiver setado, é ELE que vale (o
+  // CRON_SECRET mestre deixa de funcionar aqui → vazar a URL do /insights não compromete
+  // a automação). Sem INSIGHTS_TOKEN, cai no CRON_SECRET (retrocompatível). Auditoria 29/06.
+  const secret = process.env.INSIGHTS_TOKEN || process.env.CRON_SECRET;
   const auth = req.headers.get("authorization");
   const key = req.nextUrl.searchParams.get("key");
   const authorized = Boolean(secret) && (auth === `Bearer ${secret}` || key === secret);

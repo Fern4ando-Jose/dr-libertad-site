@@ -43,7 +43,8 @@ export default async function InsightsPage({
   searchParams: Promise<{ key?: string }>;
 }) {
   const { key } = await searchParams;
-  const secret = process.env.CRON_SECRET;
+  // Token read-only: INSIGHTS_TOKEN (preferido) → o CRON_SECRET mestre some da URL pública.
+  const secret = process.env.INSIGHTS_TOKEN || process.env.CRON_SECRET;
 
   if (!secret || key !== secret) {
     return <Gate reason="Página protegida. Chave inválida ou ausente." />;
