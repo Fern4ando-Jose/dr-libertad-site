@@ -26,6 +26,9 @@ skills-lock.json
 
 # Notas e rascunhos locais (não versionados)
 _notas/
+# Convenção 4 zonas (AGENTS.md §2.2): material do dono + saída de teste — não versionar
+Material/
+Testes/
 # Mídia de teste guardada p/ reuso (AGENTS.md §1.11) — não versionar
 Arquivo-Midia/
 public_tmp/
