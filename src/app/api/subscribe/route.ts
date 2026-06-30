@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isRateLimited } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: NextRequest) {
+  if (await isRateLimited(req, "subscribe", 10)) {
+    return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
+  }
   let email = "";
   let lang = "pt";
   try {

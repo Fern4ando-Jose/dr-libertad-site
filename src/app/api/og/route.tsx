@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { isAllowedFetchUrl } from "@/lib/safe-fetch";
+import { isRateLimited } from "@/lib/rate-limit";
 
 export const runtime = "edge";
 
@@ -705,6 +706,10 @@ async function fetchImageDataUri(url: string, timeoutMs: number): Promise<string
 
 // ─── Handler principal ────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
+  // Rate limit por IP (fail-open; ativa só com UPSTASH_* setadas) — rota pública.
+  if (await isRateLimited(req, "og", 120)) {
+    return new Response("rate limited", { status: 429 });
+  }
   try {
     const { searchParams } = req.nextUrl;
     const slide = searchParams.get("slide") ?? "cover";

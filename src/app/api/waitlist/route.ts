@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isRateLimited } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // "me avise quando o livro completo sair", não envio recorrente. Idempotente
 // por (email, book_slug): a mesma pessoa pode entrar em listas de livros diferentes.
 export async function POST(req: NextRequest) {
+  if (await isRateLimited(req, "waitlist", 10)) {
+    return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
+  }
   let email = "";
   let lang = "pt";
   let slug = "";
