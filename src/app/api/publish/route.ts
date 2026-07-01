@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateIllustration } from "@/lib/illustration";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
-import { parseContentJson } from "@/lib/content-json";
+import { parseContentJson, normalizeContentJson, missingEssentialContent } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { generateNarration } from "@/lib/narration";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
+import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
@@ -366,9 +366,19 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
     const raw = data.content?.[0]?.text ?? "";
     let content: GeneratedContent;
     try {
-      content = parseContentJson<GeneratedContent>(raw);
+      // Normaliza os TIPOS logo após o parse (bug C4): campo omitido pelo haiku (ex.:
+      // sem "tags"/"slides") vira array/string vazio → o downstream (content.tags[0],
+      // content.slides.map) NUNCA lança e derruba a vaga no catch.
+      content = normalizeContentJson(parseContentJson<GeneratedContent>(raw)) as GeneratedContent;
     } catch (e) {
       lastErr = e; // JSON malformado → regenera na próxima volta
+      continue;
+    }
+    // Campos ESSENCIAIS vazios (título/slides/cta) → não publica carrossel/reel vazio:
+    // trata como geração malformada e REGENERA (mesmo caminho do JSON inválido).
+    const missing = missingEssentialContent(content);
+    if (missing.length) {
+      lastErr = new Error(`generateContent: campos essenciais ausentes/vazios → ${missing.join(", ")}`);
       continue;
     }
     // Duas travas de QUALIDADE antes de aceitar a copy:
@@ -453,8 +463,28 @@ async function publishCarousel(
   if (!carRes.ok) throw new Error(`Carousel container error: ${await carRes.text()}`);
   const { id: carId } = await carRes.json();
 
-  // 3. Aguardar processamento
-  await new Promise(res => setTimeout(res, 3000));
+  // 3. Aguardar o processamento do container ANTES de publicar (bug C1). Antes eram
+  //    3s FIXOS → se o container demorasse >3s, o media_publish dava "Media not ready"
+  //    (erro NÃO-duro) → a vaga falhava INTERMITENTE (provável causa-raiz nº1 dos furos
+  //    do carrossel). Agora ESPELHA o poll do reel: consulta ?fields=status_code até
+  //    FINISHED. Container consultado pelo ID na RAIZ do graph (NÃO sob accountId).
+  //    Imagens processam rápido → cap curto ~20×3s=60s, bem abaixo do maxDuration=300
+  //    (mesmo no disparo manual de 3 slots: 3×60=180s). Timeout/ERROR → lança (erro
+  //    transitório: o disjuntor conta a tentativa e o catchup tenta de novo).
+  let carFinished = false;
+  let lastCarStatus = "?";
+  for (let attempt = 1; attempt <= 20; attempt++) {
+    await new Promise(res => setTimeout(res, 3000));
+    const stRes = await fetch(`https://graph.instagram.com/v25.0/${carId}?fields=status_code&access_token=${token}`);
+    if (!stRes.ok) continue; // transitório — segue tentando dentro do limite
+    const { status_code } = await stRes.json();
+    lastCarStatus = status_code ?? "(sem status_code)";
+    const outcome = containerStatusOutcome(status_code);
+    if (outcome === "finished") { carFinished = true; break; }
+    if (outcome === "error") throw new Error(`Carousel processamento falhou (status ${lastCarStatus}) na tentativa ${attempt}`);
+    // "pending" (IN_PROGRESS / PUBLISHED) → continua o poll
+  }
+  if (!carFinished) throw new Error(`Timeout: carrossel não finalizou (último status=${lastCarStatus})`);
 
   // 4. Publicar
   const pubRes = await fetch(`${base}/media_publish`, {

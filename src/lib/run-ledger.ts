@@ -101,6 +101,19 @@ export function slotSkipGate(
   return null;
 }
 
+// ── Poll de processamento do container (carrossel/reel) ───────────────────────
+// Antes de `media_publish`, o container precisa estar FINISHED. Publicar cedo demais
+// dá "Media not ready" (erro NÃO-duro) → vaga falha INTERMITENTE (bug C1: o carrossel
+// só esperava 3s fixos). Classifica o status_code do Graph: pronto p/ publicar, falha
+// TERMINAL (não adianta esperar) ou ainda processando. PURA/testável. EXPIRED é
+// terminal (a sessão de upload expirou — ver A2). Desconhecido → segue aguardando.
+export type ContainerStatus = "finished" | "error" | "pending";
+export function containerStatusOutcome(statusCode: unknown): ContainerStatus {
+  if (statusCode === "FINISHED") return "finished";
+  if (statusCode === "ERROR" || statusCode === "EXPIRED") return "error";
+  return "pending"; // IN_PROGRESS / PUBLISHED / (sem status) → continua o poll
+}
+
 // O erro de publicação é um bloqueio/limite DURO do Instagram? (não adianta insistir)
 export function isHardPublishBlock(err: unknown): boolean {
   const s = String(err ?? "").toLowerCase();
