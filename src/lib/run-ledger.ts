@@ -9,7 +9,8 @@
 
 // "Dia" da automação — ÂNCORA BRT (UTC-3), não UTC. Fonte única em `./day`.
 // (Ver day.ts: por que BRT corrige o reel que renderizava-e-pulava.)
-export { dayBRT } from "./day";
+import { dayBRT } from "./day";
+export { dayBRT };
 
 // ── Anti "post-fantasma" ──────────────────────────────────────────────────────
 // A Graph API às vezes CONFIRMA o media_publish (HTTP 200) mas a resposta vem SEM o
@@ -285,14 +286,34 @@ export async function recentTopicsAllLangs(days = 7): Promise<Set<string>> {
 export async function recentPublishedSlots(days = 16): Promise<{ topic: string; day: string; run: number }[]> {
   try {
     const { sql } = await import("@vercel/postgres");
-    const r = await sql<{ topic: string; day: string; run: number }>`
-      SELECT DISTINCT topic, day, run FROM published_runs
-      WHERE topic IS NOT NULL AND instagram_post_id IS NOT NULL
-        AND ts > NOW() - (${days} || ' days')::interval
-    `;
-    return r.rows.map((x) => ({ topic: x.topic, day: String(x.day).slice(0, 10), run: Number(x.run) }));
+    // UNIÃO das 3 fontes (Causa 2, auditoria 30/06): antes lia SÓ published_runs.topic,
+    // mas ~30% das linhas têm topic NULL (reels anteriores à coluna) e os carrosséis
+    // vivem em `posts` → a seleção ficava CEGA a temas que JÁ foram ao ar → re-sorteava
+    // e repetia (ex.: "Dopamina y recompensa inmediata" 21/06→28/06). Mesmas fontes da
+    // trava topicUsedInOtherVaga/recentTopicsAllLangs: published_runs ∪ posts ∪
+    // reel_shared_cache. posts/cache não têm `run` → run nominal 0 (o slot só ORDENA
+    // recência, dominada pelo DIA). Dia em BRT (dayBRT) p/ casar com published_runs.day.
+    const [pr, po, rc] = await Promise.all([
+      sql<{ topic: string; day: string; run: number }>`
+        SELECT DISTINCT topic, day, run FROM published_runs
+        WHERE topic IS NOT NULL AND instagram_post_id IS NOT NULL
+          AND ts > NOW() - (${days} || ' days')::interval`,
+      sql<{ topic: string; published_at: string }>`
+        SELECT DISTINCT topic, published_at FROM posts
+        WHERE topic IS NOT NULL
+          AND published_at > NOW() - (${days} || ' days')::interval`,
+      sql<{ topic: string; created_at: string }>`
+        SELECT DISTINCT topic, created_at FROM reel_shared_cache
+        WHERE topic IS NOT NULL
+          AND created_at > NOW() - (${days} || ' days')::interval`,
+    ]);
+    const out: { topic: string; day: string; run: number }[] = [];
+    for (const x of pr.rows) out.push({ topic: x.topic, day: String(x.day).slice(0, 10), run: Number(x.run) });
+    for (const x of po.rows) out.push({ topic: x.topic, day: dayBRT(new Date(x.published_at)), run: 0 });
+    for (const x of rc.rows) out.push({ topic: x.topic, day: dayBRT(new Date(x.created_at)), run: 0 });
+    return out;
   } catch {
-    return [];
+    return []; // fail-open → rotação-base legada (buildRotation)
   }
 }
 
@@ -313,6 +334,23 @@ export async function getOrSetRunTopic(day: string, run: number, candidate: stri
     return r.rows[0]?.topic ?? candidate;
   } catch {
     return candidate;
+  }
+}
+
+// Pins (dia,run)→tema já gravados hoje (Causa 3, auditoria 30/06). O threading da
+// seleção usava a RE-DERIVAÇÃO dos picks dos runs anteriores (pura, mas os insumos —
+// o `recent` — mudam entre execuções HTTP ao longo do dia) → o run 4 podia re-derivar
+// p/ o run 3 um tema DIFERENTE do que o run 3 realmente pinou → não o evitava →
+// DUPLICATA same-day (ex.: 25/06 "Solo cambias…" saiu reel-clássico E carrossel). Lendo
+// os pins REAIS, o threading evita o que os runs anteriores COMMITARAM. Fail-open → [].
+export async function pinnedTopicsForDay(day: string): Promise<{ run: number; topic: string }[]> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql<{ run: number; topic: string }>`
+      SELECT run, topic FROM run_topics WHERE day = ${day}`;
+    return r.rows.map((x) => ({ run: Number(x.run), topic: x.topic }));
+  } catch {
+    return [];
   }
 }
 
