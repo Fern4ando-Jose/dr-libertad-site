@@ -6,8 +6,8 @@ import { parseContentJson, normalizeContentJson, missingEssentialContent } from 
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { generateNarration } from "@/lib/narration";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome } from "@/lib/run-ledger";
-import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun } from "@/lib/rotation";
+import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome, pinnedTopicsForDay } from "@/lib/run-ledger";
+import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun, RANDOM_POOL } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
 import { buildLiteralDirective } from "@/lib/literal-lock";
@@ -178,7 +178,15 @@ async function getFreshTopicForRun(date: Date, runIndex: number, _lang: Lang): P
       const i = TOPIC_INDEX.get(s.topic);
       if (i !== undefined) publishedIdxSlots.push({ idx: i, slot: slotForDayRun(s.day, s.run) });
     }
-    const candidate = TOPICS[selectThemeIndex(CATS, dayStr, runIndex, publishedIdxSlots)];
+    // Causa 3: pins REAIS dos runs de HOJE (run_topics) → o threading evita o que os
+    // runs anteriores COMMITARAM (não re-deriva) → sem duplicata same-day.
+    const pins = await pinnedTopicsForDay(dayStr);
+    const pinnedByRun: Record<number, number> = {};
+    for (const p of pins) {
+      const i = TOPIC_INDEX.get(p.topic);
+      if (i !== undefined) pinnedByRun[p.run] = i;
+    }
+    const candidate = TOPICS[selectThemeIndex(CATS, dayStr, runIndex, publishedIdxSlots, RANDOM_POOL, pinnedByRun)];
     // Livro-razão: 1º idioma grava (dia,run)→tema; 2º LÊ o mesmo → ES e PT no MESMO vídeo.
     // Fail-open dentro de getOrSetRunTopic → devolve `candidate` (que já não repete).
     return await getOrSetRunTopic(dayStr, runIndex, candidate);

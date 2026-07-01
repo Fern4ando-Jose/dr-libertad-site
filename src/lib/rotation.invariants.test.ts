@@ -337,3 +337,26 @@ describe("selectThemeIndex — shuffle bag: sem repetir até esgotar + cobertura
     expect(worst).toBeLessThanOrEqual(5);
   });
 });
+
+// Causa 3 (auditoria 30/06): o threading passa a usar os PINS REAIS (run_topics) dos
+// runs anteriores em vez de re-derivar — que divergia entre execuções HTTP e deixava o
+// mesmo tema sair em 2 vagas do MESMO dia (25/06 "Solo cambias…" reel-clássico +
+// carrossel). O param pinnedByRun é OPCIONAL → sem ele, comportamento inalterado.
+describe("Causa 3 — threading usa os pins reais (sem duplicata same-day)", () => {
+  it("run atual NÃO repete o tema PINADO de um run anterior", () => {
+    const pick4 = selectThemeIndex(CATS61, "2026-07-01", 4, [], undefined, { 3: 7 });
+    expect(pick4).not.toBe(7);
+  });
+
+  it("com pins de 0..3, o run 4 evita TODOS os 4 temas pinados", () => {
+    const pins = { 0: 10, 1: 20, 2: 30, 3: 40 };
+    const pick4 = selectThemeIndex(CATS61, "2026-07-01", 4, [], undefined, pins);
+    expect([10, 20, 30, 40]).not.toContain(pick4);
+  });
+
+  it("sem pins → comportamento inalterado (param opcional não muda a base)", () => {
+    const a = selectThemeIndex(CATS61, "2026-07-01", 4, []);
+    const b = selectThemeIndex(CATS61, "2026-07-01", 4, [], undefined, {});
+    expect(a).toBe(b);
+  });
+});
