@@ -123,6 +123,9 @@ jobs:
         id: media
         env:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          # QA de conteúdo do footage (incidente 07-01): visão no poster do clipe.
+          # Sem este secret o QA é PULADO (fail-open) — a trava do prompt ainda age.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           FOOTAGE_NUM_CLIPS: "5"
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |

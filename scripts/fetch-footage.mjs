@@ -13,8 +13,64 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY; // QA de conteúdo do footage (incidente 07-01)
 const NUM_CLIPS = Math.max(1, Math.min(6, Number(process.env.FOOTAGE_NUM_CLIPS || "5")));
 const PER_PAGE = 20;
+
+// ─── QA de CONTEÚDO do footage — ESPELHA src/lib/footage-qa.ts ─────────────────
+// Incidente 07-01: Reel saiu com macro de pele (aspecto de nudez). Este é o caminho
+// de CI (fallback); o primário é selectFootage na API. Manter em sincronia com o TS.
+// Visão barata (Haiku) no POSTER do clipe. FAIL-SAFE com chave (ilegível/erro →
+// rejeita); FAIL-OPEN sem chave (aceita, p/ não degradar todo Reel — o CI só tem a
+// chave se o secret ANTHROPIC_API_KEY estiver setado nos workflows de Reel).
+const FOOTAGE_QA_PROMPT = `You review a single stock-video POSTER FRAME for a serious mental-health / psychology Instagram brand.
+Answer ONLY with JSON: {"reject": boolean, "reason": "<=8 words"}.
+Set reject=true if the frame is ANY of:
+- an extreme close-up of bare skin or body parts (arm, leg, torso, lips, etc.) filling the frame;
+- an abstract skin/flesh/body texture with no clear scene or subject;
+- nudity, lingerie, or sexually suggestive content;
+- anything a psychology brand would be embarrassed to post.
+Set reject=false only for a clear, tasteful scene with a discernible subject in context (a person doing something, a place, an object, nature).
+When in doubt, reject=true.`;
+
+// Parser fail-safe (ilegível → rejeita). Espelha parseFootageVerdict do TS.
+function parseFootageVerdict(text) {
+  const s = typeof text === "string" ? text : "";
+  try {
+    const start = s.indexOf("{");
+    const end = s.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      const o = JSON.parse(s.slice(start, end + 1));
+      if (typeof o.reject === "boolean") return { reject: o.reject, reason: typeof o.reason === "string" ? o.reason : "" };
+    }
+  } catch { /* fail-safe */ }
+  return { reject: true, reason: "veredito ilegível → rejeitado (fail-safe)" };
+}
+
+// Julga o poster. Sem chave → aceita (QA pulado). Erro/HTTP ruim → rejeita (fail-safe).
+async function judgeFootagePoster(posterUrl) {
+  if (!ANTHROPIC_API_KEY) return { reject: false, reason: "sem ANTHROPIC_API_KEY — QA pulado" };
+  if (!posterUrl) return { reject: false, reason: "sem poster — QA pulado" };
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 100,
+        messages: [{ role: "user", content: [
+          { type: "image", source: { type: "url", url: posterUrl } },
+          { type: "text", text: FOOTAGE_QA_PROMPT },
+        ] }],
+      }),
+    });
+    if (!res.ok) return { reject: true, reason: `QA HTTP ${res.status} → rejeitado (fail-safe)` };
+    const data = await res.json();
+    return parseFootageVerdict(data?.content?.[0]?.text);
+  } catch (e) {
+    return { reject: true, reason: `QA erro (${e?.message || e}) → rejeitado (fail-safe)` };
+  }
+}
 
 const propsArg = process.argv.find((a) => a.startsWith("--props="));
 const PROPS_PATH = resolve(process.cwd(), propsArg ? propsArg.slice("--props=".length) : "reel-props.json");
@@ -148,7 +204,14 @@ async function main() {
             if (seenVideoIds.has(v.id)) continue;
             const link = pickFile(v);
             if (!link) continue;
-            seenVideoIds.add(v.id);
+            seenVideoIds.add(v.id); // considerado — não re-julgar o mesmo clipe
+            // QA de CONTEÚDO no poster (incidente 07-01): rejeita macro de pele/corpo,
+            // textura abstrata ou NSFW → pula o candidato. Fail-safe (ver judgeFootagePoster).
+            const verdict = await judgeFootagePoster(v.image);
+            if (verdict.reject) {
+              log(`- clipe reprovado no QA (${q.term}) id=${v.id}: ${verdict.reason}`);
+              continue;
+            }
             picked.push(link);
             progressed = true;
             log(`+ clipe (${q.term}) id=${v.id} ${v.width}x${v.height} ${v.duration}s`);

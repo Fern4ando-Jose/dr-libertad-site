@@ -334,7 +334,7 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
   ]
 }
 
-Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmables (no ilustraciones ni metáforas). Deben poder encontrarse en un banco de video como Pexels y conectar con el tema del post. Las 3 tienen que ser VISUALMENTE DISTINTAS entre sí (distinto sujeto/lugar/gesto). ⚠️ EVITA el plano genérico de teléfono/pantalla — se repite en TODOS los Reels y aburre: úsalo COMO MÁXIMO en 1 de las 3, y solo si el teléfono ES el tema; prefiere escenas humanas, gestos, rostros, lugares, naturaleza, objetos.`;
+Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmables (no ilustraciones ni metáforas). Deben poder encontrarse en un banco de video como Pexels y conectar con el tema del post. Las 3 tienen que ser VISUALMENTE DISTINTAS entre sí (distinto sujeto/lugar/gesto). ⚠️ EVITA el plano genérico de teléfono/pantalla — se repite en TODOS los Reels y aburre: úsalo COMO MÁXIMO en 1 de las 3, y solo si el teléfono ES el tema; prefiere escenas humanas, gestos, rostros, lugares, naturaleza, objetos. ⛔ PROHIBIDO pedir primeros planos extremos de PIEL o partes del cuerpo, texturas abstractas de cuerpo/piel, o nada sugerente/NSFW (marca de psicología, cuenta en riesgo): cada término DEBE ser un plano MEDIO o ABIERTO con un sujeto CLARO EN CONTEXTO (una persona haciendo algo, un lugar, un objeto), nunca un macro de cuerpo.`;
 
   // O haiku ocasionalmente devolve JSON malformado OU deixa o outro idioma vazar
   // (clássico: copia a frase do Tema, que é ES, como 1º slide). Tentamos 3×: extrai
