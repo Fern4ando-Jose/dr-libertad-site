@@ -65,11 +65,21 @@ function titleSize(text: string): number {
 
 // Garante que o título caiba na largura: limita pela palavra MAIS LONGA
 // (Fraunces 700 em caixa-alta ≈ 0.66·fontSize por caractere). Evita corte.
-function fitTitleSize(text: string, maxWidth: number): number {
+//
+// Clamp de ALTURA (médio, auditoria 30/06): satori NÃO reflui p/ caber — um título
+// longo (muitas palavras médias) passava por byWord mas transbordava o box na
+// VERTICAL. Aqui limitamos também por Nº DE LINHAS (independente de px, robusto p/
+// todos os call-sites): estima linhas com ~0.55·fontSize por char (média Fraunces
+// caixa-alta) e reduz o corpo até caber em `maxLines` (piso 40). Título curto normal
+// (1-3 linhas) NÃO muda — o laço nem executa; só o título patológico encolhe.
+function fitTitleSize(text: string, maxWidth: number, maxLines = 5): number {
   const base = titleSize(text);
   const longest = text.split(/\s+/).reduce((m, w) => Math.max(m, w.length), 0);
   const byWord = Math.floor(maxWidth / Math.max(longest, 1) / 0.66);
-  return Math.max(40, Math.min(base, byWord));
+  let size = Math.max(40, Math.min(base, byWord));
+  const estLines = (f: number) => Math.ceil(text.length / Math.max(1, Math.floor(maxWidth / (f * 0.55))));
+  while (size > 40 && estLines(size) > maxLines) size -= 2;
+  return Math.max(40, size);
 }
 
 // RNG determinístico por post: mesmo seed → mesmo desenho (estável entre renders)
