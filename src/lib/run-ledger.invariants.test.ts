@@ -4,7 +4,7 @@
 // FALTAVA — modela o cenário real (cross-formato/idioma/dia por vaga), não a rotação
 // pura. Foi o buraco que deixou "Si no pones límites" repetir reel+carrossel em 24/06.
 import { describe, it, expect } from "vitest";
-import { hasOtherVaga, publishedId, shouldStopRetrying, slotSkipGate, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS, orphanedPairs, publishFailureMode, runsForAutomation, shouldReopenOnBudgetChange } from "./run-ledger";
+import { hasOtherVaga, publishedId, shouldStopRetrying, slotSkipGate, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS, orphanedPairs, publishFailureMode, runsForAutomation, shouldReopenOnBudgetChange, containerStatusOutcome } from "./run-ledger";
 
 // Erro REAL do incidente (carrossel PT "O casal fake…", 26/06): o media_publish do IG
 // devolveu este corpo, MAS o post foi pro feed assim mesmo (action-block publica-e-erra).
@@ -227,5 +227,25 @@ describe("C2 — reabrir disjuntor ao liberar orçamento", () => {
   it("baixar ou manter o teto NÃO reabre o disjuntor (não mexe à toa)", () => {
     expect(shouldReopenOnBudgetChange(0.5, 0.3)).toBe(false); // baixar (nosso caso ig-reels)
     expect(shouldReopenOnBudgetChange(0.3, 0.3)).toBe(false); // manter
+  });
+});
+
+// C1 (auditoria 30/06): o carrossel publicava após 3s FIXOS → "Media not ready"
+// intermitente. Agora espelha o poll do reel via containerStatusOutcome (PURA).
+describe("C1 — classificação do status_code do container", () => {
+  it("FINISHED → pronto p/ publicar", () => {
+    expect(containerStatusOutcome("FINISHED")).toBe("finished");
+  });
+
+  it("ERROR e EXPIRED → falha TERMINAL (não adianta esperar)", () => {
+    expect(containerStatusOutcome("ERROR")).toBe("error");
+    expect(containerStatusOutcome("EXPIRED")).toBe("error"); // terminal (ver A2)
+  });
+
+  it("IN_PROGRESS / PUBLISHED / desconhecido / ausente → continua aguardando", () => {
+    expect(containerStatusOutcome("IN_PROGRESS")).toBe("pending");
+    expect(containerStatusOutcome("PUBLISHED")).toBe("pending");
+    expect(containerStatusOutcome("QUALQUER")).toBe("pending");
+    expect(containerStatusOutcome(undefined)).toBe("pending");
   });
 });
