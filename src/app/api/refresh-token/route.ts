@@ -24,8 +24,11 @@ import { ACCOUNTS, AccountCfg } from "@/lib/accounts";
  * renova e **semeia** o DB. A partir daí o DB é a fonte (sem intervenção manual).
  * O publish/publish-reel sempre leem o token do banco (com fallback env).
  *
- * Falhas são isoladas por conta: se o token PT ainda não tem 24h, o ES renova
- * mesmo assim. HTTP 500 só se NENHUMA conta renovou.
+ * Falhas são isoladas por conta (a renovação de uma NÃO desfaz a da outra), mas o
+ * HTTP FALHA ALTO (500) se QUALQUER conta com dbTokenKey não renovar — assim uma
+ * falha silenciosa do PT (ex.: token não-IG-Login) é acusada pelo cron/log, em vez
+ * de mascarada pelo 200 do ES (A3, auditoria 30/06). No refresh mensal os tokens
+ * sempre têm >24h, então isso não gera falso alarme.
  */
 
 interface RefreshResult {
@@ -98,14 +101,25 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // A3 (auditoria 30/06): FALHAR ALTO por conta. Antes o 500 só vinha se NENHUMA conta
+  // renovava (anyOk) → o PT podia falhar em SILÊNCIO (ex.: token não é IG-Login →
+  // ig_refresh_token falha) enquanto o ES renovava e mascarava com 200 → token PT
+  // expira e a conta PT para de publicar sem alarme. Agora QUALQUER conta com
+  // dbTokenKey que não renovar derruba o HTTP p/ 500 (o cron/log acusa). No refresh
+  // mensal os tokens sempre têm >24h, então isso não gera falso alarme. As renovações
+  // que DERAM certo já foram gravadas (o 500 é só o alarme, não desfaz o que renovou).
   const anyOk = results.some((r) => r.ok);
+  const allOk = results.length > 0 && results.every((r) => r.ok);
+  const failed = results.filter((r) => !r.ok).map((r) => r.lang);
   return NextResponse.json(
     {
-      ok: anyOk,
-      message: anyOk ? "Refresh concluído" : "Nenhuma conta renovou",
+      ok: allOk,
+      anyOk,
+      allOk,
+      message: allOk ? "Refresh concluído (todas as contas)" : `Conta(s) que NÃO renovaram: ${failed.join(", ") || "nenhuma"}`,
       results,
       updated_at: new Date().toISOString(),
     },
-    { status: anyOk ? 200 : 500 }
+    { status: allOk ? 200 : 500 }
   );
 }
