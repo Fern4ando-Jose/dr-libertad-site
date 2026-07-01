@@ -65,6 +65,8 @@ export type ReelClassicProps = {
   cat?: string; // categoria → cor de acento
   handle?: string; // @ da conta por idioma
   brand?: string; // nome de exibição (Dr. Libertad | Dr. Liberdade)
+  ctaFollow?: string; // verbo "seguir" do CTA por idioma (ES "Sigue" / PT "Siga")
+  ctaBio?: string; // linha "link da bio" do CTA por idioma
   music?: string; // caminho staticFile ("music/bed-..mp3") ou URL — trilha opcional
 };
 
@@ -83,6 +85,8 @@ export const reelClassicDefaultProps: ReelClassicProps = {
   cat: "freedom",
   handle: "@dr.liberdad",
   brand: "Dr. Libertad",
+  ctaFollow: "Sigue",
+  ctaBio: "→ Más en el link de la bio",
   music: undefined,
 };
 
@@ -308,7 +312,7 @@ function SlideScene({
 }
 
 // ─── Cena final — CTA ─────────────────────────────────────────────────────────
-function CtaScene({ cta, accent, handle }: { cta: string; accent: string; handle: string }) {
+function CtaScene({ cta, accent, handle, ctaFollow, ctaBio }: { cta: string; accent: string; handle: string; ctaFollow: string; ctaBio: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -340,7 +344,7 @@ function CtaScene({ cta, accent, handle }: { cta: string; accent: string; handle
             transform: `scale(${pulse})`,
           }}
         >
-          Siga <span style={{ color: accent }}>{handle}</span>
+          {ctaFollow} <span style={{ color: accent }}>{handle}</span>
         </div>
 
         <div
@@ -368,7 +372,7 @@ function CtaScene({ cta, accent, handle }: { cta: string; accent: string; handle
             color: accent,
           }}
         >
-          → Mais no link da bio
+          {ctaBio}
         </div>
       </AbsoluteFill>
     </AbsoluteFill>
@@ -376,7 +380,7 @@ function CtaScene({ cta, accent, handle }: { cta: string; accent: string; handle
 }
 
 // ─── Composição completa ──────────────────────────────────────────────────────
-export const ReelClassic: React.FC<ReelClassicProps> = ({ title, slides, accentWords, cta, kw, ed, img, cat, handle = "@dr.liberdad", brand = "Dr. Libertad", music }) => {
+export const ReelClassic: React.FC<ReelClassicProps> = ({ title, slides, accentWords, cta, kw, ed, img, cat, handle = "@dr.liberdad", brand = "Dr. Libertad", ctaFollow = "Sigue", ctaBio = "→ Más en el link de la bio", music }) => {
   const { fps } = useVideoConfig();
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
 
@@ -415,7 +419,7 @@ export const ReelClassic: React.FC<ReelClassicProps> = ({ title, slides, accentW
       ))}
 
       <Sequence from={next(CTA)} durationInFrames={CTA}>
-        <CtaScene cta={cta} accent={accent} handle={handle} />
+        <CtaScene cta={cta} accent={accent} handle={handle} ctaFollow={ctaFollow} ctaBio={ctaBio} />
       </Sequence>
 
       {musicSrc && (
