@@ -11,6 +11,15 @@
 //
 // Chave INCLUI o idioma (≠ reel-shared, que é língua-independente): a copy é
 // regerada por mercado (ES ≠ PT), então cada idioma tem sua entrada.
+//
+// A chave NÃO inclui o `slot` (A5, auditoria 30/06 — analisado, NÃO é bug vivo): a
+// rotação (selectThemeIndex) dá 6 temas DISTINTOS por dia (runs 0-5), então um tema
+// cai em UM único slot/dia → o SLOT_INSTRUCTIONS[slot] JÁ se aplica na geração desse
+// slot e a chave (topic,day,lang) o cacheia corretamente; não há colisão Reel×Carrossel
+// do mesmo tema no mesmo dia. Só um `force=1` manual re-rodando o MESMO tema em 2 slots
+// poderia reusar a copy do outro slot — caso de borda aceito (não vale o custo de
+// invalidar todo o cache). Se algum dia um tema puder cair em 2 slots/dia, aí sim
+// incluir o slot aqui.
 
 // Sufixo de versão: subir invalida o cache anterior (regera limpo). v2 = trava de
 // pureza de idioma (lang-guard); v3 = reforço do lang-guard (adelanto/libro/mensaje)

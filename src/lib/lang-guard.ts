@@ -32,6 +32,19 @@ const ES_WORDS = new Set([
   // Família do funil comment→DM (vazou "el adelanto del libro" na legenda PT, ED 04):
   // inequívocas em ES, inexistentes em PT (prévia/adiantamento, livro, mensagem).
   "adelanto", "libro", "mensaje",
+  // A4 (auditoria 30/06): verbos/palavras ES de ALTA FREQUÊNCIA que vazavam no PT e
+  // NÃO existem em PT (BR usa outra raiz). Curadas p/ não colidir com PT (ex.: "querer"
+  // e "sentir" existem nos dois → FORA; só as formas ES-exclusivas entram).
+  "necesitas", "necesita", "necesito", "necesitamos",
+  "tienes", "tiene", "tengo", "tener", "tienen",
+  "hacer", "hace", "haces", "hago", "hacen",
+  "quieres", "quiere", "quiero", "quieren",
+  "dejar", "deja", "dejas", "dejó", "dejan",
+  "hablar", "habla", "hablas", "hablan",
+  "cambiar", "cambia", "cambias", "cambió", "cambian",
+  "duele", "duelen", "peor", "mejor", "mejores",
+  "otro", "otra", "otros", "otras",
+  "hombre", "hombres", "sólo", "sí",
 ]);
 
 const PT_WORDS = new Set([
@@ -40,6 +53,8 @@ const PT_WORDS = new Set([
   "eles", "elas", "nós", "ter", "fazer", "dizer", "livre", "celular", "tela",
   "aproveitar", "encontro", "sem", "com", "uma", "uns", "umas", "isso", "isto",
   "essa", "esse", "é", "são",
+  // A4 (auditoria 30/06): PT-exclusivas (não válidas em ES) p/ pegar PT vazando no ES.
+  "porém", "também", "têm", "melhor", "pior",
 ]);
 
 // Morfologia EXCLUSIVA (sufixos/grafias que só existem num idioma). Aplicada por
