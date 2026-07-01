@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
-import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, clearRunTopic, publishedId, bumpAttempt, isHardPublishBlock, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
+import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, clearRunTopic, publishedId, bumpAttempt, isHardPublishBlock, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome } from "@/lib/run-ledger";
 
 // Publicação de REELS (vídeo) no @drlibertad via Instagram Graph API v25.
 // O vídeo já precisa estar hospedado em URL pública (ex.: Vercel Blob).
@@ -71,14 +71,12 @@ async function publishReel(videoUrl: string, caption: string, lang: Lang = "es")
     }
     const { status_code } = await statusRes.json();
     lastStatus = status_code ?? "(sem status_code)";
-    if (status_code === "FINISHED") {
-      finished = true;
-      break;
-    }
-    if (status_code === "ERROR") {
-      throw new Error(`Reel processamento falhou (status ERROR) na tentativa ${attempt}`);
-    }
-    // IN_PROGRESS / PUBLISHED / EXPIRED → continua o loop
+    const outcome = containerStatusOutcome(status_code);
+    if (outcome === "finished") { finished = true; break; }
+    // A2: EXPIRED é TERMINAL (sessão de upload expirou — não adianta esperar o timeout
+    // inteiro), tratado junto de ERROR pelo containerStatusOutcome (mesma regra do C1).
+    if (outcome === "error") throw new Error(`Reel processamento falhou (status ${lastStatus}) na tentativa ${attempt}`);
+    // "pending" (IN_PROGRESS / PUBLISHED) → continua o loop
   }
   if (!finished) throw new Error(`Timeout: reel não finalizou (último status=${lastStatus})`);
 

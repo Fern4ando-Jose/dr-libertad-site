@@ -119,3 +119,34 @@ describe("scanContentForeign — varre só os campos que vão pro feed/Reel", ()
     expect(scanContentForeign(content, "pt")).toEqual([]);
   });
 });
+
+// A4 (auditoria 30/06): reforço da lista — verbos/palavras ES de alta frequência que
+// vazavam no PT. Alta precisão: só formas ES-EXCLUSIVAS (querer/sentir existem nos dois
+// → FORA). Estes casos aproximam a copy PT contaminada real que passava antes.
+describe("foreignTokens — A4: espanhol de alta frequência vazando no PT", () => {
+  it("pega verbos ES-exclusivos (necesitas/tienes/hace/quiere/cambia)", () => {
+    expect(foreignTokens("no necesitas ser amado", "pt")).toContain("necesitas");
+    expect(foreignTokens("tienes que hacer algo", "pt")).toEqual(expect.arrayContaining(["tienes", "hacer"]));
+    expect(foreignTokens("solo cambias cuando quieres", "pt")).toEqual(expect.arrayContaining(["cambias", "quieres"]));
+    expect(foreignTokens("y duele mucho", "pt")).toContain("duele");
+  });
+
+  it("pega 'hombre' e o comparativo ES (peor/mejor)", () => {
+    expect(foreignTokens("el hombre no llora", "pt")).toContain("hombre");
+    expect(foreignTokens("es peor de lo que crees", "pt")).toContain("peor");
+  });
+
+  it("NÃO marca PT legítimo com as raízes compartilhadas (querer/sentir/melhor)", () => {
+    expect(foreignTokens("você precisa querer mudar e sentir de novo", "pt")).toEqual([]);
+    expect(foreignTokens("é melhor viver do que fingir", "pt")).toEqual([]);
+  });
+
+  it("PT vazando no ES: 'porém/também/têm/melhor/pior' são pegos", () => {
+    expect(foreignTokens("es mejor, porém duele", "es")).toContain("porém");
+    expect(foreignTokens("eles têm medo também", "es")).toEqual(expect.arrayContaining(["têm", "também"]));
+  });
+
+  it("NÃO marca ES legítimo com 'mejor/peor' (formas ES, não PT)", () => {
+    expect(foreignTokens("es mejor que ayer, y menos peor", "es")).toEqual([]);
+  });
+});
