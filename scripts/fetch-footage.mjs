@@ -195,7 +195,12 @@ async function shareClips(props, clips) {
     return log(`writeback pulado (${!secret ? "sem CRON_SECRET" : "sem topic nos props"}) — footage não compartilhado`);
   }
   const base = process.env.PRODUCTION_URL || "https://www.drlibertad.com";
-  const day = new Date().toISOString().slice(0, 10); // UTC, igual a dayUTC()
+  // Dia ancorado em BRASÍLIA (UTC-3), MESMA fonte de src/lib/day.ts (dayBRT) — que o
+  // LEITOR (/api/publish → readReelShared) usa p/ chavear reel_shared_cache. Antes era
+  // UTC: no slot 21h BRT (=00h UTC) o writeback gravava sob o dia UTC SEGUINTE enquanto
+  // o leitor lia sob o dia BRT → chave `topic|day` não casava → PT não achava o footage
+  // do ES → vídeos divergiam (um com footage, outro preto). Offset fixo -180min (BR sem DST).
+  const day = new Date(Date.now() - 180 * 60_000).toISOString().slice(0, 10); // dayBRT
   try {
     const res = await fetch(`${base}/api/reel-share`, {
       method: "POST",
