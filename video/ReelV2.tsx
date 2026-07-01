@@ -187,7 +187,7 @@ function InsightTextV2({ text, accent, accentColor, index, total, handle }: { te
 }
 
 // ─── CTA V2 (mantém o da produção) ─────────────────────────────────────────────
-function CtaTextV2({ cta, accent, handle }: { cta: string; accent: string; handle: string }) {
+function CtaTextV2({ cta, accent, handle, ctaFollow, ctaBio }: { cta: string; accent: string; handle: string; ctaFollow: string; ctaBio: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 30 });
@@ -199,13 +199,13 @@ function CtaTextV2({ cta, accent, handle }: { cta: string; accent: string; handl
       <div style={{ transform: `scale(${scale})`, opacity: o, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{ width: 110, height: 8, backgroundColor: accent, marginBottom: 50, borderRadius: 4 }} />
         <div style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 92, lineHeight: 1.1, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", transform: `scale(${pulse})` }}>
-          Siga <span style={{ color: accent }}>{handle}</span>
+          {ctaFollow} <span style={{ color: accent }}>{handle}</span>
         </div>
         <div style={{ marginTop: 50, fontFamily: FRAUNCES, fontWeight: 400, fontSize: 50, lineHeight: 1.3, color: PAPER, opacity: 0.92, maxWidth: 880, textShadow: "0 2px 20px rgba(0,0,0,0.55)" }}>
           {cta}
         </div>
         <div style={{ marginTop: 60, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 600, letterSpacing: 2, color: accent }}>
-          → Mais no link da bio
+          {ctaBio}
         </div>
       </div>
     </AbsoluteFill>
@@ -258,7 +258,7 @@ function FunnelCardV2({ cover, keyword, action, note, handle }: { cover?: string
 }
 
 // ─── Composição V2 ─────────────────────────────────────────────────────────────
-export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, img, clips, clip, music, narrationUrl, cat, funnel, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
+export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, img, clips, clip, music, narrationUrl, cat, funnel, handle = "@dr.liberdad", brand = "Dr. Libertad", ctaFollow = "Sigue", ctaBio = "→ Más en el link de la bio" }) => {
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
   // DE-DUP (mesmo helper do Root.calculateMetadata) → capa e insight 1 nunca repetem,
   // e a duração da composição bate com os insights de verdade (sem cena preta no fim).
@@ -303,7 +303,7 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
 
       <Sequence from={next(CTA)} durationInFrames={CTA}>
         <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={CTA}>
-          <CtaTextV2 cta={cta} accent={accent} handle={handle} />
+          <CtaTextV2 cta={cta} accent={accent} handle={handle} ctaFollow={ctaFollow} ctaBio={ctaBio} />
         </Scene>
       </Sequence>
 

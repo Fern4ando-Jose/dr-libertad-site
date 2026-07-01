@@ -10,6 +10,8 @@
 // TUDO best-effort/fail-open: qualquer falha de banco/Pexels devolve null e o
 // pipeline segue como antes (cada idioma busca o seu). Nunca quebra a publicação.
 
+import { judgeFootagePoster } from "@/lib/footage-qa";
+
 export interface SearchResult { title: string; content: string; url: string }
 
 export interface ReelSharedBundle {
@@ -210,6 +212,7 @@ export async function selectFootage(
 ): Promise<string[]> {
   const key = process.env.PEXELS_API_KEY;
   if (!key) return [];
+  const anthropicKey = process.env.ANTHROPIC_API_KEY; // QA de conteúdo do footage (incidente 07-01)
   const fromClaude = (Array.isArray(videoQueries) ? videoQueries : []).filter((t) => typeof t === "string" && t.trim());
   const fallback = (CAT_TERMS[cat] || CAT_TERMS.freedom).slice();
 
@@ -235,7 +238,11 @@ export async function selectFootage(
           if (seen.has(v.id) || avoid.has(v.id)) continue;
           const link = pickFile(v);
           if (!link) continue;
-          seen.add(v.id);
+          seen.add(v.id); // considerado — não re-julgar o mesmo clipe
+          // QA de CONTEÚDO no poster (incidente 07-01): rejeita macro de pele/corpo,
+          // textura abstrata ou NSFW → pula o candidato (tenta o próximo). Fail-safe.
+          const verdict = await judgeFootagePoster(v.image, anthropicKey, "ig-reels", { videoId: v.id });
+          if (verdict.reject) continue;
           picked.push(link);
           progressed = true;
           break;

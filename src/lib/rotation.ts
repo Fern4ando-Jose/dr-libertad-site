@@ -185,6 +185,10 @@ export function selectThemeIndex(
   run: number,
   publishedIdxSlots: { idx: number; slot: number }[],
   pool: number = RANDOM_POOL,
+  // Causa 3: pins REAIS (run→idx do tema) já gravados hoje em run_topics. O threading
+  // usa o pin do run anterior quando existe, em vez de re-derivar (que divergia entre
+  // execuções HTTP → duplicata same-day). Vazio = comportamento anterior (re-derivação).
+  pinnedByRun: Record<number, number> = {},
 ): number {
   const n = cats.length;
   const poolEff = Math.max(6, pool);
@@ -202,14 +206,19 @@ export function selectThemeIndex(
 
   const deck = buildBalancedDeck(cats, cycleOf(slotForDayRun(dayStr, run), n));
 
+  // Pick EFETIVO de um run ANTERIOR k: o pin REAL (run_topics) se existir, senão
+  // re-deriva (Causa 3). Usar o pin evita que o threading "invente" p/ o run anterior
+  // um tema diferente do que ele COMMITOU → sem duplicata same-day.
+  const prevPick = (k: number): number =>
+    Object.prototype.hasOwnProperty.call(pinnedByRun, k) ? pinnedByRun[k] : pickFor(k);
   // pick do run `r`: pula os recentes (rank) ∪ picks dos runs anteriores do dia.
   const pickFor = (r: number): number => {
     const used = new Set<number>(recentUsed);
-    for (let k = 0; k < r; k++) used.add(pickFor(k)); // threading intra-dia → 6 distintos
+    for (let k = 0; k < r; k++) used.add(prevPick(k)); // threading intra-dia → 6 distintos
     for (const idx of deck) if (!used.has(idx)) return idx; // 1ª carta elegível (ordem balanceada)
     // degenerado (elegíveis < runs restantes do dia): o MENOS recente que NÃO saiu HOJE.
     const today = new Set<number>();
-    for (let k = 0; k < r; k++) today.add(pickFor(k));
+    for (let k = 0; k < r; k++) today.add(prevPick(k));
     let best = deck[0], bestSlot = Infinity;
     for (const idx of deck) {
       if (today.has(idx)) continue;

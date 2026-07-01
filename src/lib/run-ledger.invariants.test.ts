@@ -4,7 +4,7 @@
 // FALTAVA — modela o cenário real (cross-formato/idioma/dia por vaga), não a rotação
 // pura. Foi o buraco que deixou "Si no pones límites" repetir reel+carrossel em 24/06.
 import { describe, it, expect } from "vitest";
-import { hasOtherVaga, publishedId, shouldStopRetrying, slotSkipGate, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS, orphanedPairs, publishFailureMode } from "./run-ledger";
+import { hasOtherVaga, publishedId, shouldStopRetrying, slotSkipGate, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS, orphanedPairs, publishFailureMode, runsForAutomation, shouldReopenOnBudgetChange, containerStatusOutcome } from "./run-ledger";
 
 // Erro REAL do incidente (carrossel PT "O casal fake…", 26/06): o media_publish do IG
 // devolveu este corpo, MAS o post foi pro feed assim mesmo (action-block publica-e-erra).
@@ -197,5 +197,55 @@ describe("orphanedPairs — alarme de par ES/PT quebrado", () => {
   it("desistência em run DIFERENTE do publicado → não pareia como órfão", () => {
     // ES publicou run4; PT desistiu de run5 (vaga distinta) → não é o par do run4
     expect(orphanedPairs({ es: [4], pt: [] }, [{ lang: "pt", run: 5 }], LANGS)).toEqual([]);
+  });
+});
+
+// C2 (auditoria 30/06): reabrir o disjuntor quando o dono SOBE o teto ("liberar gasto").
+// Um 402 de orçamento no carrossel marca a vaga attempts=MAX e o balde é DIÁRIO → sem
+// isto a vaga fica presa o dia todo mesmo liberando gasto. As decisões são PURAS/testáveis.
+describe("C2 — reabrir disjuntor ao liberar orçamento", () => {
+  it("mapeia automação → vagas (reels 0..3, carrosséis 4..5)", () => {
+    expect(runsForAutomation("ig-reels")).toEqual([0, 1, 2, 3]);
+    expect(runsForAutomation("ig-posts")).toEqual([4, 5]);
+  });
+
+  it("automação sem vagas de publicação → [] (nada a reabrir)", () => {
+    expect(runsForAutomation("manual")).toEqual([]);
+    expect(runsForAutomation("ig-engagement")).toEqual([]);
+    expect(runsForAutomation("newsletter")).toEqual([]);
+  });
+
+  it("reels e carrosséis não compartilham vagas (sem sobreposição)", () => {
+    const reels = new Set(runsForAutomation("ig-reels"));
+    expect(runsForAutomation("ig-posts").some((r) => reels.has(r))).toBe(false);
+  });
+
+  it("SÓ reabre quando o teto SOBE (dono liberou gasto)", () => {
+    expect(shouldReopenOnBudgetChange(0.25, 0.5)).toBe(true);
+  });
+
+  it("baixar ou manter o teto NÃO reabre o disjuntor (não mexe à toa)", () => {
+    expect(shouldReopenOnBudgetChange(0.5, 0.3)).toBe(false); // baixar (nosso caso ig-reels)
+    expect(shouldReopenOnBudgetChange(0.3, 0.3)).toBe(false); // manter
+  });
+});
+
+// C1 (auditoria 30/06): o carrossel publicava após 3s FIXOS → "Media not ready"
+// intermitente. Agora espelha o poll do reel via containerStatusOutcome (PURA).
+describe("C1 — classificação do status_code do container", () => {
+  it("FINISHED → pronto p/ publicar", () => {
+    expect(containerStatusOutcome("FINISHED")).toBe("finished");
+  });
+
+  it("ERROR e EXPIRED → falha TERMINAL (não adianta esperar)", () => {
+    expect(containerStatusOutcome("ERROR")).toBe("error");
+    expect(containerStatusOutcome("EXPIRED")).toBe("error"); // terminal (ver A2)
+  });
+
+  it("IN_PROGRESS / PUBLISHED / desconhecido / ausente → continua aguardando", () => {
+    expect(containerStatusOutcome("IN_PROGRESS")).toBe("pending");
+    expect(containerStatusOutcome("PUBLISHED")).toBe("pending");
+    expect(containerStatusOutcome("QUALQUER")).toBe("pending");
+    expect(containerStatusOutcome(undefined)).toBe("pending");
   });
 });

@@ -2,16 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateIllustration } from "@/lib/illustration";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
-import { parseContentJson } from "@/lib/content-json";
+import { parseContentJson, normalizeContentJson, missingEssentialContent } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { generateNarration } from "@/lib/narration";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode } from "@/lib/run-ledger";
-import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun } from "@/lib/rotation";
+import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome, pinnedTopicsForDay } from "@/lib/run-ledger";
+import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun, RANDOM_POOL } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
 import { buildLiteralDirective } from "@/lib/literal-lock";
 import { scanContentForeign, summarizeHits } from "@/lib/lang-guard";
+import { scanContentForFabricatedStats, summarizeStatHits } from "@/lib/stats-guard";
 import { titleDupedInSlides, dedupeSlides } from "@/lib/slide-dedup";
 import { clipSlideText } from "@/lib/slide-text";
 
@@ -178,7 +179,15 @@ async function getFreshTopicForRun(date: Date, runIndex: number, _lang: Lang): P
       const i = TOPIC_INDEX.get(s.topic);
       if (i !== undefined) publishedIdxSlots.push({ idx: i, slot: slotForDayRun(s.day, s.run) });
     }
-    const candidate = TOPICS[selectThemeIndex(CATS, dayStr, runIndex, publishedIdxSlots)];
+    // Causa 3: pins REAIS dos runs de HOJE (run_topics) → o threading evita o que os
+    // runs anteriores COMMITARAM (não re-deriva) → sem duplicata same-day.
+    const pins = await pinnedTopicsForDay(dayStr);
+    const pinnedByRun: Record<number, number> = {};
+    for (const p of pins) {
+      const i = TOPIC_INDEX.get(p.topic);
+      if (i !== undefined) pinnedByRun[p.run] = i;
+    }
+    const candidate = TOPICS[selectThemeIndex(CATS, dayStr, runIndex, publishedIdxSlots, RANDOM_POOL, pinnedByRun)];
     // Livro-razão: 1º idioma grava (dia,run)→tema; 2º LÊ o mesmo → ES e PT no MESMO vídeo.
     // Fail-open dentro de getOrSetRunTopic → devolve `candidate` (que já não repete).
     return await getOrSetRunTopic(dayStr, runIndex, candidate);
@@ -309,7 +318,7 @@ MOTOR DE ALCANCE (reglas basadas en datos reales del perfil — lo que más empu
 - GUARDABLE: al menos UN insight debe ser un reencuadre o micro-método accionable que la persona quiera GUARDAR para releer (algo aplicable, no solo bonito).
 - COMPARTIBLE: el cta debe invitar a comentar Y a etiquetar/compartir con alguien ("¿Conoces a alguien que…?", "Etiqueta a quien…"), porque etiquetar = compartir.
 - SEGUIDORES (objetivo PRINCIPAL): mucha gente que ve esto AÚN NO te sigue. La leyenda debe cerrar SIEMPRE, antes de los hashtags, con un CTA explícito a SEGUIR a ${acc.handle} dándole una RAZÓN con la voz de la marca — provocadora, nunca genérica ("Sígueme si prefieres la verdad incómoda al aplauso fácil" SÍ; "Síguenos para más consejos" NO) — además del CTA de guardar (🔖) y compartir (📩).
-- CREDIBILIDAD: PROHIBIDO inventar estadísticas, porcentajes o estudios ("el 67% tiene más ansiedad", "los estudios dicen…"). Si no es un dato real y verificable, NO lo pongas — la fuerza viene de la VERDAD cruda, no de cifras falsas. PROHIBIDO años o fechas concretas ("en 2024…"): la frase debe ser ATEMPORAL.
+- CREDIBILIDAD (REGLA DURA — si la violas, el post se DESCARTA): PROHIBIDO inventar datos con AUTORIDAD: porcentajes ("el 67%"), estudios o investigaciones ("según un estudio", "los estudios dicen"), universidades o instituciones nombradas (Harvard, Pew, OMS…), "X de cada Y" ("1 de cada 3"), y años o fechas concretas ("en 2024"): la frase debe ser ATEMPORAL. Si no es un dato REAL y verificable con fuente, NO lo pongas — la fuerza viene de la VERDAD cruda, no de cifras falsas. SÍ puedes usar un número concreto de COMPORTAMIENTO como gancho ("revisas el móvil decenas de veces al día"), pero JAMÁS presentado como estadística citada ni atribuido a nadie.
 - BREVEDAD: los slides son CORTOS de verdad — máx 80 chars, frases que se leen en 1-2 segundos. El PT-BR ya sale así de punzante; el ES también debe serlo (nada de slides de 110 chars).
 
 Contexto investigado:
@@ -334,7 +343,7 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
   ]
 }
 
-Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmables (no ilustraciones ni metáforas). Deben poder encontrarse en un banco de video como Pexels y conectar con el tema del post. Las 3 tienen que ser VISUALMENTE DISTINTAS entre sí (distinto sujeto/lugar/gesto). ⚠️ EVITA el plano genérico de teléfono/pantalla — se repite en TODOS los Reels y aburre: úsalo COMO MÁXIMO en 1 de las 3, y solo si el teléfono ES el tema; prefiere escenas humanas, gestos, rostros, lugares, naturaleza, objetos.`;
+Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmables (no ilustraciones ni metáforas). Deben poder encontrarse en un banco de video como Pexels y conectar con el tema del post. Las 3 tienen que ser VISUALMENTE DISTINTAS entre sí (distinto sujeto/lugar/gesto). ⚠️ EVITA el plano genérico de teléfono/pantalla — se repite en TODOS los Reels y aburre: úsalo COMO MÁXIMO en 1 de las 3, y solo si el teléfono ES el tema; prefiere escenas humanas, gestos, rostros, lugares, naturaleza, objetos. ⛔ PROHIBIDO pedir primeros planos extremos de PIEL o partes del cuerpo, texturas abstractas de cuerpo/piel, o nada sugerente/NSFW (marca de psicología, cuenta en riesgo): cada término DEBE ser un plano MEDIO o ABIERTO con un sujeto CLARO EN CONTEXTO (una persona haciendo algo, un lugar, un objeto), nunca un macro de cuerpo.`;
 
   // O haiku ocasionalmente devolve JSON malformado OU deixa o outro idioma vazar
   // (clássico: copia a frase do Tema, que é ES, como 1º slide). Tentamos 3×: extrai
@@ -366,24 +375,42 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
     const raw = data.content?.[0]?.text ?? "";
     let content: GeneratedContent;
     try {
-      content = parseContentJson<GeneratedContent>(raw);
+      // Normaliza os TIPOS logo após o parse (bug C4): campo omitido pelo haiku (ex.:
+      // sem "tags"/"slides") vira array/string vazio → o downstream (content.tags[0],
+      // content.slides.map) NUNCA lança e derruba a vaga no catch.
+      content = normalizeContentJson(parseContentJson<GeneratedContent>(raw)) as GeneratedContent;
     } catch (e) {
       lastErr = e; // JSON malformado → regenera na próxima volta
       continue;
     }
-    // Duas travas de QUALIDADE antes de aceitar a copy:
+    // Campos ESSENCIAIS vazios (título/slides/cta) → não publica carrossel/reel vazio:
+    // trata como geração malformada e REGENERA (mesmo caminho do JSON inválido).
+    const missing = missingEssentialContent(content);
+    if (missing.length) {
+      lastErr = new Error(`generateContent: campos essenciais ausentes/vazios → ${missing.join(", ")}`);
+      continue;
+    }
+    // Três travas de QUALIDADE antes de aceitar a copy:
     //  (1) PUREZA DE IDIOMA (lang-guard) — bloqueio DURO (mescla não vai ao feed).
-    //  (2) DE-DUP: o 1º slide não pode repetir o título (capa × insight 1 idênticos).
+    //  (2) CREDIBILIDADE (stats-guard, item 3) — dado FABRICADO (%, ano, "X de cada Y",
+    //      universidade, "según un estudio") → bloqueio DURO (reputacional). Número de
+    //      comportamento como gancho ("144 veces") é PERMITIDO — só a atribuição barra.
+    //  (3) DE-DUP: o 1º slide não pode repetir o título (capa × insight 1 idênticos).
     //      Conserta Reel E carrossel na origem. NÃO é bloqueio: se persistir no fim,
     //      publica mesmo assim (perder a vaga é pior; o ReelV2 ainda de-dupa no render).
     const hits = scanContentForeign(content, lang);
+    const statsHits = scanContentForFabricatedStats(content);
     const duped = titleDupedInSlides(content.postTitle, content.slides);
-    if (hits.length === 0 && !duped) return content;
+    if (hits.length === 0 && statsHits.length === 0 && !duped) return content;
 
     let note = "";
     if (hits.length) {
       lastErr = new Error(`idioma contaminado (${lang}): ${summarizeHits(hits)}`);
       note += `\n\n⚠️ CORRECCIÓN OBLIGATORIA: tu respuesta anterior dejó palabras del OTRO idioma (debe ser 100% ${L}). Palabras detectadas → ${summarizeHits(hits)}. Reescribe TODO el contenido en ${L}, sin copiar el enunciado del Tema; revisa también las hashtags.`;
+    }
+    if (statsHits.length) {
+      if (!hits.length) lastErr = new Error(`dados fabricados: ${summarizeStatHits(statsHits)}`);
+      note += `\n\n⚠️ CORRECCIÓN OBLIGATORIA (CREDIBILIDAD): incluiste datos con AUTORIDAD INVENTADA → ${summarizeStatHits(statsHits)}. PROHIBIDO porcentajes, años/fechas, "X de cada Y", nombres de universidad/estudio o "según un estudio". Reescribe SIN esas cifras: la fuerza viene de la verdad cruda, no de datos falsos. Puedes usar un número concreto de comportamiento cotidiano como gancho (ej. "revisas el móvil decenas de veces al día"), pero NUNCA presentado como estadística citada.`;
     }
     if (duped) {
       if (!hits.length) lastErr = new Error("slide repete o título");
@@ -391,9 +418,9 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
     }
     contaminationNote = note;
 
-    // Última tentativa: idioma contaminado BLOQUEIA (cai no throw); repetição sozinha
-    // NÃO bloqueia — devolve a copy (melhor publicar que perder a vaga).
-    if (attempt === MAX_CONTENT_TRIES && !hits.length) return content;
+    // Última tentativa: idioma contaminado OU dado fabricado BLOQUEIAM (caem no throw);
+    // repetição sozinha NÃO bloqueia — devolve a copy (melhor publicar que perder a vaga).
+    if (attempt === MAX_CONTENT_TRIES && !hits.length && !statsHits.length) return content;
   }
   throw new Error(`generateContent: conteúdo não-publicável após ${MAX_CONTENT_TRIES} tentativas: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`);
 }
@@ -453,8 +480,28 @@ async function publishCarousel(
   if (!carRes.ok) throw new Error(`Carousel container error: ${await carRes.text()}`);
   const { id: carId } = await carRes.json();
 
-  // 3. Aguardar processamento
-  await new Promise(res => setTimeout(res, 3000));
+  // 3. Aguardar o processamento do container ANTES de publicar (bug C1). Antes eram
+  //    3s FIXOS → se o container demorasse >3s, o media_publish dava "Media not ready"
+  //    (erro NÃO-duro) → a vaga falhava INTERMITENTE (provável causa-raiz nº1 dos furos
+  //    do carrossel). Agora ESPELHA o poll do reel: consulta ?fields=status_code até
+  //    FINISHED. Container consultado pelo ID na RAIZ do graph (NÃO sob accountId).
+  //    Imagens processam rápido → cap curto ~20×3s=60s, bem abaixo do maxDuration=300
+  //    (mesmo no disparo manual de 3 slots: 3×60=180s). Timeout/ERROR → lança (erro
+  //    transitório: o disjuntor conta a tentativa e o catchup tenta de novo).
+  let carFinished = false;
+  let lastCarStatus = "?";
+  for (let attempt = 1; attempt <= 20; attempt++) {
+    await new Promise(res => setTimeout(res, 3000));
+    const stRes = await fetch(`https://graph.instagram.com/v25.0/${carId}?fields=status_code&access_token=${token}`);
+    if (!stRes.ok) continue; // transitório — segue tentando dentro do limite
+    const { status_code } = await stRes.json();
+    lastCarStatus = status_code ?? "(sem status_code)";
+    const outcome = containerStatusOutcome(status_code);
+    if (outcome === "finished") { carFinished = true; break; }
+    if (outcome === "error") throw new Error(`Carousel processamento falhou (status ${lastCarStatus}) na tentativa ${attempt}`);
+    // "pending" (IN_PROGRESS / PUBLISHED) → continua o poll
+  }
+  if (!carFinished) throw new Error(`Timeout: carrossel não finalizou (último status=${lastCarStatus})`);
 
   // 4. Publicar
   const pubRes = await fetch(`${base}/media_publish`, {
@@ -671,6 +718,8 @@ export async function GET(req: NextRequest) {
       lang,
       handle: accountFor(lang).handle, // @ correto por idioma (criativo do Reel)
       brand: accountFor(lang).brand, // nome de exibição por idioma
+      ctaFollow: accountFor(lang).ctaFollow, // "Sigue"/"Siga" — CTA do Reel no idioma certo
+      ctaBio: accountFor(lang).ctaBio, // "→ Más en el link de la bio" / "→ Mais no link da bio"
       title: content.postTitle,
       slides: content.slides,
       accentWords: [],

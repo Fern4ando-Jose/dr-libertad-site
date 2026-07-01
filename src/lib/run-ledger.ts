@@ -9,7 +9,8 @@
 
 // "Dia" da automação — ÂNCORA BRT (UTC-3), não UTC. Fonte única em `./day`.
 // (Ver day.ts: por que BRT corrige o reel que renderizava-e-pulava.)
-export { dayBRT } from "./day";
+import { dayBRT } from "./day";
+export { dayBRT };
 
 // ── Anti "post-fantasma" ──────────────────────────────────────────────────────
 // A Graph API às vezes CONFIRMA o media_publish (HTTP 200) mas a resposta vem SEM o
@@ -101,6 +102,19 @@ export function slotSkipGate(
   return null;
 }
 
+// ── Poll de processamento do container (carrossel/reel) ───────────────────────
+// Antes de `media_publish`, o container precisa estar FINISHED. Publicar cedo demais
+// dá "Media not ready" (erro NÃO-duro) → vaga falha INTERMITENTE (bug C1: o carrossel
+// só esperava 3s fixos). Classifica o status_code do Graph: pronto p/ publicar, falha
+// TERMINAL (não adianta esperar) ou ainda processando. PURA/testável. EXPIRED é
+// terminal (a sessão de upload expirou — ver A2). Desconhecido → segue aguardando.
+export type ContainerStatus = "finished" | "error" | "pending";
+export function containerStatusOutcome(statusCode: unknown): ContainerStatus {
+  if (statusCode === "FINISHED") return "finished";
+  if (statusCode === "ERROR" || statusCode === "EXPIRED") return "error";
+  return "pending"; // IN_PROGRESS / PUBLISHED / (sem status) → continua o poll
+}
+
 // O erro de publicação é um bloqueio/limite DURO do Instagram? (não adianta insistir)
 export function isHardPublishBlock(err: unknown): boolean {
   const s = String(err ?? "").toLowerCase();
@@ -141,6 +155,54 @@ export async function bumpAttempt(day: string, run: number, lang: string, hard =
       `;
     }
   } catch { /* best-effort: pré-migrate (sem coluna) → no-op, sem disjuntor */ }
+}
+
+// ── Reabertura do disjuntor ao LIBERAR orçamento (C2, auditoria 30/06) ─────────
+// Um 402 de orçamento marca a vaga como circuit-open (attempts=MAX) e o balde é
+// DIÁRIO → nada reabre a vaga no mesmo dia, MESMO que o dono suba o teto ("liberar
+// gasto"). Resultado: vaga perdida o dia inteiro apesar do gasto liberado. Estas
+// funções deixam o POST /api/spend REABRIR o disjuntor quando o teto SOBE.
+//
+// Vagas (runs) de cada automação — reels 0..3, carrosséis 4..5 (ver CLAUDE.md /
+// workflows). PURA/testável. Automação sem vagas de publicação (manual/engagement/
+// newsletter) → [] (nada a reabrir).
+export function runsForAutomation(automation: string): number[] {
+  if (automation === "ig-reels") return [0, 1, 2, 3];
+  if (automation === "ig-posts") return [4, 5];
+  return [];
+}
+
+// Só REABRE quando o teto SOBE (o dono liberou gasto). Baixar/manter o teto NÃO
+// reabre (evita mexer no disjuntor à toa). PURA/testável.
+export function shouldReopenOnBudgetChange(oldBudget: number, newBudget: number): boolean {
+  return newBudget > oldBudget;
+}
+
+// ZERA o disjuntor das vagas NÃO publicadas do dia (dayBRT) daquela automação — para o
+// catchup poder tentar de novo AGORA que o gasto foi liberado. SÓ é chamada num aumento
+// MANUAL de teto (não automático) → NÃO reabre a "tempestade" de catchup: a causa-raiz
+// (o teto baixo) já foi corrigida, então a retentativa PASSA em vez de falhar em loop.
+// Nunca toca vaga publicada (instagram_post_id NOT NULL). Só reabre as que DESISTIRAM
+// (attempts>=MAX) — inclui a rara vaga travada por bloqueio-duro do IG, que re-arma
+// sozinha se ainda estiver bloqueada. Devolve quantas vagas reabriu. FAIL-OPEN → 0.
+export async function reopenCircuitForAutomation(day: string, automation: string): Promise<number> {
+  const runs = runsForAutomation(automation);
+  if (runs.length === 0) return 0;
+  try {
+    const { sql } = await import("@vercel/postgres");
+    // sql.query (parametrizado): o tagged template não aceita array como param; aqui o
+    // driver converte o array JS de `runs` no array Postgres de $2::int[].
+    const r = await sql.query(
+      `UPDATE published_runs SET attempts = 0
+       WHERE day = $1 AND run = ANY($2::int[])
+         AND instagram_post_id IS NULL
+         AND attempts >= $3`,
+      [day, runs, MAX_PUBLISH_ATTEMPTS],
+    );
+    return r.rowCount ?? 0;
+  } catch {
+    return 0; // best-effort: pré-migrate/erro → não reabre, nunca quebra o endpoint
+  }
 }
 
 // Quantas tentativas FALHAS a vaga já teve hoje (0 se publicada/inexistente/erro).
@@ -224,14 +286,34 @@ export async function recentTopicsAllLangs(days = 7): Promise<Set<string>> {
 export async function recentPublishedSlots(days = 16): Promise<{ topic: string; day: string; run: number }[]> {
   try {
     const { sql } = await import("@vercel/postgres");
-    const r = await sql<{ topic: string; day: string; run: number }>`
-      SELECT DISTINCT topic, day, run FROM published_runs
-      WHERE topic IS NOT NULL AND instagram_post_id IS NOT NULL
-        AND ts > NOW() - (${days} || ' days')::interval
-    `;
-    return r.rows.map((x) => ({ topic: x.topic, day: String(x.day).slice(0, 10), run: Number(x.run) }));
+    // UNIÃO das 3 fontes (Causa 2, auditoria 30/06): antes lia SÓ published_runs.topic,
+    // mas ~30% das linhas têm topic NULL (reels anteriores à coluna) e os carrosséis
+    // vivem em `posts` → a seleção ficava CEGA a temas que JÁ foram ao ar → re-sorteava
+    // e repetia (ex.: "Dopamina y recompensa inmediata" 21/06→28/06). Mesmas fontes da
+    // trava topicUsedInOtherVaga/recentTopicsAllLangs: published_runs ∪ posts ∪
+    // reel_shared_cache. posts/cache não têm `run` → run nominal 0 (o slot só ORDENA
+    // recência, dominada pelo DIA). Dia em BRT (dayBRT) p/ casar com published_runs.day.
+    const [pr, po, rc] = await Promise.all([
+      sql<{ topic: string; day: string; run: number }>`
+        SELECT DISTINCT topic, day, run FROM published_runs
+        WHERE topic IS NOT NULL AND instagram_post_id IS NOT NULL
+          AND ts > NOW() - (${days} || ' days')::interval`,
+      sql<{ topic: string; published_at: string }>`
+        SELECT DISTINCT topic, published_at FROM posts
+        WHERE topic IS NOT NULL
+          AND published_at > NOW() - (${days} || ' days')::interval`,
+      sql<{ topic: string; created_at: string }>`
+        SELECT DISTINCT topic, created_at FROM reel_shared_cache
+        WHERE topic IS NOT NULL
+          AND created_at > NOW() - (${days} || ' days')::interval`,
+    ]);
+    const out: { topic: string; day: string; run: number }[] = [];
+    for (const x of pr.rows) out.push({ topic: x.topic, day: String(x.day).slice(0, 10), run: Number(x.run) });
+    for (const x of po.rows) out.push({ topic: x.topic, day: dayBRT(new Date(x.published_at)), run: 0 });
+    for (const x of rc.rows) out.push({ topic: x.topic, day: dayBRT(new Date(x.created_at)), run: 0 });
+    return out;
   } catch {
-    return [];
+    return []; // fail-open → rotação-base legada (buildRotation)
   }
 }
 
@@ -252,6 +334,23 @@ export async function getOrSetRunTopic(day: string, run: number, candidate: stri
     return r.rows[0]?.topic ?? candidate;
   } catch {
     return candidate;
+  }
+}
+
+// Pins (dia,run)→tema já gravados hoje (Causa 3, auditoria 30/06). O threading da
+// seleção usava a RE-DERIVAÇÃO dos picks dos runs anteriores (pura, mas os insumos —
+// o `recent` — mudam entre execuções HTTP ao longo do dia) → o run 4 podia re-derivar
+// p/ o run 3 um tema DIFERENTE do que o run 3 realmente pinou → não o evitava →
+// DUPLICATA same-day (ex.: 25/06 "Solo cambias…" saiu reel-clássico E carrossel). Lendo
+// os pins REAIS, o threading evita o que os runs anteriores COMMITARAM. Fail-open → [].
+export async function pinnedTopicsForDay(day: string): Promise<{ run: number; topic: string }[]> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql<{ run: number; topic: string }>`
+      SELECT run, topic FROM run_topics WHERE day = ${day}`;
+    return r.rows.map((x) => ({ run: Number(x.run), topic: x.topic }));
+  } catch {
+    return [];
   }
 }
 
