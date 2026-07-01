@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { type Automation, spendSummary, setBudget } from "@/lib/spend";
+import { type Automation, spendSummary, setBudget, getBudget } from "@/lib/spend";
+import { dayBRT, reopenCircuitForAutomation, shouldReopenOnBudgetChange } from "@/lib/run-ledger";
 
 // Visão de gasto por plataforma/automação (hoje e mês) + orçamentos vigentes.
 // Atrás do CRON_SECRET (igual aos demais endpoints operacionais).
@@ -35,8 +36,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Use ?automation=ig-posts|ig-reels|manual&budget=<USD>" }, { status: 400 });
   }
   try {
+    // Teto ANTES da mudança → decidir se é um AUMENTO (o dono liberando gasto).
+    const previousBudget = await getBudget(automation);
     await setBudget(automation, budget);
-    return NextResponse.json({ ok: true, automation, budget });
+    // Ao SUBIR o teto, reabre o disjuntor das vagas do dia que desistiram por circuit-open
+    // (ex.: 402 de orçamento no carrossel) → o catchup volta a tentar AGORA, sem esperar o
+    // dia virar. Só num aumento manual (aqui) → não reabre a tempestade automática. (C2.)
+    let reopenedVagas = 0;
+    if (shouldReopenOnBudgetChange(previousBudget, budget)) {
+      reopenedVagas = await reopenCircuitForAutomation(dayBRT(), automation);
+    }
+    return NextResponse.json({ ok: true, automation, budget, previousBudget, reopenedVagas });
   } catch (e) {
     console.error("POST /api/spend:", e);
     return NextResponse.json({ ok: false, error: "erro interno" }, { status: 500 });
