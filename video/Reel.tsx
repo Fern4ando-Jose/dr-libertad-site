@@ -108,6 +108,8 @@ export type ReelProps = {
   cat?: string; // categoria → cor de acento
   handle?: string; // @ da conta por idioma (ex.: "@dr.liberdad" | "@dr.liberdade.br")
   brand?: string; // nome de exibição (ex.: "Dr. Libertad" | "Dr. Liberdade")
+  ctaFollow?: string; // verbo "seguir" do CTA por idioma (ES "Sigue" / PT "Siga")
+  ctaBio?: string; // linha "link da bio" do CTA por idioma
   // End-card do FUNIL (comment→DM) — só presente quando o funil está LIGADO (a API
   // injeta no preview). `cover` = caminho/URL da capa do livro (fundo da cena). Ausente
   // → o Reel não muda (ReelV2 só renderiza a cena do funil se `funnel` existir).
@@ -132,6 +134,8 @@ export const reelDefaultProps: ReelProps = {
   cat: "freedom",
   handle: "@dr.liberdad",
   brand: "Dr. Libertad",
+  ctaFollow: "Sigue",
+  ctaBio: "→ Más en el link de la bio",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -352,7 +356,7 @@ function InsightText({ text, accent, accentColor, index, total, handle }: { text
 }
 
 // ─── Texto: CTA ───────────────────────────────────────────────────────────────
-function CtaText({ cta, accent, handle }: { cta: string; accent: string; handle: string }) {
+function CtaText({ cta, accent, handle, ctaFollow, ctaBio }: { cta: string; accent: string; handle: string; ctaFollow: string; ctaBio: string }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const entry = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 30 });
@@ -366,7 +370,7 @@ function CtaText({ cta, accent, handle }: { cta: string; accent: string; handle:
         <div
           style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 92, lineHeight: 1.1, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", transform: `scale(${pulse})` }}
         >
-          Siga <span style={{ color: accent }}>{handle}</span>
+          {ctaFollow} <span style={{ color: accent }}>{handle}</span>
         </div>
         <div
           style={{ marginTop: 50, fontFamily: FRAUNCES, fontWeight: 400, fontSize: 50, lineHeight: 1.3, color: PAPER, opacity: 0.92, maxWidth: 880, textShadow: "0 2px 20px rgba(0,0,0,0.55)" }}
@@ -374,7 +378,7 @@ function CtaText({ cta, accent, handle }: { cta: string; accent: string; handle:
           {cta}
         </div>
         <div style={{ marginTop: 60, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 600, letterSpacing: 2, color: accent }}>
-          → Mais no link da bio
+          {ctaBio}
         </div>
       </div>
     </AbsoluteFill>
@@ -382,7 +386,7 @@ function CtaText({ cta, accent, handle }: { cta: string; accent: string; handle:
 }
 
 // ─── Composição completa ──────────────────────────────────────────────────────
-export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, clips, clip, music, cat, handle = "@dr.liberdad", brand = "Dr. Libertad" }) => {
+export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, clips, clip, music, cat, handle = "@dr.liberdad", brand = "Dr. Libertad", ctaFollow = "Sigue", ctaBio = "→ Más en el link de la bio" }) => {
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
   const safeSlides = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 3);
   const { COVER, INSIGHT, CTA, n, total } = reelDurations(safeSlides.length);
@@ -420,7 +424,7 @@ export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw,
 
       <Sequence from={next(CTA)} durationInFrames={CTA}>
         <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={CTA}>
-          <CtaText cta={cta} accent={accent} handle={handle} />
+          <CtaText cta={cta} accent={accent} handle={handle} ctaFollow={ctaFollow} ctaBio={ctaBio} />
         </Scene>
       </Sequence>
 

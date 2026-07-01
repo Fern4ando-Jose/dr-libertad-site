@@ -671,6 +671,8 @@ export async function GET(req: NextRequest) {
       lang,
       handle: accountFor(lang).handle, // @ correto por idioma (criativo do Reel)
       brand: accountFor(lang).brand, // nome de exibição por idioma
+      ctaFollow: accountFor(lang).ctaFollow, // "Sigue"/"Siga" — CTA do Reel no idioma certo
+      ctaBio: accountFor(lang).ctaBio, // "→ Más en el link de la bio" / "→ Mais no link da bio"
       title: content.postTitle,
       slides: content.slides,
       accentWords: [],

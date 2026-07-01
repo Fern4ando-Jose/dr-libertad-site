@@ -19,6 +19,10 @@ export interface AccountCfg {
   freedom: string;
   /** @handle exibido no criativo (rodapé/CTA do Reel). */
   handle: string;
+  /** Verbo "seguir" do CTA do Reel, no idioma da conta (ES "Sigue" / PT "Siga"). */
+  ctaFollow: string;
+  /** Linha "link da bio" do CTA do Reel, no idioma da conta. */
+  ctaBio: string;
   /** Hashtags base da marca (o Claude adiciona temáticas por cima). */
   baseHashtags: string[];
   /** Nome da env var com o access token da conta. */
@@ -43,6 +47,8 @@ export const ACCOUNTS: Record<Lang, AccountCfg> = {
     brand: "Dr. Libertad",
     freedom: "libertad",
     handle: "@dr.liberdad",
+    ctaFollow: "Sigue",
+    ctaBio: "→ Más en el link de la bio",
     baseHashtags: ["#DrLibertad", "#LibertadMental"],
     tokenEnv: "META_ACCESS_TOKEN",
     accountIdEnv: "META_INSTAGRAM_ACCOUNT_ID",
@@ -54,6 +60,8 @@ export const ACCOUNTS: Record<Lang, AccountCfg> = {
     brand: "Dr. Liberdade",
     freedom: "liberdade",
     handle: "@dr.liberdade.br",
+    ctaFollow: "Siga",
+    ctaBio: "→ Mais no link da bio",
     baseHashtags: ["#DrLiberdade", "#LiberdadeMental"],
     tokenEnv: "META_ACCESS_TOKEN_PT",
     accountIdEnv: "META_INSTAGRAM_ACCOUNT_ID_PT",

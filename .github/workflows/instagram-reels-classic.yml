@@ -98,6 +98,8 @@ jobs:
               cat: p.cat || "freedom",
               handle: p.handle || "@dr.liberdad",
               brand: p.brand || "Dr. Libertad",
+              ctaFollow: p.ctaFollow || "Sigue",
+              ctaBio: p.ctaBio || "→ Más en el link de la bio",
               // Footage de RESERVA (quando não há ilustração): termos do Claude + clipes.
               videoQueries: Array.isArray(p.videoQueries) ? p.videoQueries : [],
               clips: Array.isArray(p.clips) && p.clips.length ? p.clips : undefined,
