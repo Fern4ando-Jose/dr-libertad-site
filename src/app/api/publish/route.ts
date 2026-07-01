@@ -12,6 +12,7 @@ import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
 import { buildLiteralDirective } from "@/lib/literal-lock";
 import { scanContentForeign, summarizeHits } from "@/lib/lang-guard";
+import { scanContentForFabricatedStats, summarizeStatHits } from "@/lib/stats-guard";
 import { titleDupedInSlides, dedupeSlides } from "@/lib/slide-dedup";
 import { clipSlideText } from "@/lib/slide-text";
 
@@ -317,7 +318,7 @@ MOTOR DE ALCANCE (reglas basadas en datos reales del perfil — lo que más empu
 - GUARDABLE: al menos UN insight debe ser un reencuadre o micro-método accionable que la persona quiera GUARDAR para releer (algo aplicable, no solo bonito).
 - COMPARTIBLE: el cta debe invitar a comentar Y a etiquetar/compartir con alguien ("¿Conoces a alguien que…?", "Etiqueta a quien…"), porque etiquetar = compartir.
 - SEGUIDORES (objetivo PRINCIPAL): mucha gente que ve esto AÚN NO te sigue. La leyenda debe cerrar SIEMPRE, antes de los hashtags, con un CTA explícito a SEGUIR a ${acc.handle} dándole una RAZÓN con la voz de la marca — provocadora, nunca genérica ("Sígueme si prefieres la verdad incómoda al aplauso fácil" SÍ; "Síguenos para más consejos" NO) — además del CTA de guardar (🔖) y compartir (📩).
-- CREDIBILIDAD: PROHIBIDO inventar estadísticas, porcentajes o estudios ("el 67% tiene más ansiedad", "los estudios dicen…"). Si no es un dato real y verificable, NO lo pongas — la fuerza viene de la VERDAD cruda, no de cifras falsas. PROHIBIDO años o fechas concretas ("en 2024…"): la frase debe ser ATEMPORAL.
+- CREDIBILIDAD (REGLA DURA — si la violas, el post se DESCARTA): PROHIBIDO inventar datos con AUTORIDAD: porcentajes ("el 67%"), estudios o investigaciones ("según un estudio", "los estudios dicen"), universidades o instituciones nombradas (Harvard, Pew, OMS…), "X de cada Y" ("1 de cada 3"), y años o fechas concretas ("en 2024"): la frase debe ser ATEMPORAL. Si no es un dato REAL y verificable con fuente, NO lo pongas — la fuerza viene de la VERDAD cruda, no de cifras falsas. SÍ puedes usar un número concreto de COMPORTAMIENTO como gancho ("revisas el móvil decenas de veces al día"), pero JAMÁS presentado como estadística citada ni atribuido a nadie.
 - BREVEDAD: los slides son CORTOS de verdad — máx 80 chars, frases que se leen en 1-2 segundos. El PT-BR ya sale así de punzante; el ES también debe serlo (nada de slides de 110 chars).
 
 Contexto investigado:
@@ -389,19 +390,27 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
       lastErr = new Error(`generateContent: campos essenciais ausentes/vazios → ${missing.join(", ")}`);
       continue;
     }
-    // Duas travas de QUALIDADE antes de aceitar a copy:
+    // Três travas de QUALIDADE antes de aceitar a copy:
     //  (1) PUREZA DE IDIOMA (lang-guard) — bloqueio DURO (mescla não vai ao feed).
-    //  (2) DE-DUP: o 1º slide não pode repetir o título (capa × insight 1 idênticos).
+    //  (2) CREDIBILIDADE (stats-guard, item 3) — dado FABRICADO (%, ano, "X de cada Y",
+    //      universidade, "según un estudio") → bloqueio DURO (reputacional). Número de
+    //      comportamento como gancho ("144 veces") é PERMITIDO — só a atribuição barra.
+    //  (3) DE-DUP: o 1º slide não pode repetir o título (capa × insight 1 idênticos).
     //      Conserta Reel E carrossel na origem. NÃO é bloqueio: se persistir no fim,
     //      publica mesmo assim (perder a vaga é pior; o ReelV2 ainda de-dupa no render).
     const hits = scanContentForeign(content, lang);
+    const statsHits = scanContentForFabricatedStats(content);
     const duped = titleDupedInSlides(content.postTitle, content.slides);
-    if (hits.length === 0 && !duped) return content;
+    if (hits.length === 0 && statsHits.length === 0 && !duped) return content;
 
     let note = "";
     if (hits.length) {
       lastErr = new Error(`idioma contaminado (${lang}): ${summarizeHits(hits)}`);
       note += `\n\n⚠️ CORRECCIÓN OBLIGATORIA: tu respuesta anterior dejó palabras del OTRO idioma (debe ser 100% ${L}). Palabras detectadas → ${summarizeHits(hits)}. Reescribe TODO el contenido en ${L}, sin copiar el enunciado del Tema; revisa también las hashtags.`;
+    }
+    if (statsHits.length) {
+      if (!hits.length) lastErr = new Error(`dados fabricados: ${summarizeStatHits(statsHits)}`);
+      note += `\n\n⚠️ CORRECCIÓN OBLIGATORIA (CREDIBILIDAD): incluiste datos con AUTORIDAD INVENTADA → ${summarizeStatHits(statsHits)}. PROHIBIDO porcentajes, años/fechas, "X de cada Y", nombres de universidad/estudio o "según un estudio". Reescribe SIN esas cifras: la fuerza viene de la verdad cruda, no de datos falsos. Puedes usar un número concreto de comportamiento cotidiano como gancho (ej. "revisas el móvil decenas de veces al día"), pero NUNCA presentado como estadística citada.`;
     }
     if (duped) {
       if (!hits.length) lastErr = new Error("slide repete o título");
@@ -409,9 +418,9 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
     }
     contaminationNote = note;
 
-    // Última tentativa: idioma contaminado BLOQUEIA (cai no throw); repetição sozinha
-    // NÃO bloqueia — devolve a copy (melhor publicar que perder a vaga).
-    if (attempt === MAX_CONTENT_TRIES && !hits.length) return content;
+    // Última tentativa: idioma contaminado OU dado fabricado BLOQUEIAM (caem no throw);
+    // repetição sozinha NÃO bloqueia — devolve a copy (melhor publicar que perder a vaga).
+    if (attempt === MAX_CONTENT_TRIES && !hits.length && !statsHits.length) return content;
   }
   throw new Error(`generateContent: conteúdo não-publicável após ${MAX_CONTENT_TRIES} tentativas: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`);
 }
