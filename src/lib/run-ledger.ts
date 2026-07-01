@@ -143,6 +143,54 @@ export async function bumpAttempt(day: string, run: number, lang: string, hard =
   } catch { /* best-effort: pré-migrate (sem coluna) → no-op, sem disjuntor */ }
 }
 
+// ── Reabertura do disjuntor ao LIBERAR orçamento (C2, auditoria 30/06) ─────────
+// Um 402 de orçamento marca a vaga como circuit-open (attempts=MAX) e o balde é
+// DIÁRIO → nada reabre a vaga no mesmo dia, MESMO que o dono suba o teto ("liberar
+// gasto"). Resultado: vaga perdida o dia inteiro apesar do gasto liberado. Estas
+// funções deixam o POST /api/spend REABRIR o disjuntor quando o teto SOBE.
+//
+// Vagas (runs) de cada automação — reels 0..3, carrosséis 4..5 (ver CLAUDE.md /
+// workflows). PURA/testável. Automação sem vagas de publicação (manual/engagement/
+// newsletter) → [] (nada a reabrir).
+export function runsForAutomation(automation: string): number[] {
+  if (automation === "ig-reels") return [0, 1, 2, 3];
+  if (automation === "ig-posts") return [4, 5];
+  return [];
+}
+
+// Só REABRE quando o teto SOBE (o dono liberou gasto). Baixar/manter o teto NÃO
+// reabre (evita mexer no disjuntor à toa). PURA/testável.
+export function shouldReopenOnBudgetChange(oldBudget: number, newBudget: number): boolean {
+  return newBudget > oldBudget;
+}
+
+// ZERA o disjuntor das vagas NÃO publicadas do dia (dayBRT) daquela automação — para o
+// catchup poder tentar de novo AGORA que o gasto foi liberado. SÓ é chamada num aumento
+// MANUAL de teto (não automático) → NÃO reabre a "tempestade" de catchup: a causa-raiz
+// (o teto baixo) já foi corrigida, então a retentativa PASSA em vez de falhar em loop.
+// Nunca toca vaga publicada (instagram_post_id NOT NULL). Só reabre as que DESISTIRAM
+// (attempts>=MAX) — inclui a rara vaga travada por bloqueio-duro do IG, que re-arma
+// sozinha se ainda estiver bloqueada. Devolve quantas vagas reabriu. FAIL-OPEN → 0.
+export async function reopenCircuitForAutomation(day: string, automation: string): Promise<number> {
+  const runs = runsForAutomation(automation);
+  if (runs.length === 0) return 0;
+  try {
+    const { sql } = await import("@vercel/postgres");
+    // sql.query (parametrizado): o tagged template não aceita array como param; aqui o
+    // driver converte o array JS de `runs` no array Postgres de $2::int[].
+    const r = await sql.query(
+      `UPDATE published_runs SET attempts = 0
+       WHERE day = $1 AND run = ANY($2::int[])
+         AND instagram_post_id IS NULL
+         AND attempts >= $3`,
+      [day, runs, MAX_PUBLISH_ATTEMPTS],
+    );
+    return r.rowCount ?? 0;
+  } catch {
+    return 0; // best-effort: pré-migrate/erro → não reabre, nunca quebra o endpoint
+  }
+}
+
 // Quantas tentativas FALHAS a vaga já teve hoje (0 se publicada/inexistente/erro).
 export async function attemptsToday(day: string, run: number, lang: string): Promise<number> {
   try {

@@ -37,8 +37,10 @@ const TAVILY_PRICE = 0.01;
 const DEFAULT_BUDGETS: Record<Automation, number> = {
   "ig-posts": 0.5,
   // ES e PT dividem este balde (label "ig-reels", sem split por idioma). Cadência
-  // cheia = 4 reels ES + 4 PT/dia + testes manuais; custo real ~US$0,28/dia.
-  "ig-reels": 0.25,
+  // cheia = 4 reels ES + 4 PT/dia + testes manuais. Footage (Pexels) e render são
+  // GRÁTIS → gasto real ~US$0 na cadência atual; a folga cobre narração TTS (fal) se
+  // ligada. TETO MÁX autorizado pelo dono (2026-06-30): US$0,30/dia — não subir daqui.
+  "ig-reels": 0.3,
   // Engajamento (auto-resposta a comentários + DM do funil). Cada resposta é haiku
   // curto (~US$0,005–0,01); ES e PT dividem este balde. Conta nova = quase US$0/dia;
   // teto protege contra um surto de comentários (ex.: post viral) virar conta de luz.
