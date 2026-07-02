@@ -538,6 +538,25 @@ async function savePost(params: {
   instagramPostId: string | null; publishedAt: Date; lang: Lang;
 }): Promise<void> {
   const { sql } = await import("@vercel/postgres");
+  // IDEMPOTÊNCIA na TABELA `posts` (anti-duplicata) — a trava que faltava. Este INSERT
+  // rodava SEM guarda e em TODA tentativa da vaga (inclusive publish falho com id NULL e
+  // cada redisparo do catchup) → o MESMO (lang, topic) acumulava 2–4 linhas no MESMO dia
+  // (medido no ledger: 25/06 dois temas 4× cada; 01/07 "La guerra invisible del hombre" 3×).
+  // Isso NÃO duplica no feed do IG (a trava topicUsedInOtherVaga já barra lá), mas duplica
+  // no BLOG do site (fallback de /api/posts renderiza direto de `posts`), polui a base de
+  // dedup (recentPublishedSlots lê `posts`) e infla a numeração de edição (COUNT(posts)).
+  // Um tema só REPETE após ~9 dias (shuffle bag), então uma janela de 20h NUNCA barra um
+  // re-air legítimo — só a duplicata do mesmo dia. Best-effort/FAIL-OPEN: se a checagem
+  // falhar (ex.: sem coluna `lang` pré-migrate), segue e insere (comportamento antigo).
+  try {
+    const dup = await sql`
+      SELECT 1 FROM posts
+      WHERE lang = ${params.lang} AND topic = ${params.topic}
+        AND published_at > NOW() - INTERVAL '20 hours'
+      LIMIT 1
+    `;
+    if (dup.rows.length > 0) return; // já salvo hoje → não duplica a linha
+  } catch { /* fail-open: sem tabela/coluna → cai no INSERT abaixo (estado anterior) */ }
   await sql`
     INSERT INTO posts (
       topic, slot, title, content, body, instagram_caption,
