@@ -41,6 +41,12 @@ projetos/
 # Pendências: fonte única é o painel central D:\Claude\.pendencias\ (controle interno, fora do git)
 PENDENCIAS.md
 
+# Governança/decisões do projeto — passam a viver só em D:\Claude local +
+# repo privado github.com/Fern4ando-Jose/governanca-privada (nunca no repo de produção)
+/CLAUDE.md
+/DECISOES-TRAVADAS.md
+/HISTORICO-ERROS-AUTOMACAO.md
+
 # Imagens soltas na raiz (screenshots, exports temporários)
 /*.jpg
 /*.jpeg
