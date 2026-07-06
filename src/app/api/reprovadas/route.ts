@@ -6,14 +6,18 @@ import { NextRequest, NextResponse } from "next/server";
 //   GET /api/reprovadas        → últimas 120 reprovações
 //   GET /api/reprovadas?day=…  → só de um dia (YYYY-MM-DD)
 //
-// Auth: Bearer ADMIN_TOKEN (mesmo padrão do /api/comment-draft). Sem ADMIN_TOKEN
-// setado devolve 401 (seguro por padrão).
+// Auth: Bearer ADMIN_TOKEN (painel web) OU Bearer CRON_SECRET (para o agente rodar o
+// download `baixar-reprovadas.mjs` a partir do cofre, sem exigir um token novo do dono
+// — §1.16). Endpoint só de LEITURA (lista de imagens+motivos, nada sensível); aceitar
+// o CRON_SECRET aqui não amplia risco (quem o tem já pode disparar publish).
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function authorized(req: NextRequest): boolean {
-  const t = process.env.ADMIN_TOKEN;
-  return !!t && req.headers.get("authorization") === `Bearer ${t}`;
+  const auth = req.headers.get("authorization") ?? "";
+  const admin = process.env.ADMIN_TOKEN;
+  const cron = process.env.CRON_SECRET;
+  return (!!admin && auth === `Bearer ${admin}`) || (!!cron && auth === `Bearer ${cron}`);
 }
 
 export async function GET(req: NextRequest) {
