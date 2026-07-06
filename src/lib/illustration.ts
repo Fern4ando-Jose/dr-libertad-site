@@ -181,6 +181,33 @@ async function writeCachedIllustration(model: string, cat: string, subject: stri
   } catch { /* cache é best-effort — nunca quebra o pipeline */ }
 }
 
+// ─── Persistência das capas REPROVADAS (revisão manual do dono) ───────────────
+// Toda capa que o juiz REJEITA é re-hospedada no Blob (a URL da fal expira) e
+// registrada em `rejected_covers` com o motivo + score + tema/idioma. Assim o dono
+// abre /admin/reprovadas e confere SE o juiz está reprovando com razão (pedido do
+// dono 2026-07-06 — hoje 10 capas foram ao lixo sem ninguém ver o porquê). NÃO gera
+// imagem nova (reusa a que já foi paga). Best-effort: qualquer falha é ignorada.
+async function saveRejectedCovers(
+  rejected: { url: string; v: { score: number; reason: string } }[],
+  ctx: { subject: string; cat: string; day: string; model: string; meta?: Record<string, unknown> },
+): Promise<void> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const topic = String(ctx.meta?.topic ?? "");
+    const lang = String(ctx.meta?.lang ?? "");
+    for (const r of rejected) {
+      // Guarda a imagem no Blob (permanente) sob illustrations/reprovadas/<cat>;
+      // se o re-host falhar, registra a URL da fal mesmo (pode expirar, mas o
+      // motivo do juiz — o que mais importa — fica salvo de qualquer forma).
+      const blobUrl = (await rehostToBlob(r.url, `reprovadas/${ctx.cat}`)) ?? r.url;
+      await sql`
+        INSERT INTO rejected_covers (day, topic, subject, cat, lang, model, score, reason, url, created_at)
+        VALUES (${ctx.day}, ${topic}, ${ctx.subject}, ${ctx.cat}, ${lang}, ${ctx.model}, ${r.v.score}, ${r.v.reason}, ${blobUrl}, NOW())
+      `;
+    }
+  } catch { /* revisão é best-effort — nunca quebra o pipeline */ }
+}
+
 // ─── Serialização ES/PT (eleição de líder) ───────────────────────────────────
 // ES e PT do MESMO (cat,subject,dia) rodam em jobs CONCORRENTES. Sem trava, os
 // dois liam o cache vazio ao mesmo tempo e geravam → pagavam a fal 2× (e com o
@@ -376,6 +403,10 @@ export async function generateIllustration(subject: string, cat: string, opts: G
     return { url: null, error: `nenhuma imagem gerada. Último: ${gens[gens.length - 1]?.error ?? "?"}`, model: FAL_MODEL, attempts: maxTries };
   }
   const judged = await Promise.all(valid.map(async (g) => ({ url: g.url, v: await judgeImage(g.url, automation, meta) })));
+  // Salva TODA capa reprovada (mesmo quando outra passou) → o dono revê em
+  // /admin/reprovadas se o juiz está sendo justo. Best-effort, não gera nada novo.
+  const rejected = judged.filter((j) => j.v.reject);
+  if (rejected.length) await saveRejectedCovers(rejected, { subject, cat, day, model: FAL_MODEL, meta });
   const approved = judged.filter((j) => !j.v.reject).sort((a, b) => b.v.score - a.v.score);
   if (!approved.length) {
     if (useCache) await clearIllustrationClaim(key); // libera a vaga p/ não travar 24h

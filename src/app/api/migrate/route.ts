@@ -242,6 +242,30 @@ export async function GET(req: NextRequest) {
     results.push("spend_log table: " + String(e));
   }
 
+  // Capas reprovadas pelo juiz de visão — guardadas p/ revisão manual do dono
+  // (/admin/reprovadas). Ver se o QA reprova com razão (pedido do dono 2026-07-06).
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS rejected_covers (
+        id         BIGSERIAL PRIMARY KEY,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        day        TEXT,
+        topic      TEXT,
+        subject    TEXT,
+        cat        TEXT,
+        lang       TEXT,
+        model      TEXT,
+        score      INTEGER,
+        reason     TEXT,
+        url        TEXT
+      )
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS rejected_covers_created_idx ON rejected_covers (created_at DESC)`;
+    results.push("rejected_covers table: ok");
+  } catch (e) {
+    results.push("rejected_covers table: " + String(e));
+  }
+
   // Seed: insere o token atual do env var se a linha ainda não existe
   try {
     const token = process.env.META_ACCESS_TOKEN;
