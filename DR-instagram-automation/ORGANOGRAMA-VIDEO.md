@@ -102,3 +102,19 @@ Também confirmar a **URL de produção** do Dr. Libertad na Vercel (ex.: `dr-li
 - token do Blob: aceitava bloco `.env` colado → extrai `vercel_blob_rw_...`.
 - **status do container era consultado em `.../{accountId}/{creationId}` (erro) → corrigido p/ raiz `.../{creationId}`.** ✅ **Mesmo bug corrigido no AnamnesisMed** (push direto na `main`, 2026-06-14, via worktree isolado p/ não tocar na sessão da branch de UI; polling lá também subiu 12→50).
 - janela de polling 60s → ~250s.
+
+### Diretriz de conteúdo do footage — FIDELIDADE DE NARRATIVA (2026-07-06)
+> Incidente: um Reel abriu com um clipe fora do contexto do post, metendo um subtexto
+> que a narrativa não carregava. O footage tem que ser **fiel ao tema real do post**.
+>
+> **Regra (neutra):** cada clipe/termo de busca deve representar o TEMA e a emoção do
+> post; por padrão, **sujeito claro** (em geral uma pessoa); usar grupo ou casal só
+> quando o tema pedir de verdade. O juiz de visão continua reprovando pele em macro,
+> nudez, beijo e conteúdo sexual/sugestivo (marca de psicologia, conta em risco).
+> A regra vale para **todas as cenas por igual** — o critério é o *tema* e o *bom gosto*,
+> nunca quem aparece na cena.
+>
+> **Onde a regra vive (manter em sincronia):**
+> - `src/lib/footage-qa.ts` → `FOOTAGE_QA_PROMPT` (juiz de visão no poster — pele/nudez/beijo/sexual).
+> - `scripts/fetch-footage.mjs` → espelho do mesmo prompt (caminho de CI).
+> - `src/app/api/publish/route.ts` → prompt de `videoQueries` (termos fiéis ao tema, sujeito claro).
