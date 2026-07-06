@@ -14,6 +14,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "x-default": `${base}/pt/privacidade`,
   };
 
+  const quiz = {
+    "pt-BR": `${base}/pt/quiz`,
+    "es-ES": `${base}/es/quiz`,
+    "x-default": `${base}/pt/quiz`,
+  };
+
   // Uma entrada por idioma, cada uma declarando as alternativas (hreflang).
   return [
     {
@@ -27,6 +33,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily",
       priority: 1,
       alternates: { languages },
+    },
+    {
+      url: `${base}/pt/quiz`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+      alternates: { languages: quiz },
+    },
+    {
+      url: `${base}/es/quiz`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+      alternates: { languages: quiz },
     },
     {
       url: `${base}/pt/privacidade`,
