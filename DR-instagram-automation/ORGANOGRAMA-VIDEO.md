@@ -104,17 +104,17 @@ Também confirmar a **URL de produção** do Dr. Libertad na Vercel (ex.: `dr-li
 - janela de polling 60s → ~250s.
 
 ### Diretriz de conteúdo do footage — FIDELIDADE DE NARRATIVA (2026-07-06)
-> Incidente: um Reel abriu com um clipe de **duas pessoas em pose íntima (lidas como
-> casal)** num post que NÃO era sobre relacionamento. Isso adiciona um "duplo sentido"
-> que a narrativa do post não carrega e foge da marca.
+> Incidente: um Reel abriu com um clipe fora do contexto do post, metendo um subtexto
+> que a narrativa não carregava. O footage tem que ser **fiel ao tema real do post**.
 >
-> **Regra:** a marca é sobre a vida **interior e digital de UMA pessoa** (solidão, foco,
-> ansiedade, liberdade, autorreflexão) — **não** sobre romance/relacionamento. O footage
-> tem que ser fiel a isso. Preferir **sujeito único**; quando o tema pedir mais gente,
-> um grupo **claramente não-íntimo** (rua, metrô), nunca duas pessoas lidas como casal.
+> **Regra (neutra):** cada clipe/termo de busca deve representar o TEMA e a emoção do
+> post; por padrão, **sujeito claro** (em geral uma pessoa); usar grupo ou casal só
+> quando o tema pedir de verdade. O juiz de visão continua reprovando pele em macro,
+> nudez, beijo e conteúdo sexual/sugestivo (marca de psicologia, conta em risco).
+> A regra vale para **todas as cenas por igual** — o critério é o *tema* e o *bom gosto*,
+> nunca quem aparece na cena.
 >
-> **Onde a regra vive (manter os 3 em sincronia):**
-> - `src/lib/footage-qa.ts` → `FOOTAGE_QA_PROMPT` (juiz de visão no poster — rejeita pose romântica/íntima).
+> **Onde a regra vive (manter em sincronia):**
+> - `src/lib/footage-qa.ts` → `FOOTAGE_QA_PROMPT` (juiz de visão no poster — pele/nudez/beijo/sexual).
 > - `scripts/fetch-footage.mjs` → espelho do mesmo prompt (caminho de CI).
-> - `src/app/api/publish/route.ts` → prompt de `videoQueries` (não gerar termos de casal/intimidade na origem).
-> - `CAT_TERMS` (em `reel-shared.ts` e `fetch-footage.mjs`): removido `"couple distracted by phones"` → `"person distracted by phone at dinner"`.
+> - `src/app/api/publish/route.ts` → prompt de `videoQueries` (termos fiéis ao tema, sujeito claro).
