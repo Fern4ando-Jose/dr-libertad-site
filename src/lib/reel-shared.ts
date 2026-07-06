@@ -146,7 +146,7 @@ const CAT_TERMS: Record<string, string[]> = {
   freedom: ["person arms open nature", "walking free open road", "person breathing calm outdoors", "putting phone away relief"],
   dopamine: ["person scrolling phone in bed", "hand swiping smartphone screen", "phone notifications close up", "person addicted to phone night"],
   anxiety: ["anxious person looking at phone", "stressed person screen night", "overwhelmed person dark room", "rain window sad mood"],
-  network: ["people on phones ignoring each other", "lonely person in crowd", "couple distracted by phones", "person alone looking at screen"],
+  network: ["people on phones ignoring each other", "lonely person in crowd", "person distracted by phone at dinner", "person alone looking at screen"],
   self: ["person reflection window thinking", "alone silhouette window light", "thoughtful person low light", "person looking in mirror"],
   mind: ["calm person meditating", "person thinking by window", "slow breathing calm light", "quiet moment without phone"],
 };

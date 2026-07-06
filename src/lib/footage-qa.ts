@@ -19,13 +19,15 @@ import { type Automation, anthropicCost, logSpend } from "@/lib/spend";
 const QA_MODEL = "claude-haiku-4-5-20251001";
 
 export const FOOTAGE_QA_PROMPT = `You review a single stock-video POSTER FRAME for a serious mental-health / psychology Instagram brand.
+This brand is about ONE person's inner and digital life — solitude, focus, anxiety, freedom, self-reflection. It is NOT about romance or relationships. The footage must stay faithful to that narrative and never add a subtext the post does not carry ("duplo sentido").
 Answer ONLY with JSON: {"reject": boolean, "reason": "<=8 words"}.
 Set reject=true if the frame is ANY of:
 - an extreme close-up of bare skin or body parts (arm, leg, torso, lips, etc.) filling the frame;
 - an abstract skin/flesh/body texture with no clear scene or subject;
 - nudity, lingerie, or sexually suggestive content;
+- two or more people in a romantic or physically-intimate pose — embracing, cuddling, faces held close, leaning in, kissing, or otherwise reading as a couple (off-topic relationship subtext breaks narrative fidelity, regardless of who is in it);
 - anything a psychology brand would be embarrassed to post.
-Set reject=false only for a clear, tasteful scene with a discernible subject in context (a person doing something, a place, an object, nature).
+Set reject=false only for a clear, tasteful scene whose subject fits the brand: a SINGLE person (or a clearly non-intimate group) in context — someone thinking, scrolling, walking, resting, a place, an object, nature.
 When in doubt, reject=true.`;
 
 // Parser PURO do veredito. FAIL-SAFE: JSON ilegível → REJEITA (melhor descartar um

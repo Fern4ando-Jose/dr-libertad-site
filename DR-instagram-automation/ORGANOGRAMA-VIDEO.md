@@ -102,3 +102,19 @@ Também confirmar a **URL de produção** do Dr. Libertad na Vercel (ex.: `dr-li
 - token do Blob: aceitava bloco `.env` colado → extrai `vercel_blob_rw_...`.
 - **status do container era consultado em `.../{accountId}/{creationId}` (erro) → corrigido p/ raiz `.../{creationId}`.** ✅ **Mesmo bug corrigido no AnamnesisMed** (push direto na `main`, 2026-06-14, via worktree isolado p/ não tocar na sessão da branch de UI; polling lá também subiu 12→50).
 - janela de polling 60s → ~250s.
+
+### Diretriz de conteúdo do footage — FIDELIDADE DE NARRATIVA (2026-07-06)
+> Incidente: um Reel abriu com um clipe de **duas pessoas em pose íntima (lidas como
+> casal)** num post que NÃO era sobre relacionamento. Isso adiciona um "duplo sentido"
+> que a narrativa do post não carrega e foge da marca.
+>
+> **Regra:** a marca é sobre a vida **interior e digital de UMA pessoa** (solidão, foco,
+> ansiedade, liberdade, autorreflexão) — **não** sobre romance/relacionamento. O footage
+> tem que ser fiel a isso. Preferir **sujeito único**; quando o tema pedir mais gente,
+> um grupo **claramente não-íntimo** (rua, metrô), nunca duas pessoas lidas como casal.
+>
+> **Onde a regra vive (manter os 3 em sincronia):**
+> - `src/lib/footage-qa.ts` → `FOOTAGE_QA_PROMPT` (juiz de visão no poster — rejeita pose romântica/íntima).
+> - `scripts/fetch-footage.mjs` → espelho do mesmo prompt (caminho de CI).
+> - `src/app/api/publish/route.ts` → prompt de `videoQueries` (não gerar termos de casal/intimidade na origem).
+> - `CAT_TERMS` (em `reel-shared.ts` e `fetch-footage.mjs`): removido `"couple distracted by phones"` → `"person distracted by phone at dinner"`.
