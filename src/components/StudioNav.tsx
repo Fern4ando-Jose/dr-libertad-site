@@ -76,6 +76,9 @@ export default function StudioNav() {
               {it.label}
             </a>
           ))}
+          <a href={`${home}/quiz`} className={linkCls}>
+            {t.nav.quiz}
+          </a>
           <a href={`${home}/livros`} className={linkCls}>
             {t.nav.books}
           </a>
@@ -124,6 +127,9 @@ export default function StudioNav() {
                   {it.label}
                 </a>
               ))}
+              <a href={`${home}/quiz`} onClick={() => setOpen(false)} className={mobileItemCls}>
+                {t.nav.quiz}
+              </a>
               <a href={`${home}/livros`} onClick={() => setOpen(false)} className={mobileItemCls}>
                 {t.nav.books}
               </a>

@@ -20,6 +20,14 @@ export const pt = {
     cta: "Entrar na lista",
     books: "Livros",
     author: "Autor",
+    quiz: "Teste",
+  },
+  quizCta: {
+    eyebrow: "O PRIMEIRO PASSO",
+    title: "Que tamanho tem o seu inimigo?",
+    lead: "8 perguntas. Um minuto. Um espelho honesto do seu nível — e o primeiro dia do guia grátis no seu e-mail.",
+    cta: "Fazer o teste",
+    meta: "Grátis · anônimo · 1 min",
   },
   hero: {
     chips: ["filosofia aplicada", "psicologia", "atenção"],
@@ -401,6 +409,14 @@ export const es: Dict = {
     cta: "Unirme a la lista",
     books: "Libros",
     author: "Autor",
+    quiz: "Test",
+  },
+  quizCta: {
+    eyebrow: "EL PRIMER PASO",
+    title: "¿Qué tamaño tiene tu enemigo?",
+    lead: "8 preguntas. Un minuto. Un espejo honesto de tu nivel — y el primer día de la guía gratis en tu correo.",
+    cta: "Hacer el test",
+    meta: "Gratis · anónimo · 1 min",
   },
   hero: {
     chips: ["filosofía aplicada", "psicología", "atención"],
