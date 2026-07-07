@@ -285,6 +285,22 @@ export async function GET(req: NextRequest) {
     results.push("qa_failed_topics table: " + String(e));
   }
 
+  // Cache de veredito do QA de footage por videoId (poster Pexels é imutável →
+  // veredito permanente; sem isto o mesmo clipe é re-julgado — e re-pago — todo dia).
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS footage_qa_cache (
+        video_id BIGINT PRIMARY KEY,
+        reject   BOOLEAN NOT NULL,
+        reason   TEXT,
+        ts       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    results.push("footage_qa_cache table: ok");
+  } catch (e) {
+    results.push("footage_qa_cache table: " + String(e));
+  }
+
   // Veredito diário do guardião (verifica 6/6 nos 2 IGs) — lido pelo painel-adm p/
   // alertar o dono quando faltou post. Um registro por dia (upsert). Ver /api/guardian.
   try {

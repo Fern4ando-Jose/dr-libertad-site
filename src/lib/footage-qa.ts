@@ -80,3 +80,53 @@ export async function judgeFootagePoster(
     return { reject: true, reason: `QA erro (${e instanceof Error ? e.message : String(e)}) → rejeitado (fail-safe)` };
   }
 }
+
+// ── CACHE de veredito por videoId (corta o ralo do QA) ────────────────────────
+// O poster de um clipe Pexels é IMUTÁVEL → o veredito vale p/ sempre. Sem cache,
+// um clipe rejeitado hoje reaparece na busca de amanhã (mesmos termos por categoria)
+// e é re-julgado — pagando de novo (07/07: ~20 vereditos num preview, ~US$0,03/tema,
+// espremendo o teto ig-reels de US$0,30). Padrão do repo (illustration_cache/
+// content_cache). FAIL-OPEN: erro de banco → julga como antes (o QA nunca é pulado
+// por causa do cache; só o PAGAMENTO repetido é evitado).
+export function isCacheableVerdictReason(reason: string): boolean {
+  // Não cacheia veredito de config ausente/erro transitório/JSON ilegível — um
+  // soluço de rede/modelo condenaria o clipe pra sempre. Só o veredito REAL é permanente.
+  return !/QA pulado|QA HTTP|QA erro|ilegível/.test(reason);
+}
+
+export async function readFootageVerdictCache(videoId: number): Promise<{ reject: boolean; reason: string } | null> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql<{ reject: boolean; reason: string }>`
+      SELECT reject, reason FROM footage_qa_cache WHERE video_id = ${videoId}
+    `;
+    const row = r.rows[0];
+    return row ? { reject: row.reject, reason: row.reason ?? "" } : null;
+  } catch { return null; }
+}
+
+export async function writeFootageVerdictCache(videoId: number, verdict: { reject: boolean; reason: string }): Promise<void> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    await sql`
+      INSERT INTO footage_qa_cache (video_id, reject, reason, ts)
+      VALUES (${videoId}, ${verdict.reject}, ${verdict.reason}, NOW())
+      ON CONFLICT (video_id) DO NOTHING
+    `;
+  } catch { /* fail-open */ }
+}
+
+// Juiz com cache: veredito conhecido → devolve sem pagar; desconhecido → julga
+// (fail-safe intacto) e grava.
+export async function judgeFootagePosterCached(
+  videoId: number,
+  posterUrl: string | undefined,
+  apiKey: string | undefined,
+  automation: Automation,
+): Promise<{ reject: boolean; reason: string }> {
+  const hit = await readFootageVerdictCache(videoId);
+  if (hit) return hit;
+  const verdict = await judgeFootagePoster(posterUrl, apiKey, automation, { videoId });
+  if (isCacheableVerdictReason(verdict.reason)) await writeFootageVerdictCache(videoId, verdict);
+  return verdict;
+}

@@ -10,7 +10,7 @@
 // TUDO best-effort/fail-open: qualquer falha de banco/Pexels devolve null e o
 // pipeline segue como antes (cada idioma busca o seu). Nunca quebra a publicação.
 
-import { judgeFootagePoster } from "@/lib/footage-qa";
+import { judgeFootagePosterCached } from "@/lib/footage-qa";
 
 export interface SearchResult { title: string; content: string; url: string }
 
@@ -241,7 +241,8 @@ export async function selectFootage(
           seen.add(v.id); // considerado — não re-julgar o mesmo clipe
           // QA de CONTEÚDO no poster (incidente 07-01): rejeita macro de pele/corpo,
           // textura abstrata ou NSFW → pula o candidato (tenta o próximo). Fail-safe.
-          const verdict = await judgeFootagePoster(v.image, anthropicKey, "ig-reels", { videoId: v.id });
+          // Com CACHE por videoId (poster imutável → veredito permanente, não repaga).
+          const verdict = await judgeFootagePosterCached(v.id, v.image, anthropicKey, "ig-reels");
           if (verdict.reject) continue;
           picked.push(link);
           progressed = true;

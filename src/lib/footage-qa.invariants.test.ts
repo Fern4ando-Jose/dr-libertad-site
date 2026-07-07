@@ -3,7 +3,7 @@
 // FAIL-SAFE — na dúvida REJEITA (melhor perder um clipe que publicar algo impróprio
 // numa marca de psicologia). Espelhado em scripts/fetch-footage.mjs (mesmo contrato).
 import { describe, it, expect } from "vitest";
-import { parseFootageVerdict } from "./footage-qa";
+import { parseFootageVerdict, isCacheableVerdictReason } from "./footage-qa";
 
 describe("parseFootageVerdict — fail-safe (bug footage 07-01)", () => {
   it("aprova quando o modelo diz reject:false", () => {
@@ -34,5 +34,31 @@ describe("parseFootageVerdict — fail-safe (bug footage 07-01)", () => {
   it("entrada não-string (undefined/objeto) → REJEITA (fail-safe)", () => {
     expect(parseFootageVerdict(undefined).reject).toBe(true);
     expect(parseFootageVerdict({} as unknown).reject).toBe(true);
+  });
+});
+
+// O cache de veredito por videoId (07/07: teto ig-reels espremido por re-julgar os
+// mesmos clipes todo dia) SÓ pode gravar veredito REAL do juiz. Veredito de config
+// ausente, erro transitório ou JSON ilegível NUNCA é permanente — um soluço de rede
+// condenaria (ou liberaria) o clipe pra sempre.
+describe("isCacheableVerdictReason — só veredito real é permanente", () => {
+  it("veredito real do juiz → cacheável (aprovado ou rejeitado)", () => {
+    expect(isCacheableVerdictReason("clear scene")).toBe(true);
+    expect(isCacheableVerdictReason("skin macro")).toBe(true);
+    expect(isCacheableVerdictReason("")).toBe(true);
+  });
+
+  it("config ausente (QA pulado) → NÃO cacheia", () => {
+    expect(isCacheableVerdictReason("sem ANTHROPIC_API_KEY — QA pulado")).toBe(false);
+    expect(isCacheableVerdictReason("sem poster — QA pulado")).toBe(false);
+  });
+
+  it("erro transitório (HTTP/exceção) → NÃO cacheia", () => {
+    expect(isCacheableVerdictReason("QA HTTP 529 → rejeitado (fail-safe)")).toBe(false);
+    expect(isCacheableVerdictReason("QA erro (fetch failed) → rejeitado (fail-safe)")).toBe(false);
+  });
+
+  it("JSON ilegível do modelo → NÃO cacheia (flakiness não é veredito)", () => {
+    expect(isCacheableVerdictReason("veredito ilegível → rejeitado (fail-safe)")).toBe(false);
   });
 });
