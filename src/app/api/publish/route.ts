@@ -904,7 +904,10 @@ export async function GET(req: NextRequest) {
         // uma, então a capa abstrata (motivo) some do feed. ES e PT usam o MESMO baseSeed →
         // mesmos 5 candidatos → mesma decisão (sem órfão). Surgical: SÓ a capa do carrossel;
         // o Reel clássico (linha ~605) segue best-of-3.
-        const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { automation: "ig-posts", maxTries: 5, meta: { topic, lang } });
+        // best-of-2 (era best-of-5 no Flux): a Nano Banana passa muito mais no QA (anatomia
+        // boa, sem nudez), então 2 candidatas bastam — e 2×US$0,08 mantém 2 vagas/dia dentro
+        // do teto US$0,50 (5× nano seria US$0,80). Troca travada 2026-07-07 (ver spend.ts).
+        const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { automation: "ig-posts", maxTries: 2, meta: { topic, lang } });
         slotLog.illustration = ill.url ? "ia" : `fallback: ${ill.error ?? "?"}`;
 
         // O carrossel NÃO sai sem ilustração (decisão do dono 2026-06-26): a capa abstrata
@@ -916,7 +919,7 @@ export async function GET(req: NextRequest) {
         // 1 post a menos que 1 fora do padrão. `force=1` não chega aqui sem ilustração também.
         if (!ill.url) {
           slotLog.skipped = true;
-          slotLog.reason = `capa reprovada no QA (best-of-5) — carrossel NÃO publica sem ilustração (padrão do feed). ${ill.error ?? ""}`.trim();
+          slotLog.reason = `capa reprovada no QA (best-of-2) — carrossel NÃO publica sem ilustração (padrão do feed). ${ill.error ?? ""}`.trim();
           await bumpAttempt(dayBRT(now), runIndex, lang, true);
           // QUARENTENA: marca o tema como "sem capa possível" → getFreshTopicForRun o
           // evita por 7d e a vaga passa a escolher um tema ilustrável AMANHÃ (em vez de

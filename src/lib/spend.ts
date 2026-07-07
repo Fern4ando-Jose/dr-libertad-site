@@ -23,8 +23,12 @@ const ANTHROPIC_PRICES: Record<string, { in: number; out: number }> = {
 // Preço fal por imagem gerada (flux/dev ~1,3 MP). Default conservador p/ modelos novos.
 const FAL_PRICES: Record<string, number> = {
   "fal-ai/flux/dev": 0.028,
+  // Nano Banana 2 (Gemini 3.1 Flash Image) — US$0,08/imagem, preço FLAT (independe da
+  // resolução). Trocado do Flux em 2026-07-07: anatomia muito melhor + sem nudez (moderação
+  // do Google) → passa no QA e PUBLICA, em vez de queimar best-of-5 sem resultado.
+  "fal-ai/gemini-3.1-flash-image-preview": 0.08,
 };
-const FAL_DEFAULT_PRICE = 0.03;
+const FAL_DEFAULT_PRICE = 0.08;
 
 // Preço Tavily por busca (LEGADO — Tavily aposentada em 23/06; a pesquisa de
 // contexto passou a ser grátis via Wikipedia. Mantido só p/ ler rows antigas de
@@ -63,9 +67,9 @@ const DEFAULT_BUDGETS: Record<Automation, number> = {
 // elimina o bloqueio à toa e mantém margem. TETO inalterado (0,50); ilustração e QA
 // best-of-3 inalterados (o gasto não é o problema — a estimativa era).
 export const EST_RUN_COST: Record<"publish" | "preview" | "dryrun", number> = {
-  publish: 0.13, // haiku + ilustração best-of-5 compartilhada ES/PT (real médio ~0,13; era 0,10 no best-of-3). Estimativa do GATE, não o teto (teto ig-posts segue US$0,50).
-  preview: 0.07, // haiku + 1×(fal+QA)  (pesquisa Wikipedia = grátis)
-  dryrun: 0.04,  // 1×(fal+QA)
+  publish: 0.20, // haiku + Nano Banana best-of-2 (2×US$0,08) compartilhada ES/PT + QA. Estimativa do GATE, não o teto (teto ig-posts segue US$0,50; 2 vagas/dia ≈ US$0,38).
+  preview: 0.10, // haiku + 1×(fal Nano Banana + QA)  (pesquisa Wikipedia = grátis)
+  dryrun: 0.09,  // 1×(fal Nano Banana + QA)
 };
 
 // ─── Cálculo de custo ─────────────────────────────────────────────────────────

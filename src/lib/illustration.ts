@@ -105,9 +105,24 @@ export function seedForDay(cat: string, subject: string, day?: string): number {
   return (h >>> 0) % 2_000_000_000; // inteiro não-negativo em faixa segura p/ a fal
 }
 
-// Corpo da requisição à fal. Função pura (testável) — o seed determinístico é
-// obrigatório aqui: é o que garante imagem idêntica entre ES e PT.
-export function falRequestBody(prompt: string, seed: number) {
+// Corpo da requisição à fal — CIENTE DO MODELO (o schema da Nano Banana difere do Flux).
+// Função pura (testável). O seed segue presente nos dois (ES/PT determinístico + best-of-N).
+export function falRequestBody(prompt: string, seed: number, model = "fal-ai/gemini-3.1-flash-image-preview") {
+  if (model.includes("gemini") || model.includes("nano-banana")) {
+    // Nano Banana 2 (Gemini 3.1 Flash Image): aspect_ratio no lugar de image_size;
+    // safety_tolerance="4" = moderação padrão do Google (não gera nudez). Preço flat →
+    // 2K sem custo extra. Saída jpeg (menor). Retorna images[0].url, igual ao Flux.
+    return {
+      prompt,
+      aspect_ratio: "4:5",        // capa 1080×1350 (og faz cover-fit)
+      num_images: 1,
+      seed,
+      resolution: "2K",
+      output_format: "jpeg",
+      safety_tolerance: "4",
+    };
+  }
+  // Flux (legado) — mantido p/ rollback via env FAL_MODEL.
   return {
     prompt,
     image_size: { width: 1024, height: 1280 }, // 4:5 — og faz cover-fit p/ 1080×1350
@@ -276,7 +291,7 @@ async function generateOnce(
     const res = await fetch(`https://fal.run/${model}`, {
       method: "POST",
       headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify(falRequestBody(prompt, seed)),
+      body: JSON.stringify(falRequestBody(prompt, seed, model)),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -358,7 +373,7 @@ async function judgeImage(imageUrl: string, automation: Automation, meta?: Recor
 export async function generateIllustration(subject: string, cat: string, opts: GenerateOpts = {}): Promise<IllustrationResult> {
   // Lê no momento da chamada (igual CRON_SECRET) — evita leitura em hora errada do build.
   const FAL_KEY = process.env.FAL_KEY;
-  const FAL_MODEL = process.env.FAL_MODEL || "fal-ai/flux/dev";
+  const FAL_MODEL = process.env.FAL_MODEL || "fal-ai/gemini-3.1-flash-image-preview";
   if (!FAL_KEY) return { url: null, error: "FAL_KEY ausente no runtime" };
   if (!subject)  return { url: null, error: "subject vazio" };
 
