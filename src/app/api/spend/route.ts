@@ -31,9 +31,11 @@ export async function POST(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const automation = sp.get("automation") as Automation | null;
   const budget = parseFloat(sp.get("budget") ?? "");
-  const valid: Automation[] = ["ig-posts", "ig-reels", "manual"];
+  // TODAS as automações com balde próprio (a lista faltava ig-engagement/newsletter —
+  // o teto delas não podia ser ajustado sem redeploy; achado da auditoria 29/06).
+  const valid: Automation[] = ["ig-posts", "ig-reels", "ig-engagement", "newsletter", "manual"];
   if (!automation || !valid.includes(automation) || Number.isNaN(budget) || budget < 0) {
-    return NextResponse.json({ error: "Use ?automation=ig-posts|ig-reels|manual&budget=<USD>" }, { status: 400 });
+    return NextResponse.json({ error: "Use ?automation=ig-posts|ig-reels|ig-engagement|newsletter|manual&budget=<USD>" }, { status: 400 });
   }
   try {
     // Teto ANTES da mudança → decidir se é um AUMENTO (o dono liberando gasto).
