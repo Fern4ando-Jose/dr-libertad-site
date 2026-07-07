@@ -285,6 +285,29 @@ export async function GET(req: NextRequest) {
     results.push("qa_failed_topics table: " + String(e));
   }
 
+  // Veredito diário do guardião (verifica 6/6 nos 2 IGs) — lido pelo painel-adm p/
+  // alertar o dono quando faltou post. Um registro por dia (upsert). Ver /api/guardian.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS daily_report (
+        day          TEXT PRIMARY KEY,
+        es_published INTEGER,
+        pt_published INTEGER,
+        expected     INTEGER NOT NULL DEFAULT 6,
+        ok           BOOLEAN,
+        missing      JSONB,
+        gave_up      JSONB,
+        orphans      JSONB,
+        duplicates   JSONB,
+        note         TEXT,
+        updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    results.push("daily_report table: ok");
+  } catch (e) {
+    results.push("daily_report table: " + String(e));
+  }
+
   // Seed: insere o token atual do env var se a linha ainda não existe
   try {
     const token = process.env.META_ACCESS_TOKEN;
