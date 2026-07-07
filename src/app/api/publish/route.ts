@@ -6,7 +6,7 @@ import { parseContentJson, normalizeContentJson, missingEssentialContent } from 
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import { generateNarration } from "@/lib/narration";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome, pinnedTopicsForDay } from "@/lib/run-ledger";
+import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome, pinnedTopicsForDay, recordQaFail, recentQaFailedTopics } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun, RANDOM_POOL } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
@@ -187,7 +187,14 @@ async function getFreshTopicForRun(date: Date, runIndex: number, _lang: Lang): P
       const i = TOPIC_INDEX.get(p.topic);
       if (i !== undefined) pinnedByRun[p.run] = i;
     }
-    const candidate = TOPICS[selectThemeIndex(CATS, dayStr, runIndex, publishedIdxSlots, RANDOM_POOL, pinnedByRun)];
+    // Quarentena: temas cuja capa reprovou no QA nos últimos 7d são EVITADOS (senão o
+    // tema "sem capa possível" volta todo dia e queima orçamento — lição 06-07/07).
+    const banned = new Set<number>();
+    for (const t of await recentQaFailedTopics(7)) {
+      const i = TOPIC_INDEX.get(t);
+      if (i !== undefined) banned.add(i);
+    }
+    const candidate = TOPICS[selectThemeIndex(CATS, dayStr, runIndex, publishedIdxSlots, RANDOM_POOL, pinnedByRun, banned)];
     // Livro-razão: 1º idioma grava (dia,run)→tema; 2º LÊ o mesmo → ES e PT no MESMO vídeo.
     // Fail-open dentro de getOrSetRunTopic → devolve `candidate` (que já não repete).
     return await getOrSetRunTopic(dayStr, runIndex, candidate);
@@ -911,6 +918,10 @@ export async function GET(req: NextRequest) {
           slotLog.skipped = true;
           slotLog.reason = `capa reprovada no QA (best-of-5) — carrossel NÃO publica sem ilustração (padrão do feed). ${ill.error ?? ""}`.trim();
           await bumpAttempt(dayBRT(now), runIndex, lang, true);
+          // QUARENTENA: marca o tema como "sem capa possível" → getFreshTopicForRun o
+          // evita por 7d e a vaga passa a escolher um tema ilustrável AMANHÃ (em vez de
+          // bater no mesmo muro todo dia queimando orçamento). Best-effort, fail-open.
+          await recordQaFail(dayBRT(now), runIndex, lang, topic);
           results.push(slotLog);
           continue;
         }

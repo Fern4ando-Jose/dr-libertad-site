@@ -266,6 +266,25 @@ export async function GET(req: NextRequest) {
     results.push("rejected_covers table: " + String(e));
   }
 
+  // Quarentena de temas que reprovam no QA de capa — evita re-selecionar o tema
+  // "sem capa possível" todos os dias (queima orçamento). Ver run-ledger.recordQaFail.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS qa_failed_topics (
+        id    BIGSERIAL PRIMARY KEY,
+        ts    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        day   TEXT,
+        run   INTEGER,
+        lang  TEXT,
+        topic TEXT
+      )
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS qa_failed_topics_ts_idx ON qa_failed_topics (ts)`;
+    results.push("qa_failed_topics table: ok");
+  } catch (e) {
+    results.push("qa_failed_topics table: " + String(e));
+  }
+
   // Seed: insere o token atual do env var se a linha ainda não existe
   try {
     const token = process.env.META_ACCESS_TOKEN;

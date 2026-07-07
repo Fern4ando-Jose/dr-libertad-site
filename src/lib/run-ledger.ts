@@ -397,6 +397,36 @@ export async function topicUsedInOtherVaga(day: string, run: number, topic: stri
   }
 }
 
+// ── QUARENTENA de tema que reprova no QA da capa ──────────────────────────────
+// Um tema cuja capa é reprovada pelo juiz de visão (best-of-5) NUNCA publica → sem
+// quarentena ele é re-selecionado todo dia, reprova de novo e QUEIMA o orçamento
+// (lição 06-07/07: "La cultura de la ofensa" travou a vaga 2 dias). `recordQaFail`
+// anota a falha; `recentQaFailedTopics` devolve os temas a EVITAR na seleção por
+// `days` dias. Ambos best-effort (fail-open → comportamento antigo, sem quarentena).
+export async function recordQaFail(day: string, run: number, lang: string, topic: string): Promise<void> {
+  if (!topic) return;
+  try {
+    const { sql } = await import("@vercel/postgres");
+    await sql`
+      INSERT INTO qa_failed_topics (day, run, lang, topic, ts)
+      VALUES (${day}, ${run}, ${lang}, ${topic}, NOW())
+    `;
+  } catch { /* fail-open: sem coluna/tabela → sem quarentena */ }
+}
+
+export async function recentQaFailedTopics(days = 7): Promise<string[]> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql<{ topic: string }>`
+      SELECT DISTINCT topic FROM qa_failed_topics
+      WHERE topic IS NOT NULL AND ts > NOW() - (${days} || ' days')::interval
+    `;
+    return r.rows.map((x) => x.topic).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 // DETECÇÃO: temas que saíram em 2+ vagas DISTINTAS (dia,run) nos últimos `days` — i.e.
 // repetição REAL. Alimenta o /api/runs-status pra a gente CAPTAR um repeat antes do dono.
 // Vazio = saudável. FAIL-OPEN: erro → [].

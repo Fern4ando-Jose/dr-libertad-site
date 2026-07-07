@@ -189,6 +189,10 @@ export function selectThemeIndex(
   // usa o pin do run anterior quando existe, em vez de re-derivar (que divergia entre
   // execuções HTTP → duplicata same-day). Vazio = comportamento anterior (re-derivação).
   pinnedByRun: Record<number, number> = {},
+  // Quarentena: índices de temas que reprovaram no QA de capa (best-of-5) e não devem
+  // ser escolhidos por alguns dias — senão o tema "sem capa possível" volta todo dia,
+  // reprova de novo e queima orçamento (lição 06-07/07). Vazio = comportamento anterior.
+  banned: Set<number> = new Set(),
 ): number {
   const n = cats.length;
   const poolEff = Math.max(6, pool);
@@ -214,17 +218,26 @@ export function selectThemeIndex(
   // pick do run `r`: pula os recentes (rank) ∪ picks dos runs anteriores do dia.
   const pickFor = (r: number): number => {
     const used = new Set<number>(recentUsed);
+    for (const b of banned) used.add(b);              // quarentena: nunca escolher tema banido
     for (let k = 0; k < r; k++) used.add(prevPick(k)); // threading intra-dia → 6 distintos
     for (const idx of deck) if (!used.has(idx)) return idx; // 1ª carta elegível (ordem balanceada)
     // degenerado (elegíveis < runs restantes do dia): o MENOS recente que NÃO saiu HOJE.
+    // Tenta primeiro respeitando a quarentena; se NADA sobrar (quase todos banidos),
+    // ignora a quarentena p/ nunca travar a vaga (banir < publicar nada).
     const today = new Set<number>();
     for (let k = 0; k < r; k++) today.add(prevPick(k));
-    let best = deck[0], bestSlot = Infinity;
+    let best = -1, bestSlot = Infinity;
+    for (const idx of deck) {
+      if (today.has(idx) || banned.has(idx)) continue;
+      if (lastSlot[idx] < bestSlot) { bestSlot = lastSlot[idx]; best = idx; }
+    }
+    if (best >= 0) return best;
+    // fallback final: ignora a quarentena (não deixa a vaga sem tema).
     for (const idx of deck) {
       if (today.has(idx)) continue;
       if (lastSlot[idx] < bestSlot) { bestSlot = lastSlot[idx]; best = idx; }
     }
-    return best;
+    return best >= 0 ? best : deck[0];
   };
   return pickFor(run);
 }
