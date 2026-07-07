@@ -183,13 +183,17 @@ async function searchTerm(term: string, key: string): Promise<any[]> {
 // IDs de clipe Pexels usados em Reels recentes (últimos 14 dias) — lidos da própria
 // reel_shared_cache. Servem p/ NÃO repetir o mesmo clipe entre Reels/dias (o dono pegou
 // o "mão+celular" aparecendo em vários). Fail-open: erro de banco → conjunto vazio.
-async function recentClipIds(): Promise<Set<number>> {
+// `excludeKey`: cache_key do PRÓPRIO (tópico,dia) — sem excluí-lo, os clipes que o 1º
+// idioma acabou de gravar entram no "avoid" do 2º (se o shared expirar entre eles) e
+// o footage ES/PT diverge (achado #126 da auditoria 29/06).
+async function recentClipIds(excludeKey?: string): Promise<Set<number>> {
   try {
     const { sql } = await import("@vercel/postgres");
-    const rows = await sql<{ clips: unknown }>`
-      SELECT clips FROM reel_shared_cache WHERE created_at > now() - interval '14 days'`;
+    const rows = await sql<{ cache_key: string; clips: unknown }>`
+      SELECT cache_key, clips FROM reel_shared_cache WHERE created_at > now() - interval '14 days'`;
     const ids = new Set<number>();
     for (const r of rows.rows) {
+      if (excludeKey && r.cache_key === excludeKey) continue;
       const arr = Array.isArray(r.clips) ? (r.clips as string[]) : [];
       for (const u of arr) {
         const m = String(u).match(/video-files\/(\d+)/);
@@ -209,6 +213,7 @@ export async function selectFootage(
   cat: string,
   seed: number,
   numClips = 5, // 5 cenas do Reel (capa + 3 insights + CTA) → 5 clipes distintos
+  excludeKey?: string, // cache_key do PRÓPRIO (tópico,dia) — fora do "avoid" (#126)
 ): Promise<string[]> {
   const key = process.env.PEXELS_API_KEY;
   if (!key) return [];
@@ -254,7 +259,7 @@ export async function selectFootage(
 
   try {
     // 1ª passada: evita clipes usados em Reels recentes (não repetir entre Reels/dias).
-    const avoid = await recentClipIds();
+    const avoid = await recentClipIds(excludeKey);
     if (fromClaude.length) await harvest(fromClaude, avoid);
     if (picked.length < numClips) await harvest(fallback, avoid);
     // Relaxa: se excluir os recentes deixou poucos clipes, completa permitindo repetir
