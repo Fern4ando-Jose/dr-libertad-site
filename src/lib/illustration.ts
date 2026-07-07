@@ -49,7 +49,10 @@ export function buildPrompt(subject: string, accentWord: string, accentHex: stri
     `Cinematic conceptual editorial illustration: ${subject}.`,
     `Dramatic chiaroscuro lighting, sculptural and atmospheric, fine film grain and subtle texture.`,
     `Restricted, desaturated palette: warm off-white paper tone (#F4F0E8) and deep ink black (#0B0B0C), with a single muted accent of ${accentWord} (${accentHex}).`,
-    `One bold central metaphor, ${framingFor(subject)}, sober and refined.`,
+    `One single central metaphor — a lone figure OR one symbolic object, never a crowd, a couple or multiple overlapping figures, ${framingFor(subject)}, sober and refined.`,
+    // Modéstia — o gerador vinha produzindo NUDEZ explícita nesses temas (score 0 em 100% das
+    // capas 06–07/07; ver tabela rejected_covers). "sculptural/chiaroscuro" puxava p/ nu clássico.
+    `Any human figure is fully clothed in simple, timeless clothing. Strictly modest and non-explicit: no nudity, no bare chest or torso, no exposed breasts, buttocks or genitals, no underwear, no sexual, intimate or suggestive content — appropriate for a general-audience literary-magazine cover.`,
     // Blindagem anatômica — reduz a chance de mão/dedo/membro extra (defeito nº 1 da difusão).
     `Anatomically correct and photoreal in structure: each person has exactly two arms and two hands, each hand with exactly five fingers; natural, correctly formed limbs, hands and faces. No extra, missing or fused fingers, hands, arms or limbs; no duplicated or distorted body parts.`,
     `No text, no letters, no words, no logo, no watermark. No neon, no purple gradient, no corporate clip-art, no busy clutter.`,
