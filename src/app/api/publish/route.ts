@@ -637,7 +637,20 @@ export async function GET(req: NextRequest) {
     // Teto: o preview é o pipeline do Reel diário.
     const gate = await checkBudget("ig-reels", EST_RUN_COST.preview);
     if (!gate.ok) {
-      return NextResponse.json({ blocked: true, automation: "ig-reels", reason: `Orçamento diário estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)})`, gate }, { status: 402 });
+      // ATOMICIDADE ES+PT (espelha o gate do carrossel): se a língua-IRMÃ desta MESMA
+      // vaga JÁ publicou, NÃO bloqueia por orçamento — senão o par vira ÓRFÃO (foi o
+      // PT do run 0 em 07/07: ES publicou 14:27, PT morreu no 402 do preview).
+      // Bounded: no máx +1 preview por vaga; footage/pesquisa vêm do cache compartilhado.
+      if (await siblingPublished(dayBRT(now), r, lang)) {
+        // segue p/ completar o par — não bloqueia
+      } else {
+        // DISJUNTOR: 402 de orçamento é motivo que NÃO muda hoje (balde DIÁRIO). Sem o
+        // hard aqui, o curl do CI falhava ANTES de qualquer bumpAttempt → o catchup
+        // redisparava o workflow de 15 em 15 min até meia-noite (tempestade de 07/07).
+        // Subir o teto reabre a vaga (reopenCircuitForAutomation em /api/spend).
+        await bumpAttempt(dayBRT(now), r, lang, true);
+        return NextResponse.json({ blocked: true, automation: "ig-reels", reason: `Orçamento diário estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)})`, gate }, { status: 402 });
+      }
     }
 
     // Base LÍNGUA-INDEPENDENTE compartilhada entre ES e PT (= MESMO vídeo): a
