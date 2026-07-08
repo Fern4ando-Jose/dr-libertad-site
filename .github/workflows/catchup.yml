@@ -10,7 +10,10 @@ name: Catch-up — redispara posts que o cron do GitHub atrasou/derrubou
 
 on:
   schedule:
-    - cron: "30 * * * *" # de hora em hora (no minuto :30)
+    - cron: "0,30 * * * *" # a cada 30 min — recupera cron pulado do GitHub em ≤30min
+                           # (era de hora em hora; o GitHub PULA crons agendados, então
+                           # o catchup é a rede REAL — mais frequente = buraco menor.
+                           # Idempotente: trava por tópico/livro-razão deduplica.)
   workflow_dispatch: {}
 
 # Necessário p/ o GITHUB_TOKEN poder disparar OUTROS workflows (workflow_dispatch
