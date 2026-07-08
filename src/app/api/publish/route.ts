@@ -234,6 +234,11 @@ const THEMES: Theme[] = [
   { topic: "El olvido", cat: "mind", motif: "decay", subject: "a name carved in stone slowly eroding to smooth blankness over ages, permission to live without asking leave, no people" }, // MOR10 · Seu nome em 1000 anos
   { topic: "Cómo la humanidad encaró la muerte", cat: "mind", motif: "gateway", subject: "a long corridor of ancient doorways from cave to cathedral marking how humanity faced death across ages, no people" }, // MOR11 · Como a humanidade encarou a morte
   { topic: "El misterio del después", cat: "mind", motif: "descent", subject: "a single glowing doorway opening into unknowable darkness, the enigma of what comes after, no people" }, // MOR12 · O mistério do depois
+
+  // ─── Guerra Invisível: 3 temas nicho NÃO-explícitos (aprovados 2026-07-08; GUE13/14 reprovados) ───
+  { topic: "La inseguridad como enfermedad, no vanidad", cat: "anxiety", motif: "masks", subject: "a figure hiding behind a calm mask while an unseen weight presses down, insecurity as a real ailment not vanity, no people" }, // GUE12 · Insegurança é doença, não vaidade
+  { topic: "El placer es encuentro, no medida", cat: "self", motif: "embrace", subject: "two hands meeting in warm mutual connection instead of a measuring tape, presence over performance, no people" }, // GUE15 · Prazer é encontro, não medida
+  { topic: "El cuerpo masculino como construcción cultural", cat: "mind", motif: "mirror", subject: "an old measuring ruler and cultural emblems reflected in a mirror shaping a plain silhouette, a standard inherited from culture not natural law, no people" }, // GUE16 · O corpo como construção cultural
 ];
 
 const TOPICS = THEMES.map((t) => t.topic);
