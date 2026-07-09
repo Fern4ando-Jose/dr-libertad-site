@@ -21,35 +21,21 @@ const ACCENTS: Record<string, { word: string; hex: string }> = {
   mind:     { word: "olive green",       hex: "#5B6B3C" },
 };
 
-// Enquadramentos ROTATIVOS — quebram a monotonia "figura solitária centralizada na
-// porta" (47/62 subjects eram figura humana → o feed repetia o mesmo quadro). Escolhido
-// de forma DETERMINÍSTICA por `subject`: cada tema tem o SEU, mas temas diferentes
-// (posts vizinhos no feed) saem com quadros diferentes. ES e PT batem (mesmo subject →
-// mesmo enquadramento). São vantagens de escala/ângulo que funcionam p/ figura E objeto
-// (não brigam com o subject). Ver erro "Repetição VISUAL" no HISTORICO-ERROS.
-const FRAMINGS = [
-  "framed as an intimate mid-shot with generous negative space, like a literary-magazine cover",
-  "framed as an extreme close-up, one telling detail filling most of the frame, shallow depth of field",
-  "framed as a wide establishing shot, the subject small within a vast atmospheric space",
-  "framed from a high angle looking down on the scene",
-  "framed from a low, dramatic angle looking upward",
-  "framed strongly off-center, asymmetric, with rule-of-thirds tension",
-];
+// Enquadramento FIXO — assunto GRANDE e prominente, mid-shot editorial (igual às provas
+// Nano Banana aprovadas pelo dono). O "enquadramento rotativo" (commit a22a0e0c, 24/06)
+// sorteava o plano por subject — incluindo "figura pequena num espaço vasto" e "close
+// extremo num detalhe", que ENCOLHIAM/CORTAVAM o assunto ("capas menores"). Revertido em
+// 2026-07-09: mexia no TAMANHO da imagem sem autorização (só a troca p/ Nano Banana fora
+// autorizada). A única direção autorizada é a das provas: figura única, grande, íntima.
 
-export function framingFor(subject: string): string {
-  let h = 0;
-  for (let i = 0; i < subject.length; i++) h = (h * 31 + subject.charCodeAt(i)) | 0;
-  return FRAMINGS[Math.abs(h) % FRAMINGS.length];
-}
-
-// Bloco de estilo de marca (fixo) + slot de subject por tema + enquadramento rotativo.
+// Bloco de estilo de marca (fixo) + slot de subject por tema + enquadramento fixo (provas).
 // Direção: cinematográfico/escultural editorial (escolha do usuário, 2026-06-13).
 export function buildPrompt(subject: string, accentWord: string, accentHex: string): string {
   return [
     `Cinematic conceptual editorial illustration: ${subject}.`,
     `Dramatic chiaroscuro lighting, sculptural and atmospheric, fine film grain and subtle texture.`,
     `Restricted, desaturated palette: warm off-white paper tone (#F4F0E8) and deep ink black (#0B0B0C), with a single muted accent of ${accentWord} (${accentHex}).`,
-    `One single central metaphor — a lone figure OR one symbolic object, never a crowd, a couple or multiple overlapping figures, ${framingFor(subject)}, sober and refined.`,
+    `One single central metaphor — a lone figure OR one symbolic object, never a crowd, a couple or multiple overlapping figures, framed as an intimate mid-shot with generous negative space like a literary-magazine cover, the subject large and prominent, filling the central two-thirds of the frame, sober and refined.`,
     // Modéstia — o gerador vinha produzindo NUDEZ explícita nesses temas (score 0 em 100% das
     // capas 06–07/07; ver tabela rejected_covers). "sculptural/chiaroscuro" puxava p/ nu clássico.
     `Any human figure is fully clothed in simple, timeless clothing. Strictly modest and non-explicit: no nudity, no bare chest or torso, no exposed breasts, buttocks or genitals, no underwear, no sexual, intimate or suggestive content — appropriate for a general-audience literary-magazine cover.`,
