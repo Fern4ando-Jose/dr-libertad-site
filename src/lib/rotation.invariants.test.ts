@@ -15,14 +15,14 @@ describe("rotação — sem repetição antes de fechar o ciclo", () => {
     expect([...rot].sort((a, b) => a - b)).toEqual(CATS.map((_, i) => i));
   });
 
-  it("nenhum tema repete dentro de N posts (gap ≥ ciclo ≈ 8,5 dias > anti-dup 7d)", () => {
+  it("nenhum tema repete dentro de N posts (gap ≥ ciclo; produção 165 temas / 7 dia ≈ 23 dias)", () => {
     const rot = buildRotation(CATS);
     const N = rot.length;
     const seq: number[] = [];
     const base = new Date(Date.UTC(2026, 5, 16, 12, 0, 0));
     for (let d = 0; d < 60; d++) {
       const date = new Date(base.getTime() + d * 86400000);
-      for (let r = 0; r < 6; r++) seq.push(topicIndexForRun(rot, date, r));
+      for (let r = 0; r < 7; r++) seq.push(topicIndexForRun(rot, date, r)); // 7 runs/dia (cadência 2026-07-08)
     }
     // toda janela de N slots consecutivos tem N temas DISTINTOS (zero repetição no ciclo)
     for (let i = 0; i + N <= seq.length; i++) {
@@ -93,29 +93,29 @@ describe("pickFreshTopicIndex — não repete tema usado recentemente", () => {
     }
   });
 
-  it("slotForRun é contínuo (dia avança 6 slots)", () => {
+  it("slotForRun é contínuo (dia avança 7 slots)", () => {
     const d1 = new Date(Date.UTC(2026, 5, 21, 12));
     const d2 = new Date(Date.UTC(2026, 5, 22, 12));
-    expect(slotForRun(d2, 0) - slotForRun(d1, 0)).toBe(6);
+    expect(slotForRun(d2, 0) - slotForRun(d1, 0)).toBe(7);
   });
 
   // Threading intra-dia (igual ao getFreshTopicForRun): com base de recentes DENSA
   // (pior caso), os 6 runs do dia avançariam todos p/ o mesmo "1º livre" se não
   // houvesse threading. Incluindo os picks anteriores no `used`, saem 6 DISTINTOS —
   // sem depender da ordem/timing de gravação (robusto a re-disparo do catchup).
-  it("threading intra-dia → 6 runs do dia DISTINTOS, nenhum recente", () => {
+  it("threading intra-dia → 7 runs do dia DISTINTOS, nenhum recente", () => {
     const realRot = buildRotation(CATS);
     const baseUsed = new Set<number>();
     for (let i = 0; i < 20; i++) baseUsed.add(i); // 20 recentes (força avanço)
     const day = 200;
     const used = new Set(baseUsed);
     const picks: number[] = [];
-    for (let run = 0; run < 6; run++) {
-      const idx = pickFreshTopicIndex(realRot, day * 6 + run, used);
+    for (let run = 0; run < 7; run++) {
+      const idx = pickFreshTopicIndex(realRot, day * 7 + run, used);
       used.add(idx);
       picks.push(idx);
     }
-    expect(new Set(picks).size).toBe(6);            // 6 distintos (sem colisão)
+    expect(new Set(picks).size).toBe(7);            // 7 distintos (sem colisão)
     for (const p of picks) expect(baseUsed.has(p)).toBe(false); // nenhum recente
   });
 });
@@ -218,8 +218,8 @@ describe("buildBalancedDeck — permutação válida, balanceada, variável por 
 });
 
 describe("slotForDayRun / cycleOf / drawFromCursor — base do baralho", () => {
-  it("slot é contínuo e monotônico (dia avança 6; sem reset de ano)", () => {
-    expect(slotForDayRun("2026-06-22", 0) - slotForDayRun("2026-06-21", 0)).toBe(6);
+  it("slot é contínuo e monotônico (dia avança 7; sem reset de ano)", () => {
+    expect(slotForDayRun("2026-06-22", 0) - slotForDayRun("2026-06-21", 0)).toBe(7);
     // virada de ano NÃO reseta (era o risco do dayOfYear)
     expect(slotForDayRun("2027-01-01", 0)).toBeGreaterThan(slotForDayRun("2026-12-31", 5));
   });

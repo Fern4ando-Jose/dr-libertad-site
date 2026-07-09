@@ -13,7 +13,7 @@ import { minOfDayBRT } from "@/lib/day";
 
 // Hora BRT de cada run (= o cron UTC convertido: 15/20/0/22/12/17 UTC). PRECISA ser
 // BRT p/ casar com dayBRT — senão o run 2 (21h BRT = 00h UTC) cairia fora da janela.
-const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14 };
+const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14, 6: 7 };
 const GRACE_MIN = 75; // carência após o horário do cron antes de considerar "faltando"
 
 // Idiomas com publicação automática ativa (crons ligados). PT no ar desde 2026-06-18.
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   const gaveUp: { lang: string; run: number; attempts: number }[] = [];
   for (const lang of ACTIVE_LANGS) {
     const done = new Set(published[lang] ?? []);
-    for (let run = 0; run <= 5; run++) {
+    for (let run = 0; run <= 6; run++) {
       const dueMin = RUN_HOUR_BRT[run] * 60 + GRACE_MIN; // venceu por agora?
       if (nowMin < dueMin || done.has(run)) continue;
       const attempts = await attemptsToday(day, run, lang);

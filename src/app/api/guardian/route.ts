@@ -18,10 +18,10 @@ import { accountFor, type Lang } from "@/lib/accounts";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14 };
+const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14, 6: 7 };
 const GRACE_MIN = 75;
 const ACTIVE_LANGS: Lang[] = ["es", "pt"];
-const EXPECTED = 6; // 6 vagas/dia por conta (2 carrosséis + 4 reels)
+const EXPECTED = 7; // 7 vagas/dia por conta (2 carrosséis + 4 reels vídeo + 1 clássico)
 
 function authed(req: NextRequest): boolean {
   const t = req.headers.get("authorization") ?? "";
@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
   const notRun: { lang: string; run: number }[] = [];     // dia passado que não publicou (irrecuperável)
   for (const lang of ACTIVE_LANGS) {
     const done = new Set(published[lang] ?? []);
-    for (let run = 0; run <= 5; run++) {
+    for (let run = 0; run <= 6; run++) {
       const dueMin = RUN_HOUR_BRT[run] * 60 + GRACE_MIN;
       if (isToday && nowMin < dueMin) continue; // ainda não venceu
       if (done.has(run)) continue;
@@ -128,7 +128,7 @@ export async function GET(req: NextRequest) {
   if (notRun.length) parts.push(`não publicou: ${notRun.map((m) => `${m.lang}#${m.run}`).join(", ")}`);
   if (orphans.length) parts.push(`órfão: ${orphans.map((o) => `#${o.run} (${o.publishedLang}✓ ${o.orphanLang}✗)`).join(", ")}`);
   if (duplicates.length) parts.push(`repetição: ${duplicates.map((d) => d.topic).join(", ")}`);
-  const note = ok ? `✅ 6/6 nas duas contas (verificado no Instagram)` : `⚠️ ${parts.join(" · ")}`;
+  const note = ok ? `✅ 7/7 nas duas contas (verificado no Instagram)` : `⚠️ ${parts.join(" · ")}`;
 
   // Persiste o veredito do dia (upsert). es_published/pt_published = verdade do IG.
   try {

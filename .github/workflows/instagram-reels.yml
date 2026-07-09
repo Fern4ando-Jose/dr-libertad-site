@@ -5,8 +5,8 @@ name: Instagram Reels — Dr. Libertad
 # Remotion no GitHub Actions (Chromium + ffmpeg), sobe o mp4 pro Vercel Blob e
 # publica via /api/publish-reel.
 #
-# 3 Reels de VÍDEO/dia em horários INTERCALADOS nos picos do IG (BRT), cada um com
-# um tópico DISTINTO (runs 0..2). O Reel CLÁSSICO (slide animado) roda à parte em
+# 4 Reels de VÍDEO/dia em horários INTERCALADOS nos picos do IG (BRT), cada um com
+# um tópico DISTINTO (runs 0..2 e 6). O Reel CLÁSSICO (slide animado) roda à parte em
 # instagram-reels-classic.yml (run 3, 19h BRT). O `run` é derivado da EXPRESSÃO cron
 # (github.event.schedule), não da hora do relógio — pra atraso do cron não colidir
 # com o run vizinho. Slot/tom = SLOT_FOR_RUN[run].
@@ -15,10 +15,11 @@ on:
     - cron: "17 15 * * *" # 12:17 BRT (run 0)
     - cron: "17 20 * * *" # 17:17 BRT (run 1)
     - cron: "17 0 * * *"  # 21:17 BRT (run 2)
+    - cron: "17 10 * * *" # 07:17 BRT (run 6) — 4º Reel vídeo (cadência 7/dia, 2026-07-08)
   workflow_dispatch:
     inputs:
       run:
-        description: "Run 0..2 p/ escolher o tópico (vazio = run 2)"
+        description: "Run 0..2 ou 6 p/ escolher o tópico (vazio = run 2)"
         required: false
         default: ""
       publish:
@@ -69,6 +70,7 @@ jobs:
               "17 15 * * *") RUN=0 ;;
               "17 20 * * *") RUN=1 ;;
               "17 0 * * *")  RUN=2 ;;
+              "17 10 * * *") RUN=6 ;;
               *) RUN=2 ;;  # fallback defensivo
             esac
           fi

@@ -331,7 +331,7 @@ async function getFreshTopicForRun(date: Date, runIndex: number, _lang: Lang): P
 }
 
 // Tom editorial derivado do horário (3 slots), independente do tópico.
-const SLOT_FOR_RUN: Slot[] = ["manha", "tarde", "noite", "manha", "tarde", "noite"];
+const SLOT_FOR_RUN: Slot[] = ["manha", "tarde", "noite", "manha", "tarde", "noite", "manha"];
 
 // ─── Instruções por slot ──────────────────────────────────────────────────────
 
@@ -739,12 +739,12 @@ export async function GET(req: NextRequest) {
   const force = sp.get("force") === "1"; // ignora a trava anti-duplicata de 24h (re-publicação/backfill manual)
   const lang = getLang(sp.get("lang")); // "es" (default, conta atual) | "pt"
 
-  // Quais "runs" (0..5) processar nesta chamada:
+  // Quais "runs" (0..6) processar nesta chamada:
   // • ?run=N  → exatamente esse horário (caminho do cron, 1 post distinto por horário)
   // • ?slot=  → um horário representativo daquele slot (1 post)
   // • vazio   → os 3 slots base (compatível com o disparo manual antigo)
   let runs: number[];
-  if (runParam !== null && /^[0-5]$/.test(runParam)) {
+  if (runParam !== null && /^[0-6]$/.test(runParam)) {
     runs = [parseInt(runParam, 10)];
   } else if (slotParam && ["manha", "tarde", "noite"].includes(slotParam)) {
     runs = [{ manha: 0, tarde: 1, noite: 2 }[slotParam]];

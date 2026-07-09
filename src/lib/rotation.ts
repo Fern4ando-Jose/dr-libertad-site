@@ -36,16 +36,16 @@ export function dayOfYear(date: Date): number {
 }
 
 // Índice do tema (no array original) para um (data, run): caminha a rotação fixa
-// continuamente → cada tema 1× por ciclo. 6 posts por dia (runs 0..5).
+// continuamente → cada tema 1× por ciclo. 7 posts por dia (runs 0..6).
 export function topicIndexForRun(rotation: number[], date: Date, runIndex: number): number {
-  const slot = dayOfYear(date) * 6 + runIndex;
+  const slot = dayOfYear(date) * 7 + runIndex;
   const n = rotation.length;
   return rotation[((slot % n) + n) % n];
 }
 
 // Slot inicial (contínuo) de um (data, run). Separado p/ o caminhar-pulando abaixo.
 export function slotForRun(date: Date, runIndex: number): number {
-  return dayOfYear(date) * 6 + runIndex;
+  return dayOfYear(date) * 7 + runIndex;
 }
 
 // Escolhe o tema do slot PULANDO os já usados recentemente (em QUALQUER formato,
@@ -143,7 +143,7 @@ function hashStr(s: string): number {
 export function slotForDayRun(dayStr: string, run: number): number {
   const [y, m, d] = dayStr.split("-").map(Number);
   const absDay = Math.floor(Date.UTC(y, (m || 1) - 1, d || 1) / 86400000);
-  return absDay * 6 + run;
+  return absDay * 7 + run;
 }
 
 export function cycleOf(slot: number, n: number): number {
@@ -195,7 +195,7 @@ export function selectThemeIndex(
   banned: Set<number> = new Set(),
 ): number {
   const n = cats.length;
-  const poolEff = Math.max(6, pool);
+  const poolEff = Math.max(7, pool);
   // último slot em que cada tema publicou (−1 = nunca) → RANK por recência.
   const lastSlot = new Array<number>(n).fill(-1);
   for (const p of publishedIdxSlots) {

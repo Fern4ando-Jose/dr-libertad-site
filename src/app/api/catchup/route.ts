@@ -15,7 +15,7 @@ import { minOfDayBRT } from "@/lib/day";
 // serviço de cron externo. Sem o token → 500 avisando (inerte até o dono configurar).
 
 // Hora BRT de cada run (cron UTC convertido). BRT p/ casar com dayBRT (run 2 = 21h BRT).
-const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14 };
+const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14, 6: 7 };
 const GRACE_MIN = 75;
 const ACTIVE_LANGS = ["es", "pt"];
 const REPO = process.env.GH_REPO || "Fern4ando-Jose/dr-libertad-site";
@@ -24,7 +24,7 @@ const REPO = process.env.GH_REPO || "Fern4ando-Jose/dr-libertad-site";
 function workflowFor(run: number, lang: string): { file: string; inputs: Record<string, string> } | null {
   let base: string;
   let inputs: Record<string, string>;
-  if (run >= 0 && run <= 2) { base = "instagram-reels"; inputs = { run: String(run), publish: "yes" }; }
+  if ((run >= 0 && run <= 2) || run === 6) { base = "instagram-reels"; inputs = { run: String(run), publish: "yes" }; }
   else if (run === 3) { base = "instagram-reels-classic"; inputs = { run: String(run), publish: "yes" }; }
   else if (run === 4 || run === 5) { base = "instagram-posts"; inputs = { run: String(run) }; }
   else return null;
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 
   for (const lang of ACTIVE_LANGS) {
     const done = new Set(published[lang] ?? []);
-    for (let run = 0; run <= 5; run++) {
+    for (let run = 0; run <= 6; run++) {
       const dueMin = RUN_HOUR_BRT[run] * 60 + GRACE_MIN;
       if (nowMin < dueMin || done.has(run)) continue;
       // Disjuntor: se a vaga já falhou MAX vezes hoje, PARA de redisparar (até amanhã).
