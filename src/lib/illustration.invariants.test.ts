@@ -56,6 +56,11 @@ describe("buildPrompt — enquadramento fixo (figura grande, sem encolher)", () 
     expect(p).not.toContain("subject small");     // "wide establishing shot, subject small"
     expect(p).not.toContain("extreme close-up");  // "one telling detail filling the frame"
   });
+  it("força UMA figura humana e remove 'no people' do subject (direção das provas)", () => {
+    const p = buildPrompt("a glowing temptation behind a barrier, no people", "amber", "#C8862B");
+    expect(p).toContain("human figure");
+    expect(p).not.toMatch(/no people/i);
+  });
 });
 
 describe("corpo da requisição à fal SEMPRE tem seed", () => {

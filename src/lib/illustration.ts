@@ -31,11 +31,16 @@ const ACCENTS: Record<string, { word: string; hex: string }> = {
 // Bloco de estilo de marca (fixo) + slot de subject por tema + enquadramento fixo (provas).
 // Direção: cinematográfico/escultural editorial (escolha do usuário, 2026-06-13).
 export function buildPrompt(subject: string, accentWord: string, accentHex: string): string {
+  // As provas aprovadas pelo dono são SEMPRE uma figura humana única (não objeto).
+  // ~84/165 subjects vinham marcados "no people" (só objeto) p/ fugir da nudez/anatomia
+  // do Flux; com Nano Banana + modéstia + juiz de QA, voltamos à figura humana (direção
+  // aprovada). Tira-se o "no people" do subject p/ não brigar com a figura obrigatória.
+  const humanSubject = subject.replace(/[;,.]?\s*no (?:people|person|persons|humans?|figures?)\b/gi, "").trim();
   return [
-    `Cinematic conceptual editorial illustration: ${subject}.`,
+    `Cinematic conceptual editorial illustration of a single solitary human figure embodying this idea: ${humanSubject}.`,
     `Dramatic chiaroscuro lighting, sculptural and atmospheric, fine film grain and subtle texture.`,
     `Restricted, desaturated palette: warm off-white paper tone (#F4F0E8) and deep ink black (#0B0B0C), with a single muted accent of ${accentWord} (${accentHex}).`,
-    `One single central metaphor — a lone figure OR one symbolic object, never a crowd, a couple or multiple overlapping figures, framed as an intimate mid-shot with generous negative space like a literary-magazine cover, the subject large and prominent, filling the central two-thirds of the frame, sober and refined.`,
+    `Exactly ONE lone human figure as the clear protagonist — never a crowd, a couple or multiple overlapping figures, framed as an intimate mid-shot with generous negative space like a literary-magazine cover, the figure large and prominent, filling the central two-thirds of the frame, sober and refined.`,
     // Modéstia — o gerador vinha produzindo NUDEZ explícita nesses temas (score 0 em 100% das
     // capas 06–07/07; ver tabela rejected_covers). "sculptural/chiaroscuro" puxava p/ nu clássico.
     `Any human figure is fully clothed in simple, timeless clothing. Strictly modest and non-explicit: no nudity, no bare chest or torso, no exposed breasts, buttocks or genitals, no underwear, no sexual, intimate or suggestive content — appropriate for a general-audience literary-magazine cover.`,
