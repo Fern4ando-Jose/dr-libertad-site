@@ -65,6 +65,14 @@ describe("framingFor — enquadramento rotativo (anti capa repetida)", () => {
   });
 });
 
+describe("buildPrompt — capa preenche o post (full-bleed, sem moldura interna)", () => {
+  it("exige sangria total e proíbe moldura/margem interna (mesmo em tema 'no people')", () => {
+    const p = buildPrompt("a still calm pond with a single ripple, no people", "olive", "#5B6B3C");
+    expect(p).toContain("full-bleed");
+    expect(p).toMatch(/no (inner )?frame/i);
+  });
+});
+
 describe("corpo da requisição à fal SEMPRE tem seed", () => {
   it("falRequestBody inclui o seed passado (guarda contra voltar ao 'sem seed')", () => {
     const body = falRequestBody("um prompt qualquer", 12345);

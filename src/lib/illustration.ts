@@ -56,6 +56,10 @@ export function buildPrompt(subject: string, accentWord: string, accentHex: stri
     // Blindagem anatômica — reduz a chance de mão/dedo/membro extra (defeito nº 1 da difusão).
     `Anatomically correct and photoreal in structure: each person has exactly two arms and two hands, each hand with exactly five fingers; natural, correctly formed limbs, hands and faces. No extra, missing or fused fingers, hands, arms or limbs; no duplicated or distorted body parts.`,
     `No text, no letters, no words, no logo, no watermark. No neon, no purple gradient, no corporate clip-art, no busy clutter.`,
+    // FULL-BLEED (2026-07-10, aprovado pelo dono): a Nano Banana vinha compondo alguns temas
+    // (sobretudo objeto/"no people") como FOTO EMOLDURADA — conteúdo pequeno dentro de uma margem
+    // creme → a capa "não preenchia o post". Esta linha exige sangria total, sem moldura interna.
+    `The artwork must be full-bleed and fill the entire frame edge to edge — strictly no border, no inner frame, no matte, no paper margin, no framed-print or gallery-mounted look; never inset the composition inside empty space.`,
   ].join(" ");
 }
 
