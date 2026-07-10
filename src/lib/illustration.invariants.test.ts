@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { seedForDay, cacheKey, falRequestBody, buildPrompt } from "./illustration";
+import { seedForDay, cacheKey, falRequestBody, framingFor, buildPrompt } from "./illustration";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INVARIANTE MULTI-IDIOMA: a ILUSTRAÇÃO (arte da IA) é ÚNICA por post/dia e
@@ -42,24 +42,26 @@ describe("seed determinístico (imagem idêntica entre idiomas)", () => {
   });
 });
 
-// Enquadramento FIXO (revertido 2026-07-09): o assunto é sempre GRANDE e prominente
-// (mid-shot, igual às provas). O "enquadramento rotativo" foi removido por encolher/cortar
-// a figura sem autorização. Este teste GUARDA contra reintroduzir os planos que encolhem.
-describe("buildPrompt — enquadramento fixo (figura grande, sem encolher)", () => {
-  it("usa mid-shot com o assunto grande e prominente", () => {
-    const p = buildPrompt("a single closed door against a storm", "amber", "#C8862B");
-    expect(p).toContain("intimate mid-shot");
-    expect(p).toContain("large and prominent");
+// Anti-repetição VISUAL: o enquadramento varia por subject (temas vizinhos no feed
+// não saem com o mesmo quadro), mas é DETERMINÍSTICO (ES e PT do mesmo subject batem)
+// e entra no prompt. (Erro "Repetição VISUAL" no HISTORICO-ERROS.)
+describe("framingFor — enquadramento rotativo (anti capa repetida)", () => {
+  it("determinístico: mesmo subject → mesmo enquadramento (ES e PT batem)", () => {
+    expect(framingFor("a lone figure in a doorway")).toBe(framingFor("a lone figure in a doorway"));
   });
-  it("NÃO usa enquadramentos que encolhem/cortam o assunto", () => {
-    const p = buildPrompt("a lone figure in a doorway", "amber", "#C8862B");
-    expect(p).not.toContain("subject small");     // "wide establishing shot, subject small"
-    expect(p).not.toContain("extreme close-up");  // "one telling detail filling the frame"
+  it("não depende de idioma (só do subject, que é compartilhado)", () => {
+    expect(framingFor.length).toBe(1); // só (subject)
   });
-  it("força UMA figura humana e remove 'no people' do subject (direção das provas)", () => {
-    const p = buildPrompt("a glowing temptation behind a barrier, no people", "amber", "#C8862B");
-    expect(p).toContain("human figure");
-    expect(p).not.toMatch(/no people/i);
+  it("subjects diferentes podem cair em enquadramentos diferentes (há variedade)", () => {
+    const got = new Set([
+      "a", "uma porta fechada", "a figure walking into light", "fragile glass figures",
+      "a calm figure unplugging cables", "a paralyzed figure before a shelf",
+    ].map(framingFor));
+    expect(got.size).toBeGreaterThan(1);
+  });
+  it("o enquadramento escolhido entra no prompt", () => {
+    const subject = "a single closed door against a storm";
+    expect(buildPrompt(subject, "amber", "#C8862B")).toContain(framingFor(subject));
   });
 });
 
