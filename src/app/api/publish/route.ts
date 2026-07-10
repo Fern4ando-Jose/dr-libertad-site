@@ -601,6 +601,16 @@ async function publishCarousel(
   imageUrls: string[],
   lang: Lang = "es",
 ): Promise<string> {
+  // TRAVA de tamanho: o IG rejeita legenda > 2200 chars (erro 36004 "Caption Too Long"),
+  // e isso DERRUBAVA a publicação de UM idioma enquanto o outro passava ("só sai em 1 IG").
+  // O prompt PEDE ≤2200 mas o modelo às vezes estoura → cortamos word-safe como rede.
+  const IG_CAPTION_MAX = 2200;
+  let safeCaption = caption ?? "";
+  if (safeCaption.length > IG_CAPTION_MAX) {
+    const cut = safeCaption.slice(0, IG_CAPTION_MAX);
+    const lastSpace = cut.lastIndexOf(" ");
+    safeCaption = (lastSpace > IG_CAPTION_MAX - 200 ? cut.slice(0, lastSpace) : cut).trimEnd();
+  }
   const acc = accountFor(lang);
   const accountId = process.env[acc.accountIdEnv] ?? "";
   const token     = await getAccessToken(lang);
@@ -627,7 +637,7 @@ async function publishCarousel(
     body: JSON.stringify({
       media_type: "CAROUSEL",
       children: childIds.join(","),
-      caption,
+      caption: safeCaption,
       access_token: token,
     }),
   });

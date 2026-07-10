@@ -35,6 +35,17 @@ async function publishReel(videoUrl: string, caption: string, lang: Lang = "es")
   const graphRoot = "https://graph.instagram.com/v25.0";
   const base = `${graphRoot}/${accountId}`;
 
+  // TRAVA de tamanho: o IG rejeita legenda > 2200 chars (erro 36004 "Caption Too Long"),
+  // que derrubava a publicação de UM idioma enquanto o outro passava ("só sai em 1 IG").
+  // Mesma rede do carrossel — corta word-safe antes de enviar ao IG.
+  const IG_CAPTION_MAX = 2200;
+  let safeCaption = caption ?? "";
+  if (safeCaption.length > IG_CAPTION_MAX) {
+    const cut = safeCaption.slice(0, IG_CAPTION_MAX);
+    const lastSpace = cut.lastIndexOf(" ");
+    safeCaption = (lastSpace > IG_CAPTION_MAX - 200 ? cut.slice(0, lastSpace) : cut).trimEnd();
+  }
+
   // 1. Criar container do reel
   // Capa = frame 0 (footage, SEM título por cima) — preferência do dono pelo visual
   // limpo. NÃO definir thumb_offset (tentamos 2000ms p/ mostrar o título, revertido:
@@ -46,7 +57,7 @@ async function publishReel(videoUrl: string, caption: string, lang: Lang = "es")
     body: JSON.stringify({
       media_type: "REELS",
       video_url: videoUrl,
-      caption,
+      caption: safeCaption,
       access_token: token,
     }),
   });
