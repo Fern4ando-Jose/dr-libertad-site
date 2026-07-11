@@ -1,9 +1,9 @@
 # Diretriz de atenção — como o gerador de posts captura atenção (sem trair a marca)
 
 > Guia canônico vivo para redigir legendas/roteiros que PRENDEM atenção — o irmão de
-> `_DIRETRIZ-SEGURANCA-META.md`. Destila em regras acionáveis de geração os **9 princípios
+> `_DIRETRIZ-SEGURANCA-META.md`. Destila em regras acionáveis de geração os **11 princípios
 > verificados** do **Playbook de Atenção** (cargo `estrategista-de-atencao`, aprovado pelo dono
-> em 2026-07-11).
+> em 2026-07-11; princípios 10-11 adicionados e codificados 2026-07-11).
 > Fonte única dos princípios (LEITURA, §1.0): `D:\Claude\.claude\marca\atencao\PLAYBOOK-ATENCAO.html`
 > + `CHECKLIST-ATENCAO.html`. Este arquivo é o **delta acionável para ESTE pipeline** — não recopia
 > a pesquisa, aponta para ela.
@@ -16,7 +16,7 @@ usamos **gancho honesto + arousal positivo + open loop que ensina** — e **nunc
 intermitente que gera o vício que combatemos. O mecanismo do vício vira **conteúdo** ("por que você não
 consegue parar de rolar"), nunca **arma**.
 
-## As 6 regras acionáveis (o que o gerador DEVE fazer)
+## As 8 regras acionáveis (o que o gerador DEVE fazer)
 
 ### 1 · Gancho nos 3 segundos — e que CASE com o conteúdo  (princ. 1 e 5)
 - O `postTitle` e o **1º slide** cravam o scroll em ~1s: **pergunta provocadora** que implica "você",
@@ -59,6 +59,23 @@ consegue parar de rolar"), nunca **arma**.
   de cor chamativa — **posição + rosto/texto** guiam o olhar em vídeo full-screen.
 - (Em vídeo full-screen o olho vai ao **centro/rosto**; em UI estática, ao topo-esquerdo — daí o texto no topo.)
 
+### 7 · Curiosity gap — a lacuna DOSADA que entrega  (princ. 10)
+- Abrir com uma **pergunta genuína, vívida e concreta** (a lacuna entre o que a pessoa sabe e o que
+  gostaria de saber). Dar **um pouco** de contexto — o tirão é máximo com **confiança moderada** (nem
+  zero, nem tudo de uma vez) — e **fechar o loop com honestidade** no fim (é a recompensa honesta da regra 3).
+- ⛔ Nunca **enrolar/dar voltas** nem **cortar a resposta prometida**. A alavanca é **curiosidade real
+  dosada**, não "deixar pela metade" — o efeito Zeigarnik (bônus de memória por deixar inacabado) foi
+  **refutado** (meta-análise Nature 2025); o que prende de verdade é o **puxão de voltar** a um loop aberto.
+
+### 8 · Prova social honesta — pertencimento, sem envergonhar  (princ. 11)
+- Quando encaixar, ancorar na **experiência compartilhada**: "você não está sozinho nisso", "acontece com
+  qualquer um que largou…", um **grupo de referência identificável** ("gente como você que…") — para dar
+  **pertencimento** (reduz a vergonha; casa com o tom terapêutico da marca).
+- ⛔ **JAMÁS inventar número** (contagem de seguidores/likes, "X pessoas já…") — além de falso (§1.14), o
+  `stats-guard` bloqueia; prova social honesta vai por **pertencimento, não por estatística**. E **nunca**
+  usar o dado de um jeito que **envergonhe** quem ainda não chegou lá (efeito boomerang): parear sempre com
+  pertencimento ("cada dia conta", "você não está quebrado"), nunca a cifra sozinha.
+
 ## O que NÃO fazer (refutado na pesquisa — §1.14)
 - **Nunca citar multiplicadores de retenção/alcance** do tipo *">85% de retenção = 2,8× alcance"*,
   *"3s acima de 65% = 4–7× impressões"*, *">70% decidem em 3s"*: **foram refutados** (3 votos a 0).
@@ -83,3 +100,7 @@ com o previsto no checklist; o que não performar revisa esta diretriz e o playb
   `generateContent` (MOTOR DE ALCANCE → MOTOR DE ATENCIÓN, +arousal positivo, +trava ética, +sends,
   +completion). Tensão com a linha provocativa reconciliada (provocação pela ideia = surpresa/insight,
   não raiva) e sinalizada ao dono.
+- 2026-07-11 (2ª leva) — Playbook cresceu 9→**11 princípios** (curiosity gap + prova social, antes
+  "lacunas", agora com fonte). Codificados no prompt (regras 7 e 8 acima) após aprovação do dono: curiosity
+  gap DOSADA (fecha o loop, não "enrola") + prova social por PERTENCIMENTO (sem número inventado, sem
+  envergonhar). Contagem sincronizada 9→11.
