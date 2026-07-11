@@ -19,6 +19,10 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Auditoria de dependências (npm audit — informativo, não bloqueia)
+        # Versões estão pinadas; roda a cada CI p/ FLAGAR CVE nova sem travar o merge.
+        # `|| true` = não falha o build (é alerta, não gate). Ver o resultado no log do job.
+        run: npm audit --audit-level=high || true
       - name: Typecheck (tsc --noEmit)
         run: npx tsc --noEmit
       - name: Testes (vitest)

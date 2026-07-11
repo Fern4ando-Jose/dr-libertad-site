@@ -36,6 +36,7 @@ import {
 } from "remotion";
 import { loadFont as loadFraunces } from "@remotion/google-fonts/Fraunces";
 import { Scene, reelDefaultProps, type ReelProps, FPS } from "./Reel";
+import { normalizePhrase } from "../src/lib/slide-dedup";
 
 const { fontFamily: FRAUNCES } = loadFraunces();
 
@@ -62,10 +63,11 @@ const SAFE_BOTTOM_HANDLE = 300;
 // no fim). A geração às vezes faz slides[0] === título; aqui descartamos os ~iguais.
 export function dedupeSlides(title: string, slides: string[] | undefined): string[] {
   const raw = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 3);
-  const norm = (s: string) =>
-    (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
-  const tnorm = norm(title);
-  const distinct = raw.filter((s) => norm(s) !== tnorm);
+  // `normalizePhrase` é a FONTE ÚNICA (src/lib/slide-dedup) — antes o V2 tinha um `norm`
+  // inline idêntico (risco de drift). Import RELATIVO (não `@/…`) p/ o webpack do Remotion
+  // resolver no bundle do render; slide-dedup é PURO (sem next/db), seguro no bundle.
+  const tnorm = normalizePhrase(title);
+  const distinct = raw.filter((s) => normalizePhrase(s) !== tnorm);
   return distinct.length ? distinct : raw;
 }
 
