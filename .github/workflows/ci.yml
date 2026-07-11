@@ -1,0 +1,27 @@
+name: CI
+
+# Roda os testes em todo PR e push no main. O teste do invariante multi-idioma
+# (ilustração ÚNICA compartilhada entre ES/PT; só a copy muda) FALHA o CI se
+# alguém reintroduzir geração de imagem por idioma — bloqueando o merge.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Typecheck (tsc --noEmit)
+        run: npx tsc --noEmit
+      - name: Testes (vitest)
+        run: npm run test
+      - name: Build de produção (next build)
+        run: npm run build

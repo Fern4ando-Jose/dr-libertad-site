@@ -31,8 +31,10 @@ export function proxy(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-// Exclui API, assets do Next e qualquer arquivo com extensão
-// (sitemap.xml, robots.txt, *.svg, og images etc. têm ponto → não redirecionam).
+// Exclui API, os painéis utilitários (/insights, /admin), assets do Next e qualquer
+// arquivo com extensão (sitemap.xml, robots.txt, *.svg, og images etc. têm ponto → não
+// redirecionam). /insights e /admin ficam fora do i18n (páginas únicas, gate por chave/
+// token) — sem isso o /admin caía em /pt/admin (404).
 export const config = {
-  matcher: ["/((?!api|_next|.*\\..*).*)"],
+  matcher: ["/((?!api|insights|admin|_next|.*\\..*).*)"],
 };

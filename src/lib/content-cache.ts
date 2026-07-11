@@ -1,0 +1,64 @@
+// ─── Cache da COPY por (tópico, dia, idioma) ─────────────────────────────────
+// A copy (título/slides/cta/legenda/tags/videoQueries) é regerada pela Anthropic a
+// CADA chamada de preview/publish. Com a instabilidade do cron do GitHub, um run cai
+// e é REDISPARADO várias vezes/dia → a copy era repaga toda vez (maior ralo do teto:
+// ig-reels gastou $0,24 só em `content` num dia, ~2× o esperado, por causa dos
+// redisparos). Aqui ela é cacheada por (tópico, dia, idioma) e reusada por 24h →
+// redisparo NÃO repaga o texto. Espelha reel-shared.ts / illustration.ts.
+//
+// Best-effort / fail-open: qualquer erro de banco devolve null e o pipeline gera
+// normalmente (comportamento antigo). Nunca quebra a publicação.
+//
+// Chave INCLUI o idioma (≠ reel-shared, que é língua-independente): a copy é
+// regerada por mercado (ES ≠ PT), então cada idioma tem sua entrada.
+//
+// A chave NÃO inclui o `slot` (A5, auditoria 30/06 — analisado, NÃO é bug vivo): a
+// rotação (selectThemeIndex) dá 6 temas DISTINTOS por dia (runs 0-5), então um tema
+// cai em UM único slot/dia → o SLOT_INSTRUCTIONS[slot] JÁ se aplica na geração desse
+// slot e a chave (topic,day,lang) o cacheia corretamente; não há colisão Reel×Carrossel
+// do mesmo tema no mesmo dia. Só um `force=1` manual re-rodando o MESMO tema em 2 slots
+// poderia reusar a copy do outro slot — caso de borda aceito (não vale o custo de
+// invalidar todo o cache). Se algum dia um tema puder cair em 2 slots/dia, aí sim
+// incluir o slot aqui.
+
+// Sufixo de versão: subir invalida o cache anterior (regera limpo). v2 = trava de
+// pureza de idioma (lang-guard); v3 = reforço do lang-guard (adelanto/libro/mensaje)
+// + funil traduz "adelanto"→"prévia" — descarta legendas PT contaminadas já cacheadas;
+// v4 = gancho-pergunta + videoQueries DIVERSOS (anti-celular) + integridade/brevidade
+// (#125/#126) — descarta a copy velha pra os fixes valerem já na próxima geração.
+export function contentCacheKey(topic: string, day: string, lang: string): string {
+  return `${topic}|${day}|${lang}|v4`;
+}
+
+// Lê a copy cacheada (≤24h). Só devolve se tiver o mínimo válido (postTitle + slides),
+// pra um registro corrompido não virar um post vazio.
+export async function readContentCache(topic: string, day: string, lang: string): Promise<unknown | null> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const key = contentCacheKey(topic, day, lang);
+    const rows = await sql<{ content: unknown }>`
+      SELECT content FROM content_cache
+      WHERE cache_key = ${key} AND created_at > NOW() - INTERVAL '24 hours'
+      LIMIT 1
+    `;
+    const c = rows.rows[0]?.content as { postTitle?: unknown; slides?: unknown } | undefined;
+    if (!c || typeof c.postTitle !== "string" || !c.postTitle || !Array.isArray(c.slides)) return null;
+    return c;
+  } catch {
+    return null; // sem cache → gera normalmente (comportamento antigo)
+  }
+}
+
+export async function writeContentCache(topic: string, day: string, lang: string, content: unknown): Promise<void> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const key = contentCacheKey(topic, day, lang);
+    await sql`
+      INSERT INTO content_cache (cache_key, topic, lang, content, created_at)
+      VALUES (${key}, ${topic}, ${lang}, ${JSON.stringify(content)}::jsonb, NOW())
+      ON CONFLICT (cache_key) DO UPDATE SET
+        content = ${JSON.stringify(content)}::jsonb,
+        created_at = NOW()
+    `;
+  } catch { /* cache é best-effort — nunca quebra o pipeline */ }
+}

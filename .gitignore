@@ -12,7 +12,10 @@ out/
 /preview.json
 
 # Arquivos de log e outros
-.env*.local
+# Segredos: ignora TODO .env (repo é PÚBLICO) — exceto o template versionável
+.env
+.env.*
+!.env.example
 .DS_Store
 *.log
 
@@ -23,9 +26,26 @@ skills-lock.json
 
 # Notas e rascunhos locais (não versionados)
 _notas/
+# Convenção 4 zonas (AGENTS.md §2.2): material do dono + saída de teste — não versionar
+Material/
+Testes/
+# Mídia de teste guardada p/ reuso (AGENTS.md §1.11) — não versionar
+Arquivo-Midia/
 public_tmp/
 *.docx
 *.bck
+
+# Projetos (curtas de clássicos): trabalho em progresso / rascunhos — só produção final vai pro git
+projetos/
+
+# Pendências: fonte única é o painel central D:\Claude\.pendencias\ (controle interno, fora do git)
+PENDENCIAS.md
+
+# Governança/decisões do projeto — passam a viver só em D:\Claude local +
+# repo privado github.com/Fern4ando-Jose/governanca-privada (nunca no repo de produção)
+/CLAUDE.md
+/DECISOES-TRAVADAS.md
+/HISTORICO-ERROS-AUTOMACAO.md
 
 # Imagens soltas na raiz (screenshots, exports temporários)
 /*.jpg
@@ -35,3 +55,7 @@ public_tmp/
 # Automação: snapshots de referência (duplicam código de src/) e preview local
 DR-instagram-automation/files/
 DR-instagram-automation/preview-carousel.html
+.vercel
+
+# Linha editorial = estratégia de marca: mora OFFLINE em D:\Claude\.marca\dr-libertad\ (repo é PÚBLICO)
+LINHA-EDITORIAL.md

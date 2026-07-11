@@ -6,8 +6,11 @@ import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 export default function HeroFloatingDeck({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
-  const mx = useMotionValue(0);
-  const my = useMotionValue(0);
+  // Centro neutro (0.5): a fórmula abaixo usa (v - 0.5), então 0.5 = sem
+  // deslocamento nem inclinação. Iniciar em 0 deixava o deck torto no repouso
+  // e dava um "pulo" no 1º mousemove (visível ao trocar de idioma e remontar).
+  const mx = useMotionValue(0.5);
+  const my = useMotionValue(0.5);
 
   const sx = useSpring(mx, { stiffness: 160, damping: 22, mass: 0.35 });
   const sy = useSpring(my, { stiffness: 160, damping: 22, mass: 0.35 });

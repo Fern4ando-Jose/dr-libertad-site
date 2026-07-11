@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { type Automation, spendSummary, setBudget } from "@/lib/spend";
+import { type Automation, spendSummary, setBudget, getBudget } from "@/lib/spend";
+import { dayBRT, reopenCircuitForAutomation, shouldReopenOnBudgetChange } from "@/lib/run-ledger";
 
 // Visão de gasto por plataforma/automação (hoje e mês) + orçamentos vigentes.
 // Atrás do CRON_SECRET (igual aos demais endpoints operacionais).
@@ -19,7 +20,8 @@ export async function GET(req: NextRequest) {
     const summary = await spendSummary();
     return NextResponse.json({ ok: true, ...summary });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+    console.error("GET /api/spend:", e);
+    return NextResponse.json({ ok: false, error: "erro interno" }, { status: 500 });
   }
 }
 
@@ -29,14 +31,26 @@ export async function POST(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const automation = sp.get("automation") as Automation | null;
   const budget = parseFloat(sp.get("budget") ?? "");
-  const valid: Automation[] = ["ig-posts", "ig-reels", "manual"];
+  // TODAS as automações com balde próprio (a lista faltava ig-engagement/newsletter —
+  // o teto delas não podia ser ajustado sem redeploy; achado da auditoria 29/06).
+  const valid: Automation[] = ["ig-posts", "ig-reels", "ig-engagement", "newsletter", "manual"];
   if (!automation || !valid.includes(automation) || Number.isNaN(budget) || budget < 0) {
-    return NextResponse.json({ error: "Use ?automation=ig-posts|ig-reels|manual&budget=<USD>" }, { status: 400 });
+    return NextResponse.json({ error: "Use ?automation=ig-posts|ig-reels|ig-engagement|newsletter|manual&budget=<USD>" }, { status: 400 });
   }
   try {
+    // Teto ANTES da mudança → decidir se é um AUMENTO (o dono liberando gasto).
+    const previousBudget = await getBudget(automation);
     await setBudget(automation, budget);
-    return NextResponse.json({ ok: true, automation, budget });
+    // Ao SUBIR o teto, reabre o disjuntor das vagas do dia que desistiram por circuit-open
+    // (ex.: 402 de orçamento no carrossel) → o catchup volta a tentar AGORA, sem esperar o
+    // dia virar. Só num aumento manual (aqui) → não reabre a tempestade automática. (C2.)
+    let reopenedVagas = 0;
+    if (shouldReopenOnBudgetChange(previousBudget, budget)) {
+      reopenedVagas = await reopenCircuitForAutomation(dayBRT(), automation);
+    }
+    return NextResponse.json({ ok: true, automation, budget, previousBudget, reopenedVagas });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+    console.error("POST /api/spend:", e);
+    return NextResponse.json({ ok: false, error: "erro interno" }, { status: 500 });
   }
 }

@@ -22,9 +22,31 @@ h1, h2, h3 {
   font-family: var(--font-serif, ui-serif), ui-serif;
 }
 
+/* Tailwind v4 não força cursor de ponteiro em botões; restauramos para os
+   elementos interativos (mantendo o cursor padrão quando desabilitados). */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+summary {
+  cursor: pointer;
+}
+
 /* Studio polish */
 .text-balance {
   text-wrap: balance;
+}
+
+/* Parágrafos de corpo: justificados como num livro, com hifenização
+   (usa o dicionário do idioma via document.documentElement.lang). Só a
+   partir de md — em coluna estreita o justify abre "rios" de espaço feios. */
+.prose-justify {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+@media (min-width: 768px) {
+  .prose-justify {
+    text-align: justify;
+    text-justify: inter-word;
+  }
 }
 
 .hairline {

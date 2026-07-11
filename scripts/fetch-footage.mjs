@@ -1,0 +1,279 @@
+// ─── Busca de footage de banco (Pexels) ───────────────────────────────────────
+// Escolhe 2-3 clipes de VÍDEO REAL (filmado) na Pexels a partir do tema do dia e
+// grava as URLs em props.clips dentro do reel-props.json. O Reel usa esses
+// clipes como fundo em movimento (graded p/ a paleta da marca). Movimento real,
+// custo ZERO (Pexels é grátis).
+//
+// CAMADA: criação (não automação). NÃO-FATAL: sem PEXELS_API_KEY, sem match ou
+// erro de rede → sai 0 sem clips, e o Reel cai no fallback (ilustração estática).
+//
+// Uso:  PEXELS_API_KEY=... node scripts/fetch-footage.mjs --props=reel-props.json
+
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY; // QA de conteúdo do footage (incidente 07-01)
+const NUM_CLIPS = Math.max(1, Math.min(6, Number(process.env.FOOTAGE_NUM_CLIPS || "5")));
+const PER_PAGE = 20;
+
+// ─── QA de CONTEÚDO do footage — ESPELHA src/lib/footage-qa.ts ─────────────────
+// Incidente 07-01: Reel saiu com macro de pele (aspecto de nudez). Este é o caminho
+// de CI (fallback); o primário é selectFootage na API. Manter em sincronia com o TS.
+// Visão barata (Haiku) no POSTER do clipe. FAIL-SAFE com chave (ilegível/erro →
+// rejeita); FAIL-OPEN sem chave (aceita, p/ não degradar todo Reel — o CI só tem a
+// chave se o secret ANTHROPIC_API_KEY estiver setado nos workflows de Reel).
+const FOOTAGE_QA_PROMPT = `You review a single stock-video POSTER FRAME for a serious mental-health / psychology Instagram brand.
+Answer ONLY with JSON: {"reject": boolean, "reason": "<=8 words"}.
+Set reject=true if the frame is ANY of:
+- an extreme close-up of bare skin or body parts (arm, leg, torso, lips, etc.) filling the frame;
+- an abstract skin/flesh/body texture with no clear scene or subject;
+- nudity, lingerie, or sexually suggestive content;
+- anything a psychology brand would be embarrassed to post.
+Set reject=false only for a clear, tasteful scene with a discernible subject in context (a person doing something, a place, an object, nature).
+When in doubt, reject=true.`;
+
+// Parser fail-safe (ilegível → rejeita). Espelha parseFootageVerdict do TS.
+function parseFootageVerdict(text) {
+  const s = typeof text === "string" ? text : "";
+  try {
+    const start = s.indexOf("{");
+    const end = s.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      const o = JSON.parse(s.slice(start, end + 1));
+      if (typeof o.reject === "boolean") return { reject: o.reject, reason: typeof o.reason === "string" ? o.reason : "" };
+    }
+  } catch { /* fail-safe */ }
+  return { reject: true, reason: "veredito ilegível → rejeitado (fail-safe)" };
+}
+
+// Julga o poster. Sem chave → aceita (QA pulado). Erro/HTTP ruim → rejeita (fail-safe).
+async function judgeFootagePoster(posterUrl) {
+  if (!ANTHROPIC_API_KEY) return { reject: false, reason: "sem ANTHROPIC_API_KEY — QA pulado" };
+  if (!posterUrl) return { reject: false, reason: "sem poster — QA pulado" };
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 100,
+        messages: [{ role: "user", content: [
+          { type: "image", source: { type: "url", url: posterUrl } },
+          { type: "text", text: FOOTAGE_QA_PROMPT },
+        ] }],
+      }),
+    });
+    if (!res.ok) return { reject: true, reason: `QA HTTP ${res.status} → rejeitado (fail-safe)` };
+    const data = await res.json();
+    return parseFootageVerdict(data?.content?.[0]?.text);
+  } catch (e) {
+    return { reject: true, reason: `QA erro (${e?.message || e}) → rejeitado (fail-safe)` };
+  }
+}
+
+const propsArg = process.argv.find((a) => a.startsWith("--props="));
+const PROPS_PATH = resolve(process.cwd(), propsArg ? propsArg.slice("--props=".length) : "reel-props.json");
+
+// FALLBACK por CATEGORIA — só usado se o Claude não mandar videoQueries no tema.
+// Centrado em VIDA DIGITAL/pessoas/emoção (o assunto da marca), não cenas
+// literais. Em inglês (Pexels indexa melhor assim).
+const CAT_TERMS = {
+  freedom: ["person arms open nature", "walking free open road", "person breathing calm outdoors", "putting phone away relief"],
+  dopamine: ["person scrolling phone in bed", "hand swiping smartphone screen", "phone notifications close up", "person addicted to phone night"],
+  anxiety: ["anxious person looking at phone", "stressed person screen night", "overwhelmed person dark room", "rain window sad mood"],
+  network: ["people on phones ignoring each other", "lonely person in crowd", "couple distracted by phones", "person alone looking at screen"],
+  self: ["person reflection window thinking", "alone silhouette window light", "thoughtful person low light", "person looking in mirror"],
+  mind: ["calm person meditating", "person thinking by window", "slow breathing calm light", "quiet moment without phone"],
+};
+
+function log(m) {
+  console.log(`[footage] ${m}`);
+}
+
+// Hash estável (FNV-1a) p/ derivar um seed de diversificação por render.
+function hashStr(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+// Rotaciona um array por n posições (não-destrutivo). Usado p/ variar QUAL clipe
+// abre o Reel entre renders, sem mudar o conjunto de candidatos.
+function rotate(arr, n) {
+  if (!Array.isArray(arr) || arr.length <= 1) return arr || [];
+  const k = ((n % arr.length) + arr.length) % arr.length;
+  return arr.slice(k).concat(arr.slice(0, k));
+}
+// Sempre 0: footage é opcional (fallback p/ ilustração estática).
+function done(reason) {
+  if (reason) log(reason);
+  process.exit(0);
+}
+
+// Escolhe o melhor arquivo de vídeo de um item Pexels: retrato, ~1080p (evita 4K
+// pesado no render do CI). Prefere altura >= largura e largura <= 1440.
+function pickFile(video) {
+  const files = (video.video_files || []).filter((f) => f.link && f.width && f.height);
+  if (!files.length) return null;
+  const portrait = files.filter((f) => f.height >= f.width);
+  const pool = portrait.length ? portrait : files;
+  // ordena por proximidade de 1080 de largura, preferindo <= 1440
+  pool.sort((a, b) => {
+    const sa = (a.width <= 1440 ? 0 : 1) * 1e6 + Math.abs(a.width - 1080);
+    const sb = (b.width <= 1440 ? 0 : 1) * 1e6 + Math.abs(b.width - 1080);
+    return sa - sb;
+  });
+  return pool[0].link;
+}
+
+async function searchTerm(term) {
+  const url = `https://api.pexels.com/videos/search?query=${encodeURIComponent(term)}&orientation=portrait&size=medium&per_page=${PER_PAGE}`;
+  const res = await fetch(url, { headers: { Authorization: PEXELS_API_KEY } });
+  if (!res.ok) {
+    log(`busca "${term}" HTTP ${res.status}`);
+    return [];
+  }
+  const data = await res.json().catch(() => ({}));
+  const vids = Array.isArray(data.videos) ? data.videos : [];
+  // só retrato com duração decente (>=4s)
+  return vids.filter((v) => v.height >= v.width && (v.duration || 0) >= 4);
+}
+
+async function main() {
+  if (!existsSync(PROPS_PATH)) return done(`props ${PROPS_PATH} ausente — nada a buscar`);
+  let props;
+  try {
+    props = JSON.parse(readFileSync(PROPS_PATH, "utf8"));
+  } catch (e) {
+    return done(`reel-props.json inválido (${e?.message || e}) — sem footage`);
+  }
+  // A API (/api/publish?preview=1) já resolve o footage COMPARTILHADO entre ES e
+  // PT (mesmo vídeo) e o entrega em props.clips. Se veio de lá, não buscamos de
+  // novo — isto aqui vira só o FALLBACK de CI (quando a API não trouxe clipes).
+  if (Array.isArray(props.clips) && props.clips.length) {
+    return done(`clips já vieram da API (base compartilhada, ${props.clips.length}) — pulando Pexels`);
+  }
+  if (!PEXELS_API_KEY) return done("PEXELS_API_KEY ausente — sem footage (fallback ilustração estática)");
+
+  // Prioridade: termos no tema gerados pelo Claude (videoQueries) → fallback cat.
+  const cat = props.cat || "freedom";
+  const fromClaude = Array.isArray(props.videoQueries) ? props.videoQueries.filter((t) => typeof t === "string" && t.trim()) : [];
+  const fallback = (CAT_TERMS[cat] || CAT_TERMS.freedom).slice();
+  log(fromClaude.length ? `videoQueries do Claude: ${fromClaude.join(" | ")}` : `(sem videoQueries) fallback cat "${cat}": ${fallback.join(" | ")}`);
+
+  // Seed de DIVERSIFICAÇÃO por render: dois posts com o MESMO tema (ex.: ES e PT do
+  // mesmo run, ou o mesmo run em dias diferentes) não devem abrir com o MESMO clipe
+  // da Pexels. ed (nº de edição, muda a cada post), handle (conta) e o dia variam por
+  // render → seed distinto → ordem dos candidatos rotacionada → clipe de abertura
+  // diferente. Sem DB, sem estado; só evita a colisão determinística.
+  const day = new Date().toISOString().slice(0, 10);
+  const seed = hashStr(`${props.handle || ""}|${props.ed || ""}|${props.title || ""}|${day}`);
+  log(`seed de diversificação=${seed} (handle=${props.handle || "?"} ed=${props.ed || "?"} dia=${day})`);
+
+  try {
+    const picked = [];
+    const seenVideoIds = new Set();
+
+    // Round-robin entre os termos: pega 1 clipe de CADA termo por passada, depois
+    // volta ao 1º para a 2ª passada, etc. Mantém os clipes NO TEMA e DIVERSOS —
+    // em vez de esvaziar o 1º termo (4 clipes da mesma busca) ou cair no fallback
+    // genérico (o "último clipe fora de contexto"). Só usa o fallback de categoria
+    // depois de esgotar as queries do Claude.
+    async function harvest(termList) {
+      // Pré-carrega as buscas e mantém um cursor por termo (fila de candidatos).
+      const queues = [];
+      for (let t = 0; t < termList.length; t++) {
+        if (picked.length >= NUM_CLIPS) break;
+        const term = termList[t];
+        // Rotaciona os candidatos por (seed + termo) → abertura varia entre renders.
+        const vids = rotate(await searchTerm(term), seed + t * 7);
+        queues.push({ term, vids, i: 0 });
+      }
+      let progressed = true;
+      while (picked.length < NUM_CLIPS && progressed) {
+        progressed = false;
+        for (const q of queues) {
+          if (picked.length >= NUM_CLIPS) break;
+          // avança no termo até achar um vídeo novo com arquivo utilizável
+          while (q.i < q.vids.length) {
+            const v = q.vids[q.i++];
+            if (seenVideoIds.has(v.id)) continue;
+            const link = pickFile(v);
+            if (!link) continue;
+            seenVideoIds.add(v.id); // considerado — não re-julgar o mesmo clipe
+            // QA de CONTEÚDO no poster (incidente 07-01): rejeita macro de pele/corpo,
+            // textura abstrata ou NSFW → pula o candidato. Fail-safe (ver judgeFootagePoster).
+            const verdict = await judgeFootagePoster(v.image);
+            if (verdict.reject) {
+              log(`- clipe reprovado no QA (${q.term}) id=${v.id}: ${verdict.reason}`);
+              continue;
+            }
+            picked.push(link);
+            progressed = true;
+            log(`+ clipe (${q.term}) id=${v.id} ${v.width}x${v.height} ${v.duration}s`);
+            break;
+          }
+        }
+      }
+    }
+
+    // 1ª escolha: só as queries do Claude (no tema). Pode render < NUM_CLIPS.
+    if (fromClaude.length) await harvest(fromClaude);
+    // Fallback de categoria (genérico) só entra se o Claude rendeu ZERO clipes.
+    // Se rendeu >=1, NÃO misturamos clipe genérico: o Reel.tsx cicla os clipes no
+    // tema (a cena final reusa um deles), evitando o "último clipe fora de contexto".
+    if (!picked.length) {
+      if (fromClaude.length) log(`Claude rendeu 0 clipes — caindo no fallback cat "${cat}"`);
+      await harvest(fallback);
+    } else if (picked.length < NUM_CLIPS) {
+      log(`Claude rendeu ${picked.length} clipe(s) no tema (< ${NUM_CLIPS}) — Reel cicla os do tema, sem fallback genérico`);
+    }
+
+    if (!picked.length) return done("nenhum clipe encontrado na Pexels — fallback ilustração estática");
+
+    props.clips = picked;
+    writeFileSync(PROPS_PATH, JSON.stringify(props));
+    log(`${picked.length} clipe(s) gravados em props.clips`);
+
+    // Writeback: ESTA conta achou footage no fallback do CI → grava na base
+    // compartilhada pra a 2ª conta (PT dispara 5 min depois) REUSAR o MESMO
+    // vídeo. Sem isso, ES e PT divergiam (um com footage, outro preto). Só roda
+    // quando há topic + CRON_SECRET; best-effort (falha não quebra o render).
+    await shareClips(props, picked);
+  } catch (e) {
+    return done(`exceção: ${e?.message || e} — sem footage`);
+  }
+  return done();
+}
+
+// Compartilha o footage achado aqui com a outra conta (via /api/reel-share).
+async function shareClips(props, clips) {
+  const secret = process.env.CRON_SECRET;
+  const topic = props.topic;
+  if (!secret || !topic) {
+    return log(`writeback pulado (${!secret ? "sem CRON_SECRET" : "sem topic nos props"}) — footage não compartilhado`);
+  }
+  const base = process.env.PRODUCTION_URL || "https://www.drlibertad.com";
+  // Dia ancorado em BRASÍLIA (UTC-3), MESMA fonte de src/lib/day.ts (dayBRT) — que o
+  // LEITOR (/api/publish → readReelShared) usa p/ chavear reel_shared_cache. Antes era
+  // UTC: no slot 21h BRT (=00h UTC) o writeback gravava sob o dia UTC SEGUINTE enquanto
+  // o leitor lia sob o dia BRT → chave `topic|day` não casava → PT não achava o footage
+  // do ES → vídeos divergiam (um com footage, outro preto). Offset fixo -180min (BR sem DST).
+  const day = new Date(Date.now() - 180 * 60_000).toISOString().slice(0, 10); // dayBRT
+  try {
+    const res = await fetch(`${base}/api/reel-share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${secret}` },
+      body: JSON.stringify({ topic, day, clips, videoQueries: props.videoQueries || [] }),
+    });
+    log(`writeback /api/reel-share → HTTP ${res.status} (footage compartilhado p/ a 2ª conta)`);
+  } catch (e) {
+    log(`writeback falhou (${e?.message || e}) — segue sem compartilhar`);
+  }
+}
+
+main();

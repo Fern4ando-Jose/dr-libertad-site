@@ -1,7 +1,8 @@
 // ─── Governança de custo (spend log + teto por automação) ────────────────────
 // Centraliza TODA a contabilidade de gasto em APIs pagas do projeto:
 //   • tabela de preços de referência por modelo;
-//   • logSpend() — registra cada chamada paga (fal/Anthropic/Tavily) em spend_log;
+//   • logSpend() — registra cada chamada paga (fal/Anthropic) em spend_log;
+//     (Tavily aposentada em 23/06 — pesquisa agora é grátis via Wikipedia);
 //   • checkBudget() — teto DIÁRIO por automação (ig-posts/ig-reels/manual);
 //     o orçamento é aprovado pelo dono; se a automação for estourar, é BLOQUEADA
 //     e o GitHub Actions falha com ::error:: (o dono libera subindo o orçamento).
@@ -10,7 +11,7 @@
 // O modelo de governança está documentado na memória `cost-governance`.
 
 export type Platform = "fal" | "anthropic" | "tavily";
-export type Automation = "ig-posts" | "ig-reels" | "manual";
+export type Automation = "ig-posts" | "ig-reels" | "ig-engagement" | "newsletter" | "manual";
 
 // Preço Anthropic por 1M tokens (entrada/saída). Confirmado via skill claude-api.
 const ANTHROPIC_PRICES: Record<string, { in: number; out: number }> = {
@@ -22,10 +23,16 @@ const ANTHROPIC_PRICES: Record<string, { in: number; out: number }> = {
 // Preço fal por imagem gerada (flux/dev ~1,3 MP). Default conservador p/ modelos novos.
 const FAL_PRICES: Record<string, number> = {
   "fal-ai/flux/dev": 0.028,
+  // Nano Banana 2 (Gemini 3.1 Flash Image) — US$0,08/imagem, preço FLAT (independe da
+  // resolução). Trocado do Flux em 2026-07-07: anatomia muito melhor + sem nudez (moderação
+  // do Google) → passa no QA e PUBLICA, em vez de queimar best-of-5 sem resultado.
+  "fal-ai/gemini-3.1-flash-image-preview": 0.08,
 };
-const FAL_DEFAULT_PRICE = 0.03;
+const FAL_DEFAULT_PRICE = 0.08;
 
-// Preço Tavily por busca (plano advanced, após cota grátis).
+// Preço Tavily por busca (LEGADO — Tavily aposentada em 23/06; a pesquisa de
+// contexto passou a ser grátis via Wikipedia. Mantido só p/ ler rows antigas de
+// spend_log com platform "tavily").
 const TAVILY_PRICE = 0.01;
 
 // Orçamento DIÁRIO aprovado por automação (USD). Override em runtime via
@@ -33,17 +40,36 @@ const TAVILY_PRICE = 0.01;
 // sem precisar de deploy. Steady-state hoje: ig-posts ~0,45 · ig-reels ~0,02.
 const DEFAULT_BUDGETS: Record<Automation, number> = {
   "ig-posts": 0.5,
-  "ig-reels": 0.1,
+  // ES e PT dividem este balde (label "ig-reels", sem split por idioma). Cadência
+  // cheia = 4 reels ES + 4 PT/dia + testes manuais. Footage (Pexels) e render são
+  // GRÁTIS → gasto real ~US$0 na cadência atual; a folga cobre narração TTS (fal) se
+  // ligada. TETO MÁX autorizado pelo dono (2026-06-30): US$0,30/dia — não subir daqui.
+  "ig-reels": 0.3,
+  // Engajamento (auto-resposta a comentários + DM do funil). Cada resposta é haiku
+  // curto (~US$0,005–0,01); ES e PT dividem este balde. Conta nova = quase US$0/dia;
+  // teto protege contra um surto de comentários (ex.: post viral) virar conta de luz.
+  "ig-engagement": 0.25,
+  // Newsletter semanal: 1 ensaio haiku por idioma/semana (~US$0,01–0,02). Envio
+  // pelo Resend é grátis no free tier. Teto folgado p/ testes manuais (dry-run).
+  newsletter: 0.1,
   manual: 0.5, // testes manuais (dryrun &fresh=1) — cap evita o pico de dev (~US$10)
 };
 
-// Estimativa CONSERVADORA do custo de uma execução, por caminho. Usada só pelo
-// gate para decidir se a PRÓXIMA execução cabe no orçamento (o gasto real já
-// gravado é a base; isto é só a margem da execução atual). Assume retries cheios.
+// Estimativa do custo de uma execução, por caminho. Usada só pelo gate p/ decidir se
+// a PRÓXIMA execução cabe no orçamento (o gasto real já gravado é a base; isto é só a
+// margem da execução atual).
+//
+// AUDITORIA 2026-06-24 (finalização do tema custo do carrossel): publish=0,15 assumia
+// ilustração nova (best-of-3) em TODO carrossel, mas ES e PT COMPARTILHAM a ilustração
+// (o 2º idioma reusa o cache → custo real ~só haiku). Com 0,15 o gate dava 402 FALSO
+// (gasto US$0,351 + est US$0,15 > teto US$0,50) num dia em que o gasto REAL nunca passou
+// de US$0,469 (máx 7d, com 6 carrosséis). Real médio/carrossel ~US$0,07. Baixar p/ 0,10
+// elimina o bloqueio à toa e mantém margem. TETO inalterado (0,50); ilustração e QA
+// best-of-3 inalterados (o gasto não é o problema — a estimativa era).
 export const EST_RUN_COST: Record<"publish" | "preview" | "dryrun", number> = {
-  publish: 0.15, // tavily + haiku + 3×(fal+QA)
-  preview: 0.07, // tavily + haiku + 1×(fal+QA)
-  dryrun: 0.04,  // 1×(fal+QA)
+  publish: 0.20, // haiku + Nano Banana best-of-2 (2×US$0,08) compartilhada ES/PT + QA. Estimativa do GATE, não o teto (teto ig-posts segue US$0,50; 2 vagas/dia ≈ US$0,38).
+  preview: 0.10, // haiku + 1×(fal Nano Banana + QA)  (pesquisa Wikipedia = grátis)
+  dryrun: 0.09,  // 1×(fal Nano Banana + QA)
 };
 
 // ─── Cálculo de custo ─────────────────────────────────────────────────────────
@@ -168,7 +194,7 @@ export async function spendSummary(): Promise<{
     WHERE ts >= date_trunc('month', NOW() AT TIME ZONE 'utc')
     GROUP BY automation, platform ORDER BY cost_usd DESC
   `;
-  const autos: Automation[] = ["ig-posts", "ig-reels", "manual"];
+  const autos: Automation[] = ["ig-posts", "ig-reels", "ig-engagement", "newsletter", "manual"];
   const budgets = await Promise.all(
     autos.map(async (a) => ({ automation: a, budget: await getBudget(a), spentToday: await spentToday(a) }))
   );

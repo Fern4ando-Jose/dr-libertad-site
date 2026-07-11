@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isRateLimited } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: NextRequest) {
+  if (await isRateLimited(req, "subscribe", 10)) {
+    return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
+  }
   let email = "";
   let lang = "pt";
   try {
@@ -21,17 +25,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const { sql } = await import("@vercel/postgres");
+    // (tabela `subscribers` criada em /api/migrate — sem DDL por request; auditoria 29/06)
+    // Token de descadastro gerado na inscrição (cada e-mail leva o seu link).
+    const token = crypto.randomUUID().replace(/-/g, "");
     await sql`
-      CREATE TABLE IF NOT EXISTS subscribers (
-        id           SERIAL PRIMARY KEY,
-        email        TEXT NOT NULL UNIQUE,
-        lang         TEXT NOT NULL DEFAULT 'pt',
-        created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `;
-    await sql`
-      INSERT INTO subscribers (email, lang)
-      VALUES (${email}, ${lang})
+      INSERT INTO subscribers (email, lang, unsub_token)
+      VALUES (${email}, ${lang}, ${token})
       ON CONFLICT (email) DO NOTHING
     `;
     return NextResponse.json({ ok: true });

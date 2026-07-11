@@ -29,10 +29,10 @@ const DESCRIPTION =
 // em app/[lang]/layout.tsx (generateMetadata).
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: {
-    default: TITLE,
-    template: "%s · Dr. Libertad",
-  },
+  // Sem template aqui: cada idioma define o seu em app/[lang]/layout.tsx
+  // (PT "· Dr. Liberdade", ES "· Dr. Libertad"). Um template no root vazaria
+  // por cima do título localizado e duplicaria a marca.
+  title: TITLE,
   description: DESCRIPTION,
   applicationName: "Dr. Libertad",
   keywords: [
