@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
-import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, clearRunTopic, publishedId, bumpAttempt, isHardPublishBlock, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome } from "@/lib/run-ledger";
+import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, clearRunTopic, siblingPublished, publishedId, bumpAttempt, isHardPublishBlock, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome } from "@/lib/run-ledger";
 
 // Publicação de REELS (vídeo) no @drlibertad via Instagram Graph API v25.
 // O vídeo já precisa estar hospedado em URL pública (ex.: Vercel Blob).
@@ -180,7 +180,13 @@ async function handle(req: NextRequest) {
   if (!force && run !== null && Number.isFinite(run) && topic && await topicUsedInOtherVaga(day, run, topic)) {
     // Tema BLOQUEADO → libera o pin (run_topics) p/ a vaga recomputar um tema fresco na
     // próxima retentativa (igual ao carrossel; sem isto o pin congelava o tema bloqueado).
-    await clearRunTopic(day, run);
+    // ⚠️ MAS só se a língua-IRMÃ desta MESMA vaga AINDA NÃO publicou: se ela já saiu com
+    // este tema, apagar o pin faz a retentativa deste idioma recomputar um tema DIFERENTE
+    // → ES e PT viram vídeos divergentes na mesma vaga (quebra "mesmo vídeo ES/PT" e
+    // confunde os alarmes de duplicata/órfão). Com a irmã publicada a vaga está travada no
+    // tema: mantém o pin (idioma fica em skip → vira órfão, que o guardião detecta) em vez
+    // de gerar um par divergente. Fail-open: siblingPublished=false em erro → limpa (antigo).
+    if (!(await siblingPublished(day, run, lang))) await clearRunTopic(day, run);
     return NextResponse.json({ ok: true, skipped: true, reason: `tópico "${topic}" já saiu em outra vaga em 7d — trava de publicação`, log });
   }
 

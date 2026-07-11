@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dayBRT, publishedRunsToday, recentDuplicateTopics, attemptsToday, shouldStopRetrying, orphanedPairs } from "@/lib/run-ledger";
-import { minOfDayBRT } from "@/lib/day";
+import { minOfDayBRT, RUN_HOUR_BRT } from "@/lib/day";
 import { accountFor, type Lang } from "@/lib/accounts";
 
 // GUARDIÃO diário: verifica se as 6 vagas do dia publicaram em CADA conta (ES + PT).
@@ -18,7 +18,7 @@ import { accountFor, type Lang } from "@/lib/accounts";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14, 6: 7 };
+// RUN_HOUR_BRT (run→hora BRT) mora em @/lib/day — FONTE ÚNICA compartilhada com catchup/runs-status.
 const GRACE_MIN = 75;
 const ACTIVE_LANGS: Lang[] = ["es", "pt"];
 const EXPECTED = 7; // 7 vagas/dia por conta (2 carrosséis + 4 reels vídeo + 1 clássico)

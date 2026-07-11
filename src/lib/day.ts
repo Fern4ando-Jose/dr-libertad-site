@@ -23,3 +23,13 @@ export function minOfDayBRT(date = new Date()): number {
   const d = new Date(date.getTime() + BRT_OFFSET_MIN * 60_000);
   return d.getUTCHours() * 60 + d.getUTCMinutes();
 }
+
+// ─── Horário-alvo (BRT) de cada run da cadência — FONTE ÚNICA ─────────────────
+// run → hora BRT em que a vaga deveria ter saído. O watchdog (catchup/guardian/
+// runs-status) usa p/ decidir se um run "venceu" (dueMin = RUN_HOUR_BRT[run]*60 +
+// GRACE). Antes o mapa vivia COPIADO idêntico nas 3 rotas → risco de dessincronizar
+// (mexer numa e esquecer as outras). Aqui é FONTE ÚNICA (P8): mudou a cadência,
+// muda só este mapa. Espelha a tabela do CLAUDE.md / os crons dos workflows:
+//   0=12h · 1=17h · 2=21h (reels footage) · 3=19h (reel clássico) · 4=9h · 5=14h
+//   (carrosséis) · 6=7h (4º reel footage, cadência 7/dia).
+export const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14, 6: 7 };

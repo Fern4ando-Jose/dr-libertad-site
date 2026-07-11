@@ -4,7 +4,7 @@
 // seguinte como já publicadas → o reel renderizava e PULAVA. Ancorar em BRT mantém
 // todos os 6 slots (09h–21h) no MESMO dia do calendário da conta.
 import { describe, it, expect } from "vitest";
-import { dayBRT, minOfDayBRT } from "./day";
+import { dayBRT, minOfDayBRT, RUN_HOUR_BRT } from "./day";
 
 describe("dayBRT — dia ancorado em Brasília (UTC-3)", () => {
   it("meio do dia BRT fica no dia certo", () => {
@@ -33,5 +33,18 @@ describe("minOfDayBRT — minuto-do-dia em BRT (janela do watchdog)", () => {
 
   it("15h UTC = 12h BRT = 720 min (run 0)", () => {
     expect(minOfDayBRT(new Date("2026-06-24T15:00:00Z"))).toBe(12 * 60);
+  });
+});
+
+describe("RUN_HOUR_BRT — FONTE ÚNICA do horário-alvo por run (watchdog)", () => {
+  // Antes o mapa vivia COPIADO nas 3 rotas do watchdog (catchup/guardian/runs-status).
+  // Aqui trava o contrato: se a cadência mudar, muda SÓ este mapa e o teste avisa.
+  it("cobre os 7 runs da cadência com as horas dos crons dos workflows", () => {
+    expect(RUN_HOUR_BRT).toEqual({ 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14, 6: 7 });
+  });
+
+  it("o dueMin do watchdog casa com o horário do run (ex.: run 2 = 21h)", () => {
+    const GRACE_MIN = 75; // mesma carência das rotas
+    expect(RUN_HOUR_BRT[2] * 60 + GRACE_MIN).toBe(21 * 60 + 75);
   });
 });

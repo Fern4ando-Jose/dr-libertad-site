@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dayBRT, publishedRunsToday, attemptsToday, shouldStopRetrying } from "@/lib/run-ledger";
-import { minOfDayBRT } from "@/lib/day";
+import { minOfDayBRT, RUN_HOUR_BRT } from "@/lib/day";
 
 // ─── Catch-up acionável DE FORA (agendador externo) ──────────────────────────
 // Espelha o catchup.yml, mas como ENDPOINT — pra um cron EXTERNO (ex.: cron-job.org)
@@ -15,7 +15,7 @@ import { minOfDayBRT } from "@/lib/day";
 // serviço de cron externo. Sem o token → 500 avisando (inerte até o dono configurar).
 
 // Hora BRT de cada run (cron UTC convertido). BRT p/ casar com dayBRT (run 2 = 21h BRT).
-const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14, 6: 7 };
+// RUN_HOUR_BRT (run→hora BRT) mora em @/lib/day — FONTE ÚNICA compartilhada com guardian/runs-status.
 const GRACE_MIN = 75;
 const ACTIVE_LANGS = ["es", "pt"];
 const REPO = process.env.GH_REPO || "Fern4ando-Jose/dr-libertad-site";
