@@ -1,7 +1,12 @@
-// ─── ReelV2 — composição EXPERIMENTAL de RETENÇÃO (separada da produção) ───────
-// NÃO roda em produção (os workflows renderizam "Reel"). É a versão de teste pra atacar
-// o gargalo medido no /insights: watch médio 4,3s de ~25s (17%) → a galera sai DURANTE
-// a capa de 5s. Mudanças vs. o Reel de produção:
+// ─── ReelV2 — composição de RETENÇÃO (É A PRODUÇÃO dos 3 reels footage) ────────
+// ⚠️ PRODUÇÃO desde 26/06 (PR #102): os workflows `instagram-reels.yml` e
+// `instagram-reels-pt.yml` renderizam `--composition=ReelV2`. O `Reel` clássico
+// (`video/Reel.tsx`, capa 5s estática) ficou de RESERVA; o `ReelClassic` é o slide
+// animado do run 3. (Este cabeçalho dizia "NÃO roda em produção / renderizam Reel" —
+// estava DESATUALIZADO desde a promoção; corrigido 2026-07-11.)
+//
+// Nasceu experimental pra atacar o gargalo medido no /insights: watch médio 4,3s de
+// ~25s (17%) → a galera saía DURANTE a capa de 5s. O que mudou vs. o Reel clássico:
 //   1. CAPA 5,0s → 3,0s: mata o "vão" parado e leva a pessoa pro 1º insight rápido
 //      (curta o bastante p/ retenção, longa o bastante p/ o gancho cinético landar).
 //   2. LEGENDA CINÉTICA: capa E insights entram palavra-por-palavra (movimento constante
@@ -11,12 +16,11 @@
 //   4. DE-DUP (dedupeSlides): a geração às vezes faz slides[0] === título → capa e
 //      insight 1 mostravam a MESMA frase (~8s repetidos). Aqui o insight ~igual ao
 //      título é descartado (e a duração ajusta, sem cena preta no fim).
+//   5. VOZ (narrationUrl) + END-CARD do FUNIL (funnel comment→DM) — campos de ReelProps
+//      que só esta composição consome (o clássico os ignora).
 // Reusa a CENA/GRADE comprovada do Reel (mesma cara de marca) via `Scene` exportado —
-// sem copiar, sem drift. A produção (composição "Reel") fica intocada.
-//
-// PENDENTE p/ promover a produção (decisão do dono): trocar a composição renderizada
-// nos workflows; de-dup na ORIGEM (prompt, conserta o carrossel também); loop; voz/TTS.
-// Render de teste: `render-reel.mjs --composition=ReelV2` (CI), publish:no.
+// sem copiar, sem drift.
+// Render de teste isolado: `render-reel.mjs --composition=ReelV2` (CI), publish:no.
 
 import React from "react";
 import {

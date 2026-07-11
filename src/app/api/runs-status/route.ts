@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dayBRT, publishedRunsToday, recentDuplicateTopics, attemptsToday, shouldStopRetrying, orphanedPairs } from "@/lib/run-ledger";
-import { minOfDayBRT } from "@/lib/day";
+import { minOfDayBRT, RUN_HOUR_BRT } from "@/lib/day";
 
 // Status dos 6 runs do dia por idioma — o que JÁ publicou e o que está FALTANDO
 // (vencido por agora e ainda sem publicação). O watchdog (catchup.yml) consome
@@ -13,7 +13,7 @@ import { minOfDayBRT } from "@/lib/day";
 
 // Hora BRT de cada run (= o cron UTC convertido: 15/20/0/22/12/17 UTC). PRECISA ser
 // BRT p/ casar com dayBRT — senão o run 2 (21h BRT = 00h UTC) cairia fora da janela.
-const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14, 6: 7 };
+// RUN_HOUR_BRT (run→hora BRT) mora em @/lib/day — FONTE ÚNICA compartilhada com catchup/guardian.
 const GRACE_MIN = 75; // carência após o horário do cron antes de considerar "faltando"
 
 // Idiomas com publicação automática ativa (crons ligados). PT no ar desde 2026-06-18.

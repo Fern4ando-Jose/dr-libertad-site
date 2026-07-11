@@ -263,8 +263,8 @@ function SceneBg({
 }
 
 // Envelope comum de cena: fundo graded + scrim + textura + conteúdo (texto).
-// `export` (apenas) para o ReelV2 reusar a MESMA cena/grade comprovada sem copiar —
-// não muda nada do que o Reel de produção renderiza.
+// `export` (apenas) para o ReelV2 (composição de PRODUÇÃO) reusar a MESMA cena/grade
+// comprovada sem copiar — este `Reel` clássico (reserva) e o V2 dividem a mesma cara.
 export function Scene({
   clip,
   img,
@@ -386,6 +386,11 @@ function CtaText({ cta, accent, handle, ctaFollow, ctaBio }: { cta: string; acce
 }
 
 // ─── Composição completa ──────────────────────────────────────────────────────
+// ⚠️ O `Reel` CLÁSSICO ignora de propósito `narrationUrl` e `funnel` do tipo `ReelProps`:
+// esses dois campos existem no tipo porque quem os consome é o `ReelV2` (composição de
+// PRODUÇÃO — narração/voz e o end-card do funil comment→DM). Este clássico é a RESERVA
+// (capa 5s estática, sem voz nem funil) e por isso não os desestrutura. Não é bug: se um
+// dia o clássico precisar de voz/funil, implementar aqui; enquanto isso, ficam no ReelV2.
 export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, clips, clip, music, cat, handle = "@dr.liberdad", brand = "Dr. Libertad", ctaFollow = "Sigue", ctaBio = "→ Más en el link de la bio" }) => {
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
   const safeSlides = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 3);

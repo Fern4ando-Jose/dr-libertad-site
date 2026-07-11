@@ -992,7 +992,12 @@ export async function GET(req: NextRequest) {
           // Tema BLOQUEADO → libera o pin (run_topics) para a vaga recomputar um tema fresco
           // na próxima retentativa do dia. Sem isto o pin congelava o tema bloqueado e a vaga
           // ficava presa o dia todo (regressão do sub-uso). O caminho feliz não passa aqui.
-          await clearRunTopic(dayBRT(now), runIndex);
+          // ⚠️ MAS só se a língua-IRMÃ desta MESMA vaga AINDA NÃO publicou: se ela já saiu com
+          // este tema, apagar o pin faz a retentativa deste idioma recomputar um tema DIFERENTE
+          // → ES/PT viram posts divergentes na mesma vaga (quebra "mesmo tema ES/PT"). Com a
+          // irmã publicada a vaga está travada no tema: mantém o pin (vira órfão, detectado)
+          // em vez de par divergente. Fail-open: siblingPublished=false em erro → limpa (antigo).
+          if (!(await siblingPublished(dayBRT(now), runIndex, lang))) await clearRunTopic(dayBRT(now), runIndex);
           results.push(slotLog);
           continue;
         }
