@@ -1,0 +1,39 @@
+name: Medição de atenção — snapshot diário dos sinais (2 contas)
+
+# ROTINA DIÁRIA (passo 5 do cargo estrategista-de-atencao). Roda de madrugada
+# (04:10 BRT), depois das 7 vagas do dia terem vencido, e snapshota os SINAIS DE
+# ATENÇÃO reais de cada post publicado (alcance · sends/compartilhamentos ·
+# salvamentos · watch time dos Reels) das 2 contas em SÉRIE TEMPORAL (tabela
+# post_metric_snapshots) — para ver a trajetória dos primeiros dias e alimentar o
+# ajuste da _DIRETRIZ-ATENCAO.md/playbook. Só COLETA e REPORTA; o ajuste do playbook
+# é decisão humana (§1.10/§1.18). Grátis (Graph API não custa).
+
+on:
+  schedule:
+    - cron: "10 7 * * *" # 07:10 UTC = 04:10 BRT
+  workflow_dispatch: {}
+
+concurrency:
+  group: attention-metrics
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Snapshot dos sinais de atenção (ES + PT)
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          RESP=$(curl -fsS --max-time 55 -H "Authorization: Bearer $CRON_SECRET" \
+            "https://www.drlibertad.com/api/attention-metrics")
+          echo "attention-metrics: $RESP"
+
+          PERSISTED=$(echo "$RESP" | jq -r '.persisted // 0')
+          OK=$(echo "$RESP" | jq -r '.ok')
+          if [ "$OK" != "true" ]; then
+            echo "::warning title=Medição de atenção::snapshot não OK — $RESP"
+          else
+            echo "::notice title=Medição de atenção::snapshot OK — $PERSISTED linhas persistidas"
+          fi
