@@ -104,14 +104,19 @@ export const SCREENS: ScreenSpec[] = [
   },
   {
     // v2 REORDENADA: comportamento (18) → percepção (19) → comportamento (20) →
-    // opinião (21) → desfecho (22). PNR em 18, 19 (NOVO) e 20.
+    // opinião (21) → desfecho (22). PNR em TODOS os 5 itens (veredito do dono
+    // 2026-07-11: a promessa do subtítulo — "toda pergunta aqui aceita 'prefiro
+    // não responder'" — manda, e a medição se ajusta a ela; FUNIL-PERGUNTAS.md
+    // já atualizado).
+    // NOTA DE ANÁLISE: PNR em q21/q22 = MISSING — não compõe índice nenhum
+    // (q21 é opinião de H5; q22 é desfecho e já não compunha índice).
     key: "a-parte-que-ninguem-conta",
     questions: [
       { id: "q18", kind: "freq", pnr: true }, // checagem por desconfiança
       { id: "q19", kind: "scale", pnr: true }, // ciúme/desconfiança — PNR NOVO na v2
       { id: "q20", kind: "yesno", pnr: true }, // flerte/conversa escondida
-      { id: "q21", kind: "scale" }, // opinião: apps facilitam traições
-      { id: "q22", kind: "yesno" }, // desfecho: já vi terminar
+      { id: "q21", kind: "scale", pnr: true }, // opinião: apps facilitam traições (PNR = missing na análise)
+      { id: "q22", kind: "yesno", pnr: true }, // desfecho: já vi terminar (PNR = missing na análise)
     ],
   },
   {

@@ -47,11 +47,11 @@ describe("survey-schema — estrutura (FUNIL v2, 2026-07-11)", () => {
     expect(ids[ids.length - 1]).toBe("q24");
   });
 
-  it("v2: PNR nos 3 itens sensíveis da tela 5 — q18, q19 (NOVO, escala) e q20", () => {
+  it("v2: PNR em TODOS os 5 itens da tela 5 (veredito do dono — a promessa do subtítulo manda)", () => {
     const pnrIds = SCREENS.flatMap((s) => s.questions)
       .filter((q) => q.pnr)
       .map((q) => q.id);
-    expect(pnrIds).toEqual(["q18", "q19", "q20"]);
+    expect(pnrIds).toEqual(["q18", "q19", "q20", "q21", "q22"]);
   });
 
   it("v2: q9 é o ÚNICO item reverso (inverter escala antes de agregar) e é escala", () => {
@@ -101,17 +101,20 @@ describe("survey-schema — validação", () => {
     expect(validateAnswers(a)).toEqual({ ok: false, error: "missing_q18" });
   });
 
-  it("PNR só passa onde o item é sensível (inclusive na escala q19)", () => {
+  it("PNR passa em TODA a tela 5 (q18..q22) e só nela", () => {
     const a = fullValidAnswers();
     a.q18 = PNR; // freq sensível → ok
     a.q19 = PNR; // ESCALA sensível (v2) → ok
     a.q20 = PNR; // yesno sensível → ok
+    a.q21 = PNR; // opinião (veredito: PNR = missing na análise) → ok
+    a.q22 = PNR; // desfecho (veredito: PNR = missing na análise) → ok
     expect(validateAnswers(a).ok).toBe(true);
-    a.q22 = PNR; // desfecho NÃO tem PNR → rejeita
-    expect(validateAnswers(a)).toEqual({ ok: false, error: "invalid_q22" });
     const b = fullValidAnswers();
-    b.q11 = PNR; // escala comum NÃO aceita PNR
+    b.q11 = PNR; // escala fora da tela 5 NÃO aceita PNR
     expect(validateAnswers(b)).toEqual({ ok: false, error: "invalid_q11" });
+    const d = fullValidAnswers();
+    d.q13 = PNR; // frequência fora da tela 5 NÃO aceita PNR (extra ≠ PNR)
+    expect(validateAnswers(d)).toEqual({ ok: false, error: "invalid_q13" });
   });
 
   it("opção extra do q13 passa; a mesma string em outra frequência é rejeitada", () => {
