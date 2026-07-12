@@ -8,6 +8,8 @@
 //
 // Usado tanto pela rota /api/insights (JSON) quanto pela página /insights (UI).
 
+import { accountFor, type Lang } from "@/lib/accounts";
+
 const GRAPH = "https://graph.instagram.com/v25.0";
 
 export type Format = "REEL" | "CARROSSEL" | "IMAGEM" | "OUTRO";
@@ -153,10 +155,27 @@ function avg(nums: number[]): number {
   return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
 
-export async function getInsights(): Promise<InsightsResult> {
+// Resolve (accountId, token) de UMA conta pelo idioma. ES usa as envs históricas
+// (META_INSTAGRAM_ACCOUNT_ID/META_ACCESS_TOKEN) — comportamento INALTERADO do /insights.
+// PT usa as suas (*_PT). Fallback: se a env do token faltar, lê o config DB (dbTokenKey,
+// onde o refresh-token guarda o valor fresco). ENV primeiro → ES idêntico a hoje.
+async function resolveAccount(lang: Lang): Promise<{ accountId?: string; token?: string }> {
+  const acc = accountFor(lang);
+  const accountId = process.env[acc.accountIdEnv];
+  let token = process.env[acc.tokenEnv];
+  if (!token && acc.dbTokenKey) {
+    try {
+      const { sql } = await import("@vercel/postgres");
+      const rows = await sql<{ value: string }>`SELECT value FROM config WHERE key = ${acc.dbTokenKey}`;
+      if (rows.rows[0]?.value) token = rows.rows[0].value;
+    } catch { /* sem banco — segue sem token */ }
+  }
+  return { accountId, token };
+}
+
+export async function getInsights(lang: Lang = "es"): Promise<InsightsResult> {
   const generatedAt = new Date().toISOString();
-  const accountId = process.env.META_INSTAGRAM_ACCOUNT_ID;
-  const token = process.env.META_ACCESS_TOKEN;
+  const { accountId, token } = await resolveAccount(lang);
   const tokenPresent = Boolean(accountId && token);
 
   if (!tokenPresent) {
@@ -166,7 +185,7 @@ export async function getInsights(): Promise<InsightsResult> {
       tokenPresent: false,
       items: [],
       byFormat: [],
-      note: "META_INSTAGRAM_ACCOUNT_ID/META_ACCESS_TOKEN ausentes (só existem em produção).",
+      note: `Token/account da conta ${lang.toUpperCase()} ausentes (só existem em produção).`,
     };
   }
 
@@ -269,4 +288,116 @@ export async function getInsights(): Promise<InsightsResult> {
     .filter((x): x is FormatSummary => x != null);
 
   return { ok: true, generatedAt, tokenPresent: true, items, byFormat };
+}
+
+// ─── Rotina de medição de ATENÇÃO (passo 5 do estrategista-de-atencao) ─────────
+// Snapshot diário dos SINAIS DE ATENÇÃO reais (alcance · sends/compartilhamentos ·
+// salvamentos · watch time dos Reels) das 2 contas, em SÉRIE TEMPORAL, para ver a
+// trajetória de cada post nos primeiros dias e alimentar o ajuste da
+// `_DIRETRIZ-ATENCAO.md`/playbook. A rotina só COLETA e REPORTA — o AJUSTE do
+// playbook é decisão humana (§1.10/§1.18). Grátis (Graph API não custa; sem Anthropic).
+
+// Sinais de atenção agregados por formato — o que o playbook otimiza. PURA (testável).
+export type AttentionSummary = {
+  format: Format;
+  count: number;
+  avgReach: number;
+  avgSaveRate: number | null;   // salvamentos / alcance
+  avgShareRate: number | null;  // sends (compartilhamentos) / alcance — alavanca nº1 de alcance novo
+  avgWatchSec: number | null;   // watch time médio (só Reels)
+};
+
+export function summarizeAttention(items: PostInsight[]): AttentionSummary[] {
+  const formats: Format[] = ["REEL", "CARROSSEL", "IMAGEM", "OUTRO"];
+  return formats
+    .map((f) => {
+      const g = items.filter((i) => i.format === f);
+      if (g.length === 0) return null;
+      const sr = g.map((i) => i.saveRate).filter((x): x is number => x != null);
+      const shr = g.map((i) => i.shareRate).filter((x): x is number => x != null);
+      const w = g.map((i) => i.avgWatchSec).filter((x): x is number => x != null);
+      return {
+        format: f,
+        count: g.length,
+        avgReach: Math.round(avg(g.map((i) => i.reach))),
+        avgSaveRate: sr.length ? avg(sr) : null,
+        avgShareRate: shr.length ? avg(shr) : null,
+        avgWatchSec: w.length ? Math.round(avg(w) * 10) / 10 : null,
+      } satisfies AttentionSummary;
+    })
+    .filter((x): x is AttentionSummary => x != null);
+}
+
+export type SnapshotLang = {
+  lang: Lang;
+  ok: boolean;
+  count: number;
+  attention: AttentionSummary[];
+  note?: string;
+};
+export type SnapshotResult = {
+  ok: boolean;
+  generatedAt: string;
+  persisted: number;
+  byLang: SnapshotLang[];
+};
+
+// Coleta as 2 contas e PERSISTE cada post como uma linha (série temporal). Uma linha
+// por (post, snapshot) → a evolução de alcance/sends/saves nos primeiros dias fica
+// visível. Fail-open por conta: PT sem token não derruba o ES.
+export async function snapshotInsights(): Promise<SnapshotResult> {
+  const generatedAt = new Date().toISOString();
+  const langs: Lang[] = ["es", "pt"];
+  const byLang: SnapshotLang[] = [];
+  let persisted = 0;
+
+  const { sql } = await import("@vercel/postgres");
+  await sql`
+    CREATE TABLE IF NOT EXISTS post_metric_snapshots (
+      id            SERIAL PRIMARY KEY,
+      post_id       TEXT NOT NULL,
+      lang          TEXT NOT NULL,
+      format        TEXT NOT NULL,
+      title         TEXT,
+      permalink     TEXT,
+      posted_at     TIMESTAMPTZ,
+      age_days      REAL,
+      reach         INTEGER,
+      views         INTEGER,
+      likes         INTEGER,
+      comments      INTEGER,
+      saved         INTEGER,
+      shares        INTEGER,
+      interactions  INTEGER,
+      avg_watch_sec REAL,
+      save_rate     REAL,
+      share_rate    REAL,
+      snapshot_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  for (const lang of langs) {
+    const res = await getInsights(lang);
+    if (!res.ok) {
+      byLang.push({ lang, ok: false, count: 0, attention: [], note: res.note });
+      continue;
+    }
+    for (const it of res.items) {
+      try {
+        await sql`
+          INSERT INTO post_metric_snapshots
+            (post_id, lang, format, title, permalink, posted_at, age_days, reach, views,
+             likes, comments, saved, shares, interactions, avg_watch_sec, save_rate, share_rate)
+          VALUES
+            (${it.id}, ${lang}, ${it.format}, ${it.title}, ${it.permalink}, ${it.timestamp},
+             ${it.ageDays}, ${it.reach}, ${it.views}, ${it.likes}, ${it.comments}, ${it.saved},
+             ${it.shares}, ${it.interactions}, ${it.avgWatchSec}, ${it.saveRate}, ${it.shareRate})
+        `;
+        persisted++;
+      } catch { /* uma linha ruim não derruba o snapshot */ }
+    }
+    byLang.push({ lang, ok: true, count: res.items.length, attention: summarizeAttention(res.items) });
+  }
+
+  return { ok: true, generatedAt, persisted, byLang };
 }
