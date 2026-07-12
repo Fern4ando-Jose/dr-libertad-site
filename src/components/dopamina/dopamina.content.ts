@@ -347,7 +347,7 @@ const es: DopaminaContent = {
     heading: "¿Reconoces alguno de estos?",
     items: [
       "Deslizas el feed “solo un poco” y pierdes 40 minutos sin darte cuenta.",
-      "Sientes una punzada de ansiedad cuando el móvil no está cerca.",
+      "Sientes una punzada de ansiedad cuando el celular no está cerca.",
       "Empiezas un video de 10 minutos y ya abres otra pestaña a la mitad.",
       "Terminas la noche con placer superficial + vacío + culpa.",
       "Aplazas lo que importa — pero siempre sobra energía para una pantalla más.",
@@ -400,7 +400,7 @@ const es: DopaminaContent = {
   },
   footRepeatCta: "Aún hay tiempo: haz el test de 1 minuto →",
   footerDisclaimer:
-    "Contenido educativo. “Dr. Libertad” es persona editorial; este material y el libro no constituyen diagnóstico, tratamiento ni consejo médico. Si sufres de ansiedad, compulsiones o uso de pantallas que afectan tu vida, busca a un profesional de salud.",
+    "Contenido educativo. “Dr. Libertad” es persona editorial; este material y el libro no constituyen diagnóstico, tratamiento ni consejo médico. Si sufres de ansiedad, compulsiones o uso de pantallas que afectan tu vida, busca a un profesional de la salud.",
   footerSignature: "I Love Dopamina · Dr. Libertad · @dr.liberdad",
 
   quiz: {
@@ -416,9 +416,9 @@ const es: DopaminaContent = {
         axis: "Lo primero del día",
         text: "En los primeros 10 minutos después de despertar, ¿qué hace tu mano?",
         options: [
-          "Me levanto, empiezo el día. El móvil puede esperar.",
+          "Me levanto, empiezo el día. El celular puede esperar.",
           "Le doy un vistazo rápido y lo suelto.",
-          "Agarro el móvil aún acostado y deslizo un poco antes de salir de la cama.",
+          "Agarro el celular aún acostado y deslizo un poco antes de salir de la cama.",
           "Ya estoy en el feed antes de estar de pie. Ni decidí agarrarlo — ya lo agarré.",
         ],
       },
@@ -433,8 +433,8 @@ const es: DopaminaContent = {
         ],
       },
       {
-        axis: "Lejos del móvil",
-        text: "Cuando el móvil no está cerca, ¿qué sientes?",
+        axis: "Lejos del celular",
+        text: "Cuando el celular no está cerca, ¿qué sientes?",
         options: [
           "Nada. Solo lo noto cuando lo necesito para algo.",
           "Una leve falta, pasa rápido.",
@@ -464,11 +464,11 @@ const es: DopaminaContent = {
       },
       {
         axis: "La vida sin pantalla",
-        text: "Un café sin móvil. Una fila. Una conversación que se arrastra. Un libro. ¿Cómo suena hoy?",
+        text: "Un café sin celular. Una fila. Una conversación que se arrastra. Un libro. ¿Cómo suena hoy?",
         options: [
           "Normal. Puedo estar ahí, presente, sin pantalla.",
           "De vez en cuando me aburro, pero lo manejo.",
-          "Me inquieto rápido. La mano pica por agarrar el móvil.",
+          "Me inquieto rápido. La mano pica por agarrar el celular.",
           "Insoportable. Sin estímulo, todo parece lento, aburrido, sin gracia. Lo real se volvió demasiado lento.",
         ],
       },
@@ -477,7 +477,7 @@ const es: DopaminaContent = {
         text: "La tarea importante que aplazas, y “un scroll más”. ¿Quién gana?",
         options: [
           "Hago lo que importa primero. La pantalla es después.",
-          "Me enredo un poco, pero llego.",
+          "Me demoro un poco, pero llego.",
           "Aplazo lo importante, pero siempre sobra energía para la pantalla.",
           "Paso el día diciendo “ya voy a hacerlo” — y el día acaba con la tarea intacta y horas de pantalla.",
         ],
@@ -506,7 +506,7 @@ const es: DopaminaContent = {
       guidePromise: "El adelanto de I Love Dopamina y tu resultado van camino a tu bandeja de entrada.",
     },
     disclaimer:
-      "Este resultado es educativo y reflexivo — no es diagnóstico, informe ni evaluación clínica. “Dr. Libertad” es una persona editorial; el contenido no sustituye el acompañamiento profesional de salud. Si el uso de pantallas, juegos u otras compulsiones está afectando tu trabajo, tu sueño o tus relaciones, busca a un profesional de salud.",
+      "Este resultado es educativo y reflexivo — no es diagnóstico, informe ni evaluación clínica. “Dr. Libertad” es una persona editorial; el contenido no sustituye el acompañamiento profesional de la salud. Si el uso de pantallas, juegos u otras compulsiones está afectando tu trabajo, tu sueño o tus relaciones, busca a un profesional de la salud.",
   },
 
   bands: [
@@ -529,14 +529,14 @@ const es: DopaminaContent = {
       ...BAND_META.vermelho,
       name: "El algoritmo está manejando — pero el auto aún es tuyo",
       verdict:
-        "Honestidad: buena parte de tu día hoy la decide la pantalla, no tú. La mano agarra el móvil antes de la decisión. Lo importante queda para después. Eso no te vuelve débil. Compites contra edificios llenos de gente con doctorado, cuyo trabajo es hacerte deslizar un poco más — conocen tu cerebro mejor que tú. Perder esa disputa es el resultado esperado de una pelea desigual que nadie te avisó que existía. La salida no es el “detox” que te vendieron — es recalibrar la sensibilidad, cambiando el entorno y el orden de las recompensas. El adelanto empieza ese camino. El libro trae el protocolo entero.",
+        "Honestidad: buena parte de tu día hoy la decide la pantalla, no tú. La mano agarra el celular antes de la decisión. Lo importante queda para después. Eso no te vuelve débil. Compites contra edificios llenos de gente con doctorado, cuyo trabajo es hacerte deslizar un poco más — conocen tu cerebro mejor que tú. Perder esa disputa es el resultado esperado de una pelea desigual que nadie te avisó que existía. La salida no es el “detox” que te vendieron — es recalibrar la sensibilidad, cambiando el entorno y el orden de las recompensas. El adelanto empieza ese camino. El libro trae el protocolo entero.",
     },
     {
       key: "critico",
       ...BAND_META.critico,
-      name: "No es sobre la pantalla. Es recuperar la llave.",
+      name: "No es sobre la pantalla. Es sobre recuperar la llave.",
       verdict:
-        "El resultado dice que casi toda tu búsqueda de placer hoy pasa por el estímulo rápido — y que lo real, lo lento, lo difícil, casi desapareció. Antes de todo: esto no es un informe, y no eres un caso perdido. Es un espejo de un momento. Lo que pasó tiene nombre, tiene ciencia, y no empezó por tu culpa: un cerebro expuesto a estímulo rápido todo el tiempo pierde la sensibilidad a lo que es real — es biología, no personalidad. Y la biología se recalibra, en el orden correcto, un paso a la vez. Empieza por el adelanto ahora — muestra por qué llegaste aquí, y que la salida existe (el libro trae el camino completo, los pasos en orden), sin volverte un ermitaño que tira el móvil al río.",
+        "El resultado dice que casi toda tu búsqueda de placer hoy pasa por el estímulo rápido — y que lo real, lo lento, lo difícil, casi desapareció. Antes de todo: esto no es un informe, y no eres un caso perdido. Es un espejo de un momento. Lo que pasó tiene nombre, tiene ciencia, y no empezó por tu culpa: un cerebro expuesto a estímulo rápido todo el tiempo pierde la sensibilidad a lo que es real — es biología, no personalidad. Y la biología se recalibra, en el orden correcto, un paso a la vez. Empieza por el adelanto ahora — muestra por qué llegaste aquí, y que la salida existe (el libro trae el camino completo, los pasos en orden), sin volverte un ermitaño que tira el celular al río.",
     },
   ],
 };
