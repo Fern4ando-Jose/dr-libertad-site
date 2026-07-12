@@ -151,23 +151,27 @@
   max-width: 34em;
   margin: 0 0 26px;
 }
-.chips {
-  display: flex;
-  flex-wrap: wrap;
+/* Micro-copy de pioneirismo (v2, tela 0 — só na janela de lançamento) */
+.launchNote {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  margin: 0 0 36px;
-  padding: 0;
-  list-style: none;
-}
-.chip {
-  border: 1px solid var(--line);
-  background: var(--card);
+  border: 1px solid rgba(164, 90, 90, 0.4);
+  background: var(--red-soft);
   border-radius: 9999px;
-  padding: 8px 14px;
-  font-size: 11px;
-  letter-spacing: 0.2em;
+  padding: 8px 16px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(244, 240, 232, 0.9);
+  color: rgba(244, 240, 232, 0.92);
+  margin: 0 0 32px;
+}
+.launchNote::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--red);
 }
 
 /* Consentimento */
@@ -429,6 +433,10 @@
   letter-spacing: 0.06em;
   color: var(--dim);
 }
+/* v2: "prefiro não responder" também na escala sensível (q19) */
+.scalePnrRow {
+  margin-top: 10px;
+}
 
 /* Abertas + e-mail (tela 6) */
 .textarea {
@@ -481,10 +489,23 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap; /* botões narrativos v2 são longos — quebra sem estourar */
   gap: 12px;
   margin-top: 36px;
   padding-top: 24px;
   border-top: 1px solid var(--line);
+}
+@media (max-width: 560px) {
+  .navRow {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .navRow .btn,
+  .navRow .btnGhost {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
 }
 .navHint {
   font-size: 12.5px;

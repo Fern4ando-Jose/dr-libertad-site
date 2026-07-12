@@ -1,9 +1,10 @@
 "use client";
 
-// Funil da pesquisa "Redes Sociais e Relacionamentos" — 7 telas, mobile-first
-// (tráfego vem do Instagram): tela 0 = herói + consentimento (obrigatório),
-// telas 1–5 = itens fechados (todas respondidas para avançar; itens sensíveis
-// têm "prefiro não responder"), tela 6 = abertas + e-mail (tudo opcional).
+// Funil da pesquisa "Redes Sociais e Relacionamentos" (FUNIL v2) — 7 telas,
+// mobile-first (tráfego vem do Instagram): tela 0 = herói + consentimento
+// (obrigatório), telas 1–5 = itens fechados (todas respondidas para avançar;
+// itens sensíveis têm "prefiro não responder"), tela 6 = abertas + e-mail (tudo
+// opcional). Botões narrativos de progresso por tela (embalagem v2).
 // Estrutura das perguntas: src/lib/survey-schema.ts · textos: survey.content.ts.
 
 import { useMemo, useState } from "react";
@@ -15,6 +16,11 @@ import styles from "./survey.module.css";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TOTAL_STEPS = 7; // tela 0 + 6 telas de perguntas
+
+// Micro-copy de pioneirismo (FUNIL v2, tela 0): "usar SÓ enquanto for verdade".
+// Default LIGADA (janela de lançamento); quando deixar de ser verdade, setar
+// NEXT_PUBLIC_SURVEY_LAUNCH_WINDOW=0 na Vercel e redeployar (P4 — sem claim falso no ar).
+const LAUNCH_WINDOW = process.env.NEXT_PUBLIC_SURVEY_LAUNCH_WINDOW !== "0";
 
 // Nº global do item (1..24), igual ao FUNIL-PERGUNTAS.md.
 const QUESTION_NUMBER: Record<string, number> = (() => {
@@ -130,6 +136,19 @@ export default function SurveyExperience({ lang }: { lang: Lang }) {
             <span>{c.scaleAnchors.low}</span>
             <span>{c.scaleAnchors.high}</span>
           </div>
+          {/* v2: item sensível em escala (q19) também aceita "prefiro não responder" */}
+          {spec.pnr && (
+            <div className={styles.scalePnrRow}>
+              <button
+                type="button"
+                className={`${styles.opt} ${styles.optPnr} ${cur === PNR ? styles.optSel : ""}`}
+                aria-pressed={cur === PNR}
+                onClick={() => setAnswer(spec.id, PNR)}
+              >
+                {c.pnrLabel}
+              </button>
+            </div>
+          )}
         </div>
       );
     }
@@ -152,6 +171,8 @@ export default function SurveyExperience({ lang }: { lang: Lang }) {
     if (spec.kind === "freq") entries = Object.entries(c.freqLabels);
     else if (spec.kind === "yesno") entries = Object.entries(c.yesnoLabels);
     else entries = Object.entries(copy.options ?? {});
+    // v2: opção "não se aplica" do q13 ("nunca conheci alguém que vi primeiro online")
+    if (spec.extra && copy.extraLabel) entries = [...entries, [spec.extra, copy.extraLabel]];
     if (spec.pnr) entries = [...entries, [PNR, c.pnrLabel]];
 
     const cur = answers[spec.id];
@@ -164,7 +185,7 @@ export default function SurveyExperience({ lang }: { lang: Lang }) {
             <button
               key={value}
               type="button"
-              className={`${styles.opt} ${selected ? styles.optSel : ""} ${value === PNR ? styles.optPnr : ""}`}
+              className={`${styles.opt} ${selected ? styles.optSel : ""} ${value === PNR || value === spec.extra ? styles.optPnr : ""}`}
               aria-pressed={selected}
               onClick={() =>
                 spec.kind === "multi" ? toggleMulti(spec.id, value) : setAnswer(spec.id, value)
@@ -203,13 +224,8 @@ export default function SurveyExperience({ lang }: { lang: Lang }) {
             </h1>
             <div className={styles.rule} />
             <p className={styles.lede}>{c.hero.lede}</p>
-            <ul className={styles.chips}>
-              {c.hero.chips.map((chip) => (
-                <li key={chip} className={styles.chip}>
-                  {chip}
-                </li>
-              ))}
-            </ul>
+            {/* Pioneirismo — só na janela de lançamento (flag; ver LAUNCH_WINDOW) */}
+            {LAUNCH_WINDOW && <p className={styles.launchNote}>{c.hero.launchNote}</p>}
 
             <div className={styles.consent}>
               <label className={styles.consentRow}>
@@ -231,7 +247,7 @@ export default function SurveyExperience({ lang }: { lang: Lang }) {
 
             <div className={styles.heroCta}>
               <button type="button" className={styles.btn} disabled={!consent} onClick={() => goTo(1)}>
-                {c.consent.start} →
+                {c.consent.start}
               </button>
             </div>
           </section>
@@ -290,7 +306,7 @@ export default function SurveyExperience({ lang }: { lang: Lang }) {
                 </button>
               ) : (
                 <button type="button" className={styles.btn} disabled={!screenComplete} onClick={() => goTo(step + 1)}>
-                  {c.nav.next} →
+                  {screenCopy.nextLabel}
                 </button>
               )}
             </div>

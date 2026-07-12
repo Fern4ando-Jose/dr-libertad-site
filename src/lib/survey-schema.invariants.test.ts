@@ -37,7 +37,7 @@ function fullValidAnswers(): Answers {
   return a;
 }
 
-describe("survey-schema — estrutura (FUNIL-PERGUNTAS aprovado 2026-07-11)", () => {
+describe("survey-schema — estrutura (FUNIL v2, 2026-07-11)", () => {
   it("tem 6 telas de perguntas e 24 itens (q25 = e-mail, fora do answers)", () => {
     expect(SCREENS).toHaveLength(6);
     const ids = SCREENS.flatMap((s) => s.questions.map((q) => q.id));
@@ -47,11 +47,38 @@ describe("survey-schema — estrutura (FUNIL-PERGUNTAS aprovado 2026-07-11)", ()
     expect(ids[ids.length - 1]).toBe("q24");
   });
 
-  it("só q19 e q21 têm 'prefiro não responder' (itens sensíveis da tela 5)", () => {
+  it("v2: PNR nos 3 itens sensíveis da tela 5 — q18, q19 (NOVO, escala) e q20", () => {
     const pnrIds = SCREENS.flatMap((s) => s.questions)
       .filter((q) => q.pnr)
       .map((q) => q.id);
-    expect(pnrIds).toEqual(["q19", "q21"]);
+    expect(pnrIds).toEqual(["q18", "q19", "q20"]);
+  });
+
+  it("v2: q9 é o ÚNICO item reverso (inverter escala antes de agregar) e é escala", () => {
+    const reversed = SCREENS.flatMap((s) => s.questions).filter((q) => q.reverse);
+    expect(reversed.map((q) => q.id)).toEqual(["q9"]);
+    expect(reversed[0].kind).toBe("scale");
+  });
+
+  it("v2: q13 tem a opção extra 'nunca conheci alguém que vi primeiro online'; q17 virou frequência", () => {
+    const all = SCREENS.flatMap((s) => s.questions);
+    const q13 = all.find((q) => q.id === "q13")!;
+    expect(q13.extra).toBe("nunca_conheci_online");
+    const q17 = all.find((q) => q.id === "q17")!;
+    expect(q17.kind).toBe("freq");
+    // q13 é o único item com `extra`
+    expect(all.filter((q) => q.extra).map((q) => q.id)).toEqual(["q13"]);
+  });
+
+  it("v2: tela 5 na ordem comportamento→percepção→comportamento→opinião→desfecho", () => {
+    const tela5 = SCREENS[4];
+    expect(tela5.questions.map((q) => `${q.id}:${q.kind}`)).toEqual([
+      "q18:freq",
+      "q19:scale",
+      "q20:yesno",
+      "q21:scale",
+      "q22:yesno",
+    ]);
   });
 });
 
@@ -74,16 +101,29 @@ describe("survey-schema — validação", () => {
     expect(validateAnswers(a)).toEqual({ ok: false, error: "missing_q18" });
   });
 
-  it("PNR só passa onde o item é sensível", () => {
+  it("PNR só passa onde o item é sensível (inclusive na escala q19)", () => {
     const a = fullValidAnswers();
-    a.q19 = PNR; // sensível → ok
-    a.q21 = PNR; // sensível → ok
+    a.q18 = PNR; // freq sensível → ok
+    a.q19 = PNR; // ESCALA sensível (v2) → ok
+    a.q20 = PNR; // yesno sensível → ok
     expect(validateAnswers(a).ok).toBe(true);
-    a.q22 = PNR; // NÃO sensível → rejeita
+    a.q22 = PNR; // desfecho NÃO tem PNR → rejeita
     expect(validateAnswers(a)).toEqual({ ok: false, error: "invalid_q22" });
+    const b = fullValidAnswers();
+    b.q11 = PNR; // escala comum NÃO aceita PNR
+    expect(validateAnswers(b)).toEqual({ ok: false, error: "invalid_q11" });
   });
 
-  it("escala aceita só inteiro 1..5", () => {
+  it("opção extra do q13 passa; a mesma string em outra frequência é rejeitada", () => {
+    const a = fullValidAnswers();
+    a.q13 = "nunca_conheci_online";
+    expect(validateAnswers(a).ok).toBe(true);
+    const b = fullValidAnswers();
+    b.q10 = "nunca_conheci_online";
+    expect(validateAnswers(b)).toEqual({ ok: false, error: "invalid_q10" });
+  });
+
+  it("escala aceita só inteiro 1..5 (fora do PNR sensível)", () => {
     const spec = { id: "q11", kind: "scale" as const };
     expect(isValidAnswer(spec, 1)).toBe(true);
     expect(isValidAnswer(spec, 5)).toBe(true);

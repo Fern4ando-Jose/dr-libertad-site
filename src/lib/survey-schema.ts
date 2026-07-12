@@ -2,7 +2,15 @@
 // Fonte única da ESTRUTURA do funil (telas, perguntas, tipos e valores válidos),
 // consumida pelo componente (src/components/survey) E pela validação do
 // /api/survey. Os TEXTOS (PT/ES) moram em survey.content.ts — aqui só o esqueleto.
-// Conteúdo aprovado pelo dono em 2026-07-11 (FUNIL-PERGUNTAS.md — 25 itens, 7 telas).
+//
+// ⚠️ FUNIL v2 (2026-07-11, reestruturado sob ordem do dono — FUNIL-PERGUNTAS.md
+// da pasta Pesquisa-Funil do livro): item "costumo postar" CORTADO; q9 é o item
+// NOVO INVERTIDO ("as redes me aproximaram…") — flag `reverse` abaixo; q13 ganha
+// a opção "nunca conheci alguém que vi primeiro online" (`extra`); q17 reescrito
+// (frequência, comportamento observável); tela 5 REORDENADA (comportamento →
+// percepção → opinião → desfecho) e o item de ciúme (q19, escala) TAMBÉM aceita
+// "prefiro não responder". As chaves q1..q24 seguem a numeração v2 — resposta
+// gravada antes da v2 (se houver) não é comparável chave a chave.
 //
 // Anonimato por construção: nenhum item identifica o respondente; o e-mail (item 25)
 // é OPCIONAL e viaja/persiste em campo separado (nunca dentro de `answers`).
@@ -14,8 +22,16 @@ export type QuestionSpec = {
   kind: QuestionKind;
   /** Valores estáveis (iguais em PT e ES) — análise cruzada sem mapeamento. */
   values?: readonly string[];
-  /** Item sensível com opção "prefiro não responder" (FUNIL, tela 5). */
+  /** Item sensível com opção "prefiro não responder" (tela 5). */
   pnr?: boolean;
+  /** Opção extra de "não se aplica" (código estável) — ex.: q13 na v2. */
+  extra?: string;
+  /**
+   * Item REVERSO (v2): mede a direção OPOSTA do índice — na ANÁLISE, inverter a
+   * escala antes de agregar (1↔5, 2↔4). Quebra viés de aquiescência e mede o
+   * lado "para melhor" (q9). Ver mapa item→hipótese no FUNIL-PERGUNTAS.md.
+   */
+  reverse?: boolean;
 };
 
 export type ScreenSpec = {
@@ -39,10 +55,11 @@ export const PNR = "pnr";
 export const SCALE_MIN = 1;
 export const SCALE_MAX = 5;
 
-/** Tamanho máximo de uma resposta aberta (telas 6) — corta abuso sem podar história real. */
+/** Tamanho máximo de uma resposta aberta (tela 6) — corta abuso sem podar história real. */
 export const OPEN_MAX_LEN = 2000;
 
 // Telas 1–5 (a tela 0 é o consentimento; a 6 é opcional — abertas + e-mail).
+// Numeração dos itens = FUNIL v2 (q7 = "acompanho…"; o antigo "costumo postar" saiu).
 export const SCREENS: ScreenSpec[] = [
   {
     key: "sobre-voce",
@@ -62,37 +79,39 @@ export const SCREENS: ScreenSpec[] = [
   {
     key: "voce-e-as-redes",
     questions: [
-      { id: "q7", kind: "freq" },
-      { id: "q8", kind: "freq" },
-      { id: "q9", kind: "freq" },
+      { id: "q7", kind: "freq" }, // acompanho a vida amorosa de outros
+      { id: "q8", kind: "freq" }, // conversei com quem não conheço pessoalmente
+      { id: "q9", kind: "scale", reverse: true }, // NOVO v2 — "as redes me aproximaram…" (INVERTIDO)
     ],
   },
   {
-    key: "comparacao-expectativa",
+    key: "o-que-ve-x-o-que-vive",
     questions: [
       { id: "q10", kind: "freq" },
       { id: "q11", kind: "scale" },
       { id: "q12", kind: "scale" },
-      { id: "q13", kind: "freq" },
+      { id: "q13", kind: "freq", extra: "nunca_conheci_online" }, // v2: + "nunca conheci alguém que vi primeiro online"
     ],
   },
   {
-    key: "escolha-presenca",
+    key: "opcoes-e-presenca",
     questions: [
       { id: "q14", kind: "scale" },
       { id: "q15", kind: "scale" },
       { id: "q16", kind: "scale" },
-      { id: "q17", kind: "scale" },
+      { id: "q17", kind: "freq" }, // v2 REESCRITO: "o celular já foi motivo de reclamação…" (era item duplo em escala)
     ],
   },
   {
-    key: "confianca-fidelidade",
+    // v2 REORDENADA: comportamento (18) → percepção (19) → comportamento (20) →
+    // opinião (21) → desfecho (22). PNR em 18, 19 (NOVO) e 20.
+    key: "a-parte-que-ninguem-conta",
     questions: [
-      { id: "q18", kind: "scale" },
-      { id: "q19", kind: "freq", pnr: true },
-      { id: "q20", kind: "scale" },
-      { id: "q21", kind: "yesno", pnr: true },
-      { id: "q22", kind: "yesno" },
+      { id: "q18", kind: "freq", pnr: true }, // checagem por desconfiança
+      { id: "q19", kind: "scale", pnr: true }, // ciúme/desconfiança — PNR NOVO na v2
+      { id: "q20", kind: "yesno", pnr: true }, // flerte/conversa escondida
+      { id: "q21", kind: "scale" }, // opinião: apps facilitam traições
+      { id: "q22", kind: "yesno" }, // desfecho: já vi terminar
     ],
   },
   {
@@ -125,9 +144,13 @@ export function isValidAnswer(spec: QuestionSpec, value: unknown): boolean {
     case "freq":
       return (
         typeof value === "string" &&
-        ((FREQ_VALUES as readonly string[]).includes(value) || (spec.pnr === true && value === PNR))
+        ((FREQ_VALUES as readonly string[]).includes(value) ||
+          (spec.pnr === true && value === PNR) ||
+          (spec.extra !== undefined && value === spec.extra))
       );
     case "scale":
+      // v2: escala sensível (q19) também aceita "prefiro não responder".
+      if (spec.pnr === true && value === PNR) return true;
       return typeof value === "number" && Number.isInteger(value) && value >= SCALE_MIN && value <= SCALE_MAX;
     case "yesno":
       return (

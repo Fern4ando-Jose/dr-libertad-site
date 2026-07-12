@@ -1,7 +1,10 @@
-// ─── Pesquisa "Redes Sociais e Relacionamentos" — TEXTOS PT/ES ───────────────
-// Fonte: FUNIL-PERGUNTAS.md + TERMO-CONSENTIMENTO.md (§1) + herói aprovado pelo
-// dono em 2026-07-11. As perguntas seguem o funil À RISCA (25 itens, 7 telas);
-// a ESTRUTURA (ids/tipos/valores) mora em src/lib/survey-schema.ts (fonte única).
+// ─── Pesquisa "Redes Sociais e Relacionamentos" — TEXTOS PT/ES (FUNIL v2) ────
+// Fonte: FUNIL-PERGUNTAS.md **v2** (2026-07-11, reestruturado sob ordem do dono:
+// camada EMBALAGEM = títulos/subtítulos/botões narrativos/micro-copy; camada
+// MEDIÇÃO = itens neutros) + TERMO-CONSENTIMENTO.md (§1). Os textos seguem o
+// arquivo À RISCA; a ESTRUTURA (ids/tipos/valores) mora em src/lib/survey-schema.ts.
+// Micro-copy "entre os primeiros": condicionada à env NEXT_PUBLIC_SURVEY_LAUNCH_WINDOW
+// (ver SurveyExperience — default LIGADA; "0" desliga quando deixar de ser verdade).
 
 import type { Lang } from "@/lib/i18n/dictionaries";
 
@@ -18,20 +21,20 @@ export type SurveyCopy = {
   thanksPath: string;
   hero: {
     kicker: string;
-    titlePre: string; // "As redes sociais estão mudando o amor."
-    titleEm: string; //  "A pergunta é: quanto?"
+    titlePre: string;
+    titleEm: string;
     lede: string;
-    chips: string[];
+    /** Micro-copy de pioneirismo — só aparece na janela de lançamento (flag). */
+    launchNote: string;
   };
   consent: {
     label: string;
     termLink: string;
-    start: string;
+    start: string; // botão da tela 0 (v2: "Começar — 3 minutos")
   };
   progressLabel: (current: number, total: number) => string;
   nav: {
     back: string;
-    next: string;
     submit: string;
     submitting: string;
     incompleteHint: string;
@@ -44,8 +47,13 @@ export type SurveyCopy = {
   scaleAnchors: { low: string; high: string };
   screens: {
     title: string;
-    note?: string;
-    questions: Record<string, { text: string; options?: OptionLabels; placeholder?: string }>;
+    note: string;
+    /** Botão narrativo de progresso da tela (v2 — endowed progress/goal-gradient). */
+    nextLabel: string;
+    questions: Record<
+      string,
+      { text: string; options?: OptionLabels; placeholder?: string; extraLabel?: string }
+    >;
   }[];
   email: {
     label: string;
@@ -74,7 +82,7 @@ export type SurveyCopy = {
 const pt: SurveyCopy = {
   metaTitle: "Pesquisa — Redes Sociais e Relacionamentos",
   metaDescription:
-    "Estudo sério sobre como as redes sociais afetam os relacionamentos. 3 minutos, anônimo — suas respostas viram parte de um livro.",
+    "Todo mundo tem uma opinião. Quase ninguém tem dado. Estudo sério — 3 minutos, anônimo — sobre o que as redes estão fazendo com os relacionamentos. As respostas viram um livro.",
   brand: "Dr. Liberdade",
   handle: "@dr.liberdade.br",
   instagramUrl: "https://www.instagram.com/dr.liberdade.br",
@@ -83,20 +91,19 @@ const pt: SurveyCopy = {
   thanksPath: "/pesquisa/obrigado",
   hero: {
     kicker: "Estudo editorial · Dr. Liberdade",
-    titlePre: "As redes sociais estão mudando o amor.",
-    titleEm: "A pergunta é: quanto?",
-    lede: "Estamos fazendo um estudo sério sobre como as redes afetam os relacionamentos. São 3 minutos, anônimo, e suas respostas viram parte de um livro sobre o tema.",
-    chips: ["3 min", "100% anônimo", "vira livro"],
+    titlePre: "Você dá match, posta, rola o feed.",
+    titleEm: "E o amor — ficou melhor ou pior?",
+    lede: "Todo mundo tem uma opinião. Quase ninguém tem dado. Este é um estudo de verdade — 3 minutos, anônimo — sobre o que as redes estão fazendo com os relacionamentos. As respostas viram um livro. A sua entra na conta.",
+    launchNote: "Você está entre os primeiros a responder.",
   },
   consent: {
     label: "Li e aceito o uso anônimo das minhas respostas nesta pesquisa.",
     termLink: "Ler o termo completo",
-    start: "Começar a pesquisa",
+    start: "Começar — 3 minutos",
   },
   progressLabel: (c, t) => `Parte ${c} de ${t}`,
   nav: {
     back: "Voltar",
-    next: "Continuar",
     submit: "Enviar respostas",
     submitting: "Enviando…",
     incompleteHint: "Responda todas as perguntas desta parte para continuar.",
@@ -115,7 +122,9 @@ const pt: SurveyCopy = {
   scaleAnchors: { low: "1 · discordo totalmente", high: "5 · concordo totalmente" },
   screens: [
     {
-      title: "Sobre você",
+      title: "Primeiro, o fácil.",
+      note: "Seis toques. Nada para digitar.",
+      nextLabel: "Pronto, o retrato está feito →",
       questions: {
         q1: {
           text: "Idade",
@@ -169,59 +178,71 @@ const pt: SurveyCopy = {
       },
     },
     {
-      title: "Você e as redes",
+      title: "Agora, você e as redes.",
+      note: "Sem julgamento. Responda pelo que você faz, não pelo que acha bonito dizer.",
+      nextLabel: "A partir daqui, as perguntas que deram origem ao livro →",
       questions: {
-        q7: { text: "Costumo postar sobre minha vida pessoal/amorosa." },
-        q8: { text: "Acompanho a vida amorosa de outras pessoas pelas redes." },
-        q9: { text: "Já conversei nas redes com pessoas que não conheço pessoalmente." },
+        q7: { text: "Acompanho a vida amorosa de outras pessoas pelas redes." },
+        q8: { text: "Já conversei nas redes com pessoas que não conheço pessoalmente." },
+        q9: { text: "As redes me aproximaram das pessoas de quem eu gosto." },
       },
     },
     {
-      title: "Comparação e expectativa",
+      title: "O que você vê × o que você vive.",
+      note: "Não existe resposta certa — existe a sua.",
+      nextLabel: "Metade feita →",
       questions: {
         q10: { text: "Comparo meu relacionamento (ou minha vida amorosa) com o que vejo nas redes." },
         q11: { text: "Ver a vida amorosa dos outros nas redes me deixa mais insatisfeito(a) com a minha." },
         q12: { text: "As redes elevaram o que eu exijo de um(a) parceiro(a) para além do que encontro na vida real." },
-        q13: { text: "Já me decepcionei ao conhecer pessoalmente alguém que parecia diferente no perfil." },
+        q13: {
+          text: "Já me decepcionei ao conhecer pessoalmente alguém que parecia diferente no perfil.",
+          extraLabel: "Nunca conheci alguém que vi primeiro online",
+        },
       },
     },
     {
-      title: "Escolha e presença",
+      title: "Opções e presença.",
+      note: "Duas telas e acabou. Estas quatro valem o estudo inteiro.",
+      nextLabel: "Falta 1 tela de perguntas →",
       questions: {
         q14: { text: "Sinto que sempre há alguém “melhor” a um clique de distância." },
         q15: { text: "O excesso de opções dificulta eu me comprometer com uma só pessoa." },
         q16: { text: "Passo mais tempo na tela do que presencialmente com quem me importo." },
-        q17: { text: "O tempo que eu (ou meu parceiro(a)) passamos nas redes já tirou atenção do nosso relacionamento." },
+        q17: { text: "O celular já foi motivo de reclamação ou discussão no meu relacionamento." },
       },
     },
     {
-      title: "Confiança e fidelidade",
-      note: "Parte sensível — alguns itens têm a opção “prefiro não responder”.",
+      title: "A parte que ninguém conta em voz alta.",
+      note: "Anônimo de verdade: nem a gente sabe quem você é. E toda pergunta aqui aceita “prefiro não responder”.",
+      nextLabel: "Última tela →",
       questions: {
-        q18: { text: "As redes aumentaram o ciúme ou a desconfiança no meu relacionamento." },
-        q19: { text: "Já chequei o perfil ou a atividade do meu parceiro(a) por desconfiança." },
-        q20: { text: "Na minha visão, apps e redes facilitam traições e conversas paralelas." },
-        q21: { text: "Já mantive flerte ou conversa nas redes que meu parceiro(a) não sabia." },
+        q18: { text: "Já chequei o perfil ou a atividade do meu parceiro(a) por desconfiança." },
+        q19: { text: "As redes aumentaram o ciúme ou a desconfiança no meu relacionamento." },
+        q20: { text: "Já mantive flerte ou conversa nas redes que meu parceiro(a) não sabia." },
+        q21: { text: "Na minha visão, apps e redes facilitam traições e conversas paralelas." },
         q22: { text: "Já vi um relacionamento (meu ou próximo) terminar por causa das redes sociais." },
       },
     },
     {
-      title: "Sua história",
-      note: "Opcional — mas é aqui que a pesquisa vira livro.",
+      title: "Sua história vale mais que o número.",
+      note: "O número diz quanto; só a história diz por quê. Se quiser, conte. Se não, só envie — o que você já respondeu já conta.",
+      nextLabel: "", // última tela: o botão é o de envio (nav.submit)
       questions: {
         q23: {
           text: "Como as redes mudaram seus relacionamentos — para melhor ou para pior? Conte um caso.",
           placeholder: "Escreva aqui, do seu jeito…",
         },
         q24: {
-          text: "Se pudesse mudar uma coisa no seu uso de redes para proteger seu relacionamento, o que seria?",
+          text: "Se pudesse mudar uma coisa no seu uso de redes para proteger seus relacionamentos, o que seria?",
           placeholder: "Escreva aqui…",
         },
       },
     },
   ],
   email: {
-    label: "Toparia contar sua história numa conversa de 30 min (Google Meet, confidencial)? Deixe seu e-mail.",
+    label:
+      "Toparia contar sua história numa conversa de 30 min (Google Meet, confidencial)? É desse material que o livro é feito. Deixe seu e-mail.",
     note: "Único dado identificável — usado só para agendar a conversa.",
     placeholder: "seu@email.com",
     invalid: "E-mail inválido — corrija ou deixe em branco.",
@@ -229,7 +250,7 @@ const pt: SurveyCopy = {
   thanks: {
     metaTitle: "Obrigado — Pesquisa Redes Sociais e Relacionamentos",
     title: "Obrigado.",
-    body: "Suas respostas agora fazem parte do estudo. Os resultados desta pesquisa saem primeiro no Instagram.",
+    body: "Suas respostas entram na conta. Os resultados saem primeiro em @dr.liberdade.br — siga para ver o que os números vão dizer. Inclusive se disserem que a tese está errada.",
     cta: "Seguir @dr.liberdade.br",
     backToSite: "Conhecer o Dr. Liberdade",
   },
@@ -265,7 +286,7 @@ const pt: SurveyCopy = {
 const es: SurveyCopy = {
   metaTitle: "Investigación — Redes Sociales y Relaciones",
   metaDescription:
-    "Estudio serio sobre cómo las redes sociales afectan las relaciones. 3 minutos, anónimo — tus respuestas formarán parte de un libro.",
+    "Todo el mundo tiene una opinión. Casi nadie tiene datos. Estudio en serio — 3 minutos, anónimo — sobre lo que las redes están haciendo con las relaciones. Las respuestas se convierten en un libro.",
   brand: "Dr. Libertad",
   handle: "@dr.libertad",
   instagramUrl: "https://www.instagram.com/dr.libertad",
@@ -274,20 +295,19 @@ const es: SurveyCopy = {
   thanksPath: "/investigacion/gracias",
   hero: {
     kicker: "Estudio editorial · Dr. Libertad",
-    titlePre: "Las redes sociales están cambiando el amor.",
-    titleEm: "La pregunta es: ¿cuánto?",
-    lede: "Estamos haciendo un estudio serio sobre cómo las redes afectan las relaciones. Son 3 minutos, anónimo, y tus respuestas formarán parte de un libro sobre el tema.",
-    chips: ["3 min", "100% anónimo", "será un libro"],
+    titlePre: "Das match, publicas, haces scroll.",
+    titleEm: "¿Y el amor — está mejor o peor?",
+    lede: "Todo el mundo tiene una opinión. Casi nadie tiene datos. Este es un estudio en serio — 3 minutos, anónimo — sobre lo que las redes están haciendo con las relaciones. Las respuestas se convierten en un libro. La tuya entra en la cuenta.",
+    launchNote: "Estás entre los primeros en responder.",
   },
   consent: {
     label: "Leí y acepto el uso anónimo de mis respuestas en esta investigación.",
     termLink: "Leer el término completo",
-    start: "Empezar la investigación",
+    start: "Empezar — 3 minutos",
   },
   progressLabel: (c, t) => `Parte ${c} de ${t}`,
   nav: {
     back: "Volver",
-    next: "Continuar",
     submit: "Enviar respuestas",
     submitting: "Enviando…",
     incompleteHint: "Responde todas las preguntas de esta parte para continuar.",
@@ -306,7 +326,9 @@ const es: SurveyCopy = {
   scaleAnchors: { low: "1 · totalmente en desacuerdo", high: "5 · totalmente de acuerdo" },
   screens: [
     {
-      title: "Sobre ti",
+      title: "Primero, lo fácil.",
+      note: "Seis toques. Nada que escribir.",
+      nextLabel: "Listo, el retrato está hecho →",
       questions: {
         q1: {
           text: "Edad",
@@ -360,59 +382,71 @@ const es: SurveyCopy = {
       },
     },
     {
-      title: "Tú y las redes",
+      title: "Ahora, tú y las redes.",
+      note: "Sin juicio. Responde por lo que haces, no por lo que queda bien decir.",
+      nextLabel: "A partir de aquí, las preguntas que dieron origen al libro →",
       questions: {
-        q7: { text: "Suelo publicar sobre mi vida personal/amorosa." },
-        q8: { text: "Sigo la vida amorosa de otras personas por las redes." },
-        q9: { text: "He conversado en redes con personas que no conozco en persona." },
+        q7: { text: "Sigo la vida amorosa de otras personas por las redes." },
+        q8: { text: "He conversado en redes con personas que no conozco en persona." },
+        q9: { text: "Las redes me acercaron a las personas que quiero." },
       },
     },
     {
-      title: "Comparación y expectativa",
+      title: "Lo que ves × lo que vives.",
+      note: "No hay respuesta correcta — hay la tuya.",
+      nextLabel: "Mitad hecha →",
       questions: {
         q10: { text: "Comparo mi relación (o mi vida amorosa) con lo que veo en las redes." },
         q11: { text: "Ver la vida amorosa de otros en las redes me deja más insatisfecho(a) con la mía." },
         q12: { text: "Las redes elevaron lo que exijo de una pareja por encima de lo que encuentro en la vida real." },
-        q13: { text: "Me he decepcionado al conocer en persona a alguien que parecía diferente en su perfil." },
+        q13: {
+          text: "Me he decepcionado al conocer en persona a alguien que parecía diferente en su perfil.",
+          extraLabel: "Nunca conocí a alguien que vi primero online",
+        },
       },
     },
     {
-      title: "Elección y presencia",
+      title: "Opciones y presencia.",
+      note: "Dos pantallas y terminas. Estas cuatro valen el estudio entero.",
+      nextLabel: "Falta 1 pantalla de preguntas →",
       questions: {
         q14: { text: "Siento que siempre hay alguien “mejor” a un clic de distancia." },
         q15: { text: "El exceso de opciones me dificulta comprometerme con una sola persona." },
         q16: { text: "Paso más tiempo en la pantalla que en persona con quienes me importan." },
-        q17: { text: "El tiempo que yo (o mi pareja) pasamos en las redes ya le quitó atención a nuestra relación." },
+        q17: { text: "El celular ya fue motivo de reclamos o discusiones en mi relación." },
       },
     },
     {
-      title: "Confianza y fidelidad",
-      note: "Parte sensible — algunos ítems tienen la opción “prefiero no responder”.",
+      title: "La parte que nadie cuenta en voz alta.",
+      note: "Anónimo de verdad: ni nosotros sabemos quién eres. Y toda pregunta aquí acepta “prefiero no responder”.",
+      nextLabel: "Última pantalla →",
       questions: {
-        q18: { text: "Las redes aumentaron los celos o la desconfianza en mi relación." },
-        q19: { text: "He revisado el perfil o la actividad de mi pareja por desconfianza." },
-        q20: { text: "En mi opinión, las apps y redes facilitan infidelidades y conversaciones paralelas." },
-        q21: { text: "He mantenido coqueteo o conversaciones en redes que mi pareja no conocía." },
+        q18: { text: "He revisado el perfil o la actividad de mi pareja por desconfianza." },
+        q19: { text: "Las redes aumentaron los celos o la desconfianza en mi relación." },
+        q20: { text: "He mantenido coqueteo o conversaciones en redes que mi pareja no conocía." },
+        q21: { text: "En mi opinión, las apps y redes facilitan infidelidades y conversaciones paralelas." },
         q22: { text: "He visto una relación (mía o cercana) terminar por causa de las redes sociales." },
       },
     },
     {
-      title: "Tu historia",
-      note: "Opcional — pero es aquí donde la investigación se convierte en libro.",
+      title: "Tu historia vale más que el número.",
+      note: "El número dice cuánto; solo la historia dice por qué. Si quieres, cuenta. Si no, solo envía — lo que ya respondiste ya cuenta.",
+      nextLabel: "",
       questions: {
         q23: {
           text: "¿Cómo cambiaron las redes tus relaciones — para bien o para mal? Cuéntanos un caso.",
           placeholder: "Escribe aquí, a tu manera…",
         },
         q24: {
-          text: "Si pudieras cambiar una cosa en tu uso de redes para proteger tu relación, ¿qué sería?",
+          text: "Si pudieras cambiar una cosa en tu uso de redes para proteger tus relaciones, ¿qué sería?",
           placeholder: "Escribe aquí…",
         },
       },
     },
   ],
   email: {
-    label: "¿Aceptarías contar tu historia en una charla de 30 min (Google Meet, confidencial)? Deja tu e-mail.",
+    label:
+      "¿Aceptarías contar tu historia en una charla de 30 min (Google Meet, confidencial)? De ese material está hecho el libro. Deja tu e-mail.",
     note: "Único dato identificable — usado solo para agendar la charla.",
     placeholder: "tu@email.com",
     invalid: "E-mail inválido — corrígelo o déjalo en blanco.",
@@ -420,7 +454,7 @@ const es: SurveyCopy = {
   thanks: {
     metaTitle: "Gracias — Investigación Redes Sociales y Relaciones",
     title: "Gracias.",
-    body: "Tus respuestas ahora forman parte del estudio. Los resultados de esta investigación salen primero en Instagram.",
+    body: "Tus respuestas entran en la cuenta. Los resultados salen primero en @dr.libertad — síguenos para ver qué van a decir los números. Incluso si dicen que la tesis está equivocada.",
     cta: "Seguir a @dr.libertad",
     backToSite: "Conocer a Dr. Libertad",
   },
