@@ -15,6 +15,7 @@ import { scanContentForeign, summarizeHits } from "@/lib/lang-guard";
 import { scanContentForFabricatedStats, summarizeStatHits } from "@/lib/stats-guard";
 import { titleDupedInSlides, dedupeSlides } from "@/lib/slide-dedup";
 import { clipSlideText } from "@/lib/slide-text";
+import { appendSurveyCta } from "@/lib/caption-cta";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -1121,10 +1122,13 @@ export async function GET(req: NextRequest) {
             : []),
         ];
 
-        // Publicar carrossel
+        // Publicar carrossel — CTA da pesquisa APENSADO no rodapé da legenda na
+        // fronteira do publish (append-only, idempotente, fail-open no limite de
+        // 2200; ver src/lib/caption-cta.ts). O banco (savePost) guarda a legenda
+        // original; generateContent/temas/rotação não são tocados.
         let instagramPostId: string | null = null;
         try {
-          instagramPostId = await publishCarousel(content.instagramCaption, slideUrls, lang);
+          instagramPostId = await publishCarousel(appendSurveyCta(content.instagramCaption, lang), slideUrls, lang);
           slotLog.instagramPostId = instagramPostId;
           slotLog.slides = slideUrls.length;
         } catch (igErr) {
