@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, clearRunTopic, siblingPublished, publishedId, bumpAttempt, isHardPublishBlock, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome } from "@/lib/run-ledger";
+import { appendSurveyCta } from "@/lib/caption-cta";
 
 // Publicação de REELS (vídeo) no @drlibertad via Instagram Graph API v25.
 // O vídeo já precisa estar hospedado em URL pública (ex.: Vercel Blob).
@@ -191,7 +192,9 @@ async function handle(req: NextRequest) {
   }
 
   try {
-    const postId = await publishReel(video, caption || "", lang);
+    // CTA da pesquisa APENSADO no rodapé da legenda na fronteira do publish
+    // (append-only, idempotente, fail-open no limite de 2200 — src/lib/caption-cta.ts).
+    const postId = await publishReel(video, appendSurveyCta(caption || "", lang), lang);
     log.postId = postId;
     log.ok = true;
     // Livro-razão p/ o watchdog + anti-dup cross-formato (grava o tópico).
