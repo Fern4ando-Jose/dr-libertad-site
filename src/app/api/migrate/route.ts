@@ -324,6 +324,26 @@ export async function GET(req: NextRequest) {
     results.push("daily_report table: " + String(e));
   }
 
+  // Tabela survey_responses — pesquisa "Redes Sociais e Relacionamentos"
+  // (/pesquisa PT + /investigacion ES → POST /api/survey). Anônima por
+  // construção: sem IP/user-agent; e-mail (opcional, convite de entrevista)
+  // em coluna SEPARADA, nunca dentro do jsonb. Ver src/lib/survey-schema.ts.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS survey_responses (
+        id         BIGSERIAL PRIMARY KEY,
+        lang       TEXT  NOT NULL DEFAULT 'pt',
+        answers    JSONB NOT NULL DEFAULT '{}',
+        email      TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS survey_responses_created_idx ON survey_responses (created_at)`;
+    results.push("survey_responses table: ok");
+  } catch (e) {
+    results.push("survey_responses table: " + String(e));
+  }
+
   // Seed: insere o token atual do env var se a linha ainda não existe
   try {
     const token = process.env.META_ACCESS_TOKEN;
