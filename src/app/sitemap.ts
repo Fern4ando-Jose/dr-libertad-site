@@ -20,8 +20,28 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "x-default": `${base}/pt/quiz`,
   };
 
+  // Pesquisa "Redes Sociais e Relacionamentos" — rotas fixas por idioma
+  // (fora do prefixo /pt|/es; ver src/proxy.ts).
+  const survey = {
+    "pt-BR": `${base}/pesquisa`,
+    "es-ES": `${base}/investigacion`,
+    "x-default": `${base}/pesquisa`,
+  };
+
   // Uma entrada por idioma, cada uma declarando as alternativas (hreflang).
   return [
+    {
+      url: `${base}/pesquisa`,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+      alternates: { languages: survey },
+    },
+    {
+      url: `${base}/investigacion`,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+      alternates: { languages: survey },
+    },
     {
       url: `${base}/pt`,
       changeFrequency: "daily",

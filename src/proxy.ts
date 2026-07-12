@@ -35,6 +35,8 @@ export function proxy(req: NextRequest) {
 // arquivo com extensão (sitemap.xml, robots.txt, *.svg, og images etc. têm ponto → não
 // redirecionam). /insights e /admin ficam fora do i18n (páginas únicas, gate por chave/
 // token) — sem isso o /admin caía em /pt/admin (404).
+// /pesquisa (PT) e /investigacion (ES) também ficam fora: são as rotas fixas da
+// pesquisa "Redes Sociais e Relacionamentos" (1 idioma por rota, link da bio do IG).
 export const config = {
-  matcher: ["/((?!api|insights|admin|_next|.*\\..*).*)"],
+  matcher: ["/((?!api|insights|admin|pesquisa|investigacion|_next|.*\\..*).*)"],
 };
