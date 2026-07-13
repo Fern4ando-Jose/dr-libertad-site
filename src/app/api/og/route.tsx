@@ -749,11 +749,24 @@ export async function GET(req: NextRequest) {
 
     // Ilustração por IA (capa): URL pública vinda do /api/publish. Ausente → motivo.
     const imgUrl = searchParams.get("img") || undefined;
-    // Só a capa usa a ilustração; buscamos com timeout curto (bem abaixo do teto
-    // de download do Instagram) e embutimos. Falha/timeout → undefined → motivo.
-    const img = imgUrl && slide !== "insight" && slide !== "cta" && slide !== "guide"
-      ? await fetchImageDataUri(imgUrl, 3000)
+    // Só a capa (slide != insight/cta/guide) usa a ilustração.
+    const isCover = slide !== "insight" && slide !== "cta" && slide !== "guide";
+    // Timeout do fetch da ilustração. Default 3000 (bem abaixo do teto de download do
+    // IG p/ o caminho AO VIVO — evita 9004). O pré-hospedador server-side (src/lib/
+    // cover-prehost) passa ?imgto= MAIOR: ele NÃO é o IG, baixa a capa com folga e
+    // depois hospeda o PNG estático, então pode esperar o Blob esquentar. Clamp seguro.
+    const imgTimeout = (() => {
+      const raw = parseInt(searchParams.get("imgto") ?? "");
+      return Number.isFinite(raw) ? Math.max(1000, Math.min(15000, raw)) : 3000;
+    })();
+    // Buscamos a imagem e embutimos. Falha/timeout → undefined → motivo abstrato.
+    const img = imgUrl && isCover
+      ? await fetchImageDataUri(imgUrl, imgTimeout)
       : undefined;
+    // x-cover-source: permite ao pré-hospedador VERIFICAR se a capa embutiu a
+    // ilustração aprovada ("illustration") ou caiu no motivo abstrato ("abstract").
+    // Só faz sentido na capa (as outras slides não têm imagem externa).
+    const coverSource = isCover ? (img ? "illustration" : "abstract") : undefined;
 
     // Slide do funil usa a ARTE FINAL DO LIVRO: busca a capa hospedada (mesma
     // origem) e embute. Fail-open: falha/timeout → GuideSlide cai no editorial dark.
@@ -776,12 +789,18 @@ export async function GET(req: NextRequest) {
 
     const fonts = [{ name: "Fraunces", data: fontBold, weight: 700 as const, style: "normal" as const }];
 
+    // og é determinístico por URL → o Instagram pode reusar o fetch (e reduz cold starts).
+    const headers: Record<string, string> = {
+      "cache-control": "public, max-age=86400, s-maxage=86400, immutable",
+    };
+    // Fonte da capa (illustration|abstract) p/ o pré-hospedador conferir sem re-render.
+    if (coverSource) headers["x-cover-source"] = coverSource;
+
     return new ImageResponse(node, {
       width: W,
       height: H,
       fonts,
-      // og é determinístico por URL → o Instagram pode reusar o fetch (e reduz cold starts).
-      headers: { "cache-control": "public, max-age=86400, s-maxage=86400, immutable" },
+      headers,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

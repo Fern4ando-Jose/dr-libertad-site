@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateIllustration } from "@/lib/illustration";
+import { prehostCover } from "@/lib/cover-prehost";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
 import { parseContentJson, normalizeContentJson, missingEssentialContent } from "@/lib/content-json";
@@ -1137,6 +1138,25 @@ export async function GET(req: NextRequest) {
             ? [`${base}/api/og?slide=guide&slot=${slot}&kw=${enc(guideKw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}&num=${totalSlides}&total=${totalSlides}&lang=${lang}`]
             : []),
         ];
+
+        // PRÉ-HOSPEDAR A CAPA (só ela tem imagem externa). Em vez de mandar ao IG a
+        // URL /api/og AO VIVO (o IG buscava o og na hora e o fetch da ilustração podia
+        // estourar o timeout curto → publicava o abstrato tendo arte aprovada, ou 9004),
+        // NÓS baixamos a capa no servidor com folga + retries, CONFIRMAMOS via
+        // x-cover-source que a ilustração entrou e hospedamos o PNG estático no Blob.
+        // O IG recebe uma URL FIXA já com a arte. Fail-open: se falhar, mantém a og ao
+        // vivo (nunca bloqueia o post). Só a CAPA; demais slides seguem og ao vivo.
+        try {
+          const prehost = await prehostCover(slideUrls[0], { expectIllustration: !!ill.url, cat }, {});
+          slotLog.coverSource = prehost.source;
+          slotLog.coverPrehosted = !!prehost.url;
+          slotLog.coverPrehostAttempts = prehost.attempts;
+          if (prehost.url) slideUrls[0] = prehost.url;
+          else if (prehost.error) slotLog.coverPrehostError = prehost.error;
+        } catch (phErr) {
+          slotLog.coverPrehosted = false;
+          slotLog.coverPrehostError = String(phErr).slice(0, 200);
+        }
 
         // Publicar carrossel — CTA da pesquisa APENSADO no rodapé da legenda na
         // fronteira do publish (append-only, idempotente, fail-open no limite de
