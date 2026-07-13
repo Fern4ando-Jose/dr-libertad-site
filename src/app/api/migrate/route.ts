@@ -344,6 +344,34 @@ export async function GET(req: NextRequest) {
     results.push("survey_responses table: " + String(e));
   }
 
+  // Tabela dopamina_leads — REDE DE SEGURANÇA do funil "I Love Dopamina": todo lead
+  // capturado (quiz ou prévia) vira uma linha AQUI, além de ir para o Brevo. Sem isto,
+  // com o Brevo desligado (gated) o e-mail era descartado em silêncio e o lead sumia.
+  // Idempotente por (email, lang). Guarda o status de entrega (brevo_upsert/email_status)
+  // p/ auditoria e reprocessamento quando as chaves Brevo entrarem. Ver src/lib/dopamina-leads.ts.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS dopamina_leads (
+        id           BIGSERIAL PRIMARY KEY,
+        email        TEXT NOT NULL,
+        lang         TEXT NOT NULL DEFAULT 'pt',
+        source       TEXT NOT NULL DEFAULT 'previa',
+        faixa        TEXT,
+        score        INTEGER,
+        utm          JSONB NOT NULL DEFAULT '{}',
+        brevo_upsert TEXT,
+        email_status TEXT,
+        created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (email, lang)
+      )
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS dopamina_leads_created_idx ON dopamina_leads (created_at)`;
+    results.push("dopamina_leads table: ok");
+  } catch (e) {
+    results.push("dopamina_leads table: " + String(e));
+  }
+
   // Seed: insere o token atual do env var se a linha ainda não existe
   try {
     const token = process.env.META_ACCESS_TOKEN;

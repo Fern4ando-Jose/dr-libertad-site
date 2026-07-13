@@ -106,3 +106,109 @@ export async function upsertDopaminaContact(lead: DopaminaLead): Promise<BrevoRe
     return { ok: false, gated: false, error: String(err) };
   }
 }
+
+// ── E0: entrega imediata da prévia (e-mail TRANSACIONAL) ──────────────────────
+// A tela de sucesso do funil promete "a prévia está a caminho da sua caixa de
+// entrada". Quem cumpre essa promessa é este envio: um e-mail transacional Brevo
+// (POST /v3/smtp/email) com o LINK da prévia (PDF em public/lead) — o E0 do funil.
+//
+// O CONTEÚDO do e-mail vive num TEMPLATE do Brevo (editado/aprovado pelo dono no
+// painel — P4/P7: o dono aprova a prova do e-mail LÁ, sem deploy), referenciado por
+// env BREVO_TEMPLATE_DOPAMINA_PREVIA_PT / _ES (ou o global _..._PREVIA). O código só
+// dispara com o parâmetro {{ params.PREVIA_URL }} para o botão "Baixar a prévia".
+// NÃO embutimos o rascunho E0 no código (seria publicar texto não aprovado).
+//
+// GATED e HONESTO: sem BREVO_API_KEY → { gated, reason:"no_api_key" }; sem template →
+// { gated, reason:"no_template" }. Nunca engole a falha: o chamador loga o motivo e
+// persiste o lead para não se perder.
+
+/** Nome de env com o ID do template Brevo do E0 (entrega da prévia) por idioma. */
+const PREVIA_TEMPLATE_ENV: Record<"pt" | "es", string> = {
+  pt: "BREVO_TEMPLATE_DOPAMINA_PREVIA_PT",
+  es: "BREVO_TEMPLATE_DOPAMINA_PREVIA_ES",
+};
+
+/** ID numérico do template do E0 no idioma, ou null se não configurado. */
+export function previaTemplateId(lang: "pt" | "es"): number | null {
+  const raw = process.env[PREVIA_TEMPLATE_ENV[lang]] || process.env.BREVO_TEMPLATE_DOPAMINA_PREVIA;
+  if (!raw) return null;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Remetente do e-mail (opcional: o template do Brevo já traz o seu). */
+export function previaSender(): { email: string; name?: string } | undefined {
+  const email = process.env.BREVO_SENDER_EMAIL;
+  if (!email) return undefined;
+  const name = process.env.BREVO_SENDER_NAME;
+  return name ? { email, name } : { email };
+}
+
+export interface PreviaEmail {
+  email: string;
+  lang: "pt" | "es";
+  /** URL ABSOLUTA do PDF da prévia (ex.: https://.../lead/..._PT.pdf). */
+  previaUrl: string;
+  templateId: number;
+  sender?: { email: string; name?: string };
+}
+
+/** Corpo do POST /v3/smtp/email — puro, testável, sem efeitos de rede. */
+export function buildPreviaEmailPayload(input: PreviaEmail): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    to: [{ email: input.email }],
+    templateId: input.templateId,
+    // O template usa {{ params.PREVIA_URL }} no botão de download.
+    params: { PREVIA_URL: input.previaUrl, LANG: input.lang },
+    tags: ["dopamina", "previa-e0", input.lang],
+  };
+  if (input.sender?.email) {
+    payload.sender = input.sender.name
+      ? { email: input.sender.email, name: input.sender.name }
+      : { email: input.sender.email };
+  }
+  return payload;
+}
+
+export type PreviaSendResult =
+  | { ok: true; gated: true; reason: "no_api_key" | "no_template" }
+  | { ok: true; gated: false; status: number; messageId?: string }
+  | { ok: false; gated: false; status?: number; error: string };
+
+/**
+ * Envia o E0 (entrega da prévia) por e-mail transacional. No-op HONESTO quando gated:
+ * devolve o MOTIVO (sem chave / sem template) para o chamador logar — nunca silencioso.
+ */
+export async function sendPreviaEmail(input: {
+  email: string;
+  lang: "pt" | "es";
+  previaUrl: string;
+}): Promise<PreviaSendResult> {
+  const key = process.env.BREVO_API_KEY;
+  if (!key) return { ok: true, gated: true, reason: "no_api_key" };
+  const templateId = previaTemplateId(input.lang);
+  if (!templateId) return { ok: true, gated: true, reason: "no_template" };
+
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": key,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify(
+        buildPreviaEmailPayload({ ...input, templateId, sender: previaSender() }),
+      ),
+    });
+    // 201 = e-mail aceito para envio.
+    if (res.status === 201) {
+      const j = (await res.json().catch(() => ({}))) as { messageId?: string };
+      return { ok: true, gated: false, status: 201, messageId: j?.messageId };
+    }
+    const body = await res.text().catch(() => "");
+    return { ok: false, gated: false, status: res.status, error: body.slice(0, 300) };
+  } catch (err) {
+    return { ok: false, gated: false, error: String(err) };
+  }
+}

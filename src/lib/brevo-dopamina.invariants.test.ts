@@ -4,7 +4,12 @@
 //  (3) a faixa do quiz vira atributo de segmentação; a prévia entra SEM faixa;
 //  (4) o cálculo de faixa respeita os limites 0-5 / 6-12 / 13-18 / 19-24.
 import { describe, it, expect, afterEach } from "vitest";
-import { buildContactPayload, isFaixa } from "./brevo-dopamina";
+import {
+  buildContactPayload,
+  isFaixa,
+  previaTemplateId,
+  buildPreviaEmailPayload,
+} from "./brevo-dopamina";
 import { dopaminaContent, faixaForScore } from "@/components/dopamina/dopamina.content";
 
 const savedEnv = { ...process.env };
@@ -51,6 +56,49 @@ describe("captura do funil I Love Dopamina — isolamento", () => {
     expect(isFaixa("critico")).toBe(true);
     expect(isFaixa("roxo")).toBe(false);
     expect(isFaixa(3)).toBe(false);
+  });
+});
+
+describe("E0 — entrega da prévia (e-mail transacional)", () => {
+  it("sem env de template → previaTemplateId é null (envio fica gated, não inventa ID)", () => {
+    delete process.env.BREVO_TEMPLATE_DOPAMINA_PREVIA_PT;
+    delete process.env.BREVO_TEMPLATE_DOPAMINA_PREVIA;
+    expect(previaTemplateId("pt")).toBeNull();
+  });
+
+  it("env por idioma tem precedência; global é fallback", () => {
+    process.env.BREVO_TEMPLATE_DOPAMINA_PREVIA = "9";
+    expect(previaTemplateId("es")).toBe(9); // usa o global
+    process.env.BREVO_TEMPLATE_DOPAMINA_PREVIA_ES = "42";
+    expect(previaTemplateId("es")).toBe(42); // idioma vence
+    expect(previaTemplateId("pt")).toBe(9); // PT ainda no global
+  });
+
+  it("payload leva o destinatário, o templateId e a PREVIA_URL no params (botão de download)", () => {
+    const p = buildPreviaEmailPayload({
+      email: "lead@exemplo.com",
+      lang: "pt",
+      previaUrl: "https://www.drlibertad.com/lead/I-Love-Dopamina_Previa_PT.pdf",
+      templateId: 42,
+    });
+    expect(p.to).toEqual([{ email: "lead@exemplo.com" }]);
+    expect(p.templateId).toBe(42);
+    expect((p.params as Record<string, unknown>).PREVIA_URL).toBe(
+      "https://www.drlibertad.com/lead/I-Love-Dopamina_Previa_PT.pdf",
+    );
+    // Sem env de remetente → o template do Brevo define o sender (não forçamos um).
+    expect(p.sender).toBeUndefined();
+  });
+
+  it("sender só entra quando BREVO_SENDER_EMAIL está setado", () => {
+    const p = buildPreviaEmailPayload({
+      email: "a@b.com",
+      lang: "es",
+      previaUrl: "https://x/lead.pdf",
+      templateId: 1,
+      sender: { email: "dr@drlibertad.com", name: "Dr. Libertad" },
+    });
+    expect(p.sender).toEqual({ email: "dr@drlibertad.com", name: "Dr. Libertad" });
   });
 });
 
