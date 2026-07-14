@@ -15,6 +15,7 @@ import { buildLiteralDirective, anchorForLang, anchorViolated } from "@/lib/lite
 import { scanContentForeign, summarizeHits } from "@/lib/lang-guard";
 import { scanContentForFabricatedStats, summarizeStatHits } from "@/lib/stats-guard";
 import { titleDupedInSlides, dedupeSlides } from "@/lib/slide-dedup";
+import { titleCollides, recentTitlesForLang } from "@/lib/title-dedup";
 import { clipSlideText } from "@/lib/slide-text";
 import { appendSurveyCta } from "@/lib/caption-cta";
 
@@ -421,7 +422,11 @@ async function generateContent(
   searchResults: SearchResult[],
   slot: Slot,
   lang: Lang = "es",
-  automation: Automation
+  automation: Automation,
+  // Títulos JÁ publicados recentemente (mesmo idioma). Se o título gerado repetir um
+  // deles (palavra-por-palavra ou quase), REGENERA com outro ângulo — trava da CAMADA
+  // DE SAÍDA, que as travas de semente (topic) não pegam. Vazio = comportamento anterior.
+  avoidTitles: string[] = []
 ): Promise<GeneratedContent> {
   const acc = accountFor(lang);
   const L = acc.langName; // "español" | "português do Brasil"
@@ -572,7 +577,15 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
     //      quebrar a antítese é o "pecado-mor" da linha editorial — vazou 2× no feed
     //      (27/06 "transar"→"deita"; 01/07 fecho estufado) → bloqueio DURO.
     const anchorBroken = anchorViolated(content.slides, literalAnchor);
-    if (hits.length === 0 && statsHits.length === 0 && !duped && !anchorBroken) return content;
+    //  (5) DE-DUP DE SAÍDA: o título gerado NÃO pode repetir (palavra-por-palavra ou
+    //      quase) um título já publicado recente — a repetição que as travas de SEMENTE
+    //      (topic) não veem, porque duas sementes diferentes podem gerar o MESMO título
+    //      (caso real "Você ama ou tem medo de ficar sozinho?", 11/07 × 14/07). Isento em
+    //      tema-convicção (o título É a frase-âncora fixa, não se reescreve; e a trava de
+    //      topic já impede o mesmo literal voltar na janela). Tratado como falha DURA
+    //      (bloqueia se persistir): melhor a vaga vazia que um post idêntico no feed.
+    const titleDup = !isLiteral && avoidTitles.length > 0 && titleCollides(content.postTitle, avoidTitles);
+    if (hits.length === 0 && statsHits.length === 0 && !duped && !anchorBroken && !titleDup) return content;
 
     let note = "";
     if (hits.length) {
@@ -591,12 +604,17 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
       if (!hits.length && !statsHits.length) lastErr = new Error(`convicção suavizada/alterada: o 1º slide não contém a âncora verbatim («${literalAnchor}»)`);
       note += `\n\n⚠️ CORRECCIÓN OBLIGATORIA (TEMA-CONVICCIÓN): el PRIMER slide DEBE contener la frase-verdad EXACTA, palabra por palabra: «${literalAnchor}». Tu respuesta anterior la reformuló/suavizó — PROHIBIDO. Copia la frase TAL CUAL como primer slide (sin eufemismos, sin explicar después del cierre, sin romper la antítesis).`;
     }
+    if (titleDup) {
+      if (!hits.length && !statsHits.length && !anchorBroken) lastErr = new Error(`título repete um post recente («${content.postTitle}»)`);
+      note += `\n\n⚠️ CORRECCIÓN OBLIGATORIA (TÍTULO REPETIDO): tu "postTitle" es igual (o casi igual) a uno YA PUBLICADO hace pocos días. PROHIBIDO repetir la misma frase de título — reescríbelo con OTRO ángulo/gancho DISTINTO. Títulos a EVITAR (no coincidas ni te acerques a ninguno): ${avoidTitles.map((t) => `«${t}»`).join("; ")}.`;
+    }
     contaminationNote = note;
 
-    // Última tentativa: idioma contaminado, dado fabricado OU convicção alterada
-    // BLOQUEIAM (caem no throw); repetição sozinha NÃO bloqueia — devolve a copy
-    // (melhor publicar que perder a vaga).
-    if (attempt === MAX_CONTENT_TRIES && !hits.length && !statsHits.length && !anchorBroken) return content;
+    // Última tentativa: idioma contaminado, dado fabricado, convicção alterada OU título
+    // repetido BLOQUEIAM (caem no throw → vaga pulada). Repetição título×slide sozinha
+    // NÃO bloqueia — devolve a copy (melhor publicar que perder a vaga). A duplicata de
+    // TÍTULO no feed é o pior caso (doutrina "tem de ser ÚNICA") → bloqueia.
+    if (attempt === MAX_CONTENT_TRIES && !hits.length && !statsHits.length && !anchorBroken && !titleDup) return content;
   }
   throw new Error(`generateContent: conteúdo não-publicável após ${MAX_CONTENT_TRIES} tentativas: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`);
 }
@@ -843,7 +861,13 @@ export async function GET(req: NextRequest) {
     // Copy: reusa o cache por (tópico, dia, idioma) → redisparo NÃO repaga a Anthropic.
     let content = (await readContentCache(topic, day, lang)) as GeneratedContent | null;
     if (!content) {
-      content = await generateContent(topic, searchResults, slot, lang, "ig-reels");
+      // Trava de saída (mesma do carrossel): o título do Reel não pode repetir um título
+      // já publicado recente (semente ≠, título =). Só na geração fresca; fail-open → [].
+      // GATED por TITLE_DEDUP_ENABLED (default OFF): desligada → avoidTitles=[] → gerador
+      // idêntico ao anterior (deploy dormente; ativação = flip do env, decisão do dono P7).
+      const titleDedupOn = (process.env.TITLE_DEDUP_ENABLED ?? "").toLowerCase() === "on";
+      const avoidTitles = titleDedupOn ? await recentTitlesForLang(lang, 12) : [];
+      content = await generateContent(topic, searchResults, slot, lang, "ig-reels", avoidTitles);
       await writeContentCache(topic, day, lang, content);
     }
 
@@ -1052,7 +1076,15 @@ export async function GET(req: NextRequest) {
         let content = (await readContentCache(topic, dayBRT(now), lang)) as GeneratedContent | null;
         if (!content) {
           const searchResults = await searchTopic(topic, "ig-posts");
-          content = await generateContent(topic, searchResults, slot, lang, "ig-posts");
+          // Títulos recentes (mesmo idioma) p/ a trava de saída: o título gerado não pode
+          // repetir um já publicado — a duplicata que a trava de topic não vê (semente ≠,
+          // título =). Só na geração FRESCA: cache-hit já teve o título vetado ao criar
+          // (re-vetar quebraria a idempotência do redisparo). Fail-open → [].
+          // GATED por TITLE_DEDUP_ENABLED (default OFF): desligada → avoidTitles=[] → gerador
+          // idêntico ao anterior (deploy dormente; ativação = flip do env, decisão do dono P7).
+          const titleDedupOn = (process.env.TITLE_DEDUP_ENABLED ?? "").toLowerCase() === "on";
+          const avoidTitles = titleDedupOn ? await recentTitlesForLang(lang, 12) : [];
+          content = await generateContent(topic, searchResults, slot, lang, "ig-posts", avoidTitles);
           await writeContentCache(topic, dayBRT(now), lang, content);
         }
         slotLog.title = content.postTitle;
