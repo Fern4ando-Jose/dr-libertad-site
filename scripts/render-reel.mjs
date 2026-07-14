@@ -43,7 +43,7 @@ function loadInputProps() {
 function loadComposition() {
   const arg = process.argv.find((a) => a.startsWith("--composition="));
   const id = arg ? arg.slice("--composition=".length) : process.env.REEL_COMPOSITION || "Reel";
-  const ALLOWED = new Set(["Reel", "ReelClassic", "ReelV2"]);
+  const ALLOWED = new Set(["Reel", "ReelClassic", "ReelV2", "KenBurnsProof"]);
   return ALLOWED.has(id) ? id : "Reel";
 }
 
@@ -78,6 +78,9 @@ async function main() {
     `[render] renderizando ${composition.durationInFrames} frames ` +
       `(${composition.width}x${composition.height} @ ${composition.fps}fps)…`
   );
+  // Concurrency opcional via env (default = automático do Remotion). Máquinas com
+  // pouca RAM podem forçar REEL_CONCURRENCY=1 p/ reduzir o pico de memória.
+  const concurrency = process.env.REEL_CONCURRENCY ? Number(process.env.REEL_CONCURRENCY) : undefined;
   await renderMedia({
     composition,
     serveUrl,
@@ -85,6 +88,7 @@ async function main() {
     outputLocation,
     inputProps: inputProps ?? {},
     crf: 22,
+    ...(concurrency ? { concurrency } : {}),
     onProgress: ({ progress }) => {
       const pct = Math.round(progress * 100);
       if (pct % 10 === 0) console.log(`[render] render ${pct}%`);

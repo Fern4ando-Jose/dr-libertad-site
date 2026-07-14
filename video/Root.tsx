@@ -9,6 +9,7 @@ import { Composition } from "remotion";
 import { Reel, reelDefaultProps, reelDurations, ReelProps, FPS } from "./Reel";
 import { ReelClassic, reelClassicDefaultProps, ReelClassicProps } from "./ReelClassic";
 import { ReelV2, reelV2DefaultProps, reelDurationsV2, dedupeSlides } from "./ReelV2";
+import { KenBurnsProof, kenBurnsProofDefaultProps, kenBurnsProofDuration, FPS as KB_FPS } from "./KenBurns";
 
 // Duração do motor clássico (mesma matemática inline do componente original).
 function classicDuration(slidesCount: number): number {
@@ -50,6 +51,24 @@ export const RemotionRoot: React.FC = () => {
           const p = props as ReelProps;
           const count = dedupeSlides(p.title, p.slides).length; // de-dup → duração bate c/ os insights reais
           return { durationInFrames: reelDurationsV2(count, !!p.funnel).total };
+        }}
+      />
+
+      {/* POC (fora de produção): foto retrato → movimento Ken Burns suave via CSS
+          transform no Remotion. Prova a 2ª fonte de footage (banco de FOTO). Não
+          é usada por nenhum workflow — só render de teste (--composition=KenBurnsProof). */}
+      <Composition
+        id="KenBurnsProof"
+        component={KenBurnsProof}
+        durationInFrames={kenBurnsProofDuration(kenBurnsProofDefaultProps.photos.length)}
+        fps={KB_FPS}
+        width={1080}
+        height={1920}
+        defaultProps={kenBurnsProofDefaultProps}
+        calculateMetadata={({ props }) => {
+          const p = props as typeof kenBurnsProofDefaultProps;
+          const count = p.photos && p.photos.length ? p.photos.length : kenBurnsProofDefaultProps.photos.length;
+          return { durationInFrames: kenBurnsProofDuration(count) };
         }}
       />
 
