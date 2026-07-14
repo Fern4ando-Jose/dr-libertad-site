@@ -11,6 +11,7 @@
 // pipeline segue como antes (cada idioma busca o seu). Nunca quebra a publicação.
 
 import { judgeFootagePosterCached } from "@/lib/footage-qa";
+import { FOOTAGE_LIBRARY } from "@/lib/footage-library";
 
 export interface SearchResult { title: string; content: string; url: string }
 
@@ -157,6 +158,19 @@ function rotate<T>(arr: T[], n: number): T[] {
   return arr.slice(k).concat(arr.slice(0, k));
 }
 
+// Embaralho determinístico por seed (LCG). MESMO seed → MESMA ordem → footage
+// idêntico entre ES e PT do mesmo (tópico,dia). Espelha o da UPM.
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const a = arr.slice();
+  let s = seed >>> 0 || 1;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    const j = s % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 // Escolhe o melhor arquivo: retrato, ~1080p (evita 4K pesado no render do CI).
 function pickFile(video: any): string | null {
   const files = (video.video_files || []).filter((f: any) => f.link && f.width && f.height);
@@ -215,8 +229,20 @@ export async function selectFootage(
   numClips = 5, // 5 cenas do Reel (capa + 3 insights + CTA) → 5 clipes distintos
   excludeKey?: string, // cache_key do PRÓPRIO (tópico,dia) — fora do "avoid" (#126)
 ): Promise<string[]> {
+  // ── PRIMÁRIO: biblioteca CURADA por pilar (whitelist vetado à mão) ──────────
+  // Sorteia numClips clipes DISTINTOS do pilar do post, determinístico por
+  // (tópico,dia) → footage idêntico entre ES e PT, sem repetir clipe no mesmo
+  // reel. Mata a ROLETA do Pexels ao vivo (fonte única que secava e repetia, e
+  // trazia cena imprópria/fora de tema). Só cai na busca ao vivo se o pilar não
+  // tiver biblioteca suficiente (piloto: todos os 6 pilares têm 5 = numClips).
+  const lib = FOOTAGE_LIBRARY[cat] || [];
+  if (lib.length >= numClips) {
+    return seededShuffle(lib.map((c) => c.url), seed).slice(0, numClips);
+  }
+
+  // ── FALLBACK: busca ao vivo no Pexels (pilar sem biblioteca curada cheia) ────
   const key = process.env.PEXELS_API_KEY;
-  if (!key) return [];
+  if (!key) return lib.map((c) => c.url); // tem biblioteca parcial? usa o que há
   const anthropicKey = process.env.ANTHROPIC_API_KEY; // QA de conteúdo do footage (incidente 07-01)
   const fromClaude = (Array.isArray(videoQueries) ? videoQueries : []).filter((t) => typeof t === "string" && t.trim());
   const fallback = (CAT_TERMS[cat] || CAT_TERMS.freedom).slice();

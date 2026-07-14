@@ -29,8 +29,9 @@ Set reject=true if the frame is ANY of:
 - an extreme close-up of bare skin or body parts (arm, leg, torso, lips, etc.) filling the frame;
 - an abstract skin/flesh/body texture with no clear scene or subject;
 - nudity, lingerie, or sexually suggestive content;
+- a child or teenager (anyone who looks under ~18) as a subject in the frame;
 - anything a psychology brand would be embarrassed to post.
-Set reject=false only for a clear, tasteful scene with a discernible subject in context (a person doing something, a place, an object, nature).
+Set reject=false only for a clear, tasteful scene with a discernible ADULT subject in context (a person doing something, a place, an object, nature).
 When in doubt, reject=true.`;
 
 // Parser fail-safe (ilegível → rejeita). Espelha parseFootageVerdict do TS.
