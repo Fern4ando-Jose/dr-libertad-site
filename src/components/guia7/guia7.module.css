@@ -1,0 +1,410 @@
+/* Funil "Guia de 7 dias" — landing do lead magnet (Reel C).
+   Identidade "Amanhecer / quente-vintage" da marca Dr. Liberdade, mesma do funil
+   I Love Dopamina. Subconjunto autossuficiente (não acopla ao módulo do dopamina) +
+   classes próprias dos cartões de passo. Scoped via CSS Module.
+   --serif = Fraunces (var global --font-serif); --sans = Instrument Sans (via componente). */
+
+.root {
+  --bg: #160f0c;
+  --card: rgba(42, 32, 25, 0.66);
+  --cardhi: rgba(52, 39, 29, 0.72);
+  --cream: #f6eedf;
+  --cream2: #eadfcb;
+  --warm: #c6b49b;
+  --dim: #93826d;
+  --red: #ce7266;
+  --red-deep: #b65a4f;
+  --ember: #ebb073;
+  --gold: #dfa75e;
+  --line: rgba(210, 190, 160, 0.12);
+  --line2: rgba(210, 190, 160, 0.22);
+  --line3: rgba(235, 176, 115, 0.34);
+  --serif: var(--font-serif), Georgia, serif;
+  --sans: var(--font-instrument), system-ui, sans-serif;
+  --wrap: 760px;
+  --lit: inset 0 1px 0 rgba(255, 238, 214, 0.06);
+  --shadow: 0 26px 60px -34px rgba(0, 0, 0, 0.75);
+
+  position: relative;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--cream);
+  font-family: var(--sans);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  letter-spacing: normal;
+}
+.root *,
+.root *::before,
+.root *::after {
+  box-sizing: border-box;
+}
+.root button {
+  font-family: inherit;
+  cursor: pointer;
+  color: inherit;
+  background: none;
+  border: none;
+}
+
+/* Céu / brasas — fundo fixo */
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, #221610 0%, #1a120d 34%, #160f0c 70%);
+}
+.sun {
+  position: absolute;
+  top: -32vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 130vw;
+  height: 96vh;
+  background: radial-gradient(50% 58% at 50% 0%, rgba(235, 176, 115, 0.28), rgba(206, 114, 102, 0.12) 34%, transparent 60%);
+}
+.ember {
+  position: absolute;
+  bottom: -14px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(235, 176, 115, 0.9), rgba(235, 176, 115, 0));
+  animation: ember linear infinite;
+}
+@keyframes ember {
+  0% { transform: translateY(0); opacity: 0; }
+  12% { opacity: 0.8; }
+  90% { opacity: 0.5; }
+  100% { transform: translateY(-112vh); opacity: 0; }
+}
+
+.app {
+  position: relative;
+  z-index: 1;
+}
+.wrap {
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 0 26px;
+}
+
+/* Botões */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 14px;
+  padding: 14px 28px;
+  border-radius: 100px;
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, var(--red), var(--red-deep));
+  color: #fdf6ec;
+  box-shadow: 0 12px 30px -12px rgba(206, 114, 102, 0.75), var(--lit);
+  transition: 0.2s;
+  text-align: center;
+  text-decoration: none;
+}
+.btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.07);
+}
+.btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  transform: none;
+}
+.btnGhost {
+  background: none;
+  border: 1px solid var(--line3);
+  color: var(--cream2);
+  box-shadow: none;
+}
+.btnGhost:hover {
+  background: rgba(235, 176, 115, 0.08);
+  border-color: var(--ember);
+  filter: none;
+}
+
+.rrule {
+  width: 56px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--ember), var(--red));
+  border-radius: 2px;
+  box-shadow: 0 0 20px -2px rgba(235, 176, 115, 0.5);
+}
+
+/* HERO */
+.hero {
+  min-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 96px 0 48px;
+}
+.badge {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ember);
+  border: 1px solid var(--line3);
+  border-radius: 100px;
+  padding: 7px 16px;
+  margin-bottom: 26px;
+}
+.heroTitle {
+  font-family: var(--serif);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+  color: var(--cream);
+  font-size: clamp(40px, 8vw, 74px);
+  max-width: 15ch;
+}
+.heroTitle em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ember);
+}
+.hero .rrule {
+  margin: 28px auto 24px;
+}
+.heroSub {
+  font-family: var(--serif);
+  font-size: clamp(18px, 2.4vw, 21px);
+  font-weight: 300;
+  line-height: 1.6;
+  color: var(--cream2);
+  max-width: 46ch;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 30px;
+}
+.chip {
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--warm);
+  border: 1px solid var(--line2);
+  border-radius: 100px;
+  padding: 7px 14px;
+}
+.ctaRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.section {
+  padding: 54px 0;
+  border-top: 1px solid var(--line);
+}
+.eyebrow {
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ember);
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+.h2 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: clamp(27px, 4.4vw, 38px);
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+  color: var(--cream);
+  margin-bottom: 20px;
+}
+.lead {
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--cream2);
+}
+
+/* Bloco de honestidade */
+.honesty {
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.66;
+  color: var(--cream);
+  background: rgba(206, 114, 102, 0.1);
+  border: 1px solid var(--line3);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-top: 18px;
+}
+
+/* Cartões de passo (os 7 passos) */
+.steps {
+  display: grid;
+  gap: 14px;
+  margin-top: 10px;
+}
+.step {
+  border: 1px solid var(--line2);
+  border-radius: 18px;
+  padding: 22px 22px 20px;
+  background: var(--card);
+  box-shadow: var(--lit);
+}
+.stepHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.stepDia {
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ember);
+  white-space: nowrap;
+}
+.stepTitle {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--cream);
+}
+.stepAcao {
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.62;
+  color: var(--cream2);
+}
+.stepPorque {
+  font-family: var(--sans);
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--warm);
+  border-left: 2px solid var(--line3);
+  padding: 4px 0 4px 14px;
+  margin-top: 14px;
+}
+.stepPorque b {
+  color: var(--ember);
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* Formulário de opt-in do reforço diário */
+.formCard {
+  border: 1px solid var(--line3);
+  border-radius: 22px;
+  padding: 30px;
+  background: var(--cardhi);
+  box-shadow: var(--shadow), var(--lit);
+}
+.formBody {
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--cream2);
+  margin-bottom: 20px;
+}
+.formLabel {
+  display: block;
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--cream);
+  margin-bottom: 12px;
+}
+.inputRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.input {
+  flex: 1;
+  min-width: 220px;
+  background: rgba(18, 12, 9, 0.5);
+  border: 1px solid var(--line2);
+  border-radius: 12px;
+  color: var(--cream);
+  font-family: var(--sans);
+  font-size: 15px;
+  padding: 13px 15px;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--ember);
+}
+.formNote {
+  font-size: 12px;
+  color: var(--dim);
+  margin-top: 12px;
+}
+.formErr {
+  color: var(--red);
+  font-size: 13px;
+  margin-top: 10px;
+}
+.formOk {
+  font-family: var(--serif);
+  color: var(--ember);
+  font-size: 16px;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+
+/* CTA final (venda soft I Love Dopamina) */
+.finalCard {
+  text-align: center;
+}
+.finalLead {
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.72;
+  color: var(--cream2);
+  max-width: 52ch;
+  margin: 0 auto 24px;
+}
+
+.disc {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--dim);
+  line-height: 1.6;
+  border-left: 2px solid var(--line3);
+  padding: 6px 0 6px 14px;
+  margin: 30px 0 0;
+}
+.foot {
+  padding: 40px 0 90px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .wrap { padding: 0 20px; }
+  .hero { padding: 84px 0 40px; }
+  .ctaRow .btn { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ember { animation: none; display: none; }
+  .btn:hover { transform: none; }
+}

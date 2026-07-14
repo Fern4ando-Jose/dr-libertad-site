@@ -12,6 +12,7 @@ import {
   buildAntiRepeatDirective,
   generateDistinctText,
   normalizeReply,
+  mediaAllowedForFunnel,
   type PostContext,
 } from "@/lib/engagement";
 import { checkBudget } from "@/lib/spend";
@@ -376,7 +377,7 @@ async function processComment(
   // 2) Funil comment→DM (Fase 2) — atrás de flag; só se a palavra-chave bater.
   // Diversifica o DM (anti-repeat directive) mas ENVIA mesmo se colidir: entregar o
   // lead importa mais e a DM é 1:1 (não fica visível lado a lado como no feed).
-  if (flagOn("ENGAGEMENT_FUNNEL_ENABLED")) {
+  if (flagOn("ENGAGEMENT_FUNNEL_ENABLED") && mediaAllowedForFunnel(process.env.ENGAGEMENT_FUNNEL_MEDIA_IDS, mediaId)) {
     const { keyword, lead } = funnelConfig(acc, lang);
     if (keyword && detectKeyword(c.text ?? "", keyword)) {
       try {

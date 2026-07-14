@@ -11,6 +11,7 @@ import { buildVoiceDirective } from "./voice";
 import {
   normalizeText,
   detectKeyword,
+  mediaAllowedForFunnel,
   looksToxicOrSpam,
   decideComment,
   decideDm,
@@ -24,6 +25,24 @@ import {
 } from "./engagement";
 
 const base = { commentId: "c1", selfId: "ACC", fromId: "user1" };
+
+describe("mediaAllowedForFunnel — escopo opcional do funil por Reel", () => {
+  it("env vazia/ausente → dispara em qualquer post (sem regressão)", () => {
+    expect(mediaAllowedForFunnel(undefined, "111")).toBe(true);
+    expect(mediaAllowedForFunnel("", "111")).toBe(true);
+    expect(mediaAllowedForFunnel("   ", null)).toBe(true);
+  });
+  it("lista setada → só dispara nos media_id listados", () => {
+    expect(mediaAllowedForFunnel("111,222", "222")).toBe(true);
+    expect(mediaAllowedForFunnel("111,222", "333")).toBe(false);
+  });
+  it("aceita espaços na lista (ES + PT numa env só)", () => {
+    expect(mediaAllowedForFunnel(" 111 , 222 ", "111")).toBe(true);
+  });
+  it("lista setada mas media_id ausente → NÃO dispara (fail-closed no escopo)", () => {
+    expect(mediaAllowedForFunnel("111", null)).toBe(false);
+  });
+});
 
 describe("decideComment — travas de quem responder", () => {
   it("anti-loop: NÃO responde comentário da própria conta", () => {

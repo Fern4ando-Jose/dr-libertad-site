@@ -41,6 +41,24 @@ function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// Escopo OPCIONAL do funil comment→DM por POST (media_id). `raw` = a env
+// ENGAGEMENT_FUNNEL_MEDIA_IDS (lista de media_id separada por vírgula). Vazio (default)
+// → o funil dispara em QUALQUER post nosso (comportamento atual, sem regressão). Setada
+// → o funil só dispara nos posts listados (ex.: só o Reel C da campanha, para a isca
+// "comenta LIBERDADE/LIBERTAD" não disparar em menção casual à palavra de marca). Os
+// media_id das 2 contas (ES + PT) entram na MESMA lista; a checagem é por inclusão.
+// Lista setada mas media_id ausente no evento → NÃO dispara (fail-closed no escopo).
+export function mediaAllowedForFunnel(raw: string | undefined, mediaId: string | null): boolean {
+  const list = (raw ?? "").trim();
+  if (!list) return true;
+  if (!mediaId) return false;
+  return list
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .includes(mediaId);
+}
+
 // ── Heurística anti-tóxico: NÃO engajamos veneno (fail-toward-SKIP) ─────────────
 // Conservadora de propósito: não é moderação de conteúdo, é só evitar que a marca
 // responda automaticamente a insulto/spam. Na dúvida, NÃO responde (mais seguro do
