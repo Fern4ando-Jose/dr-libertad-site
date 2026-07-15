@@ -51,6 +51,9 @@ concurrency:
 jobs:
   reel:
     runs-on: ubuntu-latest
+    # contents: write → o passo de upload cria/atualiza o GitHub Release que hospeda o mp4.
+    permissions:
+      contents: write
     steps:
       # 1. Baixa o código do repositório
       - name: Checkout do repositório
@@ -228,14 +231,19 @@ jobs:
         if: ${{ steps.media.outputs.has_media == '1' }}
         run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelV2
 
-      # 7. Sobe o mp4 para o Vercel Blob e captura a URL pública (stdout)
-      - name: Upload do mp4 para o Vercel Blob
+      # 7. Sobe o mp4 como asset de um GitHub Release (repo PÚBLICO) e captura a URL
+      #    pública (stdout). PONTE de emergência 2026-07-15: o Vercel Blob suspendeu as
+      #    stores da conta inteira (BlobStoreSuspendedError) → 0 reel. O Release dá URL
+      #    pública que a Graph API busca, sem conta nova nem cartão. Destino definitivo
+      #    é o Cloudflare R2 (upload-r2.mjs, PR #166) quando o dono provisionar; o
+      #    upload-blob.mjs fica preservado p/ rollback.
+      - name: Upload do mp4 para GitHub Release (ponte)
         id: upload
         if: ${{ steps.media.outputs.has_media == '1' }}
         env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          URL=$(node scripts/upload-blob.mjs)
+          URL=$(node scripts/upload-release.mjs)
           echo "URL do vídeo: $URL"
           echo "video_url=$URL" >> "$GITHUB_OUTPUT"
 
