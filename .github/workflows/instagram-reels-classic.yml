@@ -42,6 +42,9 @@ concurrency:
 jobs:
   reel-classic:
     runs-on: ubuntu-latest
+    # contents: write → o passo de upload cria/atualiza o GitHub Release que hospeda o mp4.
+    permissions:
+      contents: write
     steps:
       - name: Checkout do repositório
         uses: actions/checkout@v4
@@ -183,13 +186,15 @@ jobs:
         if: ${{ steps.media.outputs.has_media == '1' }}
         run: node scripts/render-reel.mjs --props=reel-props.json --composition=${{ steps.media.outputs.composition }}
 
-      - name: Upload do mp4 para o Vercel Blob
+      # Upload do mp4 → GitHub Release (ponte 2026-07-15: Blob suspenso; R2 é o destino
+      # definitivo, PR #166). upload-blob.mjs preservado p/ rollback.
+      - name: Upload do mp4 para GitHub Release (ponte)
         id: upload
         if: ${{ steps.media.outputs.has_media == '1' }}
         env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          URL=$(node scripts/upload-blob.mjs)
+          URL=$(node scripts/upload-release.mjs)
           echo "URL do vídeo: $URL"
           echo "video_url=$URL" >> "$GITHUB_OUTPUT"
 
