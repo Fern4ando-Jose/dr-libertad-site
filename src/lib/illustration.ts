@@ -59,16 +59,22 @@ export function buildPrompt(subject: string, accentWord: string, accentHex: stri
     `Rendered in warm near-black charcoal ink (#0B0B0C): expressive graphite linework plus soft smudged shading, visible paper grain, hand-drawn texture.`,
     `ONE single dramatic light source, deep shadow elsewhere, high contrast, strong negative space.`,
     `One single central metaphor — a lone figure OR one symbolic object, never a crowd, a couple or multiple overlapping figures, ${framingFor(subject)}, quiet and dignified.`,
-    // Acento ÚNICO: um só ponto vinho; o resto estritamente monocromático carvão sobre creme.
-    `A SINGLE small accent in ${accentWord} (${accentHex}) on one element; everything else strictly monochrome charcoal on cream, no other color.`,
+    // CALOR de volta (2026-07-15): o "estritamente monocromático, sem sépia nem dourado" saía CINZA,
+    // CHAPADO e FRIO — o oposto das referências-alvo que o dono ama (ave, network, mariposa Nº 228:
+    // carvão quente, sépia profundo, realces dourados, chiaroscuro dramático). Aqui pedimos monocromia
+    // QUENTE (uma só faixa tonal, não multicolor), porém profunda e luminosa. Acento vinho intacto.
+    `A SINGLE small accent in ${accentWord} (${accentHex}) on one element; everything else in a RICH WARM MONOCHROME — deep luminous near-black charcoal with warm sepia-brown midtones and glowing warm golden highlights, dramatic chiaroscuro and high tonal depth (one warm tonal range, NEVER flat cold gray, no multicolor).`,
+    // Exigência de qualidade — barra o render "grafite raso/chapado".
+    `Highly detailed, rich expressive rendering, dramatic depth and volume, museum-quality editorial illustration — never flat, never washed-out, never a lifeless gray graphite look.`,
     // Modéstia — o gerador vinha produzindo NUDEZ explícita nesses temas (score 0 em 100% das
     // capas 06–07/07; ver tabela rejected_covers).
     `Any human figure is fully clothed in simple, timeless clothing. Strictly modest and non-explicit: no nudity, no bare chest or torso, no exposed breasts, buttocks or genitals, no underwear, no sexual, intimate or suggestive content — appropriate for a general-audience literary-magazine cover.`,
     // Blindagem anatômica — reduz a chance de mão/dedo/membro extra (defeito nº 1 da difusão).
     `Anatomically correct in structure: each person has exactly two arms and two hands, each hand with exactly five fingers; natural, correctly formed limbs, hands and faces. No extra, missing or fused fingers, hands, arms or limbs; no duplicated or distorted body parts.`,
     `No text, no letters, no words, no logo, no watermark. No busy clutter.`,
-    // Negativos da direção grafite (DIRECAO-CAPAS): morre foto/3D/barro/escultura/sépia/dourado/azul-marinho/cores múltiplas/saturação/footage.
-    `Not a photorealistic photo, not a 3d render; no clay, no sculpture, no sepia, no gold tint, no navy blue, no neon, no purple gradient; no multiple colors, not saturated, no stock footage.`,
+    // Negativos da direção grafite QUENTE (DIRECAO-CAPAS): morre foto/3D/barro/escultura/azul-marinho/
+    // roxo/neon/multicolor/saturação/footage E o cinza CHAPADO e FRIO. Sépia/dourado agora são BEM-VINDOS (calor).
+    `Not a photorealistic photo, not a 3d render; no clay, no sculpture, no navy blue, no neon, no purple gradient; no multiple/garish colors, not saturated, no flat cold gray, no washed-out gray graphite, no stock footage.`,
     // FULL-BLEED (2026-07-10, aprovado pelo dono): o template do /api/og desenha a moldura,
     // a margem creme e o texto POR CIMA — a imagem de fundo deve preencher o quadro inteiro
     // (a "margem creme fina" da direção é responsabilidade do TEMPLATE, não da arte de fundo).

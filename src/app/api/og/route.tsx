@@ -141,6 +141,10 @@ type OgLang = "es" | "pt";
 
 const BRAND: Record<OgLang, string> = { es: "Dr. Libertad", pt: "Dr. Liberdade" };
 
+// @handle por idioma (para a faixa creme da capa). Espelha ACCOUNTS (accounts.ts),
+// mas o /api/og é edge-autossuficiente → constante local (não importa de @/lib).
+const HANDLE: Record<OgLang, string> = { es: "@dr.liberdad", pt: "@dr.liberdade.br" };
+
 // Rótulo da categoria por idioma (substitui CATS[cat].label, que era só ES).
 const CAT_LABEL: Record<OgLang, Record<Cat, string>> = {
   es: { freedom: "LIBERTAD",  dopamine: "RECOMPENSA", anxiety: "ANSIEDAD",  network: "CONEXIÓN", self: "EL YO", mind: "LA MENTE" },
@@ -410,8 +414,11 @@ function MotifLayer({ motif, accent, dark, seed }: {
 }
 
 // ─── Superfície full-bleed: fundo + atmosfera + motivo ────────────────────────
-function Surface({ dark, accent, motif, seed, img, children }: {
-  dark: boolean; accent: string; motif: MotifId; seed: number; img?: string; children: React.ReactNode;
+// (A capa NÃO usa mais esta superfície — desde 2026-07-15 a CoverSlide monta a
+// própria placa de arte "contain" + letterbox creme. Aqui ficou o fundo editorial
+// abstrato dos slides de texto: Insight / CTA / Guide-fallback. Sem imagem/scrim.)
+function Surface({ dark, accent, motif, seed, children }: {
+  dark: boolean; accent: string; motif: MotifId; seed: number; children: React.ReactNode;
 }) {
   return (
     <div style={{
@@ -419,27 +426,16 @@ function Surface({ dark, accent, motif, seed, img, children }: {
       background: dark ? INK : OFFWHITE,
       color:      dark ? OFFWHITE : INK,
     }}>
-      {img ? (
-        // Ilustração por IA full-bleed + scrim (contraste do texto ≥ 4.5:1)
-        <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex" }}>
-          <img src={img} width={W} height={H} style={{ width: W, height: H, objectFit: "cover" }} />
-          <div style={{
-            position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex",
-            background: `linear-gradient(180deg, rgba(11,11,12,0.48) 0%, rgba(11,11,12,0.10) 38%, rgba(11,11,12,0.82) 100%)`,
-          }} />
-        </div>
-      ) : (
-        <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex" }}>
-          {/* atmosfera */}
-          <div style={{
-            position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex",
-            background: dark
-              ? `radial-gradient(circle at 78% 16%, ${rgba(accent, 0.34)}, transparent 58%), radial-gradient(circle at 18% 92%, rgba(0,0,0,0.55), transparent 55%)`
-              : `radial-gradient(circle at 20% 14%, rgba(231,221,204,0.65), transparent 58%), radial-gradient(circle at 84% 86%, ${rgba(accent, 0.12)}, transparent 55%)`,
-          }} />
-          <MotifLayer motif={motif} accent={accent} dark={dark} seed={seed} />
-        </div>
-      )}
+      <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex" }}>
+        {/* atmosfera */}
+        <div style={{
+          position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex",
+          background: dark
+            ? `radial-gradient(circle at 78% 16%, ${rgba(accent, 0.34)}, transparent 58%), radial-gradient(circle at 18% 92%, rgba(0,0,0,0.55), transparent 55%)`
+            : `radial-gradient(circle at 20% 14%, rgba(231,221,204,0.65), transparent 58%), radial-gradient(circle at 84% 86%, ${rgba(accent, 0.12)}, transparent 55%)`,
+        }} />
+        <MotifLayer motif={motif} accent={accent} dark={dark} seed={seed} />
+      </div>
       {/* conteúdo */}
       <div style={{
         position: "relative", display: "flex", flexDirection: "column",
@@ -492,26 +488,64 @@ function Footer({ left, accent, dark, num, total }: {
 }
 
 // ─── SLIDE 1: Capa ────────────────────────────────────────────────────────────
-function CoverSlide({ title, kw, issue, mood, cat, motif, total, seed, img, lang }: {
+// Direção travada (estrategista-de-atenção, 2026-07-15): a ARTE NUNCA é cortada
+// nem coberta. A ilustração ocupa uma PLACA (objectFit "contain") nos ~78%
+// superiores, com margem creme fina em volta; ABAIXO, uma faixa creme tipo
+// letterbox (~20%) traz o kicker (com régua no acento), o Nº da edição e o
+// @handle. ZERO scrim escuro sobre a arte e ZERO texto/glifo sobre o sujeito —
+// o título longo migra pro slide 2 (InsightSlide já mostra o texto).
+const COVER_LB_H = 276;  // faixa creme inferior (~20,4% de 1350) — letterbox
+const COVER_PAD  = 64;   // margem creme (~6% da largura) em volta da placa de arte
+
+function CoverSlide({ kw, issue, cat, motif, seed, img, lang }: {
   title: string; kw: string; issue: string; mood: "red" | "ink"; cat: Cat; motif: MotifId; total: number; seed: number; img?: string; lang: OgLang;
 }) {
-  const c     = CATS[cat];
-  const label = CAT_LABEL[lang][cat];
-  // Sobre ilustração, o texto vai claro (scrim escuro garante contraste).
-  const dark = img ? true : mood === "ink";
+  const c      = CATS[cat];
+  const label  = CAT_LABEL[lang][cat];
+  const handle = HANDLE[lang];
+  const edNum  = issue.replace(/\D+/g, "") || "01"; // "ED. 243" → "243"
+  const kicker = kw && kw.toUpperCase() !== label.toUpperCase() ? `${label} · ${kw.toUpperCase()}` : label;
+  const PLACA_W = W - 2 * COVER_PAD;
+  const PLACA_H = H - COVER_LB_H - 2 * COVER_PAD;
+
   return (
-    <Surface dark={dark} accent={c.accent} motif={motif} seed={seed} img={img}>
-      <Folio issue={issue} accent={c.accent} dark={dark} brand={BRAND[lang]} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-        <span style={{ fontFamily: SERIF, fontSize: 28, letterSpacing: "0.28em", color: c.accent, marginBottom: 30 }}>
-          {label}{kw && kw.toUpperCase() !== label.toUpperCase() ? ` · ${kw}` : ""}
-        </span>
-        <div style={{ fontFamily: SERIF, fontSize: fitTitleSize(title, W - 2 * M), lineHeight: 0.92, letterSpacing: "-0.035em", color: dark ? OFFWHITE : INK, maxWidth: W - 2 * M, display: "flex" }}>
-          {title.toUpperCase()}
+    <div style={{ width: W, height: H, display: "flex", flexDirection: "column", background: OFFWHITE }}>
+      {/* PLACA de arte — a ilustração INTEIRA (contain); o creme preenche a folga.
+          O sujeito nunca é cortado e nada é escrito sobre ele. */}
+      <div style={{ position: "relative", display: "flex", width: W, height: H - COVER_LB_H, padding: COVER_PAD, background: OFFWHITE }}>
+        {img ? (
+          <div style={{ position: "relative", display: "flex", width: "100%", height: "100%", background: OFFWHITE }}>
+            <img src={img} width={PLACA_W} height={PLACA_H} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          </div>
+        ) : (
+          // Fail-open: sem ilustração → motivo abstrato DENTRO da placa (sem texto).
+          <div style={{ position: "relative", display: "flex", width: "100%", height: "100%", overflow: "hidden", background: OFFWHITE }}>
+            <div style={{
+              position: "absolute", top: 0, left: 0, width: PLACA_W, height: PLACA_H, display: "flex",
+              background: `radial-gradient(circle at 22% 16%, rgba(231,221,204,0.65), transparent 58%), radial-gradient(circle at 84% 86%, ${rgba(c.accent, 0.12)}, transparent 55%)`,
+            }} />
+            <MotifLayer motif={motif} accent={c.accent} dark={false} seed={seed} />
+          </div>
+        )}
+      </div>
+      {/* FAIXA CREME (letterbox) — kicker + régua no acento, Nº e @handle. Carvão sobre creme. */}
+      <div style={{ width: W, height: COVER_LB_H, display: "flex", flexDirection: "column", justifyContent: "center", padding: `0 ${COVER_PAD}px`, background: OFFWHITE }}>
+        <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
+          <span style={{ fontFamily: SERIF, fontSize: 30, letterSpacing: "0.30em", color: INK, display: "flex" }}>
+            {kicker}
+          </span>
+          <div style={{ marginTop: 20, height: 3, width: 132, background: c.accent, display: "flex" }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 34 }}>
+          <span style={{ fontFamily: SERIF, fontSize: 64, letterSpacing: "-0.02em", color: INK, display: "flex" }}>
+            Nº {edNum}
+          </span>
+          <span style={{ fontFamily: SERIF, fontSize: 40, letterSpacing: "0.04em", color: INK, display: "flex" }}>
+            {handle}
+          </span>
         </div>
       </div>
-      <Footer left={UI_TEXT[lang].swipe} accent={c.accent} dark={dark} num={1} total={total} />
-    </Surface>
+    </div>
   );
 }
 
