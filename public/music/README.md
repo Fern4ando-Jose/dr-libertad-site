@@ -1,9 +1,17 @@
-# Trilha do Reel — uma faixa por TEMA
+# Trilha do Reel — uma faixa por TEMA, de um POOL por pilar
 
 O motor do Reel (`video/Reel.tsx`) embute uma trilha **opcional** como camada por
-cima do vídeo. Hoje cada **tema** (os 51 de `THEMES`) tem **som próprio**: o pipeline
-escolhe a faixa pelo `topic` do post, não pelo horário. Como cada tema reaparece a
-cada ~8 dias, a mesma faixa só volta junto com o tema.
+cima do vídeo. Cada **tema** (os 61 de `THEMES`) escolhe a faixa pelo `topic` do
+post, não pelo horário. Como cada tema reaparece a cada ~8 dias, a mesma faixa só
+volta junto com o tema.
+
+**Variedade (2026-07-15):** cada pilar (`dopamine`/`anxiety`/`mind`/`self`/`freedom`/
+`network`) tem um **pool** de faixas — `bed-pilar-<pilar>.mp3` (legado, IA) +
+`bed-pilar-<pilar>-01.mp3`…`-NN.mp3` (curadoria, ver `CREDITS.md`). Cada tema
+escolhe 1 faixa fixa do pool do seu pilar por **hash determinístico do próprio
+topic** (`scripts/build-music-manifest.mjs`) — reproduzível entre builds, sem
+regenerar; adicionar mais faixas ao pool aumenta a variedade automaticamente na
+próxima regeneração do manifest.
 
 ## Como funciona
 
@@ -54,9 +62,14 @@ Testar a seleção: `node scripts/pick-music.cjs --topic="La soledad masculina q
 
 ## Licença — IMPORTANTE
 
-Áudio **gerado por IA** (fal) = redistribuível num repo **público** (sem licença de
-terceiros). **Nunca** commitar aqui mp3 de serviços pagos/licenciados (ex.: Epidemic
-Sound) — repo público = redistribuição = violação de termos.
+Áudio **gerado por IA** (fal, `bed-pilar-<pilar>.mp3` sem sufixo) = redistribuível num
+repo **público** (sem licença de terceiros). As faixas numeradas
+`bed-pilar-<pilar>-NN.mp3` são de **Kevin MacLeod (incompetech.com)**, CC BY 4.0 —
+redistribuição permitida, **exige atribuição** (ver `CREDITS.md`). **Nunca** commitar
+aqui mp3 de serviços pagos/licenciados sem atribuição embutida ou que proíbam
+redistribuição do arquivo (ex.: Epidemic Sound, YouTube Audio Library — mesmo grátis,
+os termos cobrem "uso no seu vídeo", não redistribuição do arquivo bruto num repo
+público) — repo público = redistribuição = violação de termos nesses casos.
 
 ## Legado
 

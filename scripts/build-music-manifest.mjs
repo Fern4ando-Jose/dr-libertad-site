@@ -12,7 +12,7 @@
 // Fail-safe: o picker (pick-music.cjs) já é fail-open — tema sem arquivo no disco cai
 // na rotação legado/mudo, então um override apontando p/ arquivo inexistente não quebra.
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
@@ -20,6 +20,24 @@ const ROUTE = path.join(ROOT, "src/app/api/publish/route.ts");
 const MUSIC_DIR = path.join(ROOT, "public/music");
 const MANIFEST = path.join(MUSIC_DIR, "manifest.json");
 const OVERRIDES = path.join(MUSIC_DIR, "overrides.json");
+
+// hash determinístico (mesmo topic → sempre o mesmo índice, reprodutível entre builds)
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+// Pool por pilar: além do bed-pilar-<cat>.mp3 legado, aceita bed-pilar-<cat>-NN.mp3
+// (curadoria YouTube Audio Library, "sem atribuição"). Cada tema pega 1 faixa fixa do
+// pool do seu pilar via hash do topic — reprodutível, sem regenerar a cada build.
+function poolForPillar(cat) {
+  let files;
+  try { files = readdirSync(MUSIC_DIR); } catch { return [`bed-pilar-${cat}.mp3`]; }
+  const re = new RegExp(`^bed-pilar-${cat}(-\\d+)?\\.mp3$`, "i");
+  const pool = files.filter((f) => re.test(f)).sort();
+  return pool.length ? pool : [`bed-pilar-${cat}.mp3`];
+}
 
 // 1. extrai {topic, cat} dos THEMES (uma entrada por linha; cat pode vir após `literal: true`)
 const src = readFileSync(ROUTE, "utf8");
@@ -41,14 +59,21 @@ if (existsSync(OVERRIDES)) {
   catch { console.error("[manifest] overrides.json inválido — ignorando."); }
 }
 
-const pillarBed = (cat) => `music/bed-pilar-${cat}.mp3`;
 const manifest = {};
 let nFinal = 0, nFallback = 0;
 const byPillar = {};
 for (const { topic, cat } of themes) {
-  const file = overrides[topic] || pillarBed(cat);
+  if (overrides[topic]) {
+    manifest[topic] = overrides[topic];
+    nFinal++;
+    continue;
+  }
+  const pool = poolForPillar(cat);
+  const file = `music/${pool[hashStr(topic) % pool.length]}`;
   manifest[topic] = file;
-  if (overrides[topic]) nFinal++; else { nFallback++; (byPillar[cat] ??= 0); byPillar[cat]++; }
+  nFallback++;
+  (byPillar[cat] ??= 0);
+  byPillar[cat]++;
 }
 
 writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + "\n");
