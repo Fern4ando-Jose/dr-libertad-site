@@ -1,23 +1,29 @@
-name: Instagram Reel CLÁSSICO — Dr. Libertad
+name: Instagram Reel CLÁSSICO — Dr. Libertad / Dr. Liberdade (ES + PT)
 
 # Reel no estilo ANTIGO (slide animado sobre a ilustração da fal) — mantido como
 # estava, rodando em paralelo ao motor de vídeo (footage). Foi o formato que gerou
 # o melhor Reel até agora (insights), por isso preservado.
 #
-# 1x/dia às 22:00 UTC (19:00 BRT — slot do Reel campeão). Tópico = run 3 (distinto
-# dos Reels de vídeo, que usam runs 0..2).
+# WORKFLOW ÚNICO ES+PT (fusão 2026-07-14): antes eram 2 arquivos quase idênticos
+# (instagram-reels-classic.yml + -pt.yml) que DIVERGIAM à mão. Agora `lang` vem da
+# EXPRESSÃO cron (github.event.schedule) — fonte única, sem drift. ES às 19:17 BRT,
+# PT às 19:22 (5 min depois, p/ reusar a ilustração já cacheada). Tópico = run 3.
 #
 # BLINDAGEM DO 4º REEL: o clássico depende da ilustração da fal (não tinha footage de
 # reserva) — se a ilustração falhasse (402 de orçamento, fal fora, QA reprovando), o
-# slot das 19h NÃO saía (era a maior causa de furo do run 3). Agora a cascata é:
-# ilustração → footage (Pexels) → pular. Com ilustração, renderiza "ReelClassic"
-# (slide); sem ilustração, vira um Reel de FOOTAGE ("Reel") — sempre sai algo.
+# slot das 19h NÃO saía. Cascata: ilustração → footage (Pexels) → pular. Com ilustração
+# renderiza "ReelClassic" (slide); sem ela, vira um Reel de FOOTAGE ("Reel").
 
 on:
   schedule:
-    - cron: "17 22 * * *" # 19:17 BRT (run 3)
+    - cron: "17 22 * * *" # 19:17 BRT — ES run 3
+    - cron: "22 22 * * *" # 19:22 BRT — PT run 3 (5 min após o ES)
   workflow_dispatch:
     inputs:
+      lang:
+        description: "Idioma (es | pt). Default es."
+        required: false
+        default: "es"
       run:
         description: "Run p/ escolher o tópico (vazio = run 3)"
         required: false
@@ -30,7 +36,7 @@ on:
         options: ["no", "yes"]
 
 concurrency:
-  group: instagram-reels-classic-${{ github.event.schedule || github.event.inputs.run || 'manual' }}
+  group: instagram-reels-classic-${{ github.event.schedule || github.event.inputs.lang }}-${{ github.event.inputs.run }}
   cancel-in-progress: false
 
 jobs:
@@ -50,36 +56,60 @@ jobs:
       - name: Instalar dependências
         run: npm install --no-audit --no-fund
 
-      # run: 3 no agendamento; input ou 3 no disparo manual.
-      - name: Determinar run
+      # run 3 (e lang) do agendamento; input ou default no disparo manual.
+      - name: Determinar run e idioma
         id: params
         env:
           EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          IN_LANG: ${{ github.event.inputs.lang }}
           IN_RUN: ${{ github.event.inputs.run }}
         run: |
           if [ "$EVENT" = "workflow_dispatch" ]; then
             RUN="${IN_RUN:-3}"
+            LANG="${IN_LANG:-es}"
           else
-            RUN=3
+            case "$SCHEDULE" in
+              "17 22 * * *") RUN=3; LANG=es ;;
+              "22 22 * * *") RUN=3; LANG=pt ;;
+              *) RUN=3; LANG=es ;;  # fallback defensivo
+            esac
           fi
+          [ "$LANG" != "pt" ] && LANG=es  # normaliza qualquer valor inesperado p/ es
           echo "run=$RUN" >> "$GITHUB_OUTPUT"
-          echo "Run escolhido: $RUN"
+          echo "lang=$LANG" >> "$GITHUB_OUTPUT"
+          if [ "$LANG" = "pt" ]; then
+            echo "langqs=&lang=pt" >> "$GITHUB_OUTPUT"
+            echo "reelqs=?lang=pt" >> "$GITHUB_OUTPUT"
+            echo "cta_follow=Siga" >> "$GITHUB_OUTPUT"
+            echo "cta_bio=→ Mais no link da bio" >> "$GITHUB_OUTPUT"
+          else
+            echo "langqs=" >> "$GITHUB_OUTPUT"
+            echo "reelqs=" >> "$GITHUB_OUTPUT"
+            echo "cta_follow=Sigue" >> "$GITHUB_OUTPUT"
+            echo "cta_bio=→ Más en el link de la bio" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Run escolhido: $RUN (lang=$LANG)"
 
       # Conteúdo + tentativa de ILUSTRAÇÃO (clássico usa a imagem da fal de fundo).
       # NÃO-FATAL: se o gate de orçamento / a fal derrubar (402/5xx), cai pro conteúdo
       # SEM ilustração e o slot vira um Reel de FOOTAGE — o run 3 nunca fica sem sair
       # por causa da ilustração.
       - name: Obter conteúdo (preview, tenta ilustração) e montar REEL_PROPS
+        env:
+          CTA_FOLLOW: ${{ steps.params.outputs.cta_follow }}
+          CTA_BIO: ${{ steps.params.outputs.cta_bio }}
         run: |
           AUTH="Authorization: Bearer ${{ secrets.CRON_SECRET }}"
           RUN="${{ steps.params.outputs.run }}"
+          LANGQS="${{ steps.params.outputs.langqs }}"
           HTTP=$(curl -sS -o preview.json -w "%{http_code}" --max-time 200 -H "$AUTH" \
-            "https://www.drlibertad.com/api/publish?preview=1&illus=1&run=$RUN" || echo 000)
+            "https://www.drlibertad.com/api/publish?preview=1&illus=1${LANGQS}&run=$RUN" || echo 000)
           echo "preview (com ilustração): HTTP $HTTP"
           if [ "$HTTP" != "200" ]; then
             echo "::warning title=Clássico sem ilustração::HTTP $HTTP no preview illus=1 — caindo pra footage."
             curl -fsS --max-time 180 -H "$AUTH" \
-              "https://www.drlibertad.com/api/publish?preview=1&run=$RUN" -o preview.json
+              "https://www.drlibertad.com/api/publish?preview=1${LANGQS}&run=$RUN" -o preview.json
           fi
           echo "Prévia recebida:"; cat preview.json | head -c 400; echo
 
@@ -98,13 +128,14 @@ jobs:
               cat: p.cat || "freedom",
               handle: p.handle || "@dr.liberdad",
               brand: p.brand || "Dr. Libertad",
-              ctaFollow: p.ctaFollow || "Sigue",
-              ctaBio: p.ctaBio || "→ Más en el link de la bio",
+              // Fallback de CTA por idioma (CTA_FOLLOW/CTA_BIO do step): nunca vaza o outro idioma.
+              ctaFollow: p.ctaFollow || process.env.CTA_FOLLOW,
+              ctaBio: p.ctaBio || process.env.CTA_BIO,
               // Footage de RESERVA (quando não há ilustração): termos do Claude + clipes.
               videoQueries: Array.isArray(p.videoQueries) ? p.videoQueries : [],
               clips: Array.isArray(p.clips) && p.clips.length ? p.clips : undefined,
               // Trilha embutida — UMA FAIXA POR TEMA via manifest.json (pelo `topic`);
-              // sem faixa → rotação legado por `run`; sem nenhuma → mudo.
+              // sem faixa → rotação legado por `run`; sem nenhuma → mudo. PT e ES compartilham.
               music: require("./scripts/pick-music.cjs").pickMusic({ topic: p.topic, run: ${{ steps.params.outputs.run }} }) || undefined
             };
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
@@ -179,8 +210,8 @@ jobs:
             --data-urlencode "slot=$(cat slot.txt)" \
             --data-urlencode "run=${{ steps.params.outputs.run }}" \
             --data-urlencode "topic@topic.txt" \
-            "https://www.drlibertad.com/api/publish-reel")
+            "https://www.drlibertad.com/api/publish-reel${{ steps.params.outputs.reelqs }}")
           echo "Resposta do servidor:"
           echo "$RESP"
           echo "$RESP" | grep -q '"ok":true' || { echo "::error::Publicação falhou"; exit 1; }
-          echo "Reel clássico publicado."
+          echo "Reel clássico publicado (lang=${{ steps.params.outputs.lang }})."

@@ -1,23 +1,37 @@
-name: Instagram Reels — Dr. Libertad
+name: Instagram Reels — Dr. Libertad / Dr. Liberdade (ES + PT)
 
-# Pipeline GRÁTIS de Reels (vídeo) para o @drlibertad.
+# Pipeline GRÁTIS de Reels (vídeo) para @dr.liberdad (ES) e @dr.liberdade.br (PT).
 # Fundo = footage real de banco (Pexels) + grade da marca + música. Renderiza com
 # Remotion no GitHub Actions (Chromium + ffmpeg), sobe o mp4 pro Vercel Blob e
 # publica via /api/publish-reel.
 #
-# 4 Reels de VÍDEO/dia em horários INTERCALADOS nos picos do IG (BRT), cada um com
-# um tópico DISTINTO (runs 0..2 e 6). O Reel CLÁSSICO (slide animado) roda à parte em
-# instagram-reels-classic.yml (run 3, 19h BRT). O `run` é derivado da EXPRESSÃO cron
-# (github.event.schedule), não da hora do relógio — pra atraso do cron não colidir
-# com o run vizinho. Slot/tom = SLOT_FOR_RUN[run].
+# WORKFLOW ÚNICO ES+PT (fusão 2026-07-14): antes eram 2 arquivos quase idênticos
+# (instagram-reels.yml + instagram-reels-pt.yml) que DIVERGIAM à mão. Agora `lang` é
+# derivado da EXPRESSÃO cron (github.event.schedule), do mesmo jeito que o `run` —
+# fonte única do job, ES e PT nunca mais saem de sincronia. ES dispara em :17 e PT em
+# :22 (5 min depois, p/ ler a arte que o ES já gerou; imagem compartilhada, só a copy muda).
+#
+# 4 Reels de VÍDEO/dia por idioma (runs 0..2 e 6). O Reel CLÁSSICO (slide animado) roda
+# à parte em instagram-reels-classic.yml (run 3, 19h BRT). O `run` também vem da
+# EXPRESSÃO cron, não do relógio — pra atraso do cron não colidir com o run vizinho.
 on:
   schedule:
-    - cron: "17 15 * * *" # 12:17 BRT (run 0)
-    - cron: "17 20 * * *" # 17:17 BRT (run 1)
-    - cron: "17 0 * * *"  # 21:17 BRT (run 2)
-    - cron: "17 10 * * *" # 07:17 BRT (run 6) — 4º Reel vídeo (cadência 7/dia, 2026-07-08)
+    # ES (:17)
+    - cron: "17 15 * * *" # 12:17 BRT — ES run 0
+    - cron: "17 20 * * *" # 17:17 BRT — ES run 1
+    - cron: "17 0 * * *"  # 21:17 BRT — ES run 2
+    - cron: "17 10 * * *" # 07:17 BRT — ES run 6 (4º Reel vídeo, cadência 7/dia)
+    # PT (:22, 5 min após o ES)
+    - cron: "22 15 * * *" # 12:22 BRT — PT run 0
+    - cron: "22 20 * * *" # 17:22 BRT — PT run 1
+    - cron: "22 0 * * *"  # 21:22 BRT — PT run 2
+    - cron: "22 10 * * *" # 07:22 BRT — PT run 6
   workflow_dispatch:
     inputs:
+      lang:
+        description: "Idioma (es | pt). Default es."
+        required: false
+        default: "es"
       run:
         description: "Run 0..2 ou 6 p/ escolher o tópico (vazio = run 2)"
         required: false
@@ -29,9 +43,9 @@ on:
         type: choice
         options: ["no", "yes"]
 
-# Um Reel por horário roda isolado; horários diferentes não se cancelam.
+# Um Reel por horário/idioma roda isolado; horários e idiomas diferentes não se cancelam.
 concurrency:
-  group: instagram-reels-${{ github.event.schedule || github.event.inputs.run || 'manual' }}
+  group: instagram-reels-${{ github.event.schedule || github.event.inputs.lang }}-${{ github.event.inputs.run }}
   cancel-in-progress: false
 
 jobs:
@@ -55,36 +69,59 @@ jobs:
       - name: Instalar dependências
         run: npm install --no-audit --no-fund
 
-      # 4. Determina o `run` (0..3): da expressão cron (agendado) ou do input (manual).
-      - name: Determinar run pelo horário
+      # 4. Determina `run` E `lang`: da expressão cron (agendado) ou dos inputs (manual/catchup).
+      - name: Determinar run e idioma pelo horário
         id: params
         env:
           EVENT: ${{ github.event_name }}
           SCHEDULE: ${{ github.event.schedule }}
+          IN_LANG: ${{ github.event.inputs.lang }}
           IN_RUN: ${{ github.event.inputs.run }}
         run: |
           if [ "$EVENT" = "workflow_dispatch" ]; then
             RUN="${IN_RUN:-2}"   # disparo manual: run informado ou 2 (noite)
+            LANG="${IN_LANG:-es}"
           else
             case "$SCHEDULE" in
-              "17 15 * * *") RUN=0 ;;
-              "17 20 * * *") RUN=1 ;;
-              "17 0 * * *")  RUN=2 ;;
-              "17 10 * * *") RUN=6 ;;
-              *) RUN=2 ;;  # fallback defensivo
+              "17 15 * * *") RUN=0; LANG=es ;;
+              "17 20 * * *") RUN=1; LANG=es ;;
+              "17 0 * * *")  RUN=2; LANG=es ;;
+              "17 10 * * *") RUN=6; LANG=es ;;
+              "22 15 * * *") RUN=0; LANG=pt ;;
+              "22 20 * * *") RUN=1; LANG=pt ;;
+              "22 0 * * *")  RUN=2; LANG=pt ;;
+              "22 10 * * *") RUN=6; LANG=pt ;;
+              *) RUN=2; LANG=es ;;  # fallback defensivo
             esac
           fi
+          [ "$LANG" != "pt" ] && LANG=es  # normaliza qualquer valor inesperado p/ es
           echo "run=$RUN" >> "$GITHUB_OUTPUT"
-          echo "Run escolhido: $RUN"
+          echo "lang=$LANG" >> "$GITHUB_OUTPUT"
+          # Sufixo de query e CTA-fallback por idioma (fonte única, sem drift entre ES/PT).
+          if [ "$LANG" = "pt" ]; then
+            echo "langqs=&lang=pt" >> "$GITHUB_OUTPUT"
+            echo "reelqs=?lang=pt" >> "$GITHUB_OUTPUT"
+            echo "cta_follow=Siga" >> "$GITHUB_OUTPUT"
+            echo "cta_bio=→ Mais no link da bio" >> "$GITHUB_OUTPUT"
+          else
+            echo "langqs=" >> "$GITHUB_OUTPUT"
+            echo "reelqs=" >> "$GITHUB_OUTPUT"
+            echo "cta_follow=Sigue" >> "$GITHUB_OUTPUT"
+            echo "cta_bio=→ Más en el link de la bio" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Run escolhido: $RUN (lang=$LANG)"
 
-      # 5. Busca o conteúdo em /api/publish?preview=1&run=N (gera título/slides/cta +
+      # 5. Busca o conteúdo em /api/publish?preview=1[&lang=pt]&run=N (gera título/slides/cta +
       #    videoQueries via Claude, SEM publicar) e monta o REEL_PROPS.
       - name: Obter conteúdo (preview) e montar REEL_PROPS
         id: content
+        env:
+          CTA_FOLLOW: ${{ steps.params.outputs.cta_follow }}
+          CTA_BIO: ${{ steps.params.outputs.cta_bio }}
         run: |
           curl -fsS --max-time 180 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://www.drlibertad.com/api/publish?preview=1&run=${{ steps.params.outputs.run }}" \
+            "https://www.drlibertad.com/api/publish?preview=1${{ steps.params.outputs.langqs }}&run=${{ steps.params.outputs.run }}" \
             -o preview.json
           echo "Prévia recebida:"
           cat preview.json | head -c 400; echo
@@ -106,9 +143,9 @@ jobs:
               handle: p.handle || "@dr.liberdad",
               brand: p.brand || "Dr. Libertad",
               // CTA do Reel no idioma da conta (bug C3): a API manda "Sigue"/"Siga";
-              // fallback ES aqui (workflow espanhol) p/ nunca vazar português.
-              ctaFollow: p.ctaFollow || "Sigue",
-              ctaBio: p.ctaBio || "→ Más en el link de la bio",
+              // fallback por idioma (CTA_FOLLOW/CTA_BIO do step) p/ nunca vazar o outro idioma.
+              ctaFollow: p.ctaFollow || process.env.CTA_FOLLOW,
+              ctaBio: p.ctaBio || process.env.CTA_BIO,
               // Termos de busca de footage gerados pelo Claude (no tema do post).
               videoQueries: Array.isArray(p.videoQueries) ? p.videoQueries : [],
               // Footage COMPARTILHADO entre ES e PT (mesmo vídeo), resolvido e
@@ -117,6 +154,7 @@ jobs:
               // Trilha embutida (camada de criação, opcional). UMA FAIXA POR TEMA:
               // o picker acha no manifest.json a faixa do `topic` do post; sem ela,
               // cai na rotação antiga por `run` (bed-0.mp3, …); sem nenhuma → mudo.
+              // PT e ES compartilham os MESMOS arquivos (mesmo tema = mesma faixa).
               music: require("./scripts/pick-music.cjs").pickMusic({ topic: p.topic, run: ${{ steps.params.outputs.run }} }) || undefined,
               // End-card do funil (comment→DM) — presente só quando ENGAGEMENT_FUNNEL_ENABLED;
               // a API já manda a capa do livro + a voz por idioma. Ausente → Reel inalterado.
@@ -129,7 +167,7 @@ jobs:
             fs.writeFileSync("slot.txt", p.slot || "noite");
             fs.writeFileSync("topic.txt", p.topic || ""); // → publish-reel (anti-dup cross-formato)
             fs.writeFileSync("reel-props.json", JSON.stringify(props));
-            console.log("REEL_PROPS montado (run", "'"${{ steps.params.outputs.run }}"'", "):", JSON.stringify(props).slice(0, 280));
+            console.log("REEL_PROPS montado (run", "'"${{ steps.params.outputs.run }}"'", "lang", "'"${{ steps.params.outputs.lang }}"'", "):", JSON.stringify(props).slice(0, 280));
           '
 
       # 5b. Busca footage REAL de banco (Pexels, grátis) no tema do post → clipes de
@@ -166,7 +204,7 @@ jobs:
           echo "Sem footage e sem ilustração — tentando ilustração (fal) como fallback…"
           curl -fsS --max-time 200 \
             -H "Authorization: Bearer $CRON_SECRET" \
-            "https://www.drlibertad.com/api/publish?preview=1&illus=1&run=${{ steps.params.outputs.run }}" \
+            "https://www.drlibertad.com/api/publish?preview=1&illus=1${{ steps.params.outputs.langqs }}&run=${{ steps.params.outputs.run }}" \
             -o illus.json || echo "(chamada de ilustração falhou)"
           node -e '
             const fs = require("fs");
@@ -223,8 +261,8 @@ jobs:
             --data-urlencode "slot=$(cat slot.txt)" \
             --data-urlencode "run=${{ steps.params.outputs.run }}" \
             --data-urlencode "topic@topic.txt" \
-            "https://www.drlibertad.com/api/publish-reel")
+            "https://www.drlibertad.com/api/publish-reel${{ steps.params.outputs.reelqs }}")
           echo "Resposta do servidor:"
           echo "$RESP"
           echo "$RESP" | grep -q '"ok":true' || { echo "::error::Publicação falhou"; exit 1; }
-          echo "Reel publicado."
+          echo "Reel publicado (lang=${{ steps.params.outputs.lang }})."

@@ -48,16 +48,17 @@ jobs:
             run=$(echo "$item" | jq -r '.run')
 
             case "$run" in
-              0|1|2) base="instagram-reels";          extra="-f publish=yes" ;;
-              3)     base="instagram-reels-classic";  extra="-f publish=yes" ;;
-              4|5)   base="instagram-posts";          extra="" ;;
-              *)     echo "run $run desconhecido — pulando"; continue ;;
+              0|1|2|6) base="instagram-reels";          extra="-f publish=yes" ;;
+              3)       base="instagram-reels-classic";  extra="-f publish=yes" ;;
+              4|5)     base="instagram-posts";          extra="" ;;
+              *)       echo "run $run desconhecido — pulando"; continue ;;
             esac
-            if [ "$lang" = "pt" ]; then wf="${base}-pt.yml"; else wf="${base}.yml"; fi
+            # Workflow ÚNICO por formato (fusão ES+PT 2026-07-14): o idioma vai por -f lang.
+            wf="${base}.yml"
 
             echo "::notice title=Catch-up::redisparando $wf run=$run ($lang)"
             # shellcheck disable=SC2086
-            gh workflow run "$wf" -f run="$run" $extra \
+            gh workflow run "$wf" -f run="$run" -f lang="$lang" $extra \
               || echo "::warning::falha ao disparar $wf run=$run ($lang)"
           done
 

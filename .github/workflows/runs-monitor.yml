@@ -1,0 +1,71 @@
+name: Monitor de reputação — órfãos & duplicatas
+
+# ALARME DE REPUTAÇÃO (item sid 684). O /api/runs-status já DETECTA duas anomalias
+# que arranham a reputação das contas no feed, mas ninguém era avisado:
+#   • duplicates → o MESMO tema saiu em 2+ vagas distintas em 7 dias (repetição no feed);
+#   • orphans    → uma vaga saiu numa conta (ES ou PT) e a IRMÃ desistiu (assimetria ES/PT).
+#
+# Este workflow roda no FIM DO DIA (00:30 BRT), DEPOIS do guardião (23:40 BRT) e da
+# última varredura do catchup — quando as vagas do dia já assentaram — lê o status e:
+#   • Tudo limpo  → passa VERDE (nenhum ruído).
+#   • Anomalia    → escreve o detalhe no Job Summary + ::error:: e FALHA o run (VERMELHO)
+#                   → o GitHub notifica o dono/agente (aba Actions + e-mail de falha).
+#                   O supervisor diário de automações (local) também enxerga o run vermelho.
+# Custo ZERO (só um curl ao endpoint que já existe; sem API paga). Idempotente e read-only.
+
+on:
+  schedule:
+    - cron: "30 3 * * *" # 00:30 BRT — após guardião (02:40 UTC) + última varredura
+  workflow_dispatch: {}
+
+concurrency:
+  group: runs-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ler runs-status e alarmar órfãos/duplicatas
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          RESP=$(curl -fsS --max-time 30 -H "Authorization: Bearer $CRON_SECRET" \
+            "https://www.drlibertad.com/api/runs-status")
+          echo "runs-status: $RESP"
+
+          DUP_N=$(echo "$RESP" | jq '(.duplicates // []) | length')
+          ORP_N=$(echo "$RESP" | jq '(.orphans // []) | length')
+          DAY=$(echo "$RESP" | jq -r '.day')
+
+          {
+            echo "## Monitor de reputação — $DAY"
+            echo ""
+            echo "- Duplicatas (tema repetido em 2+ vagas/7d): **$DUP_N**"
+            echo "- Órfãos (vaga sem o par ES/PT): **$ORP_N**"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$DUP_N" -eq 0 ] && [ "$ORP_N" -eq 0 ]; then
+            echo "Saudável: 0 duplicatas, 0 órfãos."
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "✅ Saudável — nada a corrigir." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### ⚠️ Anomalia detectada" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$DUP_N" -gt 0 ]; then
+            echo "$RESP" | jq -r '.duplicates[]? | "- DUPLICATA: " + (. | tostring)' >> "$GITHUB_STEP_SUMMARY"
+            echo "$RESP" | jq -c '.duplicates[]?' | while read -r d; do
+              echo "::error title=Duplicata no feed::$d"
+            done
+          fi
+          if [ "$ORP_N" -gt 0 ]; then
+            echo "$RESP" | jq -r '.orphans[]? | "- ÓRFÃO: " + (. | tostring)' >> "$GITHUB_STEP_SUMMARY"
+            echo "$RESP" | jq -c '.orphans[]?' | while read -r o; do
+              echo "::error title=Par ES/PT órfão::$o"
+            done
+          fi
+          echo "::error title=Monitor de reputação::${DUP_N} duplicata(s) + ${ORP_N} órfão(s) em $DAY — revisar (protege a reputação das contas)."
+          exit 1
