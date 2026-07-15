@@ -7,10 +7,11 @@ import {
   decideDm,
   detectKeyword,
   buildReplyPrompt,
-  buildDmPrompt,
   buildDmReplyPrompt,
   buildAntiRepeatDirective,
   generateDistinctText,
+  pickFunnelDm,
+  renderFunnelDm,
   normalizeReply,
   mediaAllowedForFunnel,
   type PostContext,
@@ -374,18 +375,17 @@ async function processComment(
     return; // sem marcar → a Meta re-tenta; idempotência impede dupla resposta
   }
 
-  // 2) Funil comment→DM (Fase 2) — atrás de flag; só se a palavra-chave bater.
-  // Diversifica o DM (anti-repeat directive) mas ENVIA mesmo se colidir: entregar o
-  // lead importa mais e a DM é 1:1 (não fica visível lado a lado como no feed).
+  // 2) Funil comment→DM (Fase 2) — atrás de flag + escopo de Reel (media_ids); só se a
+  // palavra-chave bater. COPY APROVADA por sorteio (8 variações do guardião-editorial) +
+  // anti-repetição — custo ZERO por DM (sem haiku) e voz garantida. {LINK} → URL do lead
+  // (env ENGAGEMENT_LEAD_URL_<LANG>) só no envio.
   if (flagOn("ENGAGEMENT_FUNNEL_ENABLED") && mediaAllowedForFunnel(process.env.ENGAGEMENT_FUNNEL_MEDIA_IDS, mediaId)) {
     const { keyword, lead } = funnelConfig(acc, lang);
     if (keyword && detectKeyword(c.text ?? "", keyword)) {
       try {
         const recentDm = await recentReplyTexts(entryId, { action: "funnel-dm" });
-        const { text: dm } = await generateDistinctText(
-          (avoid) => buildDmPrompt(voice, c.text ?? "", ctx, lead) + buildAntiRepeatDirective(avoid),
-          recentDm,
-        );
+        const template = pickFunnelDm(lang, recentDm);
+        const dm = template ? renderFunnelDm(template, lead?.url) : null;
         if (dm) {
           const ok = await postPrivateReply(entryId, commentId, dm, token);
           if (ok) await markProcessed(`funnel:${commentId}`, entryId, "funnel-dm", { mediaId, replyText: dm });

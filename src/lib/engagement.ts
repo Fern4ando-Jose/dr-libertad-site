@@ -187,20 +187,61 @@ Respóndele en ${ctx.langName}, con la VOZ de la marca, en conversación 1:1:
 Devuelve SOLO el texto del mensaje, sin comillas ni prefijos.`;
 }
 
-export function buildDmPrompt(
-  voiceDirective: string,
-  comment: string,
-  ctx: PostContext,
-  leadMagnet: { name: string; url?: string | null } | null,
-): string {
-  const deliver = leadMagnet
-    ? `Entrega esto en el mensaje: "${leadMagnet.name}"${leadMagnet.url ? ` — enlace: ${leadMagnet.url}` : ""}. Preséntalo con la voz de la marca, no como spam.`
-    : `Aún no hay material que entregar: abre conversación con la voz de la marca, invita a contarte más sobre lo que comentó. NO inventes enlaces ni promesas.`;
-  return `${voiceDirective}
+// ── Funil comment→DM: ROTAÇÃO de copy APROVADA (sem custo de API por DM) ─────────
+// Antes o DM do funil era GERADO por haiku a cada interação (custo + risco de a IA
+// fugir da voz e repetir). Agora sorteamos entre 8 variações APROVADAS pelo guardião-
+// editorial (4 por idioma; fonte: `Divulgacao/funil-dm-variacoes.md`) com anti-repetição
+// (reusa normalizeReply/isDuplicateReply). Copy fixa e aprovada → custo ZERO por DM.
+// O placeholder {LINK} é trocado pela URL do lead (env ENGAGEMENT_LEAD_URL_<LANG>) só no
+// ENVIO (renderFunnelDm) — a URL NUNCA é hardcodada aqui (fica na config/env).
+export const FUNNEL_DM_VARIATIONS: Record<string, string[]> = {
+  es: [
+    `Lo pediste, así que acá está. 👊 "I Love Dopamina" no es un manual para "resetear el cerebro" — es entender por qué querés mil cosas y ninguna te alcanza.\n\nLa dopamina no es placer: es ganas. Y las ganas, la pantalla te las vende infinitas.\n\nEl adelanto está acá: {LINK}\n\nLeelo sin prisa. — Dr. Libertad`,
+    `Comentaste, y cumplo. Te dejo el adelanto de "I Love Dopamina".\n\nLa pregunta del libro incomoda: ¿por qué con más estímulo que nunca sentís cada vez menos? La culpa no es tuya — qué hacés con eso, sí.\n\nAcá lo tenés: {LINK}\n\nNos leemos. — Dr. Libertad`,
+    `Acá va, como pediste: el adelanto de "I Love Dopamina".\n\nNo vine a decirte que sos un adicto. El adicto no elige; vos elegís, cada vez que agarrás el teléfono. El libro es para que veas quién tiene la llave.\n\nEmpezá por acá: {LINK}\n\nCon calma. — Dr. Libertad`,
+    `Lo pediste y te lo mando: adelanto de "I Love Dopamina", gratis.\n\nEl problema nunca fue el placer — fue lo fácil que se volvió. Scrolleás horas, te dormís insatisfecho, y al otro día igual. El libro explica el mecanismo, sin sermón.\n\nEstá acá: {LINK}\n\nQue lo disfrutes. — Dr. Libertad`,
+  ],
+  pt: [
+    `Você pediu, então tá aqui. 👊 "I Love Dopamina" não é manual pra "resetar o cérebro" — é entender por que você quer mil coisas e nenhuma satisfaz.\n\nDopamina não é prazer: é vontade. E vontade a tela te vende infinita.\n\nA prévia está aqui: {LINK}\n\nLê sem pressa. — Dr. Liberdade`,
+    `Você comentou, e eu cumpro. Te deixo a prévia de "I Love Dopamina".\n\nA pergunta do livro incomoda: por que, com mais estímulo do que nunca, você sente cada vez menos? A culpa não é sua — o que você faz com isso, é.\n\nTá aqui: {LINK}\n\nA gente se lê. — Dr. Liberdade`,
+    `Aqui está, como você pediu: a prévia de "I Love Dopamina".\n\nNão vim te chamar de viciado. Viciado não escolhe; você escolhe, toda vez que pega o celular. O livro é pra você ver quem está com a chave.\n\nComeça por aqui: {LINK}\n\nCom calma. — Dr. Liberdade`,
+    `Você pediu, tô mandando: prévia de "I Love Dopamina", de graça.\n\nO problema nunca foi o prazer — foi como ele ficou fácil. Você rola por horas, dorme insatisfeito, e no dia seguinte de novo. O livro mostra o mecanismo, sem sermão.\n\nEstá aqui: {LINK}\n\nAproveita. — Dr. Liberdade`,
+  ],
+};
 
-CONTEXTO: alguien comentó "${comment.trim()}" en un post (${ctx.title ?? ctx.topic ?? ""}) y pidió el material. Le escribes un DM privado en ${ctx.langName}.
-${deliver}
-Reglas: 2-4 frases, cálido pero con alma de marca, a "tú", sin sonar plantilla ni bot. Devuelve SOLO el texto del mensaje, sin comillas.`;
+// Remove o link (o token {LINK} E URLs já renderizadas) para a anti-repetição comparar só
+// o MIOLO — o link é igual em todas as variações; só o texto distingue uma da outra.
+function funnelBody(s: string): string {
+  return (s ?? "").replace(/\{LINK\}/g, " ").replace(/https?:\/\/\S+/g, " ");
+}
+
+// Sorteia UMA variação do funil para `lang`, evitando as recém-enviadas (reusa
+// normalizeReply/isDuplicateReply, comparando só o miolo). PURA — `rand` injetável p/
+// teste. null se não há pool para o idioma (o chamador então não envia DM automática).
+export function pickFunnelDm(
+  lang: string,
+  recent: string[],
+  opts?: { rand?: () => number },
+): string | null {
+  const pool = FUNNEL_DM_VARIATIONS[lang] ?? FUNNEL_DM_VARIATIONS[normalizeText(lang)];
+  if (!pool || !pool.length) return null;
+  const rand = opts?.rand ?? Math.random;
+  const recentBodies = recent.map(funnelBody);
+  const fresh = pool.filter((v) => !isDuplicateReply(funnelBody(v), recentBodies));
+  const bag = fresh.length ? fresh : pool; // todas já usadas nesta janela → recomeça do pool
+  return bag[Math.floor(rand() * bag.length)] ?? bag[0];
+}
+
+// Troca {LINK} pela URL do lead no ENVIO. Sem URL → remove a linha inteira do link (nunca
+// deixa "{LINK}" cru nem link quebrado no DM) e normaliza as quebras de linha.
+export function renderFunnelDm(template: string, leadUrl?: string | null): string {
+  if (leadUrl) return template.split("{LINK}").join(leadUrl);
+  return template
+    .split("\n")
+    .filter((l) => !l.includes("{LINK}"))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 // ── Anti-repetição (NUNCA enviar a MESMA resposta 2x no mesmo post/janela) ───────
