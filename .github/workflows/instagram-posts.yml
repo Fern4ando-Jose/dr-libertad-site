@@ -1,18 +1,28 @@
-name: Instagram — publicar posts
+name: Instagram — publicar posts (ES + PT)
 
 # Agendamento gratuito via GitHub Actions (substitui os crons do Vercel).
-# 2 CARROSSÉIS/dia (runs 4 e 5 — tópicos distintos dos Reels, que usam 0..3).
-# Reduzido de 6 → 2: os dados do /insights mostram que Reel supera carrossel em
-# alcance; o foco diário passou a ser vídeo. run é derivado da EXPRESSÃO cron que
-# disparou (github.event.schedule), NÃO da hora do relógio. slot/tom = run % 3.
+# 2 CARROSSÉIS/dia por idioma (runs 4 e 5 — tópicos distintos dos Reels, que usam 0..3,6).
+#
+# WORKFLOW ÚNICO ES+PT (fusão 2026-07-14): antes eram 2 arquivos quase idênticos
+# (instagram-posts.yml + instagram-posts-pt.yml) que DIVERGIAM à mão. Agora o
+# `lang` é derivado da EXPRESSÃO cron (github.event.schedule), do mesmo jeito que o
+# `run` — assim ES e PT nunca mais saem de sincronia (fonte única do job). ES dispara
+# em :17 e PT em :22 (5 min depois, p/ reusar a ilustração já cacheada pelo ES).
+# `run` também vem da expressão cron, não do relógio (atraso do cron não colide com o vizinho).
 on:
   schedule:
-    - cron: "17 12 * * *" # 09:17 BRT (run 4)
-    - cron: "17 17 * * *" # 14:17 BRT (run 5)
+    - cron: "17 12 * * *" # 09:17 BRT — ES run 4
+    - cron: "17 17 * * *" # 14:17 BRT — ES run 5
+    - cron: "22 12 * * *" # 09:22 BRT — PT run 4 (5 min após o ES)
+    - cron: "22 17 * * *" # 14:22 BRT — PT run 5
   workflow_dispatch:
     inputs:
+      lang:
+        description: "Idioma (es | pt). Default es."
+        required: false
+        default: "es"
       run:
-        description: "Run específico 0..5 p/ backfill de um horário. Vazio = usa slot/topic."
+        description: "Run específico 0..6 p/ backfill de um horário. Vazio = usa slot/topic."
         required: false
         default: ""
       slot:
@@ -29,8 +39,10 @@ on:
         required: false
         default: false
 
+# ES e PT têm expressões cron distintas (:17 vs :22) → grupos distintos → não se
+# bloqueiam. cancel-in-progress:false garante que nada em voo seja cancelado.
 concurrency:
-  group: instagram-posts
+  group: instagram-posts-${{ github.event.schedule || github.event.inputs.lang || 'manual' }}
   cancel-in-progress: false
 
 jobs:
@@ -38,46 +50,55 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Determinar parâmetros pelo horário
+      - name: Determinar run e idioma pelo horário
         id: params
         env:
           EVENT: ${{ github.event_name }}
           SCHEDULE: ${{ github.event.schedule }}
+          IN_LANG: ${{ github.event.inputs.lang }}
           IN_RUN: ${{ github.event.inputs.run }}
           IN_SLOT: ${{ github.event.inputs.slot }}
           IN_TOPIC: ${{ github.event.inputs.topic }}
           IN_FORCE: ${{ github.event.inputs.force }}
         run: |
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            # Disparo manual: run/slot/topic/force conforme informado.
-            # (run vazio + slot vazio = 3 slots base; run preenchido = backfill de 1 horário.)
+            # Disparo manual (inclui catchup/guardião): lang/run/slot/topic/force conforme informado.
+            LANG="${IN_LANG:-es}"
             echo "run=$IN_RUN" >> "$GITHUB_OUTPUT"
             echo "slot=$IN_SLOT" >> "$GITHUB_OUTPUT"
             echo "topic=$IN_TOPIC" >> "$GITHUB_OUTPUT"
             echo "force=$IN_FORCE" >> "$GITHUB_OUTPUT"
           else
-            # Agendado: run derivado da EXPRESSÃO cron que disparou (github.event.schedule),
-            # não da hora real — assim o atraso/adianto do cron não colide com o run vizinho.
+            # Agendado: run E idioma derivados da EXPRESSÃO cron que disparou.
             case "$SCHEDULE" in
-              "17 12 * * *") RUN=4 ;;
-              "17 17 * * *") RUN=5 ;;
-              *) RUN=4 ;;  # fallback defensivo
+              "17 12 * * *") RUN=4; LANG=es ;;
+              "17 17 * * *") RUN=5; LANG=es ;;
+              "22 12 * * *") RUN=4; LANG=pt ;;
+              "22 17 * * *") RUN=5; LANG=pt ;;
+              *) RUN=4; LANG=es ;;  # fallback defensivo
             esac
             echo "run=$RUN" >> "$GITHUB_OUTPUT"
             echo "slot=" >> "$GITHUB_OUTPUT"
             echo "topic=" >> "$GITHUB_OUTPUT"
             echo "force=false" >> "$GITHUB_OUTPUT"
           fi
+          [ "$LANG" != "pt" ] && LANG=es  # normaliza qualquer valor inesperado p/ es
+          echo "lang=$LANG" >> "$GITHUB_OUTPUT"
+          echo "Parâmetros: run='${RUN:-$IN_RUN}' lang='$LANG'"
 
       - name: Chamar endpoint de publicação
         env:
           AUTH: ${{ secrets.CRON_SECRET }}
           SITE: ${{ secrets.SITE_URL }}
+          LANG: ${{ steps.params.outputs.lang }}
           RUN: ${{ steps.params.outputs.run }}
           SLOT: ${{ steps.params.outputs.slot }}
           TOPIC: ${{ steps.params.outputs.topic }}
           FORCE: ${{ steps.params.outputs.force }}
         run: |
+          # URL base por idioma: es = sem query (default da API); pt = ?lang=pt.
+          URL="$SITE/api/publish"
+          [ "$LANG" = "pt" ] && URL="$SITE/api/publish?lang=pt"
           # Monta a query com -G --data-urlencode (lida com espaços no tópico).
           ARGS=(-sS -o response.json -w "%{http_code}" -G)
           ARGS+=(-H "Authorization: Bearer $AUTH")
@@ -85,13 +106,13 @@ jobs:
           [ -n "$SLOT" ]  && ARGS+=(--data-urlencode "slot=$SLOT")
           [ -n "$TOPIC" ] && ARGS+=(--data-urlencode "topic=$TOPIC")
           [ "$FORCE" = "true" ] && ARGS+=(--data-urlencode "force=1")
-          echo "Publicando: run='${RUN}' slot='${SLOT}' topic='${TOPIC}' force='${FORCE}'"
-          HTTP_CODE=$(curl "${ARGS[@]}" "$SITE/api/publish")
+          echo "Publicando ($LANG): run='${RUN}' slot='${SLOT}' topic='${TOPIC}' force='${FORCE}'"
+          HTTP_CODE=$(curl "${ARGS[@]}" "$URL")
           echo "HTTP $HTTP_CODE"
           echo "--- resposta ---"
           cat response.json
           echo ""
           if [ "$HTTP_CODE" -ge 400 ]; then
-            echo "::error::Falha na publicação (HTTP $HTTP_CODE)"
+            echo "::error::Falha na publicação (HTTP $HTTP_CODE, lang=$LANG)"
             exit 1
           fi
