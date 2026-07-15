@@ -25,6 +25,12 @@ export default function StudioNav() {
   const home = `/${lang}`;
   const isHome = pathname === home || pathname === `${home}/`;
 
+  // A Pesquisa ("Estudo") é rota FIXA por idioma (não /[lang]/...): PT → /o-estudo,
+  // ES → /el-estudio (página institucional que leva à pesquisa viva). Rótulo de uma
+  // palavra + nowrap para caber limpo na nav (o item "Newsletter" saiu daqui por ser
+  // redundante com o CTA "Entrar na lista", abrindo espaço sem entulhar).
+  const studyHref = lang === "es" ? "/el-estudio" : "/o-estudo";
+
   // Link de seção: rola suave quando já está na home; fora dela, navega para a
   // home + âncora (antes não fazia nada fora da home — ex.: dentro de /livros).
   const sectionProps = (id: string) => ({
@@ -76,7 +82,16 @@ export default function StudioNav() {
               {it.label}
             </a>
           ))}
-          <a href={`${home}/quiz`} className={linkCls}>
+          <a
+            href={studyHref}
+            className={
+              "relative cursor-pointer whitespace-nowrap text-xs font-semibold tracking-[0.22em] uppercase text-muted-red transition-colors hover:text-offwhite " +
+              "after:pointer-events-none after:absolute after:-bottom-1.5 after:left-0 after:h-[1.5px] after:w-full after:bg-muted-red/60 after:transition-all after:duration-300 hover:after:bg-muted-red"
+            }
+          >
+            {t.nav.study}
+          </a>
+          <a href={`${home}/quiz`} className={`${linkCls} whitespace-nowrap`}>
             {t.nav.quiz}
           </a>
           <a href={`${home}/livros`} className={linkCls}>
@@ -127,6 +142,13 @@ export default function StudioNav() {
                   {it.label}
                 </a>
               ))}
+              <a
+                href={studyHref}
+                onClick={() => setOpen(false)}
+                className="border-b border-warm-gray/10 py-3 text-sm font-semibold tracking-[0.18em] uppercase text-muted-red hover:text-offwhite transition"
+              >
+                {t.nav.study}
+              </a>
               <a href={`${home}/quiz`} onClick={() => setOpen(false)} className={mobileItemCls}>
                 {t.nav.quiz}
               </a>
