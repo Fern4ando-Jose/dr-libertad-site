@@ -1,6 +1,6 @@
 # Créditos — faixas `bed-pilar-<pilar>-NN.mp3`
 
-As 46 faixas numeradas (`bed-pilar-dopamine-01.mp3` … `bed-pilar-network-06.mp3`) são
+As 92 faixas numeradas (`bed-pilar-dopamine-01.mp3` … `bed-pilar-network-12.mp3`) são
 composições de **Kevin MacLeod** (incompetech.com), licenciadas em **Creative Commons
 Attribution 4.0** (CC BY 4.0) — <https://creativecommons.org/licenses/by/4.0/>.
 
