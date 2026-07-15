@@ -228,14 +228,22 @@ jobs:
         if: ${{ steps.media.outputs.has_media == '1' }}
         run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelV2
 
-      # 7. Sobe o mp4 para o Vercel Blob e captura a URL pública (stdout)
-      - name: Upload do mp4 para o Vercel Blob
+      # 7. Sobe o mp4 para o Cloudflare R2 (S3-compatível, grátis + egress ilimitado)
+      #    e captura a URL pública (stdout). Migrado do Vercel Blob em 2026-07-15: o
+      #    teto grátis do Blob é da CONTA INTEIRA e SUSPENDEU as 3 stores de uma vez
+      #    (BlobStoreSuspendedError) → 0 reel. O R2 tem egress ilimitado (o download
+      #    do mp4 pela Graph API não estoura banda).
+      - name: Upload do mp4 para o Cloudflare R2
         id: upload
         if: ${{ steps.media.outputs.has_media == '1' }}
         env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
         run: |
-          URL=$(node scripts/upload-blob.mjs)
+          URL=$(node scripts/upload-r2.mjs)
           echo "URL do vídeo: $URL"
           echo "video_url=$URL" >> "$GITHUB_OUTPUT"
 
