@@ -37,13 +37,15 @@ const PAPER = "#F4F0E8";
 const WHITE = "#ffffff";
 const RED = "#A45A5A"; // acento default (freedom)
 
+// Acento ÚNICO travado pelo dono 2026-07-14 (DIRECAO-CAPAS): um único acento
+// vinho #A45A5A. Os 6 acentos por categoria MORRERAM (divergência de marca).
 const CAT_ACCENT: Record<string, string> = {
   freedom: "#A45A5A",
-  dopamine: "#BE7A2A",
-  anxiety: "#3D6360",
-  network: "#3F5E78",
-  self: "#835A6E",
-  mind: "#5B6B3C",
+  dopamine: "#A45A5A",
+  anxiety: "#A45A5A",
+  network: "#A45A5A",
+  self: "#A45A5A",
+  mind: "#A45A5A",
 };
 
 // Scrim sobre o footage — escurece topo e (forte) a base, onde mora o texto.

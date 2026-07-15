@@ -45,13 +45,17 @@ const { fontFamily: FRAUNCES } = loadFraunces();
 const PAPER = "#F4F0E8";
 const WHITE = "#ffffff";
 const RED = "#A45A5A";
+// Acento ÚNICO travado pelo dono 2026-07-14 (DIRECAO-CAPAS): "grafite editorial
+// quente sobre creme, um único acento vinho #A45A5A". Os 6 acentos por categoria
+// MORRERAM — mono torna a divergência de marca tecnicamente impossível. Mapa
+// mantido (mesma forma/tipo) mas todas as entradas apontam para o acento único.
 const CAT_ACCENT: Record<string, string> = {
   freedom: "#A45A5A",
-  dopamine: "#BE7A2A",
-  anxiety: "#3D6360",
-  network: "#3F5E78",
-  self: "#835A6E",
-  mind: "#5B6B3C",
+  dopamine: "#A45A5A",
+  anxiety: "#A45A5A",
+  network: "#A45A5A",
+  self: "#A45A5A",
+  mind: "#A45A5A",
 };
 const SAFE_TOP = 340;
 const SAFE_BOTTOM_TEXT = 420;

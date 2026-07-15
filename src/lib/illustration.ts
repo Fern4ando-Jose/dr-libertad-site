@@ -11,14 +11,17 @@
 
 import { type Automation, falCost, anthropicCost, logSpend } from "@/lib/spend";
 
-// Acento por categoria — espelha CATS de /api/og (cor) + nome p/ o prompt.
+// Acento ÚNICO (DIRECAO-CAPAS, travado pelo dono 2026-07-14): "um único acento
+// vinho #A45A5A". Os 6 acentos por categoria MORRERAM — mono torna a divergência
+// de marca impossível. Mapa mantido (mesma forma) mas todas as entradas apontam
+// para o único acento vinho/rosé, espelhando o SITE_ACCENT de /api/og.
 const ACCENTS: Record<string, { word: string; hex: string }> = {
-  freedom:  { word: "oxblood wine red",  hex: "#A45A5A" },
-  dopamine: { word: "burnt amber ochre", hex: "#BE7A2A" },
-  anxiety:  { word: "deep teal",         hex: "#3D6360" },
-  network:  { word: "slate blue",        hex: "#3F5E78" },
-  self:     { word: "dusty mauve",       hex: "#835A6E" },
-  mind:     { word: "olive green",       hex: "#5B6B3C" },
+  freedom:  { word: "muted wine-rose", hex: "#A45A5A" },
+  dopamine: { word: "muted wine-rose", hex: "#A45A5A" },
+  anxiety:  { word: "muted wine-rose", hex: "#A45A5A" },
+  network:  { word: "muted wine-rose", hex: "#A45A5A" },
+  self:     { word: "muted wine-rose", hex: "#A45A5A" },
+  mind:     { word: "muted wine-rose", hex: "#A45A5A" },
 };
 
 // Enquadramentos ROTATIVOS — quebram a monotonia "figura solitária centralizada na
@@ -43,22 +46,32 @@ export function framingFor(subject: string): string {
 }
 
 // Bloco de estilo de marca (fixo) + slot de subject por tema + enquadramento rotativo.
-// Direção: cinematográfico/escultural editorial (escolha do usuário, 2026-06-13).
+// DIREÇÃO TRAVADA pelo dono 2026-07-14 (DIRECAO-CAPAS.md): "grafite editorial quente
+// sobre creme, um único acento vinho". Técnica ÚNICA = ilustração a grafite/carvão
+// (linha + esfumado), aspecto de gravura literária — NUNCA foto/3D/colagem/footage.
+// Constantes travadas: carvão #0B0B0C / creme #F4F0E8, 1 acento vinho #A45A5A, luz
+// única dramática, sujeito único. Variável = o símbolo do tema (${subject}).
+// (Substituiu a direção "cinematográfico/escultural" de 2026-06-13 — que rodava
+//  ~5 técnicas × ~5 paletas e programava a inconsistência que o dono barrou.)
 export function buildPrompt(subject: string, accentWord: string, accentHex: string): string {
   return [
-    `Cinematic conceptual editorial illustration: ${subject}.`,
-    `Dramatic chiaroscuro lighting, sculptural and atmospheric, fine film grain and subtle texture.`,
-    `Restricted, desaturated palette: warm off-white paper tone (#F4F0E8) and deep ink black (#0B0B0C), with a single muted accent of ${accentWord} (${accentHex}).`,
-    `One single central metaphor — a lone figure OR one symbolic object, never a crowd, a couple or multiple overlapping figures, ${framingFor(subject)}, sober and refined.`,
+    `Editorial charcoal-and-graphite illustration, literary engraving feel, on warm cream paper (#F4F0E8). Single subject: ${subject}.`,
+    `Rendered in warm near-black charcoal ink (#0B0B0C): expressive graphite linework plus soft smudged shading, visible paper grain, hand-drawn texture.`,
+    `ONE single dramatic light source, deep shadow elsewhere, high contrast, strong negative space.`,
+    `One single central metaphor — a lone figure OR one symbolic object, never a crowd, a couple or multiple overlapping figures, ${framingFor(subject)}, quiet and dignified.`,
+    // Acento ÚNICO: um só ponto vinho; o resto estritamente monocromático carvão sobre creme.
+    `A SINGLE small accent in ${accentWord} (${accentHex}) on one element; everything else strictly monochrome charcoal on cream, no other color.`,
     // Modéstia — o gerador vinha produzindo NUDEZ explícita nesses temas (score 0 em 100% das
-    // capas 06–07/07; ver tabela rejected_covers). "sculptural/chiaroscuro" puxava p/ nu clássico.
+    // capas 06–07/07; ver tabela rejected_covers).
     `Any human figure is fully clothed in simple, timeless clothing. Strictly modest and non-explicit: no nudity, no bare chest or torso, no exposed breasts, buttocks or genitals, no underwear, no sexual, intimate or suggestive content — appropriate for a general-audience literary-magazine cover.`,
     // Blindagem anatômica — reduz a chance de mão/dedo/membro extra (defeito nº 1 da difusão).
-    `Anatomically correct and photoreal in structure: each person has exactly two arms and two hands, each hand with exactly five fingers; natural, correctly formed limbs, hands and faces. No extra, missing or fused fingers, hands, arms or limbs; no duplicated or distorted body parts.`,
-    `No text, no letters, no words, no logo, no watermark. No neon, no purple gradient, no corporate clip-art, no busy clutter.`,
-    // FULL-BLEED (2026-07-10, aprovado pelo dono): a Nano Banana vinha compondo alguns temas
-    // (sobretudo objeto/"no people") como FOTO EMOLDURADA — conteúdo pequeno dentro de uma margem
-    // creme → a capa "não preenchia o post". Esta linha exige sangria total, sem moldura interna.
+    `Anatomically correct in structure: each person has exactly two arms and two hands, each hand with exactly five fingers; natural, correctly formed limbs, hands and faces. No extra, missing or fused fingers, hands, arms or limbs; no duplicated or distorted body parts.`,
+    `No text, no letters, no words, no logo, no watermark. No busy clutter.`,
+    // Negativos da direção grafite (DIRECAO-CAPAS): morre foto/3D/barro/escultura/sépia/dourado/azul-marinho/cores múltiplas/saturação/footage.
+    `Not a photorealistic photo, not a 3d render; no clay, no sculpture, no sepia, no gold tint, no navy blue, no neon, no purple gradient; no multiple colors, not saturated, no stock footage.`,
+    // FULL-BLEED (2026-07-10, aprovado pelo dono): o template do /api/og desenha a moldura,
+    // a margem creme e o texto POR CIMA — a imagem de fundo deve preencher o quadro inteiro
+    // (a "margem creme fina" da direção é responsabilidade do TEMPLATE, não da arte de fundo).
     `The artwork must be full-bleed and fill the entire frame edge to edge — strictly no border, no inner frame, no matte, no paper margin, no framed-print or gallery-mounted look; never inset the composition inside empty space.`,
   ].join(" ");
 }
