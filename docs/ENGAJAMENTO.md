@@ -33,7 +33,7 @@ Peças: `src/lib/voice.ts` (voz reutilizável), `src/lib/engagement.ts` (decisõ
 prompt builders + geração haiku), `src/app/api/webhooks/instagram/route.ts` (I/O). Travas em
 `engagement.invariants.test.ts`. Custo no balde `ig-engagement` de `src/lib/spend.ts`.
 
-## Flags (nascem DESLIGADAS — ligar só depois do App Review + secrets)
+## Flags (App Review APROVADO; LIGADAS em Production desde o go-live 2026-06-26)
 
 | Env | Default | Liga |
 |---|---|---|
@@ -91,14 +91,18 @@ já existem e são reaproveitados.
 3. **Verify token:** o mesmo valor de `META_WEBHOOK_VERIFY_TOKEN`.
 4. A Meta chama o GET de verificação; deve aceitar (devolve o `hub.challenge`).
 
-## App Review — o CAMINHO CRÍTICO (faça primeiro, leva dias)
+## App Review — ✅ APROVADO (histórico/referência)
+
+> **App Review da Meta APROVADO** — dono confirmou ~jun/2026 (reconfirmado 15/07). Os escopos
+> `instagram_business_manage_comments` + `instagram_business_manage_messages` estão em **Advanced Access
+> concedido** → o webhook atinge o **público** (não só testers). Esta seção fica como referência.
+> Memória canônica: `meta-app-review-APROVADO-engagement-desbloqueado`.
 
 Responder comentário e mandar DM a quem **não é admin do app** exige **Advanced Access**:
 - `instagram_business_manage_comments` (responder comentários)
 - `instagram_business_manage_messages` (DM do funil)
 
-Enquanto o review não aprova, o webhook só atinge contas que são **testers** do app —
-dá pra validar tudo, mas não atinge o público. Submeta assim que possível.
+**Já concedido.** (Antes da aprovação, o webhook só atingia contas **testers** do app — não é mais o caso.)
 
 > **Política de Privacidade (exigência da submissão — já no ar):** o formulário do App
 > Review pede uma **URL pública de política de privacidade** e um **caminho de exclusão

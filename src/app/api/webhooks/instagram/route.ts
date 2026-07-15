@@ -26,7 +26,7 @@ import { checkBudget } from "@/lib/spend";
 // SEGURANÇA: valida HMAC com META_APP_SECRET (rejeita corpo forjado). NUNCA loga token.
 // Sempre devolve 200 rápido após validar (webhook que demora/erra é re-tentado pela Meta).
 //
-// FLAGS (merge seguro — nascem DESLIGADAS até o App Review aprovar + secrets setados):
+// FLAGS (App Review APROVADO ~jun/2026, dono; go-live 2026-06-26 — todas =on em Production):
 //   ENGAGEMENT_ENABLED=on         → liga a auto-resposta a comentários (Fase 1)
 //   ENGAGEMENT_FUNNEL_ENABLED=on  → liga o DM do funil comment→DM (Fase 2 / lead magnet)
 //   ENGAGEMENT_DM_ENABLED=on      → liga a auto-resposta a DMs do Direct (inbound)
