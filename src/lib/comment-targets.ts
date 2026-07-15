@@ -34,6 +34,18 @@ export const COMMENT_TARGETS: Record<Lang, CommentTarget[]> = {
     { username: "ismaelcala", followersApprox: "~2-4M", focus: "Mindfulness, mentalidad, bienestar", pillars: [1, 4, 5], tier: "reach" },
     { username: "culturapositiva", followersApprox: "~10M", focus: "Frases inspiracionales (ER bajo)", pillars: [4, 5], tier: "reach" },
     { username: "mundopsicologos", followersApprox: "~1M", focus: "Divulgación de psicología", pillars: [2, 4], tier: "reach" },
+
+    // ─── CANDIDATAS (batch 2026-07-14) — expansão do banco p/ manter a fila fresca de tarde ───
+    // ⚠️ NÃO VERIFICADAS AO VIVO. Handles/tamanhos vêm de pesquisa pública (WebSearch), NÃO do
+    // business_discovery. Antes de ativar, a esteira (Chrome dedicado) confirma ao vivo: (1) o perfil
+    // existe; (2) POSTA DIÁRIO; (3) tese LEGÍVEL no post (carrossel/imagem com texto — não só Reel de
+    // fala, que a esteira pula). Tamanho com "?" = estimativa NÃO confirmada. Reprovou → apagar a linha.
+    { username: "filosofia.estoica", followersApprox: "~360K?", focus: "Sabiduría estoica, reflexiones diarias (frase/carrusel)", pillars: [4, 5], tier: "core" }, // CANDIDATA — verificar ao vivo
+    { username: "estoicismo_diario", followersApprox: "~204K?", focus: "Citas estoicas (M. Aurelio/Séneca/Epicteto), diario", pillars: [4, 5], tier: "core" }, // CANDIDATA — verificar ao vivo
+    { username: "estoicosesp", followersApprox: "?", focus: "Frases/reflexiones estoicas diarias (autocontrol ante la adversidad)", pillars: [4, 5], tier: "reach" }, // CANDIDATA — verificar ao vivo
+    { username: "silviacongost", followersApprox: "~150K?", focus: "Psicóloga: dependencia emocional, relaciones/pareja (nicho Walter Riso)", pillars: [2, 4], tier: "core" }, // CANDIDATA — verificar ao vivo
+    { username: "frasesyreflexionessss", followersApprox: "~2M?", focus: "Frases/reflexiones/libros — alcance puro (ER bajo, tipo culturapositiva)", pillars: [4, 5], tier: "reach" }, // CANDIDATA — verificar ao vivo
+    { username: "diariodereflexion", followersApprox: "~3M?", focus: "Frases y escritos — alcance puro (ER bajo)", pillars: [4, 5], tier: "reach" }, // CANDIDATA — verificar ao vivo
   ],
   pt: [
     { username: "rossandroklinjey", followersApprox: "~3M", focus: "Psicólogo: comportamento/família, tom provocativo", pillars: [2, 3, 4], tier: "core" },
@@ -46,6 +58,18 @@ export const COMMENT_TARGETS: Record<Lang, CommentTarget[]> = {
     { username: "paulovcoach", followersApprox: "~6M", focus: "Mentalidade, autorresponsabilidade, disciplina", pillars: [4, 5], tier: "reach" },
     { username: "tiagobrunet", followersApprox: "~7M", focus: "Desenvolvimento pessoal/emocional, decisões", pillars: [4, 5], tier: "reach" },
     { username: "pefabiodemelo", followersApprox: "~26M", focus: "Reflexão, solidão, dor emocional", pillars: [3, 4], tier: "reach" },
+
+    // ─── CANDIDATAS (batch 2026-07-14) — mesmas regras do bloco ES acima (verificar ao vivo) ───
+    { username: "estoicodiario", followersApprox: "~329K?", focus: "Estoicismo diário (frase/carrossel); tese legível", pillars: [4, 5], tier: "core" }, // CANDIDATA — verificar ao vivo
+    { username: "estoicismopratico", followersApprox: "~187K?", focus: "Autocontrole, estoicismo prático diário", pillars: [4, 5], tier: "core" }, // CANDIDATA — verificar ao vivo
+    { username: "andressacarazzo", followersApprox: "~297K?", focus: "Psicanálise: relacionamento, dependência emocional, vida após separação", pillars: [2, 4], tier: "core" }, // CANDIDATA — verificar ao vivo
+    { username: "filosofiayreflexao", followersApprox: "~227K?", focus: "Filosofia/sabedoria/reflexão (frase/carrossel)", pillars: [4, 5], tier: "reach" }, // CANDIDATA — verificar ao vivo
+    { username: "sujeitodeconduta", followersApprox: "~107K?", focus: "Desenvolvimento pessoal, autoajuda/livros, motivação", pillars: [4, 5], tier: "reach" }, // CANDIDATA — verificar ao vivo
+    { username: "reflexoes_estoicas", followersApprox: "?", focus: "Citações estoicas (M. Aurélio/Sêneca/Epicteto)", pillars: [4, 5], tier: "reach" }, // CANDIDATA — verificar ao vivo
+    { username: "istonaoefilosofia", followersApprox: "?", focus: "Prof. Vitor Lima, filosofia (checar: pode ser mais Reels de fala que carrossel)", pillars: [4, 5], tier: "reach" }, // CANDIDATA — verificar ao vivo
+    { username: "amandafitas", followersApprox: "?", focus: "Psicóloga: autoestima e relacionamentos (checar tom — evitar indignação homem-mulher)", pillars: [2, 4], tier: "reach" }, // CANDIDATA — verificar ao vivo
+    { username: "thomytalks", followersApprox: "?", focus: "Psicólogo de relacionamentos (verificar se carrossel ou só Reels)", pillars: [2, 4], tier: "reach" }, // CANDIDATA — verificar ao vivo
+    { username: "renatadeazevedo.psi", followersApprox: "~65K?", focus: "Terapia de casal/relações (conta média)", pillars: [2, 4], tier: "reach" }, // CANDIDATA — verificar ao vivo
   ],
 };
 
