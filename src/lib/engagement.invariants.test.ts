@@ -16,12 +16,14 @@ import {
   decideComment,
   decideDm,
   buildReplyPrompt,
-  buildDmPrompt,
   buildDmReplyPrompt,
   normalizeReply,
   isDuplicateReply,
   buildAntiRepeatDirective,
   generateDistinctText,
+  FUNNEL_DM_VARIATIONS,
+  pickFunnelDm,
+  renderFunnelDm,
 } from "./engagement";
 
 const base = { commentId: "c1", selfId: "ACC", fromId: "user1" };
@@ -180,19 +182,55 @@ describe("buildReplyPrompt — resposta curta, com voz, sem virar ensaio", () =>
   });
 });
 
-describe("buildDmPrompt — funil entrega o lead OU abre conversa (sem inventar link)", () => {
-  const v = buildVoiceDirective(accountFor("pt"));
-  const ctx = { langName: "português do Brasil", topic: "t", title: "T" };
-
-  it("com lead magnet: inclui nome e link", () => {
-    const p = buildDmPrompt(v, "quero", ctx, { name: "Guia X", url: "https://ex.com/g" });
-    expect(p).toContain("Guia X");
-    expect(p).toContain("https://ex.com/g");
+// ── Funil comment→DM: ROTAÇÃO de copy APROVADA (substituiu o buildDmPrompt/haiku) ──
+// Invariante: DM do funil sai de copy APROVADA (8 variações), com {LINK} preenchido pela
+// env do lead no envio, anti-repetição por miolo, e NUNCA vaza "{LINK}" cru nem outro idioma.
+describe("funil comment→DM — rotação de copy aprovada (sem custo de API)", () => {
+  it("4 variações por idioma; toda variação tem {LINK} e a assinatura certa", () => {
+    for (const lang of ["es", "pt"] as const) {
+      const pool = FUNNEL_DM_VARIATIONS[lang];
+      expect(pool.length).toBe(4);
+      for (const v of pool) {
+        expect(v).toContain("{LINK}");
+        expect(v).toMatch(lang === "es" ? /Dr\. Libertad/ : /Dr\. Liberdade/);
+      }
+    }
   });
 
-  it("sem lead magnet: NÃO inventa link nem promessa", () => {
-    const p = buildDmPrompt(v, "quero", ctx, null);
-    expect(p).toMatch(/NO inventes enlaces/);
+  it("renderFunnelDm troca {LINK} pela URL do lead (nunca hardcodada)", () => {
+    const out = renderFunnelDm("olha isto\nadelanto: {LINK}\nabraço", "https://x.com/y");
+    expect(out).toContain("https://x.com/y");
+    expect(out).not.toContain("{LINK}");
+  });
+
+  it("renderFunnelDm SEM URL remove a linha do link (não deixa {LINK} cru nem link quebrado)", () => {
+    const out = renderFunnelDm("olha isto\nadelanto: {LINK}\nabraço", null);
+    expect(out).not.toContain("{LINK}");
+    expect(out).toContain("olha isto");
+    expect(out).toContain("abraço");
+  });
+
+  it("pickFunnelDm sorteia do pool do idioma — nunca devolve outro idioma", () => {
+    expect(FUNNEL_DM_VARIATIONS.es).toContain(pickFunnelDm("es", [], { rand: () => 0 }));
+    expect(FUNNEL_DM_VARIATIONS.pt).toContain(pickFunnelDm("pt", [], { rand: () => 0.99 }));
+  });
+
+  it("anti-repetição: evita a variação já enviada (compara o miolo, ignora o link)", () => {
+    const pool = FUNNEL_DM_VARIATIONS.pt;
+    const jaEnviada = renderFunnelDm(pool[0], "https://www.drlibertad.com/pt/livros/i-love-dopamina");
+    // rand=0 escolheria o índice 0; como foi filtrado por já-enviado, cai em outra
+    const pick = pickFunnelDm("pt", [jaEnviada], { rand: () => 0 });
+    expect(pick).not.toBe(pool[0]);
+    expect(pool).toContain(pick);
+  });
+
+  it("todas já enviadas → recomeça do pool (não trava, sempre entrega o lead)", () => {
+    const pool = FUNNEL_DM_VARIATIONS.es;
+    expect(pool).toContain(pickFunnelDm("es", pool, { rand: () => 0 }));
+  });
+
+  it("idioma sem pool → null (chamador não envia)", () => {
+    expect(pickFunnelDm("xx", [])).toBe(null);
   });
 });
 
