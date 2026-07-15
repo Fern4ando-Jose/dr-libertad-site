@@ -24,6 +24,33 @@ const CREATE_TABLE = `
   )
 `;
 
+// ─── GET /api/survey — contagem pública (prova social da página institucional) ──
+// Só devolve o total de respostas por idioma — NUNCA qualquer dado de resposta.
+// Fail-open: qualquer erro/tabela ausente devolve counts zerados (a página
+// institucional então esconde o número e mostra o enquadramento "seja um dos
+// primeiros"). Nada de número fabricado (P4).
+export async function GET() {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const { rows } = await sql`
+      SELECT lang, COUNT(*)::int AS n FROM survey_responses GROUP BY lang
+    `;
+    let pt = 0;
+    let es = 0;
+    for (const r of rows as { lang: string; n: number }[]) {
+      if (r.lang === "es") es = r.n;
+      else pt += r.n;
+    }
+    return NextResponse.json(
+      { ok: true, pt, es, total: pt + es },
+      { headers: { "cache-control": "public, s-maxage=60, stale-while-revalidate=300" } }
+    );
+  } catch {
+    // Tabela ainda não existe ou banco indisponível → zero, sem quebrar a página.
+    return NextResponse.json({ ok: true, pt: 0, es: 0, total: 0 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   if (await isRateLimited(req, "survey", 10)) {
     return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });

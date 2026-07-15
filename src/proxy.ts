@@ -37,6 +37,8 @@ export function proxy(req: NextRequest) {
 // token) — sem isso o /admin caía em /pt/admin (404).
 // /pesquisa (PT) e /investigacion (ES) também ficam fora: são as rotas fixas da
 // pesquisa "Redes Sociais e Relacionamentos" (1 idioma por rota, link da bio do IG).
+// /o-estudo (PT) e /el-estudio (ES): as páginas institucionais que explicam o
+// estudo e levam ao funil (mesma lógica de rota fixa por idioma).
 export const config = {
-  matcher: ["/((?!api|insights|admin|pesquisa|investigacion|_next|.*\\..*).*)"],
+  matcher: ["/((?!api|insights|admin|pesquisa|investigacion|o-estudo|el-estudio|_next|.*\\..*).*)"],
 };

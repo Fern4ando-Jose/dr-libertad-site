@@ -28,6 +28,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "x-default": `${base}/pesquisa`,
   };
 
+  // Página institucional do estudo — rotas fixas por idioma.
+  const estudo = {
+    "pt-BR": `${base}/o-estudo`,
+    "es-ES": `${base}/el-estudio`,
+    "x-default": `${base}/o-estudo`,
+  };
+
   // Uma entrada por idioma, cada uma declarando as alternativas (hreflang).
   return [
     {
@@ -41,6 +48,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly" as const,
       priority: 0.8,
       alternates: { languages: survey },
+    },
+    {
+      url: `${base}/o-estudo`,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+      alternates: { languages: estudo },
+    },
+    {
+      url: `${base}/el-estudio`,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+      alternates: { languages: estudo },
     },
     {
       url: `${base}/pt`,
