@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { seedForDay, cacheKey, falRequestBody, framingFor, buildPrompt } from "./illustration";
+import { seedForDay, cacheKey, falRequestBody, framingFor, FIXED_FRAMING, buildPrompt } from "./illustration";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INVARIANTE MULTI-IDIOMA: a ILUSTRAÇÃO (arte da IA) é ÚNICA por post/dia e
@@ -42,26 +42,41 @@ describe("seed determinístico (imagem idêntica entre idiomas)", () => {
   });
 });
 
-// Anti-repetição VISUAL: o enquadramento varia por subject (temas vizinhos no feed
-// não saem com o mesmo quadro), mas é DETERMINÍSTICO (ES e PT do mesmo subject batem)
-// e entra no prompt. (Erro "Repetição VISUAL" no HISTORICO-ERROS.)
-describe("framingFor — enquadramento rotativo (anti capa repetida)", () => {
-  it("determinístico: mesmo subject → mesmo enquadramento (ES e PT batem)", () => {
-    expect(framingFor("a lone figure in a doorway")).toBe(framingFor("a lone figure in a doorway"));
+// ─────────────────────────────────────────────────────────────────────────────
+// GUARD ANTI-CORTE (o "literal-lock" da CAPA). Causa-raiz provada: o enquadramento
+// ROTATIVO (a22a0e0c) sorteava "extreme close-up filling the frame" e "subject small
+// within a vast space" → o sujeito saía CORTADO/encolhido = a "capa cortada" que o
+// dono vetou. Foi removido no fix c86ca9a0, mas REGREDIU no revert amplo 673a36bc e
+// voltou ao feed. Estes invariantes BLOQUEIAM a volta: se alguém reintroduzir o
+// rotativo (por revert ou edição), o CI fica VERMELHO antes de qualquer deploy.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("GUARD anti-corte — enquadramento TRAVADO em figura grande/centralizada", () => {
+  const SUBJECTS = [
+    "a lone figure in a doorway", "uma porta fechada", "a figure walking into light",
+    "fragile glass figures", "a calm figure unplugging cables", "a paralyzed figure before a shelf",
+  ];
+
+  it("framingFor SEMPRE devolve o enquadramento fixo aprovado (sem sorteio de plano)", () => {
+    const got = new Set(SUBJECTS.map(framingFor));
+    expect(got.size).toBe(1);                    // um único quadro p/ todos → nada de rotação
+    expect([...got][0]).toBe(FIXED_FRAMING);
   });
-  it("não depende de idioma (só do subject, que é compartilhado)", () => {
-    expect(framingFor.length).toBe(1); // só (subject)
+
+  it("o enquadramento fixo é figura GRANDE, prominente e NÃO cortada", () => {
+    expect(FIXED_FRAMING).toContain("large");
+    expect(FIXED_FRAMING).toContain("prominent");
+    expect(FIXED_FRAMING).toMatch(/never cropped/i);
   });
-  it("subjects diferentes podem cair em enquadramentos diferentes (há variedade)", () => {
-    const got = new Set([
-      "a", "uma porta fechada", "a figure walking into light", "fragile glass figures",
-      "a calm figure unplugging cables", "a paralyzed figure before a shelf",
-    ].map(framingFor));
-    expect(got.size).toBeGreaterThan(1);
-  });
-  it("o enquadramento escolhido entra no prompt", () => {
-    const subject = "a single closed door against a storm";
-    expect(buildPrompt(subject, "amber", "#C8862B")).toContain(framingFor(subject));
+
+  it("o prompt PROÍBE os enquadramentos que cortam/encolhem (regressão do rotativo)", () => {
+    for (const s of SUBJECTS) {
+      const p = buildPrompt(s, "amber", "#C8862B");
+      expect(p).toContain(FIXED_FRAMING);
+      // frases exatas do rotativo vetado — NUNCA podem reaparecer no prompt:
+      expect(p).not.toMatch(/extreme close-up/i);
+      expect(p).not.toMatch(/subject small within a vast/i);
+      expect(p).not.toMatch(/wide establishing shot/i);
+    }
   });
 });
 

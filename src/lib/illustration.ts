@@ -24,25 +24,22 @@ const ACCENTS: Record<string, { word: string; hex: string }> = {
   mind:     { word: "muted wine-rose", hex: "#A45A5A" },
 };
 
-// Enquadramentos ROTATIVOS — quebram a monotonia "figura solitária centralizada na
-// porta" (47/62 subjects eram figura humana → o feed repetia o mesmo quadro). Escolhido
-// de forma DETERMINÍSTICA por `subject`: cada tema tem o SEU, mas temas diferentes
-// (posts vizinhos no feed) saem com quadros diferentes. ES e PT batem (mesmo subject →
-// mesmo enquadramento). São vantagens de escala/ângulo que funcionam p/ figura E objeto
-// (não brigam com o subject). Ver erro "Repetição VISUAL" no HISTORICO-ERROS.
-const FRAMINGS = [
-  "framed as an intimate mid-shot with generous negative space, like a literary-magazine cover",
-  "framed as an extreme close-up, one telling detail filling most of the frame, shallow depth of field",
-  "framed as a wide establishing shot, the subject small within a vast atmospheric space",
-  "framed from a high angle looking down on the scene",
-  "framed from a low, dramatic angle looking upward",
-  "framed strongly off-center, asymmetric, with rule-of-thirds tension",
-];
+// Enquadramento FIXO — assunto GRANDE, prominente e CENTRALIZADO, mid-shot editorial
+// (igual às provas Nano Banana APROVADAS pelo dono e à DIRECAO-CAPAS: "Sujeito único
+// centralizado, muito ar negativo"). NUNCA voltar ao enquadramento ROTATIVO (a22a0e0c):
+// ele sorteava "close extremo num detalhe" e "figura pequena num espaço vasto", que
+// ENCOLHIAM/CORTAVAM o assunto — foi a "capa cortada/menor" que o dono vetou (fix
+// c86ca9a0, 09/07). O rotativo REGREDIU no revert amplo 673a36bc e voltou ao feed;
+// esta constante o mata na origem, e `illustration.invariants.test.ts` BLOQUEIA a volta.
+export const FIXED_FRAMING =
+  "framed as an intimate mid-shot with generous negative space like a literary-magazine cover, " +
+  "the subject large, prominent and centered, filling the central two-thirds of the frame, " +
+  "never cropped at the edges, never shrunk into a vast empty space";
 
-export function framingFor(subject: string): string {
-  let h = 0;
-  for (let i = 0; i < subject.length; i++) h = (h * 31 + subject.charCodeAt(i)) | 0;
-  return FRAMINGS[Math.abs(h) % FRAMINGS.length];
+// Mantida por compatibilidade (era rotativa e cortava). Agora SEMPRE devolve o
+// enquadramento fixo aprovado — não há mais sorteio de plano que encolha/corte o sujeito.
+export function framingFor(_subject: string): string {
+  return FIXED_FRAMING;
 }
 
 // Bloco de estilo de marca (fixo) + slot de subject por tema + enquadramento rotativo.
@@ -58,7 +55,7 @@ export function buildPrompt(subject: string, accentWord: string, accentHex: stri
     `Editorial charcoal-and-graphite illustration, literary engraving feel, on warm cream paper (#F4F0E8). Single subject: ${subject}.`,
     `Rendered in warm near-black charcoal ink (#0B0B0C): expressive graphite linework plus soft smudged shading, visible paper grain, hand-drawn texture.`,
     `ONE single dramatic light source, deep shadow elsewhere, high contrast, strong negative space.`,
-    `One single central metaphor — a lone figure OR one symbolic object, never a crowd, a couple or multiple overlapping figures, ${framingFor(subject)}, quiet and dignified.`,
+    `One single central metaphor — a lone figure OR one symbolic object, never a crowd, a couple or multiple overlapping figures, ${FIXED_FRAMING}, quiet and dignified.`,
     // Acento ÚNICO: um só ponto vinho; o resto estritamente monocromático carvão sobre creme.
     `A SINGLE small accent in ${accentWord} (${accentHex}) on one element; everything else strictly monochrome charcoal on cream, no other color.`,
     // Modéstia — o gerador vinha produzindo NUDEZ explícita nesses temas (score 0 em 100% das
@@ -336,7 +333,8 @@ const JUDGE_PROMPT =
   "(1) anatomía incorrecta — manos/dedos de más o de menos (cada mano exactamente cinco dedos), miembros fusionados/duplicados/deformados, rostros malformados (ojos de más, rasgos derretidos); " +
   "(2) CUALQUIER texto, letra, palabra, número, firma, logo o marca de agua visible; " +
   "(3) composición confusa o saturada — varias figuras amontonadas cuando debería haber UNA metáfora central clara; " +
-  "(4) tono equivocado — escena íntima/sexual/ambigua, o cualquier cosa que no parezca una portada editorial sobria. " +
+  "(4) tono equivocado — escena íntima/sexual/ambigua, o cualquier cosa que no parezca una portada editorial sobria; " +
+  "(5) ENCUADRE CORTADO/ENCOGIDO — el sujeto principal aparece CORTADO por el borde del cuadro (cabeza, cara o cuerpo truncados) o ENCOGIDO/diminuto perdido en un espacio vacío enorme; la portada debe mostrar el sujeto GRANDE, prominente y centrado (esta es la 'capa cortada' que el dueño vetó — recházala). " +
   "Si NO hay defectos graves, PUNTÚA de 0 a 10 su calidad como portada editorial: metáfora central clara, composición fuerte, luz chiaroscuro dramática, paleta sobria y refinada, espacio negativo generoso. " +
   'Responde ÚNICAMENTE con JSON: {"score": 0-10, "reject": true|false, "reason": "breve motivo"}. ' +
   "Si reject es true, score debe ser 0.";
