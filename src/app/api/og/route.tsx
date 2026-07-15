@@ -488,59 +488,53 @@ function Footer({ left, accent, dark, num, total }: {
 }
 
 // ─── SLIDE 1: Capa ────────────────────────────────────────────────────────────
-// Direção travada (estrategista-de-atenção, 2026-07-15): a ARTE NUNCA é cortada
-// nem coberta. A ilustração ocupa uma PLACA (objectFit "contain") nos ~78%
-// superiores, com margem creme fina em volta; ABAIXO, uma faixa creme tipo
-// letterbox (~20%) traz o kicker (com régua no acento), o Nº da edição e o
-// @handle. ZERO scrim escuro sobre a arte e ZERO texto/glifo sobre o sujeito —
-// o título longo migra pro slide 2 (InsightSlide já mostra o texto).
-const COVER_LB_H = 276;  // faixa creme inferior (~20,4% de 1350) — letterbox
-const COVER_PAD  = 64;   // margem creme (~6% da largura) em volta da placa de arte
-
-function CoverSlide({ kw, issue, cat, motif, seed, img, lang }: {
+// Layout RESTAURADO 2026-07-15 ao da Nº 228 que o dono AMA e postou: a ilustração
+// cinematográfica ESCURA preenche o quadro (full-bleed), com TEXTO DISCRETO por cima —
+// marca "DR. LIBERDADE · Nº XXX" no topo (régua no acento) e "@handle" embaixo, ambos
+// sobre as áreas escuras da imagem. SEM título de post gigante, SEM faixa creme letterbox,
+// SEM scrim pesado: só véus SUAVES no topo e na base p/ a legibilidade do texto (o miolo,
+// onde vive o sujeito, fica LIMPO). A arte já é 4:5 (= 1080×1350) e o enquadramento é FIXO
+// (figura grande/centralizada) → o full-bleed NÃO corta o sujeito. Fundo INK cobre qualquer
+// folga (nunca creme). Sem ilustração → motivo abstrato escuro (fail-open).
+function CoverSlide({ issue, cat, motif, seed, img, lang }: {
   title: string; kw: string; issue: string; mood: "red" | "ink"; cat: Cat; motif: MotifId; total: number; seed: number; img?: string; lang: OgLang;
 }) {
   const c      = CATS[cat];
-  const label  = CAT_LABEL[lang][cat];
   const handle = HANDLE[lang];
   const edNum  = issue.replace(/\D+/g, "") || "01"; // "ED. 243" → "243"
-  const kicker = kw && kw.toUpperCase() !== label.toUpperCase() ? `${label} · ${kw.toUpperCase()}` : label;
-  const PLACA_W = W - 2 * COVER_PAD;
-  const PLACA_H = H - COVER_LB_H - 2 * COVER_PAD;
+  const brandLine = `${BRAND[lang].toUpperCase()} · Nº ${edNum}`;
 
   return (
-    <div style={{ width: W, height: H, display: "flex", flexDirection: "column", background: OFFWHITE }}>
-      {/* PLACA de arte — a ilustração INTEIRA (contain); o creme preenche a folga.
-          O sujeito nunca é cortado e nada é escrito sobre ele. */}
-      <div style={{ position: "relative", display: "flex", width: W, height: H - COVER_LB_H, padding: COVER_PAD, background: OFFWHITE }}>
-        {img ? (
-          <div style={{ position: "relative", display: "flex", width: "100%", height: "100%", background: OFFWHITE }}>
-            <img src={img} width={PLACA_W} height={PLACA_H} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-          </div>
-        ) : (
-          // Fail-open: sem ilustração → motivo abstrato DENTRO da placa (sem texto).
-          <div style={{ position: "relative", display: "flex", width: "100%", height: "100%", overflow: "hidden", background: OFFWHITE }}>
-            <div style={{
-              position: "absolute", top: 0, left: 0, width: PLACA_W, height: PLACA_H, display: "flex",
-              background: `radial-gradient(circle at 22% 16%, rgba(231,221,204,0.65), transparent 58%), radial-gradient(circle at 84% 86%, ${rgba(c.accent, 0.12)}, transparent 55%)`,
-            }} />
-            <MotifLayer motif={motif} accent={c.accent} dark={false} seed={seed} />
-          </div>
-        )}
-      </div>
-      {/* FAIXA CREME (letterbox) — kicker + régua no acento, Nº e @handle. Carvão sobre creme. */}
-      <div style={{ width: W, height: COVER_LB_H, display: "flex", flexDirection: "column", justifyContent: "center", padding: `0 ${COVER_PAD}px`, background: OFFWHITE }}>
-        <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
-          <span style={{ fontFamily: SERIF, fontSize: 30, letterSpacing: "0.30em", color: INK, display: "flex" }}>
-            {kicker}
-          </span>
-          <div style={{ marginTop: 20, height: 3, width: 132, background: c.accent, display: "flex" }} />
+    <div style={{ width: W, height: H, position: "relative", display: "flex", background: INK, color: OFFWHITE }}>
+      {/* Arte full-bleed ESCURA (cover; 4:5→4:5 = sem corte). Fallback: motivo abstrato dark. */}
+      {img ? (
+        <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex" }}>
+          <img src={img} width={W} height={H} style={{ width: W, height: H, objectFit: "cover" }} />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 34 }}>
-          <span style={{ fontFamily: SERIF, fontSize: 64, letterSpacing: "-0.02em", color: INK, display: "flex" }}>
-            Nº {edNum}
+      ) : (
+        <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex" }}>
+          <div style={{
+            position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex",
+            background: `radial-gradient(circle at 78% 16%, ${rgba(c.accent, 0.34)}, transparent 58%), radial-gradient(circle at 18% 92%, rgba(0,0,0,0.55), transparent 55%)`,
+          }} />
+          <MotifLayer motif={motif} accent={c.accent} dark={true} seed={seed} />
+        </div>
+      )}
+      {/* Véus SUAVES só nas bordas (topo/base) p/ o texto — o miolo fica limpo (nada de scrim pesado). */}
+      <div style={{
+        position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex",
+        background: `linear-gradient(180deg, rgba(11,11,12,0.50) 0%, rgba(11,11,12,0) 24%, rgba(11,11,12,0) 74%, rgba(11,11,12,0.58) 100%)`,
+      }} />
+      {/* Texto discreto: marca+Nº no topo (régua no acento), @handle na base. */}
+      <div style={{ position: "relative", display: "flex", flexDirection: "column", justifyContent: "space-between", width: "100%", height: "100%", padding: M }}>
+        <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
+          <span style={{ fontFamily: SERIF, fontSize: 30, letterSpacing: "0.28em", color: rgba("#F4F0E8", 0.94), display: "flex" }}>
+            {brandLine}
           </span>
-          <span style={{ fontFamily: SERIF, fontSize: 40, letterSpacing: "0.04em", color: INK, display: "flex" }}>
+          <div style={{ marginTop: 18, height: 2, width: 120, background: c.accent, display: "flex" }} />
+        </div>
+        <div style={{ display: "flex", flexShrink: 0 }}>
+          <span style={{ fontFamily: SERIF, fontSize: 34, letterSpacing: "0.06em", color: rgba("#F4F0E8", 0.9), display: "flex" }}>
             {handle}
           </span>
         </div>
