@@ -217,53 +217,6 @@ export default function Page() {
         </StudioContainer>
       </section>
 
-      {/* TESTE — porta do funil "100 dias" */}
-      <section id="teste" className="py-16 md:py-24 border-b border-warm-gray/10">
-        <StudioContainer>
-          <Reveal>
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.65, ease: "easeOut" }}
-              className="relative overflow-hidden rounded-[32px] border border-muted-red/30 bg-white/3 p-8 backdrop-blur md:p-12"
-            >
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(700px_circle_at_15%_0%,rgba(164,90,90,0.16),transparent_60%)]"
-              />
-              <div className="relative grid gap-8 lg:grid-cols-12 lg:items-center">
-                <div className="lg:col-span-8">
-                  <div className="text-xs tracking-[0.26em] text-muted-red/90 uppercase">
-                    {t.quizCta.eyebrow}
-                  </div>
-                  <h2 className="mt-4 max-w-[20ch] font-serif text-[clamp(1.9rem,4vw,3rem)] leading-[1.02] tracking-[-0.02em] text-balance">
-                    {t.quizCta.title}
-                  </h2>
-                  <p className="mt-5 max-w-xl text-[1.02rem] leading-[1.8] text-warm-gray/90">
-                    {t.quizCta.lead}
-                  </p>
-                </div>
-                <div className="lg:col-span-4 lg:justify-self-end">
-                  <a
-                    href={`/${lang}/quiz`}
-                    className="group inline-flex items-center rounded-full bg-muted-red px-7 py-4 text-sm font-semibold tracking-[0.06em] text-offwhite transition hover:bg-muted-red/85"
-                  >
-                    {t.quizCta.cta}
-                    <span className="ml-3 transition group-hover:translate-x-0.5">
-                      {String.fromCharCode(8594)}
-                    </span>
-                  </a>
-                  <div className="mt-4 text-xs tracking-[0.16em] text-warm-gray/70 uppercase">
-                    {t.quizCta.meta}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </Reveal>
-        </StudioContainer>
-      </section>
-
       {/* MANIFESTO */}
       <section id="manifesto" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
