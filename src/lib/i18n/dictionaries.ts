@@ -21,6 +21,7 @@ export const pt = {
     books: "Livros",
     author: "Autor",
     quiz: "Teste",
+    study: "O Estudo",
   },
   quizCta: {
     eyebrow: "O PRIMEIRO PASSO",
@@ -35,7 +36,7 @@ export const pt = {
     titleAccent: "Você é que não voa.",
     lead: "O feed não tranca a porta — e mesmo assim você volta a ele cem vezes por dia. Não é falta de disciplina: é dopamina barata te deixando dócil, e uma solidão que ninguém nomeia por baixo. Aqui você troca a recompensa barata da tela pela cara — presença, vínculo, uma mente que volta a ser sua.",
     ctaPrimary: "Ler o manifesto",
-    ctaSecondary: "Ver o editorial",
+    ctaSecondary: "Responder à pesquisa",
     deckEyebrow: "Ritual Diário",
     deckTitle: "90 segundos de silêncio antes da reação automática.",
     deckLead: "Entre o impulso e a resposta existe um espaço. É ali — e só ali — que a liberdade começa.",
@@ -410,6 +411,7 @@ export const es: Dict = {
     books: "Libros",
     author: "Autor",
     quiz: "Test",
+    study: "El Estudio",
   },
   quizCta: {
     eyebrow: "EL PRIMER PASO",
@@ -424,7 +426,7 @@ export const es: Dict = {
     titleAccent: "Eres tú quien no vuela.",
     lead: "El feed no cierra la puerta con llave — y aun así vuelves a él cien veces al día. No es falta de disciplina: es dopamina barata que te mantiene dócil, y una soledad que nadie nombra por debajo. Aquí cambias la recompensa barata de la pantalla por la cara — presencia, vínculo, una mente que vuelve a ser tuya.",
     ctaPrimary: "Leer el manifiesto",
-    ctaSecondary: "Ver el editorial",
+    ctaSecondary: "Responder la investigación",
     deckEyebrow: "Ritual Diario",
     deckTitle: "90 segundos de silencio antes de la reacción automática.",
     deckLead: "Entre el impulso y la respuesta existe un espacio. Ahí — y solo ahí — empieza la libertad.",

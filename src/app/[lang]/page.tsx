@@ -152,10 +152,13 @@ export default function Page() {
                     </span>
                   </a>
                   <a
-                    href="#gallery"
-                    className="inline-flex items-center rounded-full border border-warm-gray/20 px-6 py-3 text-xs tracking-[0.22em] uppercase text-warm-gray/80 hover:text-offwhite hover:border-warm-gray/35 transition"
+                    href={lang === "es" ? "/el-estudio" : "/o-estudo"}
+                    className="inline-flex items-center rounded-full border border-muted-red/40 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:text-offwhite hover:border-muted-red/70 transition"
                   >
                     {t.hero.ctaSecondary}
+                    <span className="ml-3 text-muted-red transition group-hover:translate-x-0.5">
+                      {String.fromCharCode(8594)}
+                    </span>
                   </a>
                 </div>
 
