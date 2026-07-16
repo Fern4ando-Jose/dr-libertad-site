@@ -9,6 +9,7 @@ import { Composition } from "remotion";
 import { Reel, reelDefaultProps, reelDurations, ReelProps, FPS } from "./Reel";
 import { ReelClassic, reelClassicDefaultProps, ReelClassicProps } from "./ReelClassic";
 import { ReelV2, reelV2DefaultProps, reelDurationsV2, dedupeSlides } from "./ReelV2";
+import { KenBurnsProof, kenBurnsProofDefaultProps, kenBurnsProofDuration } from "./KenBurns";
 
 // Duração do motor clássico (mesma matemática inline do componente original).
 function classicDuration(slidesCount: number): number {
@@ -65,6 +66,24 @@ export const RemotionRoot: React.FC = () => {
           const p = props as ReelClassicProps;
           const count = p.slides && p.slides.length ? p.slides.length : reelClassicDefaultProps.slides.length;
           return { durationInFrames: classicDuration(count) };
+        }}
+      />
+
+      {/* Composição de PROVA isolada da 2ª fonte de footage (foto + Ken Burns).
+          NÃO usada em produção — QA visual manual (--composition=KenBurnsProof).
+          Produção usa PhotoKenBurns via SceneBg (Reel.tsx), fonte da mesma grade. */}
+      <Composition
+        id="KenBurnsProof"
+        component={KenBurnsProof}
+        durationInFrames={kenBurnsProofDuration(kenBurnsProofDefaultProps.photos.length)}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={kenBurnsProofDefaultProps}
+        calculateMetadata={({ props }) => {
+          const p = props as { photos?: unknown[] };
+          const count = Array.isArray(p.photos) ? p.photos.length : kenBurnsProofDefaultProps.photos.length;
+          return { durationInFrames: kenBurnsProofDuration(count) };
         }}
       />
     </>

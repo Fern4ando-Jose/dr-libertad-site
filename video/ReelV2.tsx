@@ -298,21 +298,21 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
   return (
     <AbsoluteFill style={{ backgroundColor: "#0B0B0C" }}>
       <Sequence from={next(COVER)} durationInFrames={COVER}>
-        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER}>
+        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER} cat={cat}>
           <CoverTextV2 title={title} accent={accent} brand={brand} handle={handle} kw={kw} />
         </Scene>
       </Sequence>
 
       {usedSlides.map((text, i) => (
         <Sequence key={i} from={next(INSIGHT)} durationInFrames={INSIGHT}>
-          <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={INSIGHT}>
+          <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={INSIGHT} cat={cat}>
             <InsightTextV2 text={text} accent={accentWords?.[i] ?? ""} accentColor={accent} index={i + 1} total={n} handle={handle} />
           </Scene>
         </Sequence>
       ))}
 
       <Sequence from={next(CTA)} durationInFrames={CTA}>
-        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={CTA}>
+        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={CTA} cat={cat}>
           <CtaTextV2 cta={cta} accent={accent} handle={handle} ctaFollow={ctaFollow} ctaBio={ctaBio} />
         </Scene>
       </Sequence>

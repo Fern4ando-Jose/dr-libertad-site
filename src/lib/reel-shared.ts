@@ -12,6 +12,8 @@
 
 import { judgeFootagePosterCached } from "@/lib/footage-qa";
 import { FOOTAGE_LIBRARY } from "@/lib/footage-library";
+import { searchBySourceKey, availableSources, qaCacheId } from "@/lib/footage-providers";
+import { hashStr as hashStrPure } from "@/lib/footage-media";
 
 export interface SearchResult { title: string; content: string; url: string }
 
@@ -32,15 +34,10 @@ export function reelSharedKey(topic: string, day: string): string {
 }
 
 // Hash estável (FNV-1a) — seed de seleção do footage, derivado de (tópico, dia).
-// Independente de conta/@handle → ES e PT escolhem o MESMO clipe.
-export function hashStr(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
+// Independente de conta/@handle → ES e PT escolhem o MESMO clipe. FONTE ÚNICA em
+// src/lib/footage-media.ts (2026-07-16) — reexportado aqui pra não quebrar os
+// imports existentes (`import { hashStr } from "@/lib/reel-shared"`).
+export const hashStr = hashStrPure;
 
 // ─── Cache (Postgres) ─────────────────────────────────────────────────────────
 
@@ -140,8 +137,6 @@ export async function writeReelSharedClips(input: ShareClipsInput): Promise<void
 // diversificação vem de (tópico, dia), NÃO do @handle/edição — assim ES e PT do
 // mesmo run escolhem o MESMO clipe. A diversidade entre DIAS/tópicos é mantida.
 
-const PER_PAGE = 20;
-
 // Fallback por categoria — só usado se não houver videoQueries no tema.
 const CAT_TERMS: Record<string, string[]> = {
   freedom: ["person arms open nature", "walking free open road", "person breathing calm outdoors", "putting phone away relief"],
@@ -171,57 +166,40 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
   return a;
 }
 
-// Escolhe o melhor arquivo: retrato, ~1080p (evita 4K pesado no render do CI).
-function pickFile(video: any): string | null {
-  const files = (video.video_files || []).filter((f: any) => f.link && f.width && f.height);
-  if (!files.length) return null;
-  const portrait = files.filter((f: any) => f.height >= f.width);
-  const pool = portrait.length ? portrait : files;
-  pool.sort((a: any, b: any) => {
-    const sa = (a.width <= 1440 ? 0 : 1) * 1e6 + Math.abs(a.width - 1080);
-    const sb = (b.width <= 1440 ? 0 : 1) * 1e6 + Math.abs(b.width - 1080);
-    return sa - sb;
-  });
-  return pool[0].link;
-}
-
-async function searchTerm(term: string, key: string): Promise<any[]> {
-  const url = `https://api.pexels.com/videos/search?query=${encodeURIComponent(term)}&orientation=portrait&size=medium&per_page=${PER_PAGE}`;
-  const res = await fetch(url, { headers: { Authorization: key } });
-  if (!res.ok) return [];
-  const data = await res.json().catch(() => ({} as any));
-  const vids = Array.isArray(data.videos) ? data.videos : [];
-  return vids.filter((v: any) => v.height >= v.width && (v.duration || 0) >= 4);
-}
-
-// IDs de clipe Pexels usados em Reels recentes (últimos 14 dias) — lidos da própria
-// reel_shared_cache. Servem p/ NÃO repetir o mesmo clipe entre Reels/dias (o dono pegou
-// o "mão+celular" aparecendo em vários). Fail-open: erro de banco → conjunto vazio.
-// `excludeKey`: cache_key do PRÓPRIO (tópico,dia) — sem excluí-lo, os clipes que o 1º
-// idioma acabou de gravar entram no "avoid" do 2º (se o shared expirar entre eles) e
-// o footage ES/PT diverge (achado #126 da auditoria 29/06).
-async function recentClipIds(excludeKey?: string): Promise<Set<number>> {
+// URLs de footage usadas em Reels recentes (últimos 14 dias) — lidas da própria
+// reel_shared_cache. Servem p/ NÃO repetir o mesmo clipe/foto entre Reels/dias (o
+// dono pegou o "mão+celular" aparecendo em vários). Fail-open: erro de banco →
+// conjunto vazio. `excludeKey`: cache_key do PRÓPRIO (tópico,dia) — sem excluí-lo,
+// os clipes que o 1º idioma acabou de gravar entram no "avoid" do 2º (se o shared
+// expirar entre eles) e o footage ES/PT diverge (achado #126 da auditoria 29/06).
+//
+// 2026-07-16: era `recentClipIds` (Set<number>, só extraía o ID numérico de URL
+// de VÍDEO Pexels via regex `video-files/(\d+)`) — com 4 fontes (Pexels/Pixabay ×
+// vídeo/foto, formatos de URL diferentes), a exclusão agora é pela URL EXATA:
+// generaliza sozinha pras 4 fontes (a whitelist/fallback sempre serve a MESMA
+// string de URL pro mesmo clipe/foto, então URL é uma chave de recência válida e
+// muito mais simples que parsear ID por formato de CDN) — "um clipe/foto já usado
+// recentemente em QUALQUER uma das 4 fontes fica de fora", não só dentro da
+// própria fonte.
+async function recentClipUrls(excludeKey?: string): Promise<Set<string>> {
   try {
     const { sql } = await import("@vercel/postgres");
     const rows = await sql<{ cache_key: string; clips: unknown }>`
       SELECT cache_key, clips FROM reel_shared_cache WHERE created_at > now() - interval '14 days'`;
-    const ids = new Set<number>();
+    const urls = new Set<string>();
     for (const r of rows.rows) {
       if (excludeKey && r.cache_key === excludeKey) continue;
       const arr = Array.isArray(r.clips) ? (r.clips as string[]) : [];
-      for (const u of arr) {
-        const m = String(u).match(/video-files\/(\d+)/);
-        if (m) ids.add(Number(m[1]));
-      }
+      for (const u of arr) urls.add(String(u));
     }
-    return ids;
+    return urls;
   } catch {
-    return new Set<number>();
+    return new Set<string>();
   }
 }
 
 // Seleciona até numClips URLs de footage no tema. seed é (tópico,dia) → idêntico
-// entre ES e PT. Retorna [] se Pexels indisponível (→ fallback no script de CI).
+// entre ES e PT. Retorna [] se nenhuma fonte disponível (→ fallback no script de CI).
 export async function selectFootage(
   videoQueries: string[],
   cat: string,
@@ -229,74 +207,86 @@ export async function selectFootage(
   numClips = 5, // 5 cenas do Reel (capa + 3 insights + CTA) → 5 clipes distintos
   excludeKey?: string, // cache_key do PRÓPRIO (tópico,dia) — fora do "avoid" (#126)
 ): Promise<string[]> {
-  // ── PRIMÁRIO: biblioteca CURADA por pilar (whitelist vetado à mão) ──────────
-  // Sorteia numClips clipes DISTINTOS do pilar do post, determinístico por
-  // (tópico,dia) → footage idêntico entre ES e PT, sem repetir clipe no mesmo
-  // reel. Mata a ROLETA do Pexels ao vivo (fonte única que secava e repetia, e
-  // trazia cena imprópria/fora de tema). Só cai na busca ao vivo se o pilar não
-  // tiver biblioteca suficiente (piloto: todos os 6 pilares têm 5 = numClips).
-  const lib = FOOTAGE_LIBRARY[cat] || [];
-  if (lib.length >= numClips) {
-    return seededShuffle(lib.map((c) => c.url), seed).slice(0, numClips);
-  }
+  const avoid = await recentClipUrls(excludeKey);
 
-  // ── FALLBACK: busca ao vivo no Pexels (pilar sem biblioteca curada cheia) ────
-  const key = process.env.PEXELS_API_KEY;
-  if (!key) return lib.map((c) => c.url); // tem biblioteca parcial? usa o que há
+  // ── PRIMÁRIO: biblioteca CURADA por pilar (whitelist — 4 fontes já vetadas) ──
+  // Sorteia numClips clipes DISTINTOS do pilar, determinístico por (tópico,dia) →
+  // footage idêntico entre ES e PT, sem repetir clipe no mesmo reel. A whitelist
+  // MISTURA Pexels vídeo/foto + Pixabay vídeo/foto (metadado `source`/`mediaType`
+  // em cada entrada) — o shuffle já embaralha as 4 fontes entre si, sem lógica
+  // extra aqui. Exclui o usado recentemente (CROSS-fonte, ver recentClipUrls);
+  // se sobrar pouco após excluir, completa com o restante da whitelist (melhor
+  // repetir 1 clipe recente que publicar sem footage).
+  const lib = FOOTAGE_LIBRARY[cat] || [];
+  const libUrls = lib.map((c) => c.url);
+  const fresh = seededShuffle(libUrls.filter((u) => !avoid.has(u)), seed);
+  const picked = fresh.slice(0, numClips);
+  if (picked.length < numClips) {
+    const rest = seededShuffle(libUrls.filter((u) => !picked.includes(u)), seed + 1);
+    for (const u of rest) {
+      if (picked.length >= numClips) break;
+      picked.push(u);
+    }
+  }
+  if (picked.length >= numClips) return picked.slice(0, numClips);
+
+  // ── FALLBACK: busca ao vivo, MISTURANDO as 4 fontes (pilar sem biblioteca
+  // curada cheia) — Pexels vídeo/foto sempre; Pixabay vídeo/foto só com
+  // PIXABAY_API_KEY (fail-open, ainda não existe — 2026-07-16). O SORTEIO entre
+  // fontes é ponderado/aleatório por seed (não sempre a mesma ordem Pexels-vídeo
+  // primeiro), via seededShuffle da lista de fontes disponíveis a cada rodada.
+  const pexelsKey = process.env.PEXELS_API_KEY;
+  const pixabayKey = process.env.PIXABAY_API_KEY;
+  const sources = availableSources({ pexels: pexelsKey, pixabay: pixabayKey });
+  if (!sources.length) return picked; // nenhuma fonte disponível — usa o que a whitelist deu
+
   const anthropicKey = process.env.ANTHROPIC_API_KEY; // QA de conteúdo do footage (incidente 07-01)
   const fromClaude = (Array.isArray(videoQueries) ? videoQueries : []).filter((t) => typeof t === "string" && t.trim());
-  const fallback = (CAT_TERMS[cat] || CAT_TERMS.freedom).slice();
+  const fallbackTerms = (CAT_TERMS[cat] || CAT_TERMS.freedom).slice();
+  const terms = fromClaude.length ? fromClaude : fallbackTerms;
 
-  const picked: string[] = [];
-  const seen = new Set<number>();
+  const seenUrls = new Set<string>(picked);
 
-  // Round-robin entre os termos: 1 clipe de CADA termo por passada → diverso e no tema.
-  // `avoid` = IDs já usados em Reels recentes (não repetir entre Reels).
-  async function harvest(termList: string[], avoid: Set<number>) {
-    const queues: { vids: any[]; i: number }[] = [];
-    for (let t = 0; t < termList.length; t++) {
-      if (picked.length >= numClips) break;
-      const vids = rotate(await searchTerm(termList[t], key!), seed + t * 7);
-      queues.push({ vids, i: 0 });
-    }
+  // Round-robin fonte×termo, na ORDEM sorteada por seed a cada rodada — mistura as
+  // 4 fontes em vez de esgotar sempre a mesma primeiro. `avoidSet`= URLs recentes
+  // (cross-fonte) OU vazio na passada de relaxamento.
+  async function harvest(termList: string[], avoidSet: Set<string>) {
+    let round = 0;
     let progressed = true;
     while (picked.length < numClips && progressed) {
       progressed = false;
-      for (const q of queues) {
+      const orderedSources = seededShuffle(sources, seed + round * 13);
+      for (const sourceKey of orderedSources) {
         if (picked.length >= numClips) break;
-        while (q.i < q.vids.length) {
-          const v = q.vids[q.i++];
-          if (seen.has(v.id) || avoid.has(v.id)) continue;
-          const link = pickFile(v);
-          if (!link) continue;
-          seen.add(v.id); // considerado — não re-julgar o mesmo clipe
-          // QA de CONTEÚDO no poster (incidente 07-01): rejeita macro de pele/corpo,
-          // textura abstrata ou NSFW → pula o candidato (tenta o próximo). Fail-safe.
-          // Com CACHE por videoId (poster imutável → veredito permanente, não repaga).
-          const verdict = await judgeFootagePosterCached(v.id, v.image, anthropicKey, "ig-reels");
+        const term = termList[(seed + round) % termList.length];
+        let candidates: Awaited<ReturnType<typeof searchBySourceKey>> = [];
+        try {
+          candidates = await searchBySourceKey(sourceKey, term, { pexels: pexelsKey, pixabay: pixabayKey });
+        } catch {
+          candidates = [];
+        }
+        for (const c of rotate(candidates, seed + round * 7)) {
+          if (seenUrls.has(c.url) || avoidSet.has(c.url)) continue;
+          seenUrls.add(c.url); // considerado — não re-julgar o mesmo candidato
+          const verdict = await judgeFootagePosterCached(qaCacheId(sourceKey, c.sourceId), c.poster, anthropicKey, "ig-reels");
           if (verdict.reject) continue;
-          picked.push(link);
+          picked.push(c.url);
           progressed = true;
-          break;
+          break; // 1 candidato aceito por fonte por rodada — mantém a mistura
         }
       }
+      round++;
+      if (round > 6) break; // trava de segurança (evita loop infinito se as buscas secarem)
     }
   }
 
   try {
-    // 1ª passada: evita clipes usados em Reels recentes (não repetir entre Reels/dias).
-    const avoid = await recentClipIds(excludeKey);
-    if (fromClaude.length) await harvest(fromClaude, avoid);
-    if (picked.length < numClips) await harvest(fallback, avoid);
+    if (terms.length) await harvest(terms, avoid);
     // Relaxa: se excluir os recentes deixou poucos clipes, completa permitindo repetir
-    // (melhor 1 clipe repetido que Reel sem footage). O dedup DENTRO do Reel (`seen`) fica.
-    if (picked.length < numClips) {
-      const none = new Set<number>();
-      if (fromClaude.length) await harvest(fromClaude, none);
-      if (picked.length < numClips) await harvest(fallback, none);
-    }
+    // (melhor 1 clipe repetido que Reel sem footage). O dedup DENTRO do Reel (`seenUrls`) fica.
+    if (picked.length < numClips && terms.length) await harvest(terms, new Set<string>());
   } catch {
-    return picked; // o que deu pra pegar (pode ser [])
+    return picked; // o que deu pra pegar (pode ser [] + o que a whitelist já tinha)
   }
   return picked;
 }
