@@ -57,7 +57,12 @@ export function buildPrompt(subject: string, accentWord: string, accentHex: stri
   return [
     `Cinematic conceptual editorial illustration: ${subject}.`,
     `Dramatic chiaroscuro lighting, sculptural and atmospheric, fine film grain and subtle texture.`,
-    `Restricted, desaturated palette: warm off-white paper tone (#F4F0E8) and deep ink black (#0B0B0C), with a single muted accent of ${accentWord} (${accentHex}).`,
+    // FUNDO ESCURO TRAVADO (2026-07-16) — a linha anterior oferecia off-white E ink black como
+    // paleta, sem dizer QUEM é fundo: o modelo sorteava. A Nº 228 (aprovada) tirou o preto; a
+    // Nº 252 (reprovada pelo dono) tirou o off-white → figura pequena num campo claro e chapado,
+    // sem drama. Mesma direção cinematográfica, ZERO técnica nova: só define que o fundo é o
+    // preto e o creme é LUZ — que é o que a arte aprovada (Nº 228 / o pássaro) sempre foi.
+    `Restricted, desaturated palette on a DEEP INK BLACK (#0B0B0C) background — dark, low-key and moody: the subject EMERGES from deep shadow, carved out by one dramatic light. Warm off-white (#F4F0E8) appears ONLY as light, highlights and fine film grain — NEVER as a bright, pale, washed-out or empty background; never a daylight scene. A single muted accent of ${accentWord} (${accentHex}).`,
     // Enquadramento TRAVADO: framingFor() devolve SEMPRE FIXED_FRAMING (figura grande/
     // centralizada, nunca cortada) — o rotativo que cortava morreu (ver acima). Único ponto
     // que difere do 8c048995: lá framingFor era rotativo; aqui é fixo (anti-corte preservado).
