@@ -25,6 +25,10 @@ export default function StudioNav() {
   const home = `/${lang}`;
   const isHome = pathname === home || pathname === `${home}/`;
 
+  // Landing do funil (/dopamina): header MÍNIMO — só a marca + idioma. A nav completa
+  // é um vazamento de conversão numa página de captura (8 saídas antes do CTA).
+  const isFunnel = pathname?.includes("/dopamina") ?? false;
+
   // A Pesquisa ("Estudo") é rota FIXA por idioma (não /[lang]/...): PT → /o-estudo,
   // ES → /el-estudio (página institucional que leva à pesquisa viva). Rótulo de uma
   // palavra + nowrap para caber limpo na nav (o item "Newsletter" saiu daqui por ser
@@ -50,6 +54,30 @@ export default function StudioNav() {
 
   const mobileItemCls =
     "border-b border-warm-gray/10 py-3 text-sm tracking-[0.18em] uppercase text-warm-gray/85 hover:text-offwhite transition";
+
+  if (isFunnel) {
+    return (
+      <motion.header
+        className="fixed left-0 top-0 z-[55] w-full backdrop-blur"
+        style={{ backgroundColor: bg, borderBottomColor: border, borderBottomWidth: 1 }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:px-8">
+          <a
+            href={home}
+            aria-label={t.brand}
+            className="group inline-flex flex-col items-start gap-1.5 font-serif text-[1.1rem] font-semibold leading-none tracking-[-0.01em] text-offwhite/95 hover:text-offwhite transition"
+          >
+            <span>{t.brand}</span>
+            <span
+              aria-hidden="true"
+              className="h-[2px] w-7 bg-muted-red transition-all duration-300 group-hover:w-11"
+            />
+          </a>
+          <LangToggle lang={lang} setLang={setLang} />
+        </div>
+      </motion.header>
+    );
+  }
 
   return (
     <motion.header
