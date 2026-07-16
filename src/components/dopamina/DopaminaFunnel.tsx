@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Instrument_Sans } from "next/font/google";
 import type { Lang } from "@/lib/i18n/dictionaries";
 import MetaPixel from "@/components/survey/MetaPixel";
@@ -63,6 +63,24 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
   const total = useMemo(() => answers.reduce<number>((s, a) => s + (a ?? 0), 0), [answers]);
   const pct = result ? Math.round((result.total / 24) * 100) : 0;
 
+  // ── Wizard: uma pergunta por vez (0..N-1); N = gate de e-mail. Cada resposta é
+  // um micro-compromisso; a parede de 8 perguntas de uma vez afugenta no scroll.
+  const qCount = c.quiz.questions.length;
+  const [step, setStep] = useState(0);
+  const advanceTimer = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (advanceTimer.current !== null) window.clearTimeout(advanceTimer.current);
+  }, []);
+
+  const goStep = useCallback(
+    (s: number) => {
+      setStep(Math.max(0, Math.min(s, qCount)));
+      // mantém o quiz enquadrado ao trocar de passo (o card muda de altura)
+      requestAnimationFrame(() => quizRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    },
+    [qCount]
+  );
+
   function pick(qi: number, value: number) {
     if (result) return;
     setAnswers((prev) => {
@@ -70,6 +88,11 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
       next[qi] = value;
       return next;
     });
+    // auto-avanço: a seleção pinta (260ms) e o próximo passo entra sozinho
+    if (qi === step) {
+      if (advanceTimer.current !== null) window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = window.setTimeout(() => goStep(qi + 1), 260);
+    }
   }
 
   async function submitQuiz() {
@@ -279,33 +302,64 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
             <span className={styles.ln} />
           </div>
 
-          {q.questions.map((question, qi) => (
-            <div className={styles.q} key={qi}>
-              <div className={styles.qn}>
-                {lang === "es" ? "Pregunta" : "Pergunta"} {qi + 1} — {question.axis}
+          {!result && step < qCount && (
+            <div className={styles.stepper}>
+              <div className={styles.stepMeta}>
+                <span className={styles.stepCount}>
+                  {lang === "es" ? "Pregunta" : "Pergunta"} {step + 1} / {qCount}
+                </span>
+                <span className={styles.stepAxis}>{q.questions[step].axis}</span>
               </div>
-              <div className={styles.qtext}>{question.text}</div>
-              <div className={styles.opts} role="group" aria-label={question.axis}>
-                {question.options.map((label, value) => {
-                  const selected = answers[qi] === value;
-                  return (
-                    <button
-                      type="button"
-                      key={value}
-                      className={`${styles.opt} ${selected ? styles.optSel : ""}`}
-                      aria-pressed={selected}
-                      onClick={() => pick(qi, value)}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
+              <div className={styles.stepTrack} aria-hidden="true">
+                <i style={{ width: `${(step / qCount) * 100}%` }} />
+              </div>
+
+              <div className={styles.stepCard} key={step} aria-live="polite">
+                <div className={styles.qtext}>{q.questions[step].text}</div>
+                <div className={styles.opts} role="group" aria-label={q.questions[step].axis}>
+                  {q.questions[step].options.map((label, value) => {
+                    const selected = answers[step] === value;
+                    return (
+                      <button
+                        type="button"
+                        key={value}
+                        className={`${styles.opt} ${selected ? styles.optSel : ""}`}
+                        aria-pressed={selected}
+                        onClick={() => pick(step, value)}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className={styles.stepNav}>
+                <button
+                  type="button"
+                  className={styles.stepBtn}
+                  disabled={step === 0}
+                  onClick={() => goStep(step - 1)}
+                >
+                  ← {lang === "es" ? "Anterior" : "Anterior"}
+                </button>
+                <button
+                  type="button"
+                  className={styles.stepBtn}
+                  disabled={answers[step] === null}
+                  onClick={() => goStep(step + 1)}
+                >
+                  {lang === "es" ? "Siguiente" : "Próxima"} →
+                </button>
               </div>
             </div>
-          ))}
+          )}
 
-          {!result && (
+          {!result && step >= qCount && (
             <div className={styles.gate}>
+              <div className={styles.stepTrack} aria-hidden="true" style={{ marginBottom: 22 }}>
+                <i style={{ width: "100%" }} />
+              </div>
               <h3>{q.gate.heading}</h3>
               <p>{q.gate.body}</p>
               <input
@@ -322,6 +376,9 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
                 {q.gate.cta}
               </button>
               <p className={styles.gateHint}>{allAnswered ? q.gate.emailNote : q.gate.hintLocked}</p>
+              <button type="button" className={styles.stepBtn} onClick={() => goStep(qCount - 1)}>
+                ← {lang === "es" ? "Revisar mis respuestas" : "Revisar minhas respostas"}
+              </button>
             </div>
           )}
 
