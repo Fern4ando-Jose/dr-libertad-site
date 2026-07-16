@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test": "vitest run",
     "render:reel": "node scripts/render-reel.mjs",
-    "upload:blob": "node scripts/upload-blob.mjs"
+    "upload:blob": "node scripts/upload-blob.mjs",
+    "vet:footage": "node scripts/vet-footage-library.mjs"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.290",

@@ -1,18 +1,28 @@
-// ─── Busca de footage de banco (Pexels) ───────────────────────────────────────
-// Escolhe 2-3 clipes de VÍDEO REAL (filmado) na Pexels a partir do tema do dia e
-// grava as URLs em props.clips dentro do reel-props.json. O Reel usa esses
-// clipes como fundo em movimento (graded p/ a paleta da marca). Movimento real,
-// custo ZERO (Pexels é grátis).
+// ─── Busca de footage de banco (Pexels + Pixabay, vídeo + foto) ────────────────
+// Escolhe 2-5 clipes/fotos de banco a partir do tema do dia e grava as URLs em
+// props.clips dentro do reel-props.json. O Reel usa esses itens como fundo em
+// movimento (vídeo graded, ou foto com Ken Burns — video/KenBurns.tsx) na paleta
+// da marca (video/brand-grade.ts). Movimento real, custo ZERO (Pexels/Pixabay
+// grátis pro volume da conta).
 //
-// CAMADA: criação (não automação). NÃO-FATAL: sem PEXELS_API_KEY, sem match ou
+// CAMADA: criação (não automação). NÃO-FATAL: sem nenhuma chave, sem match ou
 // erro de rede → sai 0 sem clips, e o Reel cai no fallback (ilustração estática).
 //
-// Uso:  PEXELS_API_KEY=... node scripts/fetch-footage.mjs --props=reel-props.json
+// 2026-07-16: este é o FALLBACK de CI — a API (/api/publish?preview=1) já resolve
+// o footage MISTURANDO 4 fontes via `selectFootage` (src/lib/reel-shared.ts +
+// src/lib/footage-providers.ts) e entrega em props.clips; este script só roda
+// quando ela devolveu 0 clipes. Espelha a MESMA mistura de fontes (Pexels
+// vídeo/foto sempre; Pixabay vídeo/foto só com PIXABAY_API_KEY — fail-open, ainda
+// não existe) pra não regredir o fallback a "só Pexels vídeo" enquanto o caminho
+// primário já manda as 4. Manter os dois em sincronia.
+//
+// Uso:  PEXELS_API_KEY=... [PIXABAY_API_KEY=...] node scripts/fetch-footage.mjs --props=reel-props.json
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
+const PIXABAY_API_KEY = process.env.PIXABAY_API_KEY; // fail-open: ausente → Pixabay pulado, sem quebrar nada
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY; // QA de conteúdo do footage (incidente 07-01)
 const NUM_CLIPS = Math.max(1, Math.min(6, Number(process.env.FOOTAGE_NUM_CLIPS || "5")));
 const PER_PAGE = 20;
@@ -78,7 +88,7 @@ const PROPS_PATH = resolve(process.cwd(), propsArg ? propsArg.slice("--props=".l
 
 // FALLBACK por CATEGORIA — só usado se o Claude não mandar videoQueries no tema.
 // Centrado em VIDA DIGITAL/pessoas/emoção (o assunto da marca), não cenas
-// literais. Em inglês (Pexels indexa melhor assim).
+// literais. Em inglês (Pexels/Pixabay indexam melhor assim).
 const CAT_TERMS = {
   freedom: ["person arms open nature", "walking free open road", "person breathing calm outdoors", "putting phone away relief"],
   dopamine: ["person scrolling phone in bed", "hand swiping smartphone screen", "phone notifications close up", "person addicted to phone night"],
@@ -92,7 +102,7 @@ function log(m) {
   console.log(`[footage] ${m}`);
 }
 
-// Hash estável (FNV-1a) p/ derivar um seed de diversificação por render.
+// Hash estável (FNV-1a) — espelha src/lib/footage-media.ts (hashStr).
 function hashStr(s) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
@@ -102,27 +112,41 @@ function hashStr(s) {
   return h >>> 0;
 }
 
-// Rotaciona um array por n posições (não-destrutivo). Usado p/ variar QUAL clipe
-// abre o Reel entre renders, sem mudar o conjunto de candidatos.
+// Rotaciona um array por n posições (não-destrutivo).
 function rotate(arr, n) {
   if (!Array.isArray(arr) || arr.length <= 1) return arr || [];
   const k = ((n % arr.length) + arr.length) % arr.length;
   return arr.slice(k).concat(arr.slice(0, k));
 }
+
+// Embaralho determinístico por seed (LCG) — espelha seededShuffle do TS. Usado
+// pra sortear a ORDEM das fontes a cada rodada (mix ponderado/aleatório).
+function seededShuffle(arr, seed) {
+  const a = arr.slice();
+  let s = seed >>> 0 || 1;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    const j = s % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 // Sempre 0: footage é opcional (fallback p/ ilustração estática).
 function done(reason) {
   if (reason) log(reason);
   process.exit(0);
 }
 
-// Escolhe o melhor arquivo de vídeo de um item Pexels: retrato, ~1080p (evita 4K
-// pesado no render do CI). Prefere altura >= largura e largura <= 1440.
-function pickFile(video) {
+// ─── 4 fontes normalizadas — ESPELHA src/lib/footage-providers.ts ──────────────
+// Cada candidato: { url, poster, id } — a URL final decide vídeo×foto por extensão
+// no RENDER (isPhotoUrl), então este script não precisa marcar o tipo.
+
+function pickPexelsVideoFile(video) {
   const files = (video.video_files || []).filter((f) => f.link && f.width && f.height);
   if (!files.length) return null;
   const portrait = files.filter((f) => f.height >= f.width);
   const pool = portrait.length ? portrait : files;
-  // ordena por proximidade de 1080 de largura, preferindo <= 1440
   pool.sort((a, b) => {
     const sa = (a.width <= 1440 ? 0 : 1) * 1e6 + Math.abs(a.width - 1080);
     const sb = (b.width <= 1440 ? 0 : 1) * 1e6 + Math.abs(b.width - 1080);
@@ -131,17 +155,83 @@ function pickFile(video) {
   return pool[0].link;
 }
 
-async function searchTerm(term) {
+async function searchPexelsVideo(term) {
+  if (!PEXELS_API_KEY) return [];
   const url = `https://api.pexels.com/videos/search?query=${encodeURIComponent(term)}&orientation=portrait&size=medium&per_page=${PER_PAGE}`;
   const res = await fetch(url, { headers: { Authorization: PEXELS_API_KEY } });
-  if (!res.ok) {
-    log(`busca "${term}" HTTP ${res.status}`);
-    return [];
-  }
+  if (!res.ok) { log(`Pexels vídeo "${term}" HTTP ${res.status}`); return []; }
   const data = await res.json().catch(() => ({}));
   const vids = Array.isArray(data.videos) ? data.videos : [];
-  // só retrato com duração decente (>=4s)
-  return vids.filter((v) => v.height >= v.width && (v.duration || 0) >= 4);
+  return vids
+    .filter((v) => v.height >= v.width && (v.duration || 0) >= 4)
+    .map((v) => { const link = pickPexelsVideoFile(v); return link ? { id: v.id, url: link, poster: v.image } : null; })
+    .filter(Boolean);
+}
+
+async function searchPexelsPhoto(term) {
+  if (!PEXELS_API_KEY) return [];
+  const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(term)}&orientation=portrait&size=large&per_page=${PER_PAGE}`;
+  const res = await fetch(url, { headers: { Authorization: PEXELS_API_KEY } });
+  if (!res.ok) { log(`Pexels foto "${term}" HTTP ${res.status}`); return []; }
+  const data = await res.json().catch(() => ({}));
+  const photos = Array.isArray(data.photos) ? data.photos : [];
+  return photos
+    .filter((p) => (p.height || 0) >= (p.width || 0))
+    .map((p) => { const src = p.src?.large2x || p.src?.large || p.src?.original; return src ? { id: p.id, url: src, poster: src } : null; })
+    .filter(Boolean);
+}
+
+async function searchPixabayVideo(term) {
+  if (!PIXABAY_API_KEY) return []; // fail-open — dono ainda não criou a conta (2026-07-16)
+  const url = `https://pixabay.com/api/videos/?key=${encodeURIComponent(PIXABAY_API_KEY)}&q=${encodeURIComponent(term)}&safesearch=true&per_page=${PER_PAGE}`;
+  const res = await fetch(url);
+  if (!res.ok) { log(`Pixabay vídeo "${term}" HTTP ${res.status}`); return []; }
+  const data = await res.json().catch(() => ({}));
+  const hits = Array.isArray(data.hits) ? data.hits : [];
+  const out = [];
+  for (const h of hits) {
+    const sizes = h.videos || {};
+    const candidates = [sizes.large, sizes.medium, sizes.small, sizes.tiny].filter((s) => s && s.url && s.width && s.height);
+    const portrait = candidates.filter((s) => s.height >= s.width);
+    const pool = portrait.length ? portrait : candidates;
+    if (!pool.length) continue;
+    pool.sort((a, b) => {
+      const sa = (a.width <= 1440 ? 0 : 1) * 1e6 + Math.abs(a.width - 1080);
+      const sb = (b.width <= 1440 ? 0 : 1) * 1e6 + Math.abs(b.width - 1080);
+      return sa - sb;
+    });
+    const pick = pool[0];
+    if (!(pick.height >= pick.width) || (h.duration || 0) < 4) continue;
+    out.push({ id: h.id, url: pick.url, poster: h.picture_id ? `https://i.vimeocdn.com/video/${h.picture_id}_295x166.jpg` : pick.url });
+  }
+  return out;
+}
+
+async function searchPixabayPhoto(term) {
+  if (!PIXABAY_API_KEY) return []; // fail-open
+  const url = `https://pixabay.com/api/?key=${encodeURIComponent(PIXABAY_API_KEY)}&q=${encodeURIComponent(term)}&image_type=photo&orientation=vertical&safesearch=true&per_page=${PER_PAGE}`;
+  const res = await fetch(url);
+  if (!res.ok) { log(`Pixabay foto "${term}" HTTP ${res.status}`); return []; }
+  const data = await res.json().catch(() => ({}));
+  const hits = Array.isArray(data.hits) ? data.hits : [];
+  return hits
+    .filter((h) => (h.imageHeight || 0) >= (h.imageWidth || 0))
+    .map((h) => { const src = h.largeImageURL || h.webformatURL; return src ? { id: h.id, url: src, poster: src } : null; })
+    .filter(Boolean);
+}
+
+const SOURCE_FNS = {
+  "pexels-video": searchPexelsVideo,
+  "pexels-photo": searchPexelsPhoto,
+  "pixabay-video": searchPixabayVideo,
+  "pixabay-photo": searchPixabayPhoto,
+};
+
+function availableSources() {
+  const list = [];
+  if (PEXELS_API_KEY) list.push("pexels-video", "pexels-photo");
+  if (PIXABAY_API_KEY) list.push("pixabay-video", "pixabay-photo");
+  return list;
 }
 
 async function main() {
@@ -153,96 +243,84 @@ async function main() {
     return done(`reel-props.json inválido (${e?.message || e}) — sem footage`);
   }
   // A API (/api/publish?preview=1) já resolve o footage COMPARTILHADO entre ES e
-  // PT (mesmo vídeo) e o entrega em props.clips. Se veio de lá, não buscamos de
-  // novo — isto aqui vira só o FALLBACK de CI (quando a API não trouxe clipes).
+  // PT (mesmo vídeo, mistura de 4 fontes) e o entrega em props.clips. Se veio de
+  // lá, não buscamos de novo — isto aqui vira só o FALLBACK de CI.
   if (Array.isArray(props.clips) && props.clips.length) {
-    return done(`clips já vieram da API (base compartilhada, ${props.clips.length}) — pulando Pexels`);
+    return done(`clips já vieram da API (base compartilhada, ${props.clips.length}) — pulando busca`);
   }
-  if (!PEXELS_API_KEY) return done("PEXELS_API_KEY ausente — sem footage (fallback ilustração estática)");
 
-  // Prioridade: termos no tema gerados pelo Claude (videoQueries) → fallback cat.
+  const sources = availableSources();
+  if (!sources.length) return done("nenhuma fonte disponível (sem PEXELS_API_KEY nem PIXABAY_API_KEY) — sem footage (fallback ilustração estática)");
+  log(`fontes disponíveis: ${sources.join(", ")}${PIXABAY_API_KEY ? "" : " (Pixabay pulado — sem PIXABAY_API_KEY)"}`);
+
   const cat = props.cat || "freedom";
   const fromClaude = Array.isArray(props.videoQueries) ? props.videoQueries.filter((t) => typeof t === "string" && t.trim()) : [];
   const fallback = (CAT_TERMS[cat] || CAT_TERMS.freedom).slice();
+  const terms = fromClaude.length ? fromClaude : fallback;
   log(fromClaude.length ? `videoQueries do Claude: ${fromClaude.join(" | ")}` : `(sem videoQueries) fallback cat "${cat}": ${fallback.join(" | ")}`);
 
-  // Seed de DIVERSIFICAÇÃO por render: dois posts com o MESMO tema (ex.: ES e PT do
-  // mesmo run, ou o mesmo run em dias diferentes) não devem abrir com o MESMO clipe
-  // da Pexels. ed (nº de edição, muda a cada post), handle (conta) e o dia variam por
-  // render → seed distinto → ordem dos candidatos rotacionada → clipe de abertura
-  // diferente. Sem DB, sem estado; só evita a colisão determinística.
+  // Seed de DIVERSIFICAÇÃO por render — igual antes.
   const day = new Date().toISOString().slice(0, 10);
   const seed = hashStr(`${props.handle || ""}|${props.ed || ""}|${props.title || ""}|${day}`);
   log(`seed de diversificação=${seed} (handle=${props.handle || "?"} ed=${props.ed || "?"} dia=${day})`);
 
   try {
     const picked = [];
-    const seenVideoIds = new Set();
+    const seenUrls = new Set();
+    let qaAttempted = 0;
+    let qaPassed = 0;
 
-    // Round-robin entre os termos: pega 1 clipe de CADA termo por passada, depois
-    // volta ao 1º para a 2ª passada, etc. Mantém os clipes NO TEMA e DIVERSOS —
-    // em vez de esvaziar o 1º termo (4 clipes da mesma busca) ou cair no fallback
-    // genérico (o "último clipe fora de contexto"). Só usa o fallback de categoria
-    // depois de esgotar as queries do Claude.
-    async function harvest(termList) {
-      // Pré-carrega as buscas e mantém um cursor por termo (fila de candidatos).
-      const queues = [];
-      for (let t = 0; t < termList.length; t++) {
-        if (picked.length >= NUM_CLIPS) break;
-        const term = termList[t];
-        // Rotaciona os candidatos por (seed + termo) → abertura varia entre renders.
-        const vids = rotate(await searchTerm(term), seed + t * 7);
-        queues.push({ term, vids, i: 0 });
-      }
+    // Round-robin FONTE×termo, ordem das fontes sorteada por rodada — mistura as
+    // 4 fontes em vez de esgotar sempre Pexels-vídeo primeiro (espelha selectFootage).
+    async function harvest() {
+      let round = 0;
       let progressed = true;
       while (picked.length < NUM_CLIPS && progressed) {
         progressed = false;
-        for (const q of queues) {
+        const orderedSources = seededShuffle(sources, seed + round * 13);
+        for (const sourceKey of orderedSources) {
           if (picked.length >= NUM_CLIPS) break;
-          // avança no termo até achar um vídeo novo com arquivo utilizável
-          while (q.i < q.vids.length) {
-            const v = q.vids[q.i++];
-            if (seenVideoIds.has(v.id)) continue;
-            const link = pickFile(v);
-            if (!link) continue;
-            seenVideoIds.add(v.id); // considerado — não re-julgar o mesmo clipe
-            // QA de CONTEÚDO no poster (incidente 07-01): rejeita macro de pele/corpo,
-            // textura abstrata ou NSFW → pula o candidato. Fail-safe (ver judgeFootagePoster).
-            const verdict = await judgeFootagePoster(v.image);
+          const term = terms[(seed + round) % terms.length];
+          let candidates = [];
+          try {
+            candidates = await SOURCE_FNS[sourceKey](term);
+          } catch (e) {
+            log(`- ${sourceKey} "${term}" exceção: ${e?.message || e}`);
+            candidates = [];
+          }
+          for (const c of rotate(candidates, seed + round * 7)) {
+            if (seenUrls.has(c.url)) continue;
+            seenUrls.add(c.url);
+            qaAttempted++;
+            const verdict = await judgeFootagePoster(c.poster);
             if (verdict.reject) {
-              log(`- clipe reprovado no QA (${q.term}) id=${v.id}: ${verdict.reason}`);
+              log(`- ${sourceKey} (${term}) id=${c.id}: ${verdict.reason}`);
               continue;
             }
-            picked.push(link);
+            qaPassed++;
+            picked.push(c.url);
             progressed = true;
-            log(`+ clipe (${q.term}) id=${v.id} ${v.width}x${v.height} ${v.duration}s`);
-            break;
+            log(`+ ${sourceKey} (${term}) id=${c.id}`);
+            break; // 1 candidato aceito por fonte por rodada — mantém a mistura
           }
         }
+        round++;
+        if (round > 6) break; // trava de segurança
       }
     }
 
-    // 1ª escolha: só as queries do Claude (no tema). Pode render < NUM_CLIPS.
-    if (fromClaude.length) await harvest(fromClaude);
-    // Fallback de categoria (genérico) só entra se o Claude rendeu ZERO clipes.
-    // Se rendeu >=1, NÃO misturamos clipe genérico: o Reel.tsx cicla os clipes no
-    // tema (a cena final reusa um deles), evitando o "último clipe fora de contexto".
-    if (!picked.length) {
-      if (fromClaude.length) log(`Claude rendeu 0 clipes — caindo no fallback cat "${cat}"`);
-      await harvest(fallback);
-    } else if (picked.length < NUM_CLIPS) {
-      log(`Claude rendeu ${picked.length} clipe(s) no tema (< ${NUM_CLIPS}) — Reel cicla os do tema, sem fallback genérico`);
-    }
+    await harvest();
+    log(`QA: ${qaPassed}/${qaAttempted} candidatos aprovados`);
 
-    if (!picked.length) return done("nenhum clipe encontrado na Pexels — fallback ilustração estática");
+    if (!picked.length) return done("nenhum clipe/foto encontrado — fallback ilustração estática");
 
     props.clips = picked;
     writeFileSync(PROPS_PATH, JSON.stringify(props));
-    log(`${picked.length} clipe(s) gravados em props.clips`);
+    log(`${picked.length} item(ns) gravados em props.clips`);
 
     // Writeback: ESTA conta achou footage no fallback do CI → grava na base
     // compartilhada pra a 2ª conta (PT dispara 5 min depois) REUSAR o MESMO
-    // vídeo. Sem isso, ES e PT divergiam (um com footage, outro preto). Só roda
+    // vídeo/foto. Sem isso, ES e PT divergiam (um com footage, outro preto). Só roda
     // quando há topic + CRON_SECRET; best-effort (falha não quebra o render).
     await shareClips(props, picked);
   } catch (e) {

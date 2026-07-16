@@ -28,6 +28,9 @@ import {
   useVideoConfig,
 } from "remotion";
 import { loadFont as loadFraunces } from "@remotion/google-fonts/Fraunces";
+import { GradeOverlay, gradeFilterCss, DUO_FLOOR, type Pillar } from "./brand-grade";
+import { PhotoKenBurns, pickKenBurnsMode } from "./KenBurns";
+import { isPhotoUrl, hashStr } from "../src/lib/footage-media";
 
 const { fontFamily: FRAUNCES } = loadFraunces();
 
@@ -53,20 +56,17 @@ const SCRIM =
   "linear-gradient(180deg, rgba(11,11,12,0.58) 0%, rgba(11,11,12,0.20) 30%, rgba(11,11,12,0.22) 58%, rgba(11,11,12,0.90) 100%)";
 
 // ─── Grade cinematográfica QUENTE/VINTAGE (padrão de marca em todo footage) ───
-// Restaura e UNIFICA a cara editorial/cine que o footage bom já tinha — tons
-// antigos, quentes, puxando pro âmbar/vermelho, matte e profundos. (A 1ª versão
-// em grayscale+creme clareou demais e matou a cor — revertida.) Normaliza
-// qualquer clipe do Pexels na MESMA faixa tonal quente:
-//   1. vídeo → cor PARCIAL + sépia (calor garantido) + escuro (mood);
+// FONTE ÚNICA em `./brand-grade` (2026-07-16) — antes as 4 constantes eram
+// redeclaradas aqui E em video/KenBurns.tsx (POC), risco de drift. `gradeFilterCss`
+// e `GradeOverlay` variam SÓ intensidade por PILAR (nunca hex/matiz — revisão de
+// neuromarketing 2026-07-16); DUO_FLOOR importado só pro backgroundColor do wrapper.
+// Normaliza qualquer clipe (Pexels OU Pixabay, vídeo OU foto) na MESMA faixa tonal:
+//   1. mídia → cor PARCIAL + sépia (calor garantido) + escuro (mood), por filter CSS;
 //   2. screen(PISO quente) → pretos viram marrom profundo (matte vintage; nunca
 //      cinza lavado, nunca preto puro);
 //   3. multiply(LUZ âmbar) → luzes viram dourado quente (sem estourar);
 //   4. soft-light(WASH quente) → base sempre quente, coesa mesmo em clipe frio;
-//   5. soft-light(acento) → cor da categoria por cima.
-const GRADE_FILTER = "saturate(0.5) contrast(1.1) brightness(0.95) sepia(0.2)";
-const DUO_FLOOR = "#1F1A18";      // piso levemente quente (marrom-neutro — matte, sem laranja)
-const DUO_HIGHLIGHT = "#ECDCC4";  // teto creme quente suave (entre creme e âmbar)
-const WARM_WASH = "#5A4636";      // unificador quente discreto (marrom-neutro, não vermelho)
+//   5. soft-light(acento) → cor única da marca (#A45A5A) por cima.
 
 // ─── Zona segura do FEED do Instagram ─────────────────────────────────────────
 // O Reel é 1080×1920 (9:16), mas o FEED mostra um recorte CENTRADO 4:5 (1080×1350)
@@ -195,40 +195,41 @@ function SceneBg({
   kw,
   accent,
   dur,
+  cat,
 }: {
   clip?: string;
   img?: string;
   kw: string;
   accent: string;
   dur: number;
+  cat?: string;
 }) {
   const frame = useCurrentFrame();
   const zoom = interpolate(frame, [0, dur], [1.06, 1.16], { extrapolateRight: "clamp" });
   const driftX = interpolate(frame, [0, dur], [0, -28], { extrapolateRight: "clamp" });
 
   if (clip) {
+    // 4 fontes de footage (Pexels vídeo/foto + Pixabay vídeo/foto, misturadas por
+    // selectFootage) — a URL entrega o tipo por extensão (isPhotoUrl, sem 5º campo
+    // no schema). FOTO → Ken Burns (video/KenBurns.tsx); VÍDEO → OffthreadVideo
+    // como sempre. Mesma `GradeOverlay`/pilar nos dois — cara idêntica.
+    if (isPhotoUrl(clip)) {
+      return (
+        <PhotoKenBurns src={clip} mode={pickKenBurnsMode(hashStr(clip))} dur={dur} pillar={cat as Pillar} accent={accent} />
+      );
+    }
     // isolation: isolate → os mix-blend abaixo se combinam SÓ entre si (duotone
-    // fechado), sem vazar pro resto da cena. Ordem importa: grayscale → screen
-    // (piso) → multiply (teto) → soft-light (acento).
+    // fechado), sem vazar pro resto da cena.
     return (
       <AbsoluteFill style={{ backgroundColor: DUO_FLOOR, overflow: "hidden", isolation: "isolate" }}>
         <AbsoluteFill style={{ transform: `scale(${zoom}) translateX(${driftX}px)` }}>
           <OffthreadVideo
             src={clip}
             muted
-            style={{ width: "100%", height: "100%", objectFit: "cover", filter: GRADE_FILTER }}
+            style={{ width: "100%", height: "100%", objectFit: "cover", filter: gradeFilterCss(cat as Pillar) }}
           />
         </AbsoluteFill>
-        {/* PISO quente: screen com marrom escuro — pretos viram matte vintage
-            (clipe escuro deixa de virar preto; sombras coesas e QUENTES, não cinza) */}
-        <AbsoluteFill style={{ backgroundColor: DUO_FLOOR, mixBlendMode: "screen" }} />
-        {/* TETO âmbar: multiply — luzes viram dourado quente (clipe claro não estoura;
-            luzes coesas) → exposição igual clipe a clipe, com calor de filme antigo */}
-        <AbsoluteFill style={{ backgroundColor: DUO_HIGHLIGHT, mixBlendMode: "multiply" }} />
-        {/* WASH quente global — garante o tom 'antigo/quente' mesmo em clipe frio */}
-        <AbsoluteFill style={{ backgroundColor: WARM_WASH, opacity: 0.16, mixBlendMode: "soft-light" }} />
-        {/* ACENTO da categoria por cima — cor de marca */}
-        <AbsoluteFill style={{ backgroundColor: accent, opacity: 0.18, mixBlendMode: "soft-light" }} />
+        <GradeOverlay pillar={cat as Pillar} accent={accent} />
       </AbsoluteFill>
     );
   }
@@ -273,6 +274,7 @@ export function Scene({
   kw,
   accent,
   dur,
+  cat,
   children,
 }: {
   clip?: string;
@@ -280,11 +282,12 @@ export function Scene({
   kw: string;
   accent: string;
   dur: number;
+  cat?: string;
   children: React.ReactNode;
 }) {
   return (
     <AbsoluteFill>
-      <SceneBg clip={clip} img={img} kw={kw} accent={accent} dur={dur} />
+      <SceneBg clip={clip} img={img} kw={kw} accent={accent} dur={dur} cat={cat} />
       <AbsoluteFill style={{ background: SCRIM }} />
       <Texture />
       {children}
@@ -416,21 +419,21 @@ export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw,
   return (
     <AbsoluteFill style={{ backgroundColor: INK }}>
       <Sequence from={next(COVER)} durationInFrames={COVER}>
-        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER}>
+        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER} cat={cat}>
           <CoverText title={title} ed={ed} accent={accent} brand={brand} handle={handle} />
         </Scene>
       </Sequence>
 
       {usedSlides.map((text, i) => (
         <Sequence key={i} from={next(INSIGHT)} durationInFrames={INSIGHT}>
-          <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={INSIGHT}>
+          <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={INSIGHT} cat={cat}>
             <InsightText text={text} accent={accentWords?.[i] ?? ""} accentColor={accent} index={i + 1} total={n} handle={handle} />
           </Scene>
         </Sequence>
       ))}
 
       <Sequence from={next(CTA)} durationInFrames={CTA}>
-        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={CTA}>
+        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={CTA} cat={cat}>
           <CtaText cta={cta} accent={accent} handle={handle} ctaFollow={ctaFollow} ctaBio={ctaBio} />
         </Scene>
       </Sequence>

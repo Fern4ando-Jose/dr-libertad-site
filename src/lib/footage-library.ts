@@ -4,9 +4,24 @@
 // on-message por símbolo do pilar (mesmo crivo da UPM). Substitui a ROLETA da busca
 // Pexels ao vivo (fonte única que secava e repetia). O Reel sorteia SÓ deste
 // whitelist, determinístico por (tópico,dia), sem repetir clipe no mesmo reel.
-// Fonte: Pexels. FASE 2: Pixabay (curado à mão, sem API) + foto→movimento.
+//
+// 2026-07-16: MIX de 4 fontes — Pexels vídeo (abaixo, ~9-12/pilar, curado à mão) +
+// Pexels FOTO (Ken Burns) + Pixabay vídeo/foto (fail-open até PIXABAY_API_KEY
+// existir) — todas vetadas pelo MESMO juiz automático de visão (footage-qa.ts,
+// Haiku barato no poster) em vez de olho humano por item. `mediaType`/`source` são
+// só METADADOS (documentação/relatório do QA em massa) — o RENDER detecta foto ×
+// vídeo pela extensão da própria URL (isPhotoUrl, src/lib/footage-media.ts), não
+// por este campo, então entradas antigas sem `mediaType` continuam funcionando
+// sem qualquer migração. `why`/`alt` = legenda curta (poster do QA + contexto
+// humano). scripts/vet-footage-library.mjs é quem AMPLIA esta lista (ver README lá).
 // Categorias do DR: freedom · dopamine · anxiety · network · self · mind.
-export type FootageClip = { url: string; poster?: string; why?: string };
+export type FootageClip = {
+  url: string;
+  poster?: string;
+  why?: string;
+  mediaType?: "video" | "photo"; // metadado (relatório) — render decide pela URL, não por este campo
+  source?: "pexels" | "pixabay";
+};
 
 export const FOOTAGE_LIBRARY: Record<string, FootageClip[]> = {
   // LIBERDADE — a saída (respirar, natureza, estrada aberta, largar o telefone) — 12 clipes

@@ -10,6 +10,9 @@ out/
 /reel-props.json
 /caption.txt
 /preview.json
+# Relatório da vetagem em massa do footage (scripts/vet-footage-library.mjs) — saída
+# local de cada rodada (candidatos/QA por pilar), não é código nem config versionável.
+/.footage-vet-report.json
 
 # Arquivos de log e outros
 # Segredos: ignora TODO .env (repo é PÚBLICO) — exceto o template versionável
