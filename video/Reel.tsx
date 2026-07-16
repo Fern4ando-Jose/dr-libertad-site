@@ -38,18 +38,38 @@ const { fontFamily: FRAUNCES } = loadFraunces();
 const INK = "#0B0B0C";
 const PAPER = "#F4F0E8";
 const WHITE = "#ffffff";
-const RED = "#A45A5A"; // acento default (freedom)
+const RED = "#A45A5A"; // acento do WASH sobre footage — LOCKED, nunca varia por pilar (ver nota abaixo)
 
-// Acento ÚNICO travado pelo dono 2026-07-14 (DIRECAO-CAPAS): um único acento
-// vinho #A45A5A. Os 6 acentos por categoria MORRERAM (divergência de marca).
-const CAT_ACCENT: Record<string, string> = {
-  freedom: "#A45A5A",
-  dopamine: "#A45A5A",
-  anxiety: "#A45A5A",
-  network: "#A45A5A",
-  self: "#A45A5A",
-  mind: "#A45A5A",
+// ─── DOIS acentos distintos (achado do designer-criativos, 2026-07-16) ────────
+// O wash sobre FOOTAGE (vídeo/foto real, misturado de fontes heterogêneas) e o
+// acento de UI PLANA (régua/texto/vetor) são coisas DIFERENTES e não podem mais
+// compartilhar uma única variável:
+//   1. WASH do footage — travado pelo dono 2026-07-14 (DIRECAO-CAPAS) em UM único
+//      vinho #A45A5A (constante `RED` acima). Os 6 matizes testados por cima de
+//      pele/cena real deram tom "doentio" — por isso ficou mono. Nunca variar
+//      por pilar aqui: usar sempre `RED` (ver `washAccent` no componente `Reel`).
+//   2. UI PLANA (régua da capa/CTA, handle, número do insight, palavra em
+//      destaque) — NÃO é footage, é vetor/texto puro por cima; aqui os 6 acentos
+//      da marca (mesmo mapa `ACCENTS` de src/lib/illustration.ts, usado nas
+//      capas ilustradas) são seguros e é o que a marca quer de volta. `CAT_ACCENT`
+//      abaixo restaura os 6 valores reais (antes o mapa ficou todo travado em
+//      #A45A5A por resquício do rollback da "fase grafite" 2026-07-15).
+export const CAT_ACCENT: Record<string, string> = {
+  freedom: "#A45A5A", // oxblood wine red
+  dopamine: "#BE7A2A", // burnt amber ochre
+  anxiety: "#3D6360", // deep teal
+  network: "#3F5E78", // slate blue
+  self: "#835A6E", // dusty mauve
+  mind: "#5B6B3C", // olive green
 };
+
+// Helper puro (sem JSX) p/ o teste travar a separação sem precisar renderizar
+// a composição inteira: `washAccent` é SEMPRE `RED` (nunca varia por pilar);
+// `uiAccent` varia nos 6 pilares via `CAT_ACCENT`. Também usado dentro do
+// próprio componente `Reel` — fonte única do cálculo.
+export function resolveAccents(cat?: string): { washAccent: string; uiAccent: string } {
+  return { washAccent: RED, uiAccent: CAT_ACCENT[cat ?? "freedom"] ?? RED };
+}
 
 // Scrim sobre o footage — escurece topo e (forte) a base, onde mora o texto.
 const SCRIM =
@@ -397,7 +417,10 @@ function CtaText({ cta, accent, handle, ctaFollow, ctaBio }: { cta: string; acce
 // (capa 5s estática, sem voz nem funil) e por isso não os desestrutura. Não é bug: se um
 // dia o clássico precisar de voz/funil, implementar aqui; enquanto isso, ficam no ReelV2.
 export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, ed, img, clips, clip, music, cat, handle = "@dr.liberdad", brand = "Dr. Libertad", ctaFollow = "Sigue", ctaBio = "→ Más en el link de la bio" }) => {
-  const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
+  // washAccent → cor do WASH sobre footage (GradeOverlay/SceneBg): SEMPRE `RED`,
+  // nunca varia por pilar (trava do dono 2026-07-14). uiAccent → cor da UI PLANA
+  // (régua/handle/número/palavra-destaque): varia nos 6 pilares via `CAT_ACCENT`.
+  const { washAccent, uiAccent } = resolveAccents(cat);
   const safeSlides = (slides && slides.length ? slides : reelDefaultProps.slides).slice(0, 3);
   const { COVER, INSIGHT, CTA, n, total } = reelDurations(safeSlides.length);
   const usedSlides = safeSlides.slice(0, n);
@@ -419,22 +442,22 @@ export const Reel: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw,
   return (
     <AbsoluteFill style={{ backgroundColor: INK }}>
       <Sequence from={next(COVER)} durationInFrames={COVER}>
-        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER} cat={cat}>
-          <CoverText title={title} ed={ed} accent={accent} brand={brand} handle={handle} />
+        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={washAccent} dur={COVER} cat={cat}>
+          <CoverText title={title} ed={ed} accent={uiAccent} brand={brand} handle={handle} />
         </Scene>
       </Sequence>
 
       {usedSlides.map((text, i) => (
         <Sequence key={i} from={next(INSIGHT)} durationInFrames={INSIGHT}>
-          <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={INSIGHT} cat={cat}>
-            <InsightText text={text} accent={accentWords?.[i] ?? ""} accentColor={accent} index={i + 1} total={n} handle={handle} />
+          <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={washAccent} dur={INSIGHT} cat={cat}>
+            <InsightText text={text} accent={accentWords?.[i] ?? ""} accentColor={uiAccent} index={i + 1} total={n} handle={handle} />
           </Scene>
         </Sequence>
       ))}
 
       <Sequence from={next(CTA)} durationInFrames={CTA}>
-        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={CTA} cat={cat}>
-          <CtaText cta={cta} accent={accent} handle={handle} ctaFollow={ctaFollow} ctaBio={ctaBio} />
+        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={washAccent} dur={CTA} cat={cat}>
+          <CtaText cta={cta} accent={uiAccent} handle={handle} ctaFollow={ctaFollow} ctaBio={ctaBio} />
         </Scene>
       </Sequence>
 
