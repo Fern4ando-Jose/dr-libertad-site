@@ -57,22 +57,36 @@ export function buildPrompt(subject: string, accentWord: string, accentHex: stri
   return [
     `Cinematic conceptual editorial illustration: ${subject}.`,
     `Dramatic chiaroscuro lighting, sculptural and atmospheric, fine film grain and subtle texture.`,
-    // FUNDO ESCURO TRAVADO (2026-07-16) — a linha anterior oferecia off-white E ink black como
-    // paleta, sem dizer QUEM é fundo: o modelo sorteava. A Nº 228 (aprovada) tirou o preto; a
-    // Nº 252 (reprovada pelo dono) tirou o off-white → figura pequena num campo claro e chapado,
-    // sem drama. Mesma direção cinematográfica, ZERO técnica nova: só define que o fundo é o
-    // preto e o creme é LUZ — que é o que a arte aprovada (Nº 228 / o pássaro) sempre foi.
-    `Restricted, desaturated palette on a DEEP INK BLACK (#0B0B0C) background — dark, low-key and moody: the subject EMERGES from deep shadow, carved out by one dramatic light. Warm off-white (#F4F0E8) appears ONLY as light, highlights and fine film grain — NEVER as a bright, pale, washed-out or empty background; never a daylight scene. A single muted accent of ${accentWord} (${accentHex}).`,
+    // MUNDO + LUZ PRÁTICA + COR (2026-07-16, ordem do dono: "mantenha o padrão de imagens que
+    // gerou a 254, trabalhe no fundo, cor e demais coisas").
+    // O QUE CAIU e por quê: a trava anterior (`DEEP INK BLACK background` + `carved out by one
+    // dramatic light`) era TONAL e estava no extremo errado. Fonte primária da referência do dono
+    // (Oliver Twist 2005, dir. fot. Paweł Edelman): nos interiores noturnos ele usa uma lavagem de
+    // CIANO sobre variações de CINZA ESCURO, jogadas na parte baixa da curva, SEM NENHUM PRETO
+    // SÓLIDO — e queria a luz SUAVE, não recorte duro. A luz vem de PRÁTICAS dentro da cena
+    // (centenas de lanternas/velas movidas pelo set) e o mundo é denso à maneira das gravuras de
+    // Gustave Doré (referência do Polanski). Diagnóstico do estrategista, confirmado pelo dono: o
+    // Nº 254 é PRETO e foi reprovado → tom nunca foi a variável. O que a arte aprovada tem e a
+    // reprovada não: a LUZ NASCE DE UM OBJETO DENTRO DO QUADRO e existe um MUNDO em volta.
+    // (Nº 228: o âmbar sai de dentro da flor. Nº 252: "luz difusa" = fonte nenhuma, fundo vazio.)
+    // NÃO se toca no acabamento que gerou o Nº 254 (cinematic / sculptural / photoreal / film grain).
+    `Lit by ONE PRACTICAL SOURCE VISIBLY INSIDE THE FRAME (a candle, an oil lantern, a fireplace, or light falling through a window) — the light is SOFT, warm and motivated, never a hard theatrical spotlight, never unmotivated ambient light with no source.`,
+    `The subject stands INSIDE A BUILT WORLD with real depth: a period room, an alley, an interior with walls, floor, objects, textures and atmospheric haze — the surroundings are dense, worn and lived-in, in the manner of a Gustave Doré engraving. NEVER an empty void, never a bare backdrop, never a figure floating in nothing.`,
+    `Restricted, desaturated palette: shadows are DARK COOL GREYS washed with cyan (#14191B–#232B2E), always retaining detail — NO solid crushed black anywhere. The warm amber of the practical flame (#FFE6B8 core → #F5B860 → falling off to #A0663A) dies INTO those cool greys: the meeting of warm light and cold shadow is the signature. A single muted accent of ${accentWord} (${accentHex}).`,
     // Enquadramento TRAVADO: framingFor() devolve SEMPRE FIXED_FRAMING (figura grande/
     // centralizada, nunca cortada) — o rotativo que cortava morreu (ver acima). Único ponto
     // que difere do 8c048995: lá framingFor era rotativo; aqui é fixo (anti-corte preservado).
-    `One single central metaphor — a lone figure OR one symbolic object, never a crowd, a couple or multiple overlapping figures, ${framingFor(subject)}, sober and refined.`,
+    // "sober and refined" MORREU (2026-07-16): era a palavra que produzia a pose limpa e vazia do
+    // Nº 252/254. A referência do dono é o oposto — vivido, sujo, denso. O resto da linha fica.
+    `One single central metaphor — a lone figure OR one symbolic object, never a crowd, a couple or multiple overlapping figures, ${framingFor(subject)}, and SOMETHING IS HAPPENING in the image — never a person merely standing and posing.`,
     // Modéstia — o gerador vinha produzindo NUDEZ explícita nesses temas (score 0 em 100% das
     // capas 06–07/07; ver tabela rejected_covers). "sculptural/chiaroscuro" puxava p/ nu clássico.
     `Any human figure is fully clothed in simple, timeless clothing. Strictly modest and non-explicit: no nudity, no bare chest or torso, no exposed breasts, buttocks or genitals, no underwear, no sexual, intimate or suggestive content — appropriate for a general-audience literary-magazine cover.`,
     // Blindagem anatômica — reduz a chance de mão/dedo/membro extra (defeito nº 1 da difusão).
     `Anatomically correct and photoreal in structure: each person has exactly two arms and two hands, each hand with exactly five fingers; natural, correctly formed limbs, hands and faces. No extra, missing or fused fingers, hands, arms or limbs; no duplicated or distorted body parts.`,
-    `No text, no letters, no words, no logo, no watermark. No neon, no purple gradient, no corporate clip-art, no busy clutter.`,
+    // "no busy clutter" MORREU (2026-07-16): proibia exatamente a densidade cenográfica à Doré que
+    // o dono aprovou (a capa do salão de moedas) e mandava esvaziar a cena → Nº 252/254.
+    `No text, no letters, no words, no logo, no watermark. No neon, no purple gradient, no corporate clip-art, no modern objects.`,
     // FULL-BLEED (2026-07-10, aprovado pelo dono): a Nano Banana vinha compondo alguns temas
     // (sobretudo objeto/"no people") como FOTO EMOLDURADA — conteúdo pequeno dentro de uma margem
     // creme → a capa "não preenchia o post". Esta linha exige sangria total, sem moldura interna.
