@@ -487,7 +487,7 @@
   display: grid;
   gap: 9px;
 }
-.opt {
+.root .opt {
   font-family: var(--sans);
   font-size: 14px;
   color: var(--warm);
@@ -498,19 +498,111 @@
   text-align: left;
   line-height: 1.4;
 }
-.opt:hover {
+.root .opt:hover {
   border-color: var(--line3);
   color: var(--cream);
   background: rgba(235, 176, 115, 0.08);
 }
-.optSel {
+.root .optSel {
   background: linear-gradient(180deg, var(--red), var(--red-deep));
   border-color: transparent;
   color: #fdf6ec;
 }
-.optSel:hover {
+.root .optSel:hover {
   background: linear-gradient(180deg, var(--red), var(--red-deep));
   color: #fdf6ec;
+}
+
+/* Wizard: uma pergunta por vez */
+.stepper {
+  padding-top: 4px;
+}
+.stepMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.stepCount {
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ember);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.stepAxis {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--cream2);
+  text-align: right;
+}
+.stepTrack {
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(210, 190, 160, 0.14);
+  overflow: hidden;
+  margin-bottom: 26px;
+}
+.stepTrack i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--red-deep), var(--ember));
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.stepCard {
+  min-height: 300px;
+  animation: stepIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes stepIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.stepNav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+.root .stepBtn {
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--cream2);
+  border: 1px solid var(--line2);
+  border-radius: 99px;
+  padding: 9px 18px;
+  transition: 0.18s;
+  background: transparent;
+}
+.root .stepBtn:hover:not(:disabled) {
+  color: var(--cream);
+  border-color: var(--line3);
+}
+.root .stepBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.root .gate .stepBtn {
+  margin-top: 16px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stepCard {
+    animation: none;
+  }
+  .stepTrack i {
+    transition: none;
+  }
 }
 
 /* Gate de e-mail do quiz */
