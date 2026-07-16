@@ -444,6 +444,12 @@ export default function Page() {
               >
                 {t.footer.legal}
               </a>
+              <a
+                className="text-warm-gray/70 hover:text-offwhite transition"
+                href={`/${lang}/termos`}
+              >
+                {t.footer.terms}
+              </a>
             </div>
           </div>
         </StudioContainer>

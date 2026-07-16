@@ -387,6 +387,7 @@ export const pt = {
   footer: {
     tagline: "Filosofia aplicada à atenção e ao comportamento.",
     legal: "Privacidade",
+    terms: "Termos",
     links: [
       { label: "Manifesto", id: "manifesto" },
       { label: "Tópicos", id: "topics" },
@@ -776,6 +777,7 @@ export const es: Dict = {
   footer: {
     tagline: "Filosofía aplicada a la atención y al comportamiento.",
     legal: "Privacidad",
+    terms: "Términos",
     links: [
       { label: "Manifiesto", id: "manifesto" },
       { label: "Temas", id: "topics" },

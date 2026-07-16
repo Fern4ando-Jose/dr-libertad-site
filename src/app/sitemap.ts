@@ -28,6 +28,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "x-default": `${base}/pesquisa`,
   };
 
+  // Termos de Uso — PT/ES sob o prefixo de idioma; EN em rota fixa (/terms),
+  // porque o i18n do site só conhece pt|es. Ver components/terms/terms.content.ts.
+  const terms = {
+    "pt-BR": `${base}/pt/termos`,
+    "es-ES": `${base}/es/termos`,
+    "en-US": `${base}/terms`,
+    "x-default": `${base}/pt/termos`,
+  };
+
   // Página institucional do estudo — rotas fixas por idioma.
   const estudo = {
     "pt-BR": `${base}/o-estudo`,
@@ -96,6 +105,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.3,
       alternates: { languages: privacy },
+    },
+    {
+      url: `${base}/pt/termos`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+      alternates: { languages: terms },
+    },
+    {
+      url: `${base}/es/termos`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+      alternates: { languages: terms },
+    },
+    {
+      url: `${base}/terms`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+      alternates: { languages: terms },
     },
   ];
 }

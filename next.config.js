@@ -1,6 +1,15 @@
+const { verificationRewrites } = require("./scripts/site-verification.cjs");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Verificação de propriedade do domínio (TikTok e afins): o painel exige um
+  // .txt com código na raiz do site. Quando SITE_VERIFICATION_FILENAME/_CONTENT
+  // existem, o nome pedido passa a ser servido por /api/site-verification; sem
+  // elas, nenhuma rota nova aparece. Regra e formato: scripts/site-verification.cjs.
+  async rewrites() {
+    return verificationRewrites(process.env);
+  },
   async redirects() {
     return [
       // URL sem idioma -> versão PT (padrão). Ex.: /livros/100-plantas -> /pt/livros/100-plantas
