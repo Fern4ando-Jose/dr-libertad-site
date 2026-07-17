@@ -72,10 +72,14 @@ const THEMES: Theme[] = [
   { topic: "Gratificación instantánea vs esfuerzo real", cat: "self", motif: "descent", subject: "a figure choosing a short bright staircase over a long mountain path" },
   // ── Pilar 2 — Redes sociais, fim dos relacionamentos ──
   { topic: "Redes sociales y el fin de las relaciones", cat: "network", motif: "web", subject: "two empty pillows on a dark unmade bed split by a cold central gap, two phones lying face-up glowing on each side, no people, intimacy replaced by screens" },
-  { topic: "La comparación que destruye parejas", cat: "network", motif: "bars", subject: "a couple each measuring the other against rows of glowing edited portraits" },
+  { topic: "La comparación que destruye parejas", cat: "network", motif: "bars", subject: "a couple each measuring the other against rows of glowing edited portraits", who: "both" },
   { topic: "La intimidad reemplazada por la pantalla", cat: "network", motif: "isolation", subject: "a double bed divided down the middle by a tall pane of cold glowing screen-glass, one side warm and one side blue-lit, no people" },
   { topic: "El mercado de citas y el descarte infinito", cat: "network", motif: "spiral", subject: "an endless conveyor belt of identical glowing portrait cards tipping off the edge into a dark discard chute, no people" },
   { topic: "La soledad en la era hiperconectada", cat: "network", motif: "isolation", subject: "a tiny solitary figure in vast empty space surrounded by distant glowing screens" },
+  // Merecia `who: "both"` (o tema É o casal), mas o pilar `dopamine` não sustenta:
+  // filtrado por "both" sobram 4 clipes (1 couple + 3 none) < 5 cenas → o Reel cairia
+  // no fallback de busca ao vivo, que NÃO filtra por sujeito. Mesma razão do CP11.
+  // Volta a valer quando `dopamine` ganhar clipes de casal.
   { topic: "La pareja actuada para las redes", cat: "dopamine", motif: "ripple", subject: "a couple performing happiness in front of a wall of watching eyes" },
   { topic: "El ghosting y el vínculo desechable", cat: "network", motif: "web", subject: "a figure holding a thread that suddenly fades into nothing" },
   { topic: "La atención como nueva moneda del amor", cat: "network", motif: "ripple", subject: "a single glowing coin engraved with an eye, balanced on a dark scale, slowly drowning under a rising tide of notification dots, no people" },
@@ -93,7 +97,7 @@ const THEMES: Theme[] = [
   { topic: "La soledad masculina que nadie ve", cat: "network", motif: "isolation", subject: "a man in a crowd enclosed by an invisible glass wall", who: "man" },
   { topic: "El vacío del proveedor", cat: "self", motif: "decay", subject: "a male figure as a burning candle giving light to others while melting unseen", who: "man" },
   { topic: "La fuerza mal entendida", cat: "freedom", motif: "boundary", subject: "a male figure mistaking a rigid iron armor for real strength", who: "man" },
-  { topic: "El padre ausente dentro de ti", cat: "self", motif: "mirror", subject: "a grown figure facing the faded silhouette of an absent father" },
+  { topic: "El padre ausente dentro de ti", cat: "self", motif: "mirror", subject: "a grown figure facing the faded silhouette of an absent father", who: "man" },
   { topic: "La rabia que esconde tristeza", cat: "anxiety", motif: "decay", subject: "a figure whose angry shadow hides a small grieving child" },
   { topic: "El hombre tratado como desechable", cat: "freedom", motif: "descent", subject: "a worn stepping-stone shaped like a discarded medal, muddy footprints passing it by toward the light, no people", who: "man" },
   { topic: "Reconstruir al hombre, no destruirlo", cat: "mind", motif: "synapse", subject: "a cracked male statue regrowing with golden kintsugi veins", who: "man" },
@@ -128,7 +132,7 @@ const THEMES: Theme[] = [
   { topic: "Nunca cambies lo que eres por nadie", literal: true, literalPt: "Nunca mude o que você é por ninguém", cat: "self", motif: "mirror", subject: "a single true sculpted form keeping its shape in a mirror while a ring of identical empty molds around it crack and crumble, no people" },
   { topic: "Solo cambias cuando tú quieres — y duele", literal: true, literalPt: "Só existe mudança quando a pessoa quer — e isso é doloroso", cat: "self", motif: "descent", subject: "a figure carving a faint path through thick dark brush by sheer will, the trail appearing only from passing again and again, effort before ease" },
   { topic: "La mujer elige con quién acostarse; el hombre, con quién casarse", literal: true, literalPt: "A mulher escolhe com quem transar; o homem escolhe com quem casar", cat: "self", motif: "boundary", subject: "two diverging paths from a single crossroads — one a brief bright spark, the other a long steady flame — weighed in silence, symbolic, no people" },
-  { topic: "El hombre puede ser feliz con cualquier mujer, mientras no la ame", literal: true, literalPt: "O homem pode ser feliz com qualquer mulher, desde que não a ame", cat: "self", motif: "embrace", subject: "a serene figure holding a small calm flame at arm's length untroubled, while the same flame pressed to the chest scorches — detachment versus attachment, symbolic, no people" },
+  { topic: "El hombre puede ser feliz con cualquier mujer, mientras no la ame", literal: true, literalPt: "O homem pode ser feliz com qualquer mulher, desde que não a ame", cat: "self", motif: "embrace", subject: "a serene figure holding a small calm flame at arm's length untroubled, while the same flame pressed to the chest scorches — detachment versus attachment, symbolic, no people", who: "man" },
 
   // ─── Temas dos livros (leva 1, aprovada 2026-07-08) — fonte: src/content/temas-livros/*.md ───
 // === I love Dopamina (21 temas) ===
