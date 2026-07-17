@@ -13,7 +13,7 @@
 import { judgeFootagePosterCached } from "@/lib/footage-qa";
 import { FOOTAGE_LIBRARY } from "@/lib/footage-library";
 import { searchBySourceKey, availableSources, qaCacheId } from "@/lib/footage-providers";
-import { filterClipsByTheme, type ThemeWho } from "@/lib/footage-subject";
+import { filterClipsByTheme, liveClipMatchesTheme, type ThemeWho } from "@/lib/footage-subject";
 import { hashStr as hashStrPure } from "@/lib/footage-media";
 
 export interface SearchResult { title: string; content: string; url: string }
@@ -196,7 +196,14 @@ export type ClipRecency = ReadonlyMap<string, number>;
 // (-Infinity) - (-Infinity) = NaN e um comparador que devolve NaN corrompe o sort.
 const NEVER_USED = -1;
 
-async function recentClipUses(excludeKey?: string): Promise<Map<string, number>> {
+// `ok` (2026-07-17) = a leitura do banco DEU CERTO. Não é firula: é o sinal de que a
+// `reel_shared_cache` — o ÚNICO mecanismo que faz ES e PT terem o MESMO vídeo quando entra
+// material NÃO-determinístico (busca ao vivo) — está de pé. Banco fora → `ok:false` → o
+// chamador desliga as cenas ao vivo e volta a sortear SÓ da whitelist, que é determinística
+// por (tópico,dia) e portanto idêntica nos 2 idiomas mesmo sem cache nenhum. Sem este
+// sinal, "banco fora" viraria "ES e PT buscam ao vivo cada um por si" = vídeos diferentes.
+// (Um `Map` vazio não distingue "erro de banco" de "nenhum uso nos 14 dias" — daí o campo.)
+async function recentClipUses(excludeKey?: string): Promise<{ uses: Map<string, number>; ok: boolean }> {
   try {
     const { sql } = await import("@vercel/postgres");
     const rows = await sql<{ cache_key: string; clips: unknown; created_at: unknown }>`
@@ -213,11 +220,42 @@ async function recentClipUses(excludeKey?: string): Promise<Map<string, number>>
         if (prev === undefined || usedAt > prev) uses.set(url, usedAt); // fica o uso MAIS RECENTE
       }
     }
-    return uses;
+    return { uses, ok: true };
   } catch {
-    return new Map<string, number>(); // fail-open: sem recência → comportamento de sempre
+    return { uses: new Map<string, number>(), ok: false }; // fail-open: sem recência → comportamento de sempre
   }
 }
+
+// ─── Cenas reservadas ao material AO VIVO ────────────────────────────────────
+// Ordem do dono (2026-07-17): "foram apresentadas 4 fontes e estamos usando só uma — as
+// que constam no código devem funcionar". Diagnóstico: a whitelist curada (69 clipes,
+// 100% videos.pexels.com) SEMPRE entregava as 5 cenas → o `if (picked.length < numClips)`
+// nunca era verdade → Pexels-FOTO e Pixabay (vídeo/foto), que só existem na busca ao vivo,
+// eram INALCANÇÁVEIS mesmo com PIXABAY_API_KEY posta. Não era a chave que faltava: era o
+// caminho. Agora a whitelist entrega `numClips - LIVE_SLOTS` cenas e as demais vêm da
+// busca ao vivo — as 4 fontes trabalham no caminho NORMAL, sem depender de a whitelist falhar.
+//
+// Regulável SEM deploy (decisão do dono, P7): env FOOTAGE_LIVE_SLOTS.
+//   0  = botão de pânico: comportamento IDÊNTICO ao de antes desta mudança (whitelist
+//        entrega as 5, o harvest nem é chamado — provado por invariante).
+//   2  = default: 3 cenas curadas (a CAPA entre elas) + 2 ao vivo.
+// Clampado em [0, numClips-1]: nunca deixa a whitelist de fora por completo — ela é a
+// única base determinística e é o colchão do fail-open.
+const DEFAULT_LIVE_SLOTS = 2;
+
+export function liveSlotsFor(numClips: number, raw = process.env.FOOTAGE_LIVE_SLOTS): number {
+  const n = raw == null || raw.trim() === "" ? DEFAULT_LIVE_SLOTS : Number(raw);
+  if (!Number.isFinite(n)) return DEFAULT_LIVE_SLOTS; // env com lixo → default (fail-open)
+  return Math.max(0, Math.min(Math.floor(n), Math.max(0, numClips - 1)));
+}
+
+// Teto de vereditos PAGOS do juiz de footage por chamada de selectFootage. O harvest
+// julga candidato por candidato até um passar; num pilar/termo ruim isso poderia varrer
+// 4 fontes × 20 candidatos × 7 rodadas = centenas de chamadas pagas e sozinho estourar o
+// balde `ig-reels` (US$0,30/dia) — risco que só era teórico enquanto o harvest estava
+// morto. Com o teto, o pior caso por Reel é 12 × ~US$0,0015 ≈ US$0,018. Cache HIT não
+// conta (é grátis). Batendo o teto, o harvest para e a whitelist completa as cenas.
+const MAX_PAID_JUDGMENTS = 12;
 
 // Estágio PRIMÁRIO da seleção, PURO (sem I/O) — a whitelist curada do pilar. Vive
 // separado do selectFootage só para ser testável seed a seed (footage-subject.invariants).
@@ -284,30 +322,60 @@ export async function selectFootage(
   excludeKey?: string, // cache_key do PRÓPRIO (tópico,dia) — fora do "avoid" (#126)
   themeWho?: ThemeWho, // sujeito do TEMA (THEMES.who) — ausente = fail-open, como antes
 ): Promise<string[]> {
-  const avoid = await recentClipUses(excludeKey); // Map url→ms do último uso (LRU); vazio = fail-open
+  const { uses: avoid, ok: dbOk } = await recentClipUses(excludeKey); // Map url→ms do último uso (LRU); vazio = fail-open
+
+  // Cenas reservadas à busca AO VIVO. Banco fora (`!dbOk`) → ZERO cenas ao vivo: sem a
+  // reel_shared_cache de pé não há como o 2º idioma REUSAR o que o 1º achou ao vivo, e
+  // dois harvests independentes dariam vídeos diferentes. Nesse caso a whitelist (pura,
+  // determinística por (tópico,dia)) sustenta o Reel inteiro e ES=PT continua garantido —
+  // exatamente o comportamento de hoje. Determinismo > variedade.
+  const liveSlots = dbOk ? liveSlotsFor(numClips) : 0;
 
   // ── PRIMÁRIO: biblioteca CURADA por pilar (whitelist — 4 fontes já vetadas) ──
-  // Sorteia numClips clipes DISTINTOS do pilar, determinístico por (tópico,dia) →
-  // footage idêntico entre ES e PT, sem repetir clipe no mesmo reel. A whitelist
-  // MISTURA Pexels vídeo/foto + Pixabay vídeo/foto (metadado `source`/`mediaType`
-  // em cada entrada) — o shuffle já embaralha as 4 fontes entre si, sem lógica
-  // extra aqui. Exclui o usado recentemente (CROSS-fonte, ver recentClipUses);
-  // se sobrar pouco após excluir, completa com o restante da whitelist pelo MENOS
-  // RECENTE primeiro (LRU — melhor repetir o clipe mais antigo que publicar sem
-  // footage, e nunca o que acabou de sair). Filtro por sujeito do tema
-  // (`themeWho`) e sorteio moram em pickFromWhitelist (puro, com invariantes).
-  const picked = pickFromWhitelist(cat, seed, numClips, avoid, themeWho);
-  if (picked.length >= numClips) return picked.slice(0, numClips);
+  // Sorteia clipes DISTINTOS do pilar, determinístico por (tópico,dia) → footage
+  // idêntico entre ES e PT, sem repetir clipe no mesmo reel. A whitelist MISTURA
+  // Pexels vídeo/foto + Pixabay vídeo/foto (metadado `source`/`mediaType` em cada
+  // entrada) — o shuffle já embaralha as 4 fontes entre si, sem lógica extra aqui.
+  // Exclui o usado recentemente (CROSS-fonte, ver recentClipUses); se sobrar pouco
+  // após excluir, completa com o restante da whitelist pelo MENOS RECENTE primeiro
+  // (LRU — melhor repetir o clipe mais antigo que publicar sem footage, e nunca o que
+  // acabou de sair). Filtro por sujeito do tema (`themeWho`) e sorteio moram em
+  // pickFromWhitelist (puro, com invariantes).
+  //
+  // Agora pede `numClips - liveSlots`, deixando as últimas cenas para a busca ao vivo.
+  // `pickFromWhitelist(…, k)` é PREFIXO de `pickFromWhitelist(…, K)` para k<K (o
+  // sorteio é o mesmo, só a fatia muda) → reservar cenas NÃO reembaralha o que a
+  // whitelist já dava, e a CAPA (cena 1) continua vindo do acervo curado.
+  const picked = pickFromWhitelist(cat, seed, numClips - liveSlots, avoid, themeWho);
+  if (picked.length >= numClips) return picked.slice(0, numClips); // liveSlots=0 → sai aqui, como antes
 
-  // ── FALLBACK: busca ao vivo, MISTURANDO as 4 fontes (pilar sem biblioteca
-  // curada cheia) — Pexels vídeo/foto sempre; Pixabay vídeo/foto só com
-  // PIXABAY_API_KEY (fail-open, ainda não existe — 2026-07-16). O SORTEIO entre
-  // fontes é ponderado/aleatório por seed (não sempre a mesma ordem Pexels-vídeo
-  // primeiro), via seededShuffle da lista de fontes disponíveis a cada rodada.
+  // ── AO VIVO: busca MISTURANDO as 4 fontes — Pexels vídeo/foto sempre; Pixabay
+  // vídeo/foto só com PIXABAY_API_KEY (fail-open). O SORTEIO entre fontes é
+  // ponderado/aleatório por seed (não sempre a mesma ordem Pexels-vídeo primeiro),
+  // via seededShuffle da lista de fontes disponíveis a cada rodada.
+  //
+  // Isto deixou de ser um FALLBACK (que nunca disparava, porque a whitelist sempre
+  // enchia as 5 cenas) e virou parte do caminho NORMAL — é o que torna as 4 fontes
+  // realmente alcançáveis. Continua 100% fail-open: tudo que der errado daqui pra
+  // baixo cai no `completarComWhitelist()` do fim e o Reel sai igual.
   const pexelsKey = process.env.PEXELS_API_KEY;
   const pixabayKey = process.env.PIXABAY_API_KEY;
   const sources = availableSources({ pexels: pexelsKey, pixabay: pixabayKey });
-  if (!sources.length) return picked; // nenhuma fonte disponível — usa o que a whitelist deu
+
+  // Fail-open do RESULTADO: completa as cenas que faltarem com a whitelist (o mesmo
+  // sorteio determinístico, agora pedindo as numClips). Chamado em TODA saída daqui pra
+  // frente — sem chave, sem fonte, busca morta, QA rejeitando tudo, teto de julgamentos
+  // batido: o Reel NUNCA sai sem footage por causa das cenas ao vivo.
+  const completarComWhitelist = (): string[] => {
+    if (picked.length >= numClips) return picked.slice(0, numClips);
+    for (const u of pickFromWhitelist(cat, seed, numClips, avoid, themeWho)) {
+      if (picked.length >= numClips) break;
+      if (!picked.includes(u)) picked.push(u);
+    }
+    return picked.slice(0, numClips);
+  };
+
+  if (!sources.length) return completarComWhitelist(); // nenhuma fonte disponível
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY; // QA de conteúdo do footage (incidente 07-01)
   const fromClaude = (Array.isArray(videoQueries) ? videoQueries : []).filter((t) => typeof t === "string" && t.trim());
@@ -315,6 +383,7 @@ export async function selectFootage(
   const terms = fromClaude.length ? fromClaude : fallbackTerms;
 
   const seenUrls = new Set<string>(picked);
+  let paidJudgments = 0; // vereditos COBRADOS nesta chamada (cache hit não conta) — teto de custo
 
   // Round-robin fonte×termo, na ORDEM sorteada por seed a cada rodada — mistura as
   // 4 fontes em vez de esgotar sempre a mesma primeiro. `avoidSet`= URLs recentes
@@ -323,11 +392,11 @@ export async function selectFootage(
   async function harvest(termList: string[], avoidSet: ReadonlySet<string> | ClipRecency) {
     let round = 0;
     let progressed = true;
-    while (picked.length < numClips && progressed) {
+    while (picked.length < numClips && progressed && paidJudgments < MAX_PAID_JUDGMENTS) {
       progressed = false;
       const orderedSources = seededShuffle(sources, seed + round * 13);
       for (const sourceKey of orderedSources) {
-        if (picked.length >= numClips) break;
+        if (picked.length >= numClips || paidJudgments >= MAX_PAID_JUDGMENTS) break;
         const term = termList[(seed + round) % termList.length];
         let candidates: Awaited<ReturnType<typeof searchBySourceKey>> = [];
         try {
@@ -337,9 +406,18 @@ export async function selectFootage(
         }
         for (const c of rotate(candidates, seed + round * 7)) {
           if (seenUrls.has(c.url) || avoidSet.has(c.url)) continue;
+          if (paidJudgments >= MAX_PAID_JUDGMENTS) break; // teto de custo — para de julgar
           seenUrls.add(c.url); // considerado — não re-julgar o mesmo candidato
           const verdict = await judgeFootagePosterCached(qaCacheId(sourceKey, c.sourceId), c.poster, anthropicKey, "ig-reels");
+          if (!verdict.cached) paidJudgments++;
           if (verdict.reject) continue;
+          // SUJEITO (2026-07-17): "o sujeito da imagem tem que ser o sujeito da frase"
+          // vale também aqui, senão um tema `man` receberia mulher da busca ao vivo e o
+          // defeito da ed. 164 voltava pela porta dos fundos. O `who` vem do MESMO
+          // veredito do juiz (custo zero) e é fail-CLOSED: sujeito desconhecido (veredito
+          // antigo do cache, ou QA pulado por falta de chave) NÃO entra em tema com
+          // sujeito declarado — a whitelist completa a cena. Ver footage-subject.ts.
+          if (!liveClipMatchesTheme(verdict.who, themeWho)) continue;
           picked.push(c.url);
           progressed = true;
           break; // 1 candidato aceito por fonte por rodada — mantém a mistura
@@ -356,7 +434,7 @@ export async function selectFootage(
     // (melhor 1 clipe repetido que Reel sem footage). O dedup DENTRO do Reel (`seenUrls`) fica.
     if (picked.length < numClips && terms.length) await harvest(terms, new Set<string>());
   } catch {
-    return picked; // o que deu pra pegar (pode ser [] + o que a whitelist já tinha)
+    return completarComWhitelist(); // busca ao vivo explodiu → whitelist enche o Reel
   }
-  return picked;
+  return completarComWhitelist();
 }

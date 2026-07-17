@@ -13,13 +13,37 @@
 // (videoQueries endurecido) ainda reduz o risco. Espelhado em scripts/fetch-footage.mjs
 // (que roda no CI e não importa TS) — manter os dois em sincronia.
 import { type Automation, anthropicCost, logSpend } from "@/lib/spend";
+import type { FootageClip } from "@/lib/footage-library";
 
 // Visão BARATA: o check é grosseiro (é pele/corpo/textura/NSFW?), não conta dedos como
 // a ilustração → Haiku basta (~US$0,005/imagem). Modelo na tabela de preços de spend.ts.
 const QA_MODEL = "claude-haiku-4-5-20251001";
 
+// QUEM aparece no quadro — MESMO vocabulário do campo `who` da whitelist curada
+// (footage-library.ts) para que a MESMA regra pura (footage-subject.ts) case o clipe
+// com o sujeito do tema, venha ele da whitelist ou da busca ao vivo.
+export type FootageWho = NonNullable<FootageClip["who"]>;
+const WHO_VALUES: ReadonlySet<string> = new Set(["man", "woman", "couple", "group", "none"]);
+
+export interface FootageVerdict {
+  reject: boolean;
+  reason: string;
+  // Sujeito do quadro. `undefined` = o juiz não disse (veredito antigo do cache, QA
+  // pulado por falta de chave, ou valor fora do vocabulário) → o CHAMADOR decide o que
+  // fazer com o desconhecido. Na whitelist curada "não classificado" é fail-open; no
+  // material AO VIVO é fail-closed (ver liveClipMatchesTheme em footage-subject.ts).
+  who?: FootageWho;
+}
+
+// 2026-07-17: o juiz passou a dizer também QUEM está no quadro. Motivo: a busca ao vivo
+// entrou no caminho NORMAL (FOOTAGE_LIVE_SLOTS, ver reel-shared.ts) e ela não tem curadoria
+// humana — sem saber o sujeito, um tema `man` receberia mulher da busca e o defeito da ed.
+// 164 voltaria pela porta dos fundos. O `who` viaja na MESMA chamada do reject (mesma
+// imagem, mesmo request) → **custo adicional ZERO**: ~15 tokens de saída a mais, nada de
+// 2ª chamada. E é resposta do CLIPE, não do tema → cacheável por (source,id) para sempre,
+// sem envenenar o cache (um "who" nunca depende de qual tema perguntou).
 export const FOOTAGE_QA_PROMPT = `You review a single stock-video POSTER FRAME for a serious mental-health / psychology Instagram brand.
-Answer ONLY with JSON: {"reject": boolean, "reason": "<=8 words"}.
+Answer ONLY with JSON: {"reject": boolean, "reason": "<=8 words", "who": "man"|"woman"|"couple"|"group"|"none"}.
 Set reject=true if the frame is ANY of:
 - an extreme close-up of bare skin or body parts (arm, leg, torso, lips, etc.) filling the frame;
 - an abstract skin/flesh/body texture with no clear scene or subject;
@@ -27,19 +51,30 @@ Set reject=true if the frame is ANY of:
 - a child or teenager (anyone who looks under ~18) as a subject in the frame;
 - anything a psychology brand would be embarrassed to post.
 Set reject=false only for a clear, tasteful scene with a discernible ADULT subject in context (a person doing something, a place, an object, nature).
-When in doubt, reject=true.`;
+When in doubt, reject=true.
+"who" describes WHO is visible in the frame (answer it even when reject=true):
+- "man": exactly one adult man, alone;
+- "woman": exactly one adult woman, alone;
+- "couple": exactly two people together;
+- "group": three or more people;
+- "none": no person at all (object, place, nature), OR the person's gender is NOT clearly discernible (silhouette, back turned, hands only, blurred, too far away).
+Use "none" whenever you are not sure of the gender — never guess.`;
 
 // Parser PURO do veredito. FAIL-SAFE: JSON ilegível → REJEITA (melhor descartar um
 // clipe do que publicar conteúdo impróprio). PURA/testável.
-export function parseFootageVerdict(text: unknown): { reject: boolean; reason: string } {
+export function parseFootageVerdict(text: unknown): FootageVerdict {
   const s = typeof text === "string" ? text : "";
   try {
     const start = s.indexOf("{");
     const end = s.lastIndexOf("}");
     if (start >= 0 && end > start) {
-      const o = JSON.parse(s.slice(start, end + 1)) as { reject?: unknown; reason?: unknown };
+      const o = JSON.parse(s.slice(start, end + 1)) as { reject?: unknown; reason?: unknown; who?: unknown };
       if (typeof o.reject === "boolean") {
-        return { reject: o.reject, reason: typeof o.reason === "string" ? o.reason : "" };
+        // `who` é OPCIONAL e sanitizado: valor fora do vocabulário (ou ausente, como nos
+        // vereditos gravados antes de 2026-07-17) vira `undefined` — nunca uma string solta
+        // que o filtro de sujeito interpretaria errado.
+        const who = typeof o.who === "string" && WHO_VALUES.has(o.who) ? (o.who as FootageWho) : undefined;
+        return { reject: o.reject, reason: typeof o.reason === "string" ? o.reason : "", who };
       }
     }
   } catch { /* cai no fail-safe abaixo */ }
@@ -54,7 +89,7 @@ export async function judgeFootagePoster(
   apiKey: string | undefined,
   automation: Automation,
   meta?: Record<string, unknown>,
-): Promise<{ reject: boolean; reason: string }> {
+): Promise<FootageVerdict> {
   if (!apiKey) return { reject: false, reason: "sem ANTHROPIC_API_KEY — QA pulado" };
   if (!posterUrl) return { reject: false, reason: "sem poster — QA pulado" };
   try {
@@ -95,39 +130,74 @@ export function isCacheableVerdictReason(reason: string): boolean {
   return !/QA pulado|QA HTTP|QA erro|ilegível/.test(reason);
 }
 
-export async function readFootageVerdictCache(videoId: number): Promise<{ reject: boolean; reason: string } | null> {
+// ⚠️ TOLERANTE À ORDEM DEPLOY×MIGRAÇÃO (2026-07-17). `who` é coluna NOVA (ALTER ... ADD
+// COLUMN IF NOT EXISTS em /api/migrate). Se o deploy subir ANTES da migração rodar, uma
+// query citando `who` falha inteira → o `catch` devolveria null/silêncio → o CACHE do QA
+// sairia do ar sem ninguém ver e cada clipe seria RE-JULGADO (re-pago) todo dia: era
+// exatamente o ralo que o cache existe pra tapar (incidente 07/07, teto ig-reels). Por
+// isso as duas funções caem para o esquema ANTIGO (sem `who`) quando a coluna não existe:
+// o cache continua valendo, só o sujeito fica desconhecido até a migração rodar — e
+// sujeito desconhecido, no material ao vivo, é fail-closed (não vira clipe errado).
+export async function readFootageVerdictCache(videoId: number): Promise<FootageVerdict | null> {
   try {
     const { sql } = await import("@vercel/postgres");
-    const r = await sql<{ reject: boolean; reason: string }>`
-      SELECT reject, reason FROM footage_qa_cache WHERE video_id = ${videoId}
-    `;
-    const row = r.rows[0];
-    return row ? { reject: row.reject, reason: row.reason ?? "" } : null;
+    try {
+      const r = await sql<{ reject: boolean; reason: string; who: string | null }>`
+        SELECT reject, reason, who FROM footage_qa_cache WHERE video_id = ${videoId}
+      `;
+      const row = r.rows[0];
+      if (!row) return null;
+      // Linha gravada ANTES da migração tem who=NULL → `undefined` (sujeito desconhecido).
+      const who = row.who && WHO_VALUES.has(row.who) ? (row.who as FootageWho) : undefined;
+      return { reject: row.reject, reason: row.reason ?? "", who };
+    } catch {
+      // coluna `who` ainda não existe → lê o esquema antigo (cache preservado)
+      const r = await sql<{ reject: boolean; reason: string }>`
+        SELECT reject, reason FROM footage_qa_cache WHERE video_id = ${videoId}
+      `;
+      const row = r.rows[0];
+      return row ? { reject: row.reject, reason: row.reason ?? "" } : null;
+    }
   } catch { return null; }
 }
 
-export async function writeFootageVerdictCache(videoId: number, verdict: { reject: boolean; reason: string }): Promise<void> {
+export async function writeFootageVerdictCache(videoId: number, verdict: FootageVerdict): Promise<void> {
   try {
     const { sql } = await import("@vercel/postgres");
-    await sql`
-      INSERT INTO footage_qa_cache (video_id, reject, reason, ts)
-      VALUES (${videoId}, ${verdict.reject}, ${verdict.reason}, NOW())
-      ON CONFLICT (video_id) DO NOTHING
-    `;
+    try {
+      await sql`
+        INSERT INTO footage_qa_cache (video_id, reject, reason, who, ts)
+        VALUES (${videoId}, ${verdict.reject}, ${verdict.reason}, ${verdict.who ?? null}, NOW())
+        ON CONFLICT (video_id) DO NOTHING
+      `;
+    } catch {
+      // coluna `who` ainda não existe → grava o veredito no esquema antigo
+      await sql`
+        INSERT INTO footage_qa_cache (video_id, reject, reason, ts)
+        VALUES (${videoId}, ${verdict.reject}, ${verdict.reason}, NOW())
+        ON CONFLICT (video_id) DO NOTHING
+      `;
+    }
   } catch { /* fail-open */ }
 }
 
 // Juiz com cache: veredito conhecido → devolve sem pagar; desconhecido → julga
 // (fail-safe intacto) e grava.
+//
+// `cached` (2026-07-17) diz se o veredito veio de graça. Quem chama a busca AO VIVO
+// (selectFootage) usa isso para contar só os vereditos PAGOS contra o teto de julgamentos
+// por Reel — sem esse contador, um pilar em que tudo é rejeitado julgaria até
+// 4 fontes × 20 candidatos × 7 rodadas de candidatos NOVOS e sozinho estouraria o balde
+// `ig-reels` (US$0,30/dia). Cache hit não custa nada → não consome cota.
 export async function judgeFootagePosterCached(
   videoId: number,
   posterUrl: string | undefined,
   apiKey: string | undefined,
   automation: Automation,
-): Promise<{ reject: boolean; reason: string }> {
+): Promise<FootageVerdict & { cached: boolean }> {
   const hit = await readFootageVerdictCache(videoId);
-  if (hit) return hit;
+  if (hit) return { ...hit, cached: true };
   const verdict = await judgeFootagePoster(posterUrl, apiKey, automation, { videoId });
   if (isCacheableVerdictReason(verdict.reason)) await writeFootageVerdictCache(videoId, verdict);
-  return verdict;
+  return { ...verdict, cached: false };
 }

@@ -301,6 +301,20 @@ export async function GET(req: NextRequest) {
     results.push("footage_qa_cache table: " + String(e));
   }
 
+  // `who` (2026-07-17): QUEM aparece no quadro (man|woman|couple|group|none), respondido
+  // pelo MESMO veredito do juiz (custo zero — mesma chamada). É o que deixa o filtro
+  // "o sujeito da imagem tem que ser o sujeito da frase" valer também no footage de BUSCA
+  // AO VIVO, que não tem curadoria humana. Resposta do CLIPE (não do tema) → permanente,
+  // como o resto da linha. Linha antiga fica com who=NULL → sujeito desconhecido → o
+  // material ao vivo a descarta em tema com sujeito declarado (fail-closed), e o Reel
+  // completa pela whitelist. Ver src/lib/footage-qa.ts e src/lib/footage-subject.ts.
+  try {
+    await sql`ALTER TABLE footage_qa_cache ADD COLUMN IF NOT EXISTS who TEXT`;
+    results.push("footage_qa_cache.who column: ok");
+  } catch (e) {
+    results.push("footage_qa_cache.who column: " + String(e));
+  }
+
   // Veredito diário do guardião (verifica 6/6 nos 2 IGs) — lido pelo painel-adm p/
   // alertar o dono quando faltou post. Um registro por dia (upsert). Ver /api/guardian.
   try {

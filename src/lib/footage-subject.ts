@@ -42,6 +42,27 @@ export function clipMatchesTheme(clipWho: FootageClip["who"], themeWho?: ThemeWh
   return accepted.has(clipWho);
 }
 
+// ─── O MESMO casamento, para material de BUSCA AO VIVO ───────────────────────
+// 2026-07-17: a busca ao vivo entrou no caminho NORMAL (FOOTAGE_LIVE_SLOTS, ver
+// selectFootage) e trouxe uma diferença que NÃO pode ser varrida pra baixo do tapete:
+//
+//   whitelist  → clipe sem `who` = **curado por gente** e ainda não classificado
+//                → fail-OPEN (aceita) está certo: alguém já olhou aquele clipe.
+//   ao vivo    → clipe sem `who` = **ninguém sabe o que tem no quadro**
+//                → fail-OPEN seria reabrir o defeito da ed. 164 pela porta dos fundos
+//                  (tema `man` recebendo mulher da busca).
+//
+// Por isso o material ao vivo é fail-CLOSED no sujeito: sujeito desconhecido em tema COM
+// sujeito declarado → o clipe NÃO entra. Isso nunca deixa o Reel sem fundo — quem chama
+// completa as cenas com a whitelist (fail-open no RESULTADO, fail-closed no sujeito).
+// Tema sem `who` (a maioria) não tem o que casar → aceita tudo, como sempre.
+export function liveClipMatchesTheme(clipWho: FootageClip["who"] | undefined, themeWho?: ThemeWho): boolean {
+  if (!themeWho || themeWho === "any") return true; // tema sem sujeito declarado → sem restrição
+  if (!ACCEPTED[themeWho]) return true;             // valor de tema desconhecido → fail-open (como clipMatchesTheme)
+  if (!clipWho) return false;                       // ← a diferença: desconhecido ao vivo NÃO passa
+  return clipMatchesTheme(clipWho, themeWho);
+}
+
 // Filtra a whitelist do pilar pelo sujeito do tema. NÃO completa a lista com clipe
 // incompatível quando sobra pouco: melhor repetir um clipe neutro (ou cair no
 // fallback de busca ao vivo do selectFootage) que mostrar o gênero errado — foi
