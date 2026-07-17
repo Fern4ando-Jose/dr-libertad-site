@@ -5,6 +5,7 @@ import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
 import { parseContentJson, normalizeContentJson, missingEssentialContent } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
+import type { ThemeWho } from "@/lib/footage-subject";
 import { generateNarration } from "@/lib/narration";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
 import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome, pinnedTopicsForDay, recordQaFail, recentQaFailedTopics } from "@/lib/run-ledger";
@@ -52,14 +53,19 @@ type Slot = "manha" | "tarde" | "noite";
 // IDIOMA — o PT NUNCA é traduzido livre pelo modelo (foi o bug "cariño"→"cuidado").
 // Tema literal SEM literalPt = o dono ainda não fixou o verbatim PT → tradução FIEL
 // obrigatória (sem eufemismo, sem quebrar a antítese), ver literal-lock.ts.
-interface Theme { topic: string; cat: string; motif: string; subject: string; literal?: boolean; literalPt?: string }
+// `who`: SUJEITO do tema — "o sujeito da imagem tem que ser o sujeito da frase"
+// (regra 2026-07-17, ed. 164: tema sobre homens saiu com Reel de mulher à janela).
+// Só é marcado onde o tema é EXPLICITAMENTE sobre homem / mulher / o casal; tema
+// neutro fica SEM `who` = fail-open (footage sorteado como sempre). O `subject`
+// (metáfora p/ a ilustração da fal) NÃO serve p/ isso — não filtra footage.
+interface Theme { topic: string; cat: string; motif: string; subject: string; who?: ThemeWho; literal?: boolean; literalPt?: string }
 const THEMES: Theme[] = [
   // ── Pilar 1 — Dopamina e seus seguimentos ──
   { topic: "Dopamina y recompensa inmediata", cat: "dopamine", motif: "burst", subject: "a brain with only a few glowing reward receptors lit by a single bright spark" },
   { topic: "Adicción a las redes sociales", cat: "dopamine", motif: "spiral", subject: "a hand reaching into an endless downward spiral emerging from a phone screen" },
   { topic: "La validación externa como droga", cat: "dopamine", motif: "ripple", subject: "glowing heart-shaped likes dangling as bait on fishhooks in a dark void, just out of reach, no people" },
   { topic: "El doomscrolling sin fin", cat: "anxiety", motif: "spiral", subject: "a figure sinking into a dark endless newsfeed river pouring out of a phone" },
-  { topic: "La pornografía y el cerebro secuestrado", cat: "dopamine", motif: "decay", subject: "a male figure entangled in glowing screen-threads slowly draining his vitality" },
+  { topic: "La pornografía y el cerebro secuestrado", cat: "dopamine", motif: "decay", subject: "a male figure entangled in glowing screen-threads slowly draining his vitality", who: "man" },
   { topic: "El placer fácil que mata el deseo real", cat: "dopamine", motif: "burst", subject: "fast bright sparks swirling around a figure while a distant warm fire fades" },
   { topic: "La hiperestimulación y la incapacidad de aburrirse", cat: "dopamine", motif: "orbit", subject: "an empty quiet chair in a still room while a swarm of glowing screens orbits frantically around it, no people" },
   { topic: "El reseteo de dopamina", cat: "mind", motif: "unplug", subject: "a single glowing cable unplugged and coiling away from a dark socket, calm light returning, no people" },
@@ -82,17 +88,17 @@ const THEMES: Theme[] = [
   { topic: "La ilusión de opciones infinitas te deja solo", literal: true, literalPt: "A ilusão de escolhas infinitas é exatamente o que te deixa sozinho", cat: "network", motif: "spiral", subject: "a figure endlessly scrolling a spiral wall of identical portrait cards, unable to choose, alone in the dark" },
   { topic: "Pasas más tiempo eligiendo que viviendo", cat: "anxiety", motif: "orbit", subject: "an infinite shelf of identical glowing jars receding into the dark, a clock melting on the floor before it, nothing chosen, no people" },
   // ── Pilar 3 — A guerra invisível do Homem (temas incômodos) ──
-  { topic: "La guerra invisible del hombre", cat: "freedom", motif: "descent", subject: "a heavy iron yoke and tangled invisible chains resting on a worn uphill path at dusk, no people" },
-  { topic: "El hombre al que no se le permite llorar", cat: "self", motif: "masks", subject: "a male figure pressing a stone mask over a face about to break" },
-  { topic: "La soledad masculina que nadie ve", cat: "network", motif: "isolation", subject: "a man in a crowd enclosed by an invisible glass wall" },
-  { topic: "El vacío del proveedor", cat: "self", motif: "decay", subject: "a male figure as a burning candle giving light to others while melting unseen" },
-  { topic: "La fuerza mal entendida", cat: "freedom", motif: "boundary", subject: "a male figure mistaking a rigid iron armor for real strength" },
+  { topic: "La guerra invisible del hombre", cat: "freedom", motif: "descent", subject: "a heavy iron yoke and tangled invisible chains resting on a worn uphill path at dusk, no people", who: "man" },
+  { topic: "El hombre al que no se le permite llorar", cat: "self", motif: "masks", subject: "a male figure pressing a stone mask over a face about to break", who: "man" },
+  { topic: "La soledad masculina que nadie ve", cat: "network", motif: "isolation", subject: "a man in a crowd enclosed by an invisible glass wall", who: "man" },
+  { topic: "El vacío del proveedor", cat: "self", motif: "decay", subject: "a male figure as a burning candle giving light to others while melting unseen", who: "man" },
+  { topic: "La fuerza mal entendida", cat: "freedom", motif: "boundary", subject: "a male figure mistaking a rigid iron armor for real strength", who: "man" },
   { topic: "El padre ausente dentro de ti", cat: "self", motif: "mirror", subject: "a grown figure facing the faded silhouette of an absent father" },
   { topic: "La rabia que esconde tristeza", cat: "anxiety", motif: "decay", subject: "a figure whose angry shadow hides a small grieving child" },
-  { topic: "El hombre tratado como desechable", cat: "freedom", motif: "descent", subject: "a worn stepping-stone shaped like a discarded medal, muddy footprints passing it by toward the light, no people" },
-  { topic: "Reconstruir al hombre, no destruirlo", cat: "mind", motif: "synapse", subject: "a cracked male statue regrowing with golden kintsugi veins" },
+  { topic: "El hombre tratado como desechable", cat: "freedom", motif: "descent", subject: "a worn stepping-stone shaped like a discarded medal, muddy footprints passing it by toward the light, no people", who: "man" },
+  { topic: "Reconstruir al hombre, no destruirlo", cat: "mind", motif: "synapse", subject: "a cracked male statue regrowing with golden kintsugi veins", who: "man" },
   // ── Pilar 4 — Verdades incômodas que precisam ser ditas ──
-  { topic: "El hombre no necesita ser amado: necesita cariño, respeto y admiración", literal: true, literalPt: "O homem não precisa ser amado: precisa de carinho, respeito e admiração", cat: "self", motif: "embrace", subject: "a tall sturdy oak bathed in warm respectful light, standing apart from grasping clinging ivy that recedes into shadow, no people" },
+  { topic: "El hombre no necesita ser amado: necesita cariño, respeto y admiración", literal: true, literalPt: "O homem não precisa ser amado: precisa de carinho, respeito e admiração", cat: "self", motif: "embrace", subject: "a tall sturdy oak bathed in warm respectful light, standing apart from grasping clinging ivy that recedes into shadow, no people", who: "man" },
   { topic: "Nadie te debe nada", literal: true, literalPt: "Ninguém te deve nada", cat: "freedom", motif: "boundary", subject: "cut debt-ropes and an empty open ledger dissolving into warm light on a bare wooden table, no people" },
   { topic: "Si no pones límites, te vuelves una opción", literal: true, literalPt: "Se você não põe limites, vira uma opção", cat: "self", motif: "boundary", subject: "one solid firmly crossed-out checkbox standing apart amid an endless grid of identical selectable boxes, no people" },
   { topic: "La comodidad te está matando lentamente", literal: true, cat: "anxiety", motif: "decay", subject: "a figure sinking comfortably into a soft chair that slowly swallows it" },
@@ -153,14 +159,14 @@ const THEMES: Theme[] = [
   { topic: "La Matrix digital y la píldora roja", cat: "freedom", motif: "gateway", subject: "two glowing pills before an open doorway of light breaking through a wall of screens, an awakening threshold, no people" }, // DIA2 · A Matrix digital
   { topic: "Querer no es disfrutar", cat: "dopamine", motif: "synapse", subject: "a hand-shaped glow grasping a glittering prize that turns hollow on contact, wanting without enjoying, no people" }, // DIA4 · Querer não é gostar
   { topic: "El detonante de la recaída es el estrés, no el deseo", cat: "anxiety", motif: "descent", subject: "a lone figure sinking into a numbing fog of screen-light to escape a looming pressure overhead, no explicit imagery" }, // DIA5 · O gatilho da recaída é o estresse, não o desejo (reenquadrado p/ segurança Meta 2026-07-08)
-  { topic: "La pantalla donde nadie te mide", cat: "self", motif: "isolation", subject: "a man turning away from a real silhouette toward a glowing screen where no one judges him" }, // DIA6 · A tela onde ninguém te mede
+  { topic: "La pantalla donde nadie te mide", cat: "self", motif: "isolation", subject: "a man turning away from a real silhouette toward a glowing screen where no one judges him", who: "man" }, // DIA6 · A tela onde ninguém te mede
   { topic: "El malestar voluntario", cat: "self", motif: "waves", subject: "a lone figure standing calmly under a cascade of cold water, choosing hardship to forge the will" }, // DIA9 · O desconforto voluntário
   { topic: "Regla de cine, tiempo de stories", cat: "network", motif: "masks", subject: "a couple posed on a glowing cinema screen while real shadows watch, the showcase selling impossible expectation" }, // DIA12 · Régua de cinema, tempo de stories
   { topic: "El amor se cultiva, no se consume", cat: "network", motif: "branches", subject: "two hands tending a small growing plant beside a discarded pile of consumed wrappers, love as cultivation" }, // DIA13 · O amor se cultiva
   { topic: "La confianza como copa de cristal", cat: "self", motif: "decay", subject: "a crystal glass shattered on the floor, its pieces impossible to reassemble, trust once broken, no people" }, // DIA14 · Confiança de cristal
-  { topic: "La cabeza de abajo", cat: "self", motif: "boundary", subject: "a man holding steady reins over a wild lower impulse, governing the instinct instead of being ruled by it" }, // DIA16 · A cabeça de baixo
+  { topic: "La cabeza de abajo", cat: "self", motif: "boundary", subject: "a man holding steady reins over a wild lower impulse, governing the instinct instead of being ruled by it", who: "man" }, // DIA16 · A cabeça de baixo
   { topic: "La moral no es ética", cat: "self", motif: "boundary", subject: "a set of scales where an unseen hand quietly tips the balance toward comfort, relativism as easy excuse, no people" }, // DIA17 · Moral não é ética
-  { topic: "Pedir ayuda no es una derrota", cat: "self", motif: "embrace", subject: "a man in heavy rusted armor cracking open to finally reach out a bare hand, asking help as strength" }, // DIA20 · Pedir ajuda não é derrota
+  { topic: "Pedir ayuda no es una derrota", cat: "self", motif: "embrace", subject: "a man in heavy rusted armor cracking open to finally reach out a bare hand, asking help as strength", who: "man" }, // DIA20 · Pedir ajuda não é derrota
   { topic: "La tiranía de la espera", cat: "self", motif: "clock", subject: "an hourglass whose falling sand builds a figure on one side and erodes it on the other, time making or unmaking, no people" }, // DIA22 · A tirania da espera
   { topic: "Un desliz no es una recaída", cat: "self", motif: "ripple", subject: "a single stumble on a long glowing path that continues onward, the next step still open, no people" }, // DIA23 · Lapso não é recaída
   { topic: "La voluntad sin método no basta", cat: "self", motif: "branches", subject: "four glowing roads branching from a single compass, will needing a map to reach anywhere, no people" }, // DIA24 · Vontade sem método
@@ -168,15 +174,22 @@ const THEMES: Theme[] = [
   { topic: "El fin del secreto", cat: "freedom", motif: "burst", subject: "a locked box opening to release its secret into open daylight, the private struggle made public as healing, no people" }, // DIA26 · O fim do segredo
 
 // === Como perdi a mulher da minha vida (21 temas) ===
-  { topic: "La conversación entre hombres que está en extinción", cat: "self", motif: "isolation", subject: "two empty chairs facing each other in fading light, a vanishing conversation between men, no people" }, // CP1 · A conversa entre homens em extinção
+  { topic: "La conversación entre hombres que está en extinción", cat: "self", motif: "isolation", subject: "two empty chairs facing each other in fading light, a vanishing conversation between men, no people", who: "man" }, // CP1 · A conversa entre homens em extinção
   { topic: "Salvar no es amar", cat: "self", motif: "masks", subject: "a figure pulling another from deep water while a heart-shaped shadow reveals the act as rescue disguised as love" }, // CP2 · Salvar não é amar
   { topic: "El sexo solo no sostiene una casa", cat: "self", motif: "boundary", subject: "a fragile bridge arching over a chasm but touching neither bank, connection that holds nothing together, no people" }, // CP3 · O sexo sozinho não sustenta uma casa
-  { topic: "Encontrarse antes de elegir pareja", cat: "self", motif: "mirror", subject: "a man studying his own clear reflection before two open doorways, finding himself before choosing" }, // CP4 · Encontrar-se antes de escolher
+  { topic: "Encontrarse antes de elegir pareja", cat: "self", motif: "mirror", subject: "a man studying his own clear reflection before two open doorways, finding himself before choosing", who: "man" }, // CP4 · Encontrar-se antes de escolher
   { topic: "El valor se prueba cuando mantenerlo cuesta caro", cat: "self", motif: "boundary", subject: "a glowing coin held firm in an open hand as a storm tries to blow it away, worth proven under cost" }, // CP5 · O valor se prova quando custa caro
   { topic: "El amor se construye, no se cae en él", cat: "self", motif: "squares", subject: "hands laying warm glowing bricks into a rising wall, love built stone by stone not stumbled into" }, // CP6 · O amor se constrói
   { topic: "Entregarlo todo de una vez mata la admiración", cat: "self", motif: "descent", subject: "a treasure chest dumped out all at once, its glow draining away as mystery escapes, no people" }, // CP7 · Entregar tudo mata a admiração
-  { topic: "La mujer no ama al hombre: lo admira", cat: "self", motif: "iris", subject: "a figure gazing upward at another lit on a pedestal, admiration holding the bond aloft" }, // CP9 · A mulher o admira
+  { topic: "La mujer no ama al hombre: lo admira", cat: "self", motif: "iris", subject: "a figure gazing upward at another lit on a pedestal, admiration holding the bond aloft", who: "both" }, // CP9 · A mulher o admira
   { topic: "La puerta y la llave: abrir vs. mantener", cat: "network", motif: "gateway", subject: "a single door surrounded by many different glowing keys, opening easy but keeping needing the right one, no people" }, // CP10 · A porta e a chave
+  // CP11 ficou SEM `who` de propósito (2026-07-17): marcá-lo "woman" era simetria
+  // INVENTADA, e o pilar `network` não tem material p/ sustentá-la — filtrado por
+  // "woman" sobram 4 clipes (< 5 cenas) → o Reel escorregaria pro fallback de busca
+  // ao vivo, que NÃO filtra por sujeito. Trava sem acervo é conforto falso: pior que
+  // não travar, porque mente. Volta a valer quando `network` ganhar clipes de mulher
+  // SOZINHA (hoje: 7 couple, 3 group, 1 none, 1 man). O invariante que barra isso é
+  // "a whitelist filtrada ainda sustenta um Reel" (footage-subject.invariants).
   { topic: "Por qué la mujer elige con criterio", cat: "network", motif: "iris", subject: "a discerning eye carefully weighing many glowing options, selectivity as ancient evolutionary caution" }, // CP11 · Por que a mulher escolhe com critério
   { topic: "La monogamia no es automática", cat: "self", motif: "branches", subject: "a wild tangled branch beside a neatly tied cultural knot, monogamy as choice not instinct, no people" }, // CP12 · Monogamia não é automática
   { topic: "El cuerpo no miente", cat: "self", motif: "decay", subject: "a warm flame naturally cooling to glowing embers over time, passion fading by design not fault, no people" }, // CP13 · O corpo não mente
@@ -186,7 +199,7 @@ const THEMES: Theme[] = [
   { topic: "La disponibilidad total te vuelve invisible", cat: "self", motif: "isolation", subject: "a figure fading to transparency while endlessly available, total presence becoming invisibility" }, // CP17 · Disponibilidade total te torna invisível
   { topic: "Hablar de más: la boca callada", cat: "self", motif: "boundary", subject: "a sealed glowing mouth beside a scattered pile of spilled words, restraint as freedom from regret, no people" }, // CP18 · Falar demais
   { topic: "La joya en el tiempo equivocado", cat: "self", motif: "clock", subject: "a precious jewel offered against a clock stopped at the wrong hour, timing deciding everything, no people" }, // CP19 · A joia no tempo errado
-  { topic: "Perderse de sí antes de perder a la otra", cat: "self", motif: "decay", subject: "a man's silhouette dissolving piece by piece in installments, losing himself before losing her, no people" }, // CP20 · Perder-se de si
+  { topic: "Perderse de sí antes de perder a la otra", cat: "self", motif: "decay", subject: "a man's silhouette dissolving piece by piece in installments, losing himself before losing her, no people", who: "man" }, // CP20 · Perder-se de si
   { topic: "La autopreservación no es blindarse", cat: "self", motif: "boundary", subject: "a strong upright spine of light standing without heavy armor, self-preservation as backbone not shield, no people" }, // CP21 · Autopreservação não é blindar-se
   { topic: "Tu mente no es tu amiga", cat: "mind", motif: "synapse", subject: "a glowing brain misfiring with craving after a loss, a dark switched-off screen resting nearby, no people" }, // CP22 · Sua mente não é sua amiga
 
@@ -204,8 +217,8 @@ const THEMES: Theme[] = [
   { topic: "Amar es presentarse", cat: "network", motif: "embrace", subject: "a figure offering gifts and applause from the doorway but never stepping fully inside to embrace" }, // TOL11 · Amar é comparecer
   { topic: "El amor genérico", cat: "network", motif: "squares", subject: "a mass-produced identical heart on an assembly line, a love that fits everyone and therefore no one, no people" }, // TOL12 · O amor genérico
   { topic: "El amor idealizado que consume", cat: "network", motif: "spiral", subject: "a figure chasing a glowing idealized silhouette that keeps dissolving, the real love fading behind, unreachable fantasy" }, // TOL13 · O amor idealizado
-  { topic: "La soledad masculina", cat: "self", motif: "isolation", subject: "a man laughing behind a strong mask while a heavy shadow of loneliness pools at his feet, alone under the strength" }, // TOL14 · A solidão masculina
-  { topic: "La herencia invisible del padre", cat: "self", motif: "branches", subject: "a son's silhouette growing from the roots of a father-shaped tree, inheriting the decided image, no people" }, // TOL15 · A herança invisível do pai
+  { topic: "La soledad masculina", cat: "self", motif: "isolation", subject: "a man laughing behind a strong mask while a heavy shadow of loneliness pools at his feet, alone under the strength", who: "man" }, // TOL14 · A solidão masculina
+  { topic: "La herencia invisible del padre", cat: "self", motif: "branches", subject: "a son's silhouette growing from the roots of a father-shaped tree, inheriting the decided image, no people", who: "man" }, // TOL15 · A herança invisível do pai
   { topic: "El trabajo como escondite", cat: "self", motif: "bars", subject: "a desk piled with endless work forming walls around a hidden figure, busyness as a respectable hiding place" }, // TOL16 · O trabalho como esconderijo
   { topic: "¿De qué se vive?", cat: "mind", motif: "gateway", subject: "a simple plate of food beside a vast open question-shaped horizon, survival easy and meaning the real question, no people" }, // TOL17 · Vive-se de quê?
   { topic: "La prisión sin muros", cat: "freedom", motif: "bars", subject: "an open field with no walls where a figure stays frozen inside an invisible cell, fear as the only bar" }, // TOL18 · A prisão sem muro
@@ -215,8 +228,8 @@ const THEMES: Theme[] = [
   { topic: "Morir como se vivió", cat: "mind", motif: "clock", subject: "a nearly empty hourglass beside an unopened door to life, dying as one lived without ever beginning, no people" }, // TOL22 · Morrer como se viveu
 
 // === A Guerra Invisível dos Homens (8 temas) ===
-  { topic: "El silencio que enferma al hombre", cat: "self", motif: "isolation", subject: "a row of solitary male silhouettes each sealed in silence, the taboo passed down unspoken with no shared voice" }, // GUE2 · O silêncio masculino que adoece
-  { topic: "Pedir ayuda no es debilidad", cat: "self", motif: "embrace", subject: "a strong hand reaching out to grasp another offered hand, asking for help as the highest form of courage" }, // GUE4 · Pedir ajuda é coragem
+  { topic: "El silencio que enferma al hombre", cat: "self", motif: "isolation", subject: "a row of solitary male silhouettes each sealed in silence, the taboo passed down unspoken with no shared voice", who: "man" }, // GUE2 · O silêncio masculino que adoece
+  { topic: "Pedir ayuda no es debilidad", cat: "self", motif: "embrace", subject: "a strong hand reaching out to grasp another offered hand, asking for help as the highest form of courage", who: "man" }, // GUE4 · Pedir ajuda é coragem
   { topic: "La mente es un órgano como los demás", cat: "mind", motif: "synapse", subject: "a glowing brain resting on a medical scale beside a heart, the mind treated as any other organ, no people" }, // GUE5 · A mente é um órgão como os outros
   { topic: "Vergüenza y culpa", cat: "anxiety", motif: "descent", subject: "one figure looking down at a wrong deed while another dissolves into the shadow of being wrong, guilt versus shame" }, // GUE6 · Vergonha × culpa
   { topic: "La industria de la inseguridad", cat: "anxiety", motif: "masks", subject: "a glittering market stall selling glowing promises of hope over a hollow empty crate, insecurity sold as cure, no people" }, // GUE7 · A indústria da insegurança
@@ -241,7 +254,7 @@ const THEMES: Theme[] = [
   // ─── Guerra Invisível: 3 temas nicho NÃO-explícitos (aprovados 2026-07-08; GUE13/14 reprovados) ───
   { topic: "La inseguridad como enfermedad, no vanidad", cat: "anxiety", motif: "masks", subject: "a figure hiding behind a calm mask while an unseen weight presses down, insecurity as a real ailment not vanity, no people" }, // GUE12 · Insegurança é doença, não vaidade
   { topic: "El placer es encuentro, no medida", cat: "self", motif: "embrace", subject: "two hands meeting in warm mutual connection instead of a measuring tape, presence over performance, no people" }, // GUE15 · Prazer é encontro, não medida
-  { topic: "El cuerpo masculino como construcción cultural", cat: "mind", motif: "mirror", subject: "an old measuring ruler and cultural emblems reflected in a mirror shaping a plain silhouette, a standard inherited from culture not natural law, no people" }, // GUE16 · O corpo como construção cultural
+  { topic: "El cuerpo masculino como construcción cultural", cat: "mind", motif: "mirror", subject: "an old measuring ruler and cultural emblems reflected in a mirror shaping a plain silhouette, a standard inherited from culture not natural law, no people", who: "man" }, // GUE16 · O corpo como construção cultural
 
   // ─── O Menestrel (13 temas — INSPIRAÇÃO, não verbatim; fonte: poema de V. Shoffstall 1971, NÃO Shakespeare) ───
   // Falas ORIGINAIS na voz do Dr. Libertad (não-literais) — direito autoral: nunca citar o poema. Fonte/proveniência: src/content/temas-livros/o-menestrel.md
@@ -264,6 +277,11 @@ const TOPICS = THEMES.map((t) => t.topic);
 const TOPIC_CAT: Record<string, string> = Object.fromEntries(THEMES.map((t) => [t.topic, t.cat]));
 const TOPIC_MOTIF: Record<string, string> = Object.fromEntries(THEMES.map((t) => [t.topic, t.motif]));
 const TOPIC_SUBJECT: Record<string, string> = Object.fromEntries(THEMES.map((t) => [t.topic, t.subject]));
+// Sujeito do tema (homem/mulher/os dois) → filtra o FOOTAGE do Reel: "o sujeito da
+// imagem tem que ser o sujeito da frase" (src/lib/footage-subject.ts). Derivado do
+// campo `who` da fonte única THEMES. Tema ausente do mapa = não classificado →
+// undefined → selectFootage sorteia da whitelist inteira, como sempre (fail-open).
+const TOPIC_WHO: Record<string, ThemeWho> = Object.fromEntries(THEMES.filter((t) => t.who).map((t) => [t.topic, t.who!]));
 // Temas-convicção (frase-verdade do dono): título/slide preservam a frase, NUNCA viram
 // "libertad". Derivado do flag `literal` (fonte única THEMES). Trava em src/lib/literal-lock.ts.
 const TOPIC_LITERAL: Record<string, boolean> = Object.fromEntries(THEMES.filter((t) => t.literal).map((t) => [t.topic, true]));
@@ -881,7 +899,9 @@ export async function GET(req: NextRequest) {
     // com seed de (tópico,dia) — independente de conta. Só cacheia quando há clipes.
     let clips: string[] = shared?.clips ?? [];
     if (!clips.length) {
-      clips = await selectFootage(videoQueries, cat, hashStr(reelSharedKey(topic, day)), 5, reelSharedKey(topic, day));
+      // TOPIC_WHO[topic]: sujeito do tema. Tema não classificado → undefined →
+      // seleção idêntica à de antes (fail-open). Ver src/lib/footage-subject.ts.
+      clips = await selectFootage(videoQueries, cat, hashStr(reelSharedKey(topic, day)), 5, reelSharedKey(topic, day), TOPIC_WHO[topic]);
       if (clips.length) await writeReelShared(topic, day, { research: searchResults, videoQueries, clips });
     }
 

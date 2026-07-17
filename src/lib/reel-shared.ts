@@ -13,6 +13,7 @@
 import { judgeFootagePosterCached } from "@/lib/footage-qa";
 import { FOOTAGE_LIBRARY } from "@/lib/footage-library";
 import { searchBySourceKey, availableSources, qaCacheId } from "@/lib/footage-providers";
+import { filterClipsByTheme, type ThemeWho } from "@/lib/footage-subject";
 import { hashStr as hashStrPure } from "@/lib/footage-media";
 
 export interface SearchResult { title: string; content: string; url: string }
@@ -198,26 +199,23 @@ async function recentClipUrls(excludeKey?: string): Promise<Set<string>> {
   }
 }
 
-// Seleciona até numClips URLs de footage no tema. seed é (tópico,dia) → idêntico
-// entre ES e PT. Retorna [] se nenhuma fonte disponível (→ fallback no script de CI).
-export async function selectFootage(
-  videoQueries: string[],
+// Estágio PRIMÁRIO da seleção, PURO (sem I/O) — a whitelist curada do pilar. Vive
+// separado do selectFootage só para ser testável seed a seed (footage-subject.invariants).
+// `avoid` = URLs usadas recentemente (vem do banco no chamador; vazio = fail-open).
+export function pickFromWhitelist(
   cat: string,
   seed: number,
-  numClips = 5, // 5 cenas do Reel (capa + 3 insights + CTA) → 5 clipes distintos
-  excludeKey?: string, // cache_key do PRÓPRIO (tópico,dia) — fora do "avoid" (#126)
-): Promise<string[]> {
-  const avoid = await recentClipUrls(excludeKey);
-
-  // ── PRIMÁRIO: biblioteca CURADA por pilar (whitelist — 4 fontes já vetadas) ──
-  // Sorteia numClips clipes DISTINTOS do pilar, determinístico por (tópico,dia) →
-  // footage idêntico entre ES e PT, sem repetir clipe no mesmo reel. A whitelist
-  // MISTURA Pexels vídeo/foto + Pixabay vídeo/foto (metadado `source`/`mediaType`
-  // em cada entrada) — o shuffle já embaralha as 4 fontes entre si, sem lógica
-  // extra aqui. Exclui o usado recentemente (CROSS-fonte, ver recentClipUrls);
-  // se sobrar pouco após excluir, completa com o restante da whitelist (melhor
-  // repetir 1 clipe recente que publicar sem footage).
-  const lib = FOOTAGE_LIBRARY[cat] || [];
+  numClips: number,
+  avoid: ReadonlySet<string> = new Set(),
+  themeWho?: ThemeWho,
+): string[] {
+  // 2026-07-17: antes do sorteio, a whitelist passa pelo SUJEITO do tema (`who` do
+  // THEMES × `who` do clipe) — "o sujeito da imagem tem que ser o sujeito da frase".
+  // Tema sem `who` → filtro devolve a lista inteira = seleção IDÊNTICA à de antes
+  // (fail-open, ver footage-subject.ts). Como o filtro age AQUI, a passada de
+  // "relaxamento" (que completa com o resto da whitelist quando o `avoid` seca a
+  // lista) também só enxerga clipes compatíveis — nunca repõe o gênero errado.
+  const lib = filterClipsByTheme(FOOTAGE_LIBRARY[cat] || [], themeWho);
   const libUrls = lib.map((c) => c.url);
   const fresh = seededShuffle(libUrls.filter((u) => !avoid.has(u)), seed);
   const picked = fresh.slice(0, numClips);
@@ -228,6 +226,31 @@ export async function selectFootage(
       picked.push(u);
     }
   }
+  return picked.slice(0, numClips);
+}
+
+// Seleciona até numClips URLs de footage no tema. seed é (tópico,dia) → idêntico
+// entre ES e PT. Retorna [] se nenhuma fonte disponível (→ fallback no script de CI).
+export async function selectFootage(
+  videoQueries: string[],
+  cat: string,
+  seed: number,
+  numClips = 5, // 5 cenas do Reel (capa + 3 insights + CTA) → 5 clipes distintos
+  excludeKey?: string, // cache_key do PRÓPRIO (tópico,dia) — fora do "avoid" (#126)
+  themeWho?: ThemeWho, // sujeito do TEMA (THEMES.who) — ausente = fail-open, como antes
+): Promise<string[]> {
+  const avoid = await recentClipUrls(excludeKey);
+
+  // ── PRIMÁRIO: biblioteca CURADA por pilar (whitelist — 4 fontes já vetadas) ──
+  // Sorteia numClips clipes DISTINTOS do pilar, determinístico por (tópico,dia) →
+  // footage idêntico entre ES e PT, sem repetir clipe no mesmo reel. A whitelist
+  // MISTURA Pexels vídeo/foto + Pixabay vídeo/foto (metadado `source`/`mediaType`
+  // em cada entrada) — o shuffle já embaralha as 4 fontes entre si, sem lógica
+  // extra aqui. Exclui o usado recentemente (CROSS-fonte, ver recentClipUrls);
+  // se sobrar pouco após excluir, completa com o restante da whitelist (melhor
+  // repetir 1 clipe recente que publicar sem footage). Filtro por sujeito do tema
+  // (`themeWho`) e sorteio moram em pickFromWhitelist (puro, com invariantes).
+  const picked = pickFromWhitelist(cat, seed, numClips, avoid, themeWho);
   if (picked.length >= numClips) return picked.slice(0, numClips);
 
   // ── FALLBACK: busca ao vivo, MISTURANDO as 4 fontes (pilar sem biblioteca
