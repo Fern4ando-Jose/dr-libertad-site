@@ -167,10 +167,10 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
   return a;
 }
 
-// URLs de footage usadas em Reels recentes (últimos 14 dias) — lidas da própria
-// reel_shared_cache. Servem p/ NÃO repetir o mesmo clipe/foto entre Reels/dias (o
+// RECÊNCIA do footage usado em Reels recentes (últimos 14 dias) — lida da própria
+// reel_shared_cache. Serve p/ NÃO repetir o mesmo clipe/foto entre Reels/dias (o
 // dono pegou o "mão+celular" aparecendo em vários). Fail-open: erro de banco →
-// conjunto vazio. `excludeKey`: cache_key do PRÓPRIO (tópico,dia) — sem excluí-lo,
+// mapa vazio. `excludeKey`: cache_key do PRÓPRIO (tópico,dia) — sem excluí-lo,
 // os clipes que o 1º idioma acabou de gravar entram no "avoid" do 2º (se o shared
 // expirar entre eles) e o footage ES/PT diverge (achado #126 da auditoria 29/06).
 //
@@ -182,31 +182,53 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
 // muito mais simples que parsear ID por formato de CDN) — "um clipe/foto já usado
 // recentemente em QUALQUER uma das 4 fontes fica de fora", não só dentro da
 // própria fonte.
-async function recentClipUrls(excludeKey?: string): Promise<Set<string>> {
+//
+// 2026-07-17: era `recentClipUrls` (Set<string> = só PERTINÊNCIA "usou nos 14d?").
+// Agora devolve RECÊNCIA (url → ms do uso MAIS RECENTE), porque o relaxamento de
+// pickFromWhitelist precisa saber QUÃO recente (LRU) e não só SE — ver lá. O `Map`
+// tem `.has()` igual ao `Set`, então o 1º estágio (exclusão) não muda em nada.
+// O timestamp é o `created_at` da LINHA do (tópico,dia) — o MESMO para ES e PT (as
+// duas contas leem a mesma tabela), então a recência não quebra o determinismo.
+export type ClipRecency = ReadonlyMap<string, number>;
+
+// Sentinela p/ "sem registro de uso" (nunca usado / fora da janela). Negativo → ordena
+// ANTES de qualquer timestamp real (ms desde 1970 é sempre > 0). NÃO usar -Infinity:
+// (-Infinity) - (-Infinity) = NaN e um comparador que devolve NaN corrompe o sort.
+const NEVER_USED = -1;
+
+async function recentClipUses(excludeKey?: string): Promise<Map<string, number>> {
   try {
     const { sql } = await import("@vercel/postgres");
-    const rows = await sql<{ cache_key: string; clips: unknown }>`
-      SELECT cache_key, clips FROM reel_shared_cache WHERE created_at > now() - interval '14 days'`;
-    const urls = new Set<string>();
+    const rows = await sql<{ cache_key: string; clips: unknown; created_at: unknown }>`
+      SELECT cache_key, clips, created_at FROM reel_shared_cache WHERE created_at > now() - interval '14 days'`;
+    const uses = new Map<string, number>();
     for (const r of rows.rows) {
       if (excludeKey && r.cache_key === excludeKey) continue;
       const arr = Array.isArray(r.clips) ? (r.clips as string[]) : [];
-      for (const u of arr) urls.add(String(u));
+      const t = new Date(r.created_at as string | number | Date).getTime();
+      const usedAt = Number.isFinite(t) ? t : NEVER_USED; // data ilegível → trata como antiga
+      for (const u of arr) {
+        const url = String(u);
+        const prev = uses.get(url);
+        if (prev === undefined || usedAt > prev) uses.set(url, usedAt); // fica o uso MAIS RECENTE
+      }
     }
-    return urls;
+    return uses;
   } catch {
-    return new Set<string>();
+    return new Map<string, number>(); // fail-open: sem recência → comportamento de sempre
   }
 }
 
 // Estágio PRIMÁRIO da seleção, PURO (sem I/O) — a whitelist curada do pilar. Vive
 // separado do selectFootage só para ser testável seed a seed (footage-subject.invariants).
 // `avoid` = URLs usadas recentemente (vem do banco no chamador; vazio = fail-open).
+// Aceita `Set` (só pertinência — comportamento legado) OU `Map` url→ms do último uso
+// (recência, o que o banco passa hoje): o 1º estágio só chama `.has()`, idêntico nos dois.
 export function pickFromWhitelist(
   cat: string,
   seed: number,
   numClips: number,
-  avoid: ReadonlySet<string> = new Set(),
+  avoid: ReadonlySet<string> | ClipRecency = new Set(),
   themeWho?: ThemeWho,
 ): string[] {
   // 2026-07-17: antes do sorteio, a whitelist passa pelo SUJEITO do tema (`who` do
@@ -219,8 +241,31 @@ export function pickFromWhitelist(
   const libUrls = lib.map((c) => c.url);
   const fresh = seededShuffle(libUrls.filter((u) => !avoid.has(u)), seed);
   const picked = fresh.slice(0, numClips);
+
+  // ── RELAXAMENTO (pilar SATURADO: o `avoid` comeu a whitelist inteira) ──
+  // Bug do dono (17/07): dois Reels seguidos de @dr.liberdade.br saíram com a MESMA
+  // CAPA. Raiz: o pilar `self` tem 12 clipes e os 12 estavam no `avoid` (14d) → `fresh`
+  // = [] e ESTA passada repunha a whitelist INTEIRA por `seededShuffle(seed+1)` — sorteio
+  // CEGO. Ou seja: a anti-repetição se DESLIGAVA sozinha, em silêncio, justo quando era
+  // mais necessária, e dois temas do mesmo pilar podiam cair no mesmo 1º clipe (= a capa,
+  // o que o dono vê no grid).
+  //
+  // Agora completa por RECÊNCIA (LRU): o usado HÁ MAIS TEMPO volta primeiro; o que ACABOU
+  // de sair é o ÚLTIMO a voltar. Mesma ideia da janela LRU do shuffle-bag dos TEMAS
+  // (`selectThemeIndex` em src/lib/rotation.ts). Como o Reel anterior JÁ gravou seus clipes
+  // na reel_shared_cache antes do próximo rodar, os clipes dele afundam para o fim da fila
+  // → a repetição vira "daqui a ~12 posts" em vez de "no próximo".
+  // Empate (mesmo `created_at`, ou `avoid` sem recência = Set legado) → desempate
+  // DETERMINÍSTICO por seededShuffle(seed+1), NUNCA pela ordem do array. Com Set (ou mapa
+  // vazio) tudo empata → ordem = seed+1 = comportamento IDÊNTICO ao de antes (não-regressão).
   if (picked.length < numClips) {
-    const rest = seededShuffle(libUrls.filter((u) => !picked.includes(u)), seed + 1);
+    const recency = avoid instanceof Map ? (avoid as ClipRecency) : null;
+    const lastUse = (u: string): number => recency?.get(u) ?? NEVER_USED;
+    const tie = seededShuffle(libUrls.filter((u) => !picked.includes(u)), seed + 1);
+    const tieRank = new Map(tie.map((u, i) => [u, i] as const));
+    const rest = tie
+      .slice()
+      .sort((a, b) => lastUse(a) - lastUse(b) || tieRank.get(a)! - tieRank.get(b)!);
     for (const u of rest) {
       if (picked.length >= numClips) break;
       picked.push(u);
@@ -239,16 +284,17 @@ export async function selectFootage(
   excludeKey?: string, // cache_key do PRÓPRIO (tópico,dia) — fora do "avoid" (#126)
   themeWho?: ThemeWho, // sujeito do TEMA (THEMES.who) — ausente = fail-open, como antes
 ): Promise<string[]> {
-  const avoid = await recentClipUrls(excludeKey);
+  const avoid = await recentClipUses(excludeKey); // Map url→ms do último uso (LRU); vazio = fail-open
 
   // ── PRIMÁRIO: biblioteca CURADA por pilar (whitelist — 4 fontes já vetadas) ──
   // Sorteia numClips clipes DISTINTOS do pilar, determinístico por (tópico,dia) →
   // footage idêntico entre ES e PT, sem repetir clipe no mesmo reel. A whitelist
   // MISTURA Pexels vídeo/foto + Pixabay vídeo/foto (metadado `source`/`mediaType`
   // em cada entrada) — o shuffle já embaralha as 4 fontes entre si, sem lógica
-  // extra aqui. Exclui o usado recentemente (CROSS-fonte, ver recentClipUrls);
-  // se sobrar pouco após excluir, completa com o restante da whitelist (melhor
-  // repetir 1 clipe recente que publicar sem footage). Filtro por sujeito do tema
+  // extra aqui. Exclui o usado recentemente (CROSS-fonte, ver recentClipUses);
+  // se sobrar pouco após excluir, completa com o restante da whitelist pelo MENOS
+  // RECENTE primeiro (LRU — melhor repetir o clipe mais antigo que publicar sem
+  // footage, e nunca o que acabou de sair). Filtro por sujeito do tema
   // (`themeWho`) e sorteio moram em pickFromWhitelist (puro, com invariantes).
   const picked = pickFromWhitelist(cat, seed, numClips, avoid, themeWho);
   if (picked.length >= numClips) return picked.slice(0, numClips);
@@ -272,8 +318,9 @@ export async function selectFootage(
 
   // Round-robin fonte×termo, na ORDEM sorteada por seed a cada rodada — mistura as
   // 4 fontes em vez de esgotar sempre a mesma primeiro. `avoidSet`= URLs recentes
-  // (cross-fonte) OU vazio na passada de relaxamento.
-  async function harvest(termList: string[], avoidSet: Set<string>) {
+  // (cross-fonte; o Map de recência responde `.has()` igual ao Set) OU vazio na
+  // passada de relaxamento.
+  async function harvest(termList: string[], avoidSet: ReadonlySet<string> | ClipRecency) {
     let round = 0;
     let progressed = true;
     while (picked.length < numClips && progressed) {
