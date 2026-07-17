@@ -53,7 +53,7 @@ export function framingFor(_subject: string): string {
 // enquadramento é FIXO (framingFor()→FIXED_FRAMING: figura grande/centralizada, NUNCA
 // cortada) — NÃO volta o rotativo que encolhia/cortava; + modéstia + blindagem anatômica
 // + full-bleed + invariantes de teste. Ou seja: técnica cinematográfica, sem o corte.
-export function buildPrompt(subject: string, accentWord: string, accentHex: string): string {
+export function buildPrompt(subject: string, accentWord: string, accentHex: string, grade: string = "muted sepia, taupe and warm greys"): string {
   return [
     `Cinematic conceptual editorial illustration: ${subject}.`,
     `Dramatic chiaroscuro lighting, sculptural and atmospheric, fine film grain and subtle texture.`,
@@ -70,9 +70,9 @@ export function buildPrompt(subject: string, accentWord: string, accentHex: stri
     // reprovada não: a LUZ NASCE DE UM OBJETO DENTRO DO QUADRO e existe um MUNDO em volta.
     // (Nº 228: o âmbar sai de dentro da flor. Nº 252: "luz difusa" = fonte nenhuma, fundo vazio.)
     // NÃO se toca no acabamento que gerou o Nº 254 (cinematic / sculptural / photoreal / film grain).
-    `Lit by ONE PRACTICAL SOURCE VISIBLY INSIDE THE FRAME (a candle, an oil lantern, a fireplace, or light falling through a window) — the light is SOFT, warm and motivated, never a hard theatrical spotlight, never unmotivated ambient light with no source.`,
-    `The subject stands INSIDE A BUILT WORLD with real depth: a period room, an alley, an interior with walls, floor, objects, textures and atmospheric haze — the surroundings are dense, worn and lived-in, in the manner of a Gustave Doré engraving. NEVER an empty void, never a bare backdrop, never a figure floating in nothing.`,
-    `Restricted, desaturated palette: shadows are DARK COOL GREYS washed with cyan (#14191B–#232B2E), always retaining detail — NO solid crushed black anywhere. The warm amber of the practical flame (#FFE6B8 core → #F5B860 → falling off to #A0663A) dies INTO those cool greys: the meeting of warm light and cold shadow is the signature. A single muted accent of ${accentWord} (${accentHex}).`,
+    `Lit by SOFT, directional, MOTIVATED light (as if from a candle, a window, or a single warm source just out of frame) — gentle and cinematic, sculpting the subject; never a hard theatrical spotlight, never flat unmotivated ambient light.`,
+    `Deep, dark, atmospheric background with a sense of depth — soft haze, penumbra or faint texture, quietly cinematic. Never a bright, pale or washed-out backdrop; never a cluttered still-life of objects.`,
+    `Elegant, refined, desaturated cinematic colour grade like a period film — ${grade}. One harmonious tonal range, smooth and gentle transitions, no harsh colour clash; shadows keep subtle detail, never flat pure black. A single muted accent of ${accentWord} (${accentHex}).`,
     // Enquadramento TRAVADO: framingFor() devolve SEMPRE FIXED_FRAMING (figura grande/
     // centralizada, nunca cortada) — o rotativo que cortava morreu (ver acima). Único ponto
     // que difere do 8c048995: lá framingFor era rotativo; aqui é fixo (anti-corte preservado).
@@ -424,7 +424,20 @@ export async function generateIllustration(subject: string, cat: string, opts: G
   }
 
   const accent = ACCENTS[cat] ?? ACCENTS.freedom;
-  const prompt = buildPrompt(subject, accent.word, accent.hex);
+  // COR POR TEMA num ÚNICO EIXO quente↔frio (estrategista-de-atenção, ordem do dono 2026-07-17:
+  // "a cor muda de tom conforme o tema, sem discrepância, suave"). Cada pilar cai num ponto do
+  // eixo → capas vizinhas deslizam, nunca dão salto. ⚠️ mapa cat→temperatura é proposta (o
+  // princípio é do estrategista; o mapa exato é ajustável sem tocar no resto do prompt).
+  const GRADE_BY_CAT: Record<string, string> = {
+    freedom: "warm candlelit amber and deep warm browns",   // saída/liberdade
+    mind:    "warm amber-gold fading into soft warm shadow", // despertar/mente
+    self:    "muted sepia, taupe and warm greys",            // a pessoa (o Nº 254 vive aqui)
+    anxiety: "cool cyan-grey and slate, a cold quiet mood",  // diagnóstico
+    dopamine:"cool cyan-grey and slate, a cold quiet mood",  // vício
+    network: "cool cyan-grey and slate, a cold quiet mood",  // redes
+  };
+  const grade = GRADE_BY_CAT[cat] ?? "muted sepia, taupe and warm greys";
+  const prompt = buildPrompt(subject, accent.word, accent.hex, grade);
   const day = new Date().toISOString().slice(0, 10); // UTC
   const baseSeed = seedForDay(cat, subject, day); // mesmo p/ ES e PT no mesmo dia
   const key = cacheKey(FAL_MODEL, cat, subject);
