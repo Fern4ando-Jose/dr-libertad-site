@@ -13,7 +13,7 @@
 import { judgeFootagePosterCached } from "@/lib/footage-qa";
 import { FOOTAGE_LIBRARY } from "@/lib/footage-library";
 import { searchBySourceKey, availableSources, qaCacheId } from "@/lib/footage-providers";
-import { filterClipsByTheme, liveClipMatchesTheme, type ThemeWho } from "@/lib/footage-subject";
+import { filterClipsByTheme, liveClipMatchesTheme, orientTermsToSubject, type ThemeWho } from "@/lib/footage-subject";
 import { hashStr as hashStrPure } from "@/lib/footage-media";
 
 export interface SearchResult { title: string; content: string; url: string }
@@ -408,7 +408,18 @@ export async function selectFootage(
   const anthropicKey = process.env.ANTHROPIC_API_KEY; // QA de conteúdo do footage (incidente 07-01)
   const fromClaude = (Array.isArray(videoQueries) ? videoQueries : []).filter((t) => typeof t === "string" && t.trim());
   const fallbackTerms = (CAT_TERMS[cat] || CAT_TERMS.freedom).slice();
-  const terms = fromClaude.length ? fromClaude : fallbackTerms;
+  // 2026-07-18 (2ª regressão, Reel "La mujer no ama al hombre"): quando o tema declara
+  // sujeito, a busca tem que PROCURAR esse sujeito — não só filtrar depois. Os
+  // videoQueries vinham masculinos/neutros num tema `both` → só chegava candidato `man`,
+  // o juiz aprovava (pagando) e o filtro de sujeito jogava fora → teto esgotado →
+  // whitelist repetida. `orientTermsToSubject` reescreve os termos pro sujeito do tema
+  // ("man staring…"→"couple staring…"); tema sem `who` → termos intactos (não-regressão).
+  // Determinístico (mesmos videoQueries + mesmo tema → mesmos termos) → ES=PT preservado.
+  const baseTerms = fromClaude.length ? fromClaude : fallbackTerms;
+  const terms = orientTermsToSubject(baseTerms, themeWho);
+  if (terms.join(" ") !== baseTerms.map((t) => t.replace(/\s+/g, " ").trim()).join(" ")) {
+    console.log(`[footage-harvest] termos orientados ao sujeito "${themeWho}": ${terms.join(" | ")}`);
+  }
 
   const seenUrls = new Set<string>(picked);
   let paidJudgments = 0; // vereditos COBRADOS nesta chamada (cache hit não conta) — teto de custo

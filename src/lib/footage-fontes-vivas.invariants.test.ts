@@ -525,3 +525,83 @@ describe("8. erro do juiz NÃO queima o teto pago (incidente El sabio ausente)",
     expect(clips.every(éAoVivo)).toBe(true); // a rodada 1 ("wet") completou o Reel
   });
 });
+
+// ── 9. Incidente "La mujer no ama al hombre" (2ª regressão, 2026-07-18 16:13Z) ──
+// Tema `who:"both"` com videoQueries masculinos: a busca só trazia candidato `man`, o
+// juiz APROVAVA (pagando) e o filtro de sujeito descartava TUDO → teto de 12 esgotado →
+// whitelist do combo justo `self|both` (5 clipes exatos) entregou clipe repetido 5×.
+// O conserto: a busca passa a PROCURAR o sujeito (orientTermsToSubject). O filtro
+// fail-closed NÃO relaxou — quem muda é o que a busca pede.
+describe("9. tema com sujeito declarado: a busca PROCURA o sujeito (não só filtra depois)", () => {
+  // Os videoQueries REAIS da rodada que falhou (reel_shared_cache 16:13Z).
+  const TERMOS_DO_INCIDENTE = [
+    "man staring thoughtfully out window alone",
+    "two people sitting close but distant looking away",
+    "man removing mask revealing vulnerable expression",
+  ];
+  const TAG: Record<FootageSourceKey, number> = {
+    "pexels-video": 0, "pexels-photo": 1, "pixabay-video": 2, "pixabay-photo": 3,
+  };
+
+  // O "mundo" responde ao TERMO, como as APIs reais: buscar homem devolve homem;
+  // buscar casal devolve casal. IDs distintos por sujeito (não colidem entre termos).
+  function ofertaSensivelAoTermo() {
+    buscaAoVivo.mockImplementation(async (k, term) => {
+      const who = /\bcouple\b/i.test(term) ? "couple" : /\bwoman\b/i.test(term) ? "woman" : "man";
+      const base = who === "couple" ? 100 : who === "woman" ? 200 : 300;
+      return Array.from({ length: 6 }, (_, i) => {
+        const c = candidato(k, base + i + 1, who);
+        whoPorUrl.set(c.url, who);
+        URL_POR_ID.set(c.sourceId * 10 + TAG[k], c.url);
+        return c;
+      });
+    });
+  }
+
+  it("o CENÁRIO REAL consertado: tema `both` + termos masculinos → 5/5 cenas ao vivo de CASAL", async () => {
+    ofertaSensivelAoTermo();
+    juizAprovaTudo();
+    const clips = await selectFootage(TERMOS_DO_INCIDENTE, "self", 12345, NUM_CLIPS, "k", "both");
+    expect(clips).toHaveLength(NUM_CLIPS);
+    expect(clips.every(éAoVivo)).toBe(true); // ANTES do fix: 0 ao vivo, 5 da whitelist repetida
+    for (const u of clips) expect(whoPorUrl.get(u)).toBe("couple"); // sujeito CERTO em todas
+  });
+
+  it("TODAS as buscas do tema `both` pedem casal — nenhuma busca com o termo masculino cru", async () => {
+    ofertaSensivelAoTermo();
+    juizAprovaTudo();
+    await selectFootage(TERMOS_DO_INCIDENTE, "self", 999, NUM_CLIPS, "k", "both");
+    expect(buscaAoVivo).toHaveBeenCalled();
+    for (const [, term] of buscaAoVivo.mock.calls) {
+      expect(term).toMatch(/\bcouple\b/i);
+      expect(term).not.toMatch(/\bman\b/i);
+    }
+  });
+
+  it("tema `woman`: as buscas pedem mulher e o Reel sai com mulher", async () => {
+    ofertaSensivelAoTermo();
+    juizAprovaTudo();
+    const clips = await selectFootage(TERMOS_DO_INCIDENTE, "self", 555, NUM_CLIPS, "k", "woman");
+    for (const [, term] of buscaAoVivo.mock.calls) expect(term).toMatch(/\bwoman\b/i);
+    expect(clips.filter(éAoVivo).length).toBeGreaterThan(0);
+    for (const u of clips.filter(éAoVivo)) expect(whoPorUrl.get(u)).toBe("woman");
+  });
+
+  it("tema SEM sujeito: as buscas usam os termos ORIGINAIS, intactos (não-regressão)", async () => {
+    ofertaSensivelAoTermo();
+    juizAprovaTudo();
+    await selectFootage(TERMOS_DO_INCIDENTE, "self", 777, NUM_CLIPS, "k", undefined);
+    const termosUsados = new Set(buscaAoVivo.mock.calls.map(([, t]) => t));
+    for (const t of termosUsados) expect(TERMOS_DO_INCIDENTE).toContain(t);
+  });
+
+  it("o filtro de sujeito NÃO relaxou: mundo só de `man` num tema `both` → zero ao vivo, Reel sai pela whitelist", async () => {
+    // Mesmo com os termos orientados, se as fontes SÓ tiverem homem, nada entra —
+    // a ed. 164 continua impossível. (O conserto muda a BUSCA, nunca a régua.)
+    indexarOferta(6, () => "man");
+    juizAprovaTudo();
+    const clips = await selectFootage(TERMOS_DO_INCIDENTE, "self", 4242, NUM_CLIPS, "k", "both");
+    expect(clips.filter(éAoVivo)).toEqual([]);
+    expect(clips).toHaveLength(NUM_CLIPS); // whitelist (compatível) completa
+  });
+});

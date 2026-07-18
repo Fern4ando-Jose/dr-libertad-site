@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { clipMatchesTheme, filterClipsByTheme, type ThemeWho } from "./footage-subject";
+import { clipMatchesTheme, filterClipsByTheme, orientTermsToSubject, type ThemeWho } from "./footage-subject";
 import { FOOTAGE_LIBRARY, type FootageClip } from "./footage-library";
 import { pickFromWhitelist } from "./reel-shared";
 
@@ -241,5 +241,65 @@ describe("ed. 164 — 'La conversación entre hombres' (cat self, who man)", () 
     );
     // prova que o filtro é o que segura — e que o fail-open segue permissivo
     expect(comMulher.length).toBeGreaterThan(SEEDS.length / 2);
+  });
+});
+
+// ─── orientTermsToSubject — a busca PROCURA o sujeito (incidente 2026-07-18) ──
+// Reel "La mujer no ama al hombre: lo admira" (tema `both`): videoQueries masculinos
+// ("man staring…") → só candidato `man` chegava → juiz aprovava (pagando) → filtro
+// jogava fora → teto esgotado → whitelist justa repetida. A função reescreve os termos
+// pro sujeito do tema ANTES da busca; o filtro fail-closed continua intacto.
+describe("orientTermsToSubject — reescrita dos termos pro sujeito do tema", () => {
+  // Os 3 videoQueries REAIS da rodada que falhou (reel_shared_cache 2026-07-18T16:13Z)
+  const TERMOS_DO_INCIDENTE = [
+    "man staring thoughtfully out window alone",
+    "two people sitting close but distant looking away",
+    "man removing mask revealing vulnerable expression",
+  ];
+
+  it("tema `both`: os termos do incidente REAL passam a procurar casal", () => {
+    expect(orientTermsToSubject(TERMOS_DO_INCIDENTE, "both")).toEqual([
+      "couple staring thoughtfully out window alone",
+      "couple sitting close but distant looking away", // "two people" vira o sujeito direto
+      "couple removing mask revealing vulnerable expression",
+    ]);
+  });
+
+  it("tema `woman`: 'man …' vira 'woman …' (e nunca sobra \bman\b)", () => {
+    const out = orientTermsToSubject(TERMOS_DO_INCIDENTE, "woman");
+    for (const t of out) {
+      expect(t).not.toMatch(/\bman\b/i);
+      expect(t).toMatch(/\bwoman\b/i);
+    }
+  });
+
+  it("tema `man`: termo que já diz 'man' fica igual; 'woman …' vira 'man …'", () => {
+    expect(orientTermsToSubject(["man staring out window"], "man")).toEqual(["man staring out window"]);
+    expect(orientTermsToSubject(["woman looking at mirror"], "man")).toEqual(["man looking at mirror"]);
+  });
+
+  it("termo SEM sujeito ganha o sujeito como prefixo", () => {
+    expect(orientTermsToSubject(["rain window sad mood"], "both")).toEqual(["couple rain window sad mood"]);
+    expect(orientTermsToSubject(["phone notifications close up"], "woman")).toEqual(["woman phone notifications close up"]);
+  });
+
+  it("tema sem `who` (undefined/'any') → termos INTACTOS (não-regressão)", () => {
+    expect(orientTermsToSubject(TERMOS_DO_INCIDENTE, undefined)).toEqual(TERMOS_DO_INCIDENTE);
+    expect(orientTermsToSubject(TERMOS_DO_INCIDENTE, "any")).toEqual(TERMOS_DO_INCIDENTE);
+  });
+
+  it("termos que colapsam no MESMO termo orientado viram um só (sem busca duplicada)", () => {
+    const out = orientTermsToSubject(["man alone at night", "woman alone at night"], "both");
+    expect(out).toEqual(["couple alone at night"]);
+  });
+
+  it("é determinística (ES e PT derivam os MESMOS termos → mesmo vídeo)", () => {
+    const a = orientTermsToSubject(TERMOS_DO_INCIDENTE, "both");
+    const b = orientTermsToSubject(TERMOS_DO_INCIDENTE, "both");
+    expect(b).toEqual(a);
+  });
+
+  it("entrada suja (vazio/espaços) é limpa sem quebrar", () => {
+    expect(orientTermsToSubject(["  ", "", "man  alone "], "woman")).toEqual(["woman alone"]);
   });
 });
