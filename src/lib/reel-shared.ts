@@ -260,7 +260,22 @@ export function liveSlotsFor(numClips: number, raw = process.env.FOOTAGE_LIVE_SL
 // balde `ig-reels` (US$0,30/dia) — risco que só era teórico enquanto o harvest estava
 // morto. Com o teto, o pior caso por Reel é 12 × ~US$0,0015 ≈ US$0,018. Cache HIT não
 // conta (é grátis). Batendo o teto, o harvest para e a whitelist completa as cenas.
+//
+// 2026-07-18 (incidente "El sabio ausente", 1º Reel pós-100%-vivo): o teto contava TODO
+// veredito não-cacheado — inclusive os que custaram ZERO ("sem poster", "QA HTTP 4xx/5xx",
+// "QA erro" de rede). Posters inválidos da Pixabay (API removeu `picture_id`) geravam erro
+// atrás de erro, 12 falhas GRATUITAS queimavam o teto em silêncio (nenhuma deixa rastro no
+// footage_qa_cache — veredito de erro não é cacheável) e o Reel caía na whitelist repetida.
+// Agora o teto conta SÓ o que o juiz declara `paid` (resposta 200, cobrada — ver
+// footage-qa.ts); o dinheiro continua travado em 12 (P2, teto INALTERADO).
 const MAX_PAID_JUDGMENTS = 12;
+
+// Teto de TENTATIVAS de julgamento (pagas OU gratuitas) por Reel. Necessário porque os
+// erros deixaram de consumir o teto pago: sem este segundo freio, um juiz fora do ar
+// (429/529 em série) deixaria o harvest varrer 4 fontes × 20 candidatos × 7 rodadas em
+// erros lentos e estourar o tempo da rota. 40 tentativas × ~1-2s de pior caso cabem
+// folgado no maxDuration=300 do /api/publish. Cache HIT não conta (é leitura local).
+const MAX_JUDGE_ATTEMPTS = 40;
 
 // Estágio PRIMÁRIO da seleção, PURO (sem I/O) — a whitelist curada do pilar. Vive
 // separado do selectFootage só para ser testável seed a seed (footage-subject.invariants).
@@ -335,6 +350,7 @@ export async function selectFootage(
   // determinística por (tópico,dia)) sustenta o Reel inteiro e ES=PT continua garantido —
   // exatamente o comportamento de hoje. Determinismo > variedade.
   const liveSlots = dbOk ? liveSlotsFor(numClips) : 0;
+  if (!dbOk) console.log("[footage-harvest] banco fora -> 0 cenas ao vivo (whitelist pura, ES=PT preservado)");
 
   // ── Whitelist curada — hoje SÓ colchão (default: 0 cenas daqui) ─────────────
   // Sorteia clipes DISTINTOS do pilar, determinístico por (tópico,dia) → footage
@@ -384,7 +400,10 @@ export async function selectFootage(
     return picked.slice(0, numClips);
   };
 
-  if (!sources.length) return completarComWhitelist(); // nenhuma fonte disponível
+  if (!sources.length) {
+    console.log("[footage-harvest] nenhuma fonte disponivel (sem PEXELS_API_KEY/PIXABAY_API_KEY) -> whitelist");
+    return completarComWhitelist();
+  }
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY; // QA de conteúdo do footage (incidente 07-01)
   const fromClaude = (Array.isArray(videoQueries) ? videoQueries : []).filter((t) => typeof t === "string" && t.trim());
@@ -393,6 +412,13 @@ export async function selectFootage(
 
   const seenUrls = new Set<string>(picked);
   let paidJudgments = 0; // vereditos COBRADOS nesta chamada (cache hit não conta) — teto de custo
+  let judgeAttempts = 0; // TODA ida ao juiz não-cacheada (paga ou grátis) — teto de tempo
+
+  // Log de diagnóstico (2026-07-18): o incidente "El sabio ausente" ficou INVISÍVEL
+  // porque nada registrava por que cada candidato era descartado — o teto queimou em
+  // silêncio e só o footage_qa_cache (1 linha) sobrou de rastro. Uma linha por
+  // fonte×rodada no stdout aparece no log da Vercel/CI, custo zero.
+  const isJudgeError = (reason: string) => /QA HTTP|QA erro|ilegível|QA pulado/.test(reason);
 
   // Round-robin fonte×termo, na ORDEM sorteada por seed a cada rodada — mistura as
   // 4 fontes em vez de esgotar sempre a mesma primeiro. `avoidSet`= URLs recentes
@@ -400,12 +426,21 @@ export async function selectFootage(
   // passada de relaxamento.
   async function harvest(termList: string[], avoidSet: ReadonlySet<string> | ClipRecency) {
     let round = 0;
-    let progressed = true;
-    while (picked.length < numClips && progressed && paidJudgments < MAX_PAID_JUDGMENTS) {
-      progressed = false;
+    // Rodadas consecutivas SEM aceitar nada. 2026-07-18: antes, UMA rodada seca
+    // (`progressed=false`) encerrava o harvest inteiro — mesmo com termos ainda não
+    // tentados e teto sobrando (o termo muda por rodada: um termo fraco na rodada
+    // errada matava a colheita). Agora só desiste depois de um ciclo INTEIRO de termos
+    // sem progresso; a trava dura de rodadas (round > 6) continua garantindo o fim.
+    let dryRounds = 0;
+    const maxDry = Math.max(1, termList.length);
+    while (
+      picked.length < numClips && dryRounds < maxDry &&
+      paidJudgments < MAX_PAID_JUDGMENTS && judgeAttempts < MAX_JUDGE_ATTEMPTS
+    ) {
+      let progressed = false;
       const orderedSources = seededShuffle(sources, seed + round * 13);
       for (const sourceKey of orderedSources) {
-        if (picked.length >= numClips || paidJudgments >= MAX_PAID_JUDGMENTS) break;
+        if (picked.length >= numClips || paidJudgments >= MAX_PAID_JUDGMENTS || judgeAttempts >= MAX_JUDGE_ATTEMPTS) break;
         const term = termList[(seed + round) % termList.length];
         let candidates: Awaited<ReturnType<typeof searchBySourceKey>> = [];
         try {
@@ -413,25 +448,38 @@ export async function selectFootage(
         } catch {
           candidates = [];
         }
+        let nAvoid = 0, nReject = 0, nWho = 0, nErr = 0; // descartes desta fonte nesta rodada
+        let accepted = false;
         for (const c of rotate(candidates, seed + round * 7)) {
-          if (seenUrls.has(c.url) || avoidSet.has(c.url)) continue;
-          if (paidJudgments >= MAX_PAID_JUDGMENTS) break; // teto de custo — para de julgar
+          if (seenUrls.has(c.url) || avoidSet.has(c.url)) { nAvoid++; continue; }
+          if (paidJudgments >= MAX_PAID_JUDGMENTS || judgeAttempts >= MAX_JUDGE_ATTEMPTS) break; // tetos — para de julgar
           seenUrls.add(c.url); // considerado — não re-julgar o mesmo candidato
           const verdict = await judgeFootagePosterCached(qaCacheId(sourceKey, c.sourceId), c.poster, anthropicKey, "ig-reels");
-          if (!verdict.cached) paidJudgments++;
-          if (verdict.reject) continue;
+          if (!verdict.cached) judgeAttempts++;
+          // 2026-07-18: conta contra o teto de CUSTO só o que foi COBRADO (`paid`, resposta
+          // 200 da API). Erro HTTP/rede e "sem poster" custam US$0 — antes contavam e 12
+          // falhas gratuitas matavam o harvest em silêncio (incidente "El sabio ausente").
+          if (verdict.paid) paidJudgments++;
+          if (verdict.reject) { if (isJudgeError(verdict.reason)) nErr++; else nReject++; continue; }
           // SUJEITO (2026-07-17): "o sujeito da imagem tem que ser o sujeito da frase"
           // vale também aqui, senão um tema `man` receberia mulher da busca ao vivo e o
           // defeito da ed. 164 voltava pela porta dos fundos. O `who` vem do MESMO
           // veredito do juiz (custo zero) e é fail-CLOSED: sujeito desconhecido (veredito
           // antigo do cache, ou QA pulado por falta de chave) NÃO entra em tema com
           // sujeito declarado — a whitelist completa a cena. Ver footage-subject.ts.
-          if (!liveClipMatchesTheme(verdict.who, themeWho)) continue;
+          if (!liveClipMatchesTheme(verdict.who, themeWho)) { nWho++; continue; }
           picked.push(c.url);
+          accepted = true;
           progressed = true;
           break; // 1 candidato aceito por fonte por rodada — mantém a mistura
         }
+        console.log(
+          `[footage-harvest] r${round} ${sourceKey} "${term}": cand=${candidates.length} ` +
+          `pulados=${nAvoid} rejeitados=${nReject} erroQA=${nErr} sujeito=${nWho} aceito=${accepted ? "SIM" : "nao"} | ` +
+          `pagos=${paidJudgments}/${MAX_PAID_JUDGMENTS} tentativas=${judgeAttempts}/${MAX_JUDGE_ATTEMPTS} cenas=${picked.length}/${numClips}`,
+        );
       }
+      dryRounds = progressed ? 0 : dryRounds + 1;
       round++;
       if (round > 6) break; // trava de segurança (evita loop infinito se as buscas secarem)
     }
@@ -442,8 +490,14 @@ export async function selectFootage(
     // Relaxa: se excluir os recentes deixou poucos clipes, completa permitindo repetir
     // (melhor 1 clipe repetido que Reel sem footage). O dedup DENTRO do Reel (`seenUrls`) fica.
     if (picked.length < numClips && terms.length) await harvest(terms, new Set<string>());
-  } catch {
+  } catch (e) {
+    console.log(`[footage-harvest] EXPLODIU (${e instanceof Error ? e.message : String(e)}) -> whitelist completa o Reel`);
     return completarComWhitelist(); // busca ao vivo explodiu → whitelist enche o Reel
   }
+  console.log(
+    `[footage-harvest] fim: ${picked.length}/${numClips} cenas ao vivo` +
+    (picked.length < numClips ? ` -> whitelist completa as ${numClips - picked.length} restantes` : "") +
+    ` | pagos=${paidJudgments} tentativas=${judgeAttempts}`,
+  );
   return completarComWhitelist();
 }

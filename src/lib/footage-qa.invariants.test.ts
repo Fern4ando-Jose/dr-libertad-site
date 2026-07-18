@@ -2,8 +2,11 @@
 // pele/nudez). O juiz de visão olha o poster do clipe; o PARSER do veredito é
 // FAIL-SAFE — na dúvida REJEITA (melhor perder um clipe que publicar algo impróprio
 // numa marca de psicologia). Espelhado em scripts/fetch-footage.mjs (mesmo contrato).
-import { describe, it, expect, vi } from "vitest";
-import { parseFootageVerdict, isCacheableVerdictReason, FOOTAGE_QA_PROMPT } from "./footage-qa";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { parseFootageVerdict, isCacheableVerdictReason, judgeFootagePoster, FOOTAGE_QA_PROMPT } from "./footage-qa";
+
+// judgeFootagePoster loga gasto via @/lib/spend — mock inerte (nenhum teste aqui paga nada).
+vi.mock("@/lib/spend", () => ({ anthropicCost: () => 0, logSpend: async () => {} }));
 
 describe("parseFootageVerdict — fail-safe (bug footage 07-01)", () => {
   it("aprova quando o modelo diz reject:false", () => {
@@ -94,6 +97,62 @@ describe("parseFootageVerdict — sujeito do quadro (`who`)", () => {
     }
     // "na dúvida, none" é o que impede o juiz de chutar gênero e contaminar o filtro
     expect(FOOTAGE_QA_PROMPT).toMatch(/never guess/i);
+  });
+});
+
+// ─── `paid`: só a resposta 200 da API foi COBRADA (incidente "El sabio ausente") ──
+// 2026-07-18: o teto de julgamentos do harvest contava TODO veredito não-cacheado —
+// inclusive erros que custaram US$0. 12 falhas gratuitas (ex.: poster .mp4 inválido da
+// Pixabay → HTTP 400) queimavam o teto em silêncio e o Reel caía na whitelist repetida.
+// Aqui travamos o contrato: `paid` = dinheiro saiu, e NADA além do 200 marca paid.
+describe("judgeFootagePoster — `paid` diz o que foi cobrado de verdade", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const resposta200 = (text: string) =>
+    ({ ok: true, json: async () => ({ content: [{ type: "text", text }], usage: { input_tokens: 1, output_tokens: 1 } }) }) as unknown as Response;
+
+  it("sem ANTHROPIC_API_KEY → QA pulado, paid:false, sem tocar a rede", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const v = await judgeFootagePoster("https://img.test/p.jpg", undefined, "ig-reels");
+    expect(v).toMatchObject({ reject: false, paid: false });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("sem poster → QA pulado, paid:false, sem tocar a rede", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const v = await judgeFootagePoster(undefined, "k", "ig-reels");
+    expect(v).toMatchObject({ reject: false, paid: false });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("HTTP !ok (429/400/529) → rejeita fail-safe e paid:false (erro não é cobrado)", async () => {
+    for (const status of [400, 429, 529]) {
+      vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status } as unknown as Response);
+      const v = await judgeFootagePoster("https://img.test/p.jpg", "k", "ig-reels");
+      expect(v.reject).toBe(true);
+      expect(v.paid).toBe(false);
+      expect(isCacheableVerdictReason(v.reason)).toBe(false); // erro nunca condena o clipe pra sempre
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("exceção de rede → rejeita fail-safe e paid:false", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("fetch failed"));
+    const v = await judgeFootagePoster("https://img.test/p.jpg", "k", "ig-reels");
+    expect(v).toMatchObject({ reject: true, paid: false });
+  });
+
+  it("resposta 200 com veredito válido → paid:true (foi cobrado)", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(resposta200('{"reject": false, "reason": "clear scene", "who": "man"}'));
+    const v = await judgeFootagePoster("https://img.test/p.jpg", "k", "ig-reels");
+    expect(v).toMatchObject({ reject: false, who: "man", paid: true });
+  });
+
+  it("resposta 200 ILEGÍVEL → paid:true MESMO ASSIM (os tokens foram cobrados)", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(resposta200("não sei dizer"));
+    const v = await judgeFootagePoster("https://img.test/p.jpg", "k", "ig-reels");
+    expect(v.reject).toBe(true); // fail-safe do parser
+    expect(v.paid).toBe(true);   // P2: o que custou, conta no teto
   });
 });
 

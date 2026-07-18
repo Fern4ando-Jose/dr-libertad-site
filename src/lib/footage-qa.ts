@@ -84,14 +84,22 @@ export function parseFootageVerdict(text: unknown): FootageVerdict {
 // Julga o POSTER (frame) de um clipe Pexels. FAIL-SAFE (chave presente): erro/HTTP ruim
 // → reject. FAIL-OPEN (config): sem ANTHROPIC_API_KEY → aceita (QA pulado). Sem poster
 // → aceita (nada a verificar). Loga o gasto no balde `automation`.
+//
+// `paid` (2026-07-18, incidente "El sabio ausente"): diz se esta chamada FOI COBRADA.
+// Só a resposta 200 da API custa dinheiro (tokens billados — inclusive quando o JSON
+// vem ilegível); "sem chave", "sem poster", HTTP !ok e exceção de rede custam ZERO.
+// Antes o chamador (selectFootage) contava TODO veredito não-cacheado contra o teto de
+// 12 julgamentos PAGOS — 12 erros gratuitos em série (ex.: poster inválido da Pixabay)
+// matavam o harvest em silêncio e o Reel caía na whitelist repetida. Agora o teto pago
+// conta SÓ o que `paid` diz que custou (P2: o teto é de DINHEIRO, não de tentativas).
 export async function judgeFootagePoster(
   posterUrl: string | undefined,
   apiKey: string | undefined,
   automation: Automation,
   meta?: Record<string, unknown>,
-): Promise<FootageVerdict> {
-  if (!apiKey) return { reject: false, reason: "sem ANTHROPIC_API_KEY — QA pulado" };
-  if (!posterUrl) return { reject: false, reason: "sem poster — QA pulado" };
+): Promise<FootageVerdict & { paid: boolean }> {
+  if (!apiKey) return { reject: false, reason: "sem ANTHROPIC_API_KEY — QA pulado", paid: false };
+  if (!posterUrl) return { reject: false, reason: "sem poster — QA pulado", paid: false };
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -108,12 +116,12 @@ export async function judgeFootagePoster(
         }],
       }),
     });
-    if (!res.ok) return { reject: true, reason: `QA HTTP ${res.status} → rejeitado (fail-safe)` };
+    if (!res.ok) return { reject: true, reason: `QA HTTP ${res.status} → rejeitado (fail-safe)`, paid: false };
     const data = await res.json();
     await logSpend({ automation, platform: "anthropic", operation: "footage-qa", model: QA_MODEL, units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0), costUsd: anthropicCost(QA_MODEL, data?.usage), meta });
-    return parseFootageVerdict(data?.content?.[0]?.text);
+    return { ...parseFootageVerdict(data?.content?.[0]?.text), paid: true }; // 200 = cobrado (mesmo se ilegível)
   } catch (e) {
-    return { reject: true, reason: `QA erro (${e instanceof Error ? e.message : String(e)}) → rejeitado (fail-safe)` };
+    return { reject: true, reason: `QA erro (${e instanceof Error ? e.message : String(e)}) → rejeitado (fail-safe)`, paid: false };
   }
 }
 
@@ -194,9 +202,9 @@ export async function judgeFootagePosterCached(
   posterUrl: string | undefined,
   apiKey: string | undefined,
   automation: Automation,
-): Promise<FootageVerdict & { cached: boolean }> {
+): Promise<FootageVerdict & { cached: boolean; paid: boolean }> {
   const hit = await readFootageVerdictCache(videoId);
-  if (hit) return { ...hit, cached: true };
+  if (hit) return { ...hit, cached: true, paid: false }; // de graça: já estava julgado
   const verdict = await judgeFootagePoster(posterUrl, apiKey, automation, { videoId });
   if (isCacheableVerdictReason(verdict.reason)) await writeFootageVerdictCache(videoId, verdict);
   return { ...verdict, cached: false };

@@ -53,6 +53,47 @@ describe("availableSources — Pixabay só entra com a chave; Pexels sempre que 
   });
 });
 
+// ─── Poster do Pixabay VÍDEO (incidente "El sabio ausente", 2026-07-18) ────────
+// A API da Pixabay REMOVEU `picture_id` (sondado ao vivo: undefined em todos os hits;
+// o campo atual é `videos.<size>.thumbnail`). O fallback antigo usava o PRÓPRIO MP4
+// como poster → o juiz de visão recebia vídeo como imagem → erro HTTP → rejeição
+// fail-safe que queimava o teto de julgamentos do harvest em silêncio.
+describe("searchPixabayVideo — poster é o THUMBNAIL real, nunca o .mp4", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const hitVertical = (id: number, thumbnail?: string) => ({
+    id,
+    duration: 10,
+    tags: "man, thinking",
+    videos: {
+      medium: {
+        url: `https://cdn.pixabay.com/video/${id}.mp4`,
+        width: 1080,
+        height: 1920,
+        ...(thumbnail ? { thumbnail } : {}),
+      },
+    },
+  });
+
+  function mockPixabay(hits: unknown[]) {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, json: async () => ({ hits }) } as unknown as Response);
+  }
+
+  it("com thumbnail → poster = thumbnail (jpg), e a URL do clipe segue sendo o mp4", async () => {
+    mockPixabay([hitVertical(203252, "https://cdn.pixabay.com/video/203252_medium.jpg")]);
+    const out = await searchPixabayVideo("t", "k");
+    expect(out).toHaveLength(1);
+    expect(out[0].url).toBe("https://cdn.pixabay.com/video/203252.mp4");
+    expect(out[0].poster).toBe("https://cdn.pixabay.com/video/203252_medium.jpg");
+    expect(out[0].poster).not.toMatch(/\.mp4$/); // era o defeito: mp4 como "imagem" pro juiz
+  });
+
+  it("hit SEM thumbnail em nenhum tamanho → candidato DESCARTADO (sem poster não há QA da marca)", async () => {
+    mockPixabay([hitVertical(99, undefined)]);
+    expect(await searchPixabayVideo("t", "k")).toEqual([]);
+  });
+});
+
 describe("qaCacheId — chave composta do cache de QA (BIGINT) não colide entre provedores/tipos", () => {
   it("o MESMO (source,id) sempre gera a MESMA chave (cache vale pra sempre)", () => {
     expect(qaCacheId("pexels-video", 12345)).toBe(qaCacheId("pexels-video", 12345));

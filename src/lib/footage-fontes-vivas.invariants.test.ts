@@ -40,7 +40,9 @@ const NUM_CLIPS = 5;
 // lógica de selectFootage rodar de verdade — é ela que está sob teste.
 
 const buscaAoVivo = vi.fn<(k: FootageSourceKey, term: string) => Promise<FootageCandidate[]>>();
-const juiz = vi.fn<(id: number) => Promise<{ reject: boolean; reason: string; who?: string; cached: boolean }>>();
+// `paid` (2026-07-18): o juiz real declara se a chamada FOI COBRADA (resposta 200) — o
+// teto de custo do harvest conta SÓ isso. Erro HTTP/rede e "sem poster" = paid:false.
+const juiz = vi.fn<(id: number) => Promise<{ reject: boolean; reason: string; who?: string; cached: boolean; paid: boolean }>>();
 // Linhas da reel_shared_cache que o recentClipUses enxerga; `null` = banco FORA (throw).
 let linhasDoBanco: Array<{ cache_key: string; clips: string[]; created_at: string }> | null = [];
 
@@ -79,11 +81,11 @@ const candidato = (k: FootageSourceKey, i: number, who = "none"): FootageCandida
 const whoPorUrl = new Map<string, string | undefined>();
 const URL_POR_ID = new Map<number, string>();
 
-/** Juiz que aprova tudo e devolve o `who` registrado do candidato. */
+/** Juiz que aprova tudo e devolve o `who` registrado do candidato. Veredito real = cobrado. */
 function juizAprovaTudo(cached = false) {
   juiz.mockImplementation(async (id) => {
     const url = URL_POR_ID.get(id);
-    return { reject: false, reason: "clear scene", who: url ? whoPorUrl.get(url) : "none", cached };
+    return { reject: false, reason: "clear scene", who: url ? whoPorUrl.get(url) : "none", cached, paid: !cached };
   });
 }
 
@@ -100,7 +102,7 @@ beforeEach(() => {
   juiz.mockReset();
   // O juiz recebe o qaCacheId (source,id) — mapeamos id→url via a própria oferta.
   buscaAoVivo.mockImplementation(async () => []);
-  juiz.mockImplementation(async () => ({ reject: false, reason: "ok", who: "none", cached: false }));
+  juiz.mockImplementation(async () => ({ reject: false, reason: "ok", who: "none", cached: false, paid: true }));
 });
 
 afterEach(() => vi.unstubAllEnvs());
@@ -237,7 +239,7 @@ describe("3. fail-open duro — o Reel SEMPRE sai com 5 cenas", () => {
   const cenários: Array<[string, () => void]> = [
     ["busca ao vivo EXPLODE (throw)", () => buscaAoVivo.mockRejectedValue(new Error("API fora"))],
     ["busca ao vivo devolve VAZIO", () => buscaAoVivo.mockResolvedValue([])],
-    ["QA REJEITA tudo", () => { indexarOferta(); juiz.mockResolvedValue({ reject: true, reason: "skin macro", cached: false }); }],
+    ["QA REJEITA tudo", () => { indexarOferta(); juiz.mockResolvedValue({ reject: true, reason: "skin macro", cached: false, paid: true }); }],
     ["sem PEXELS_API_KEY nem PIXABAY_API_KEY", () => { vi.stubEnv("PEXELS_API_KEY", ""); vi.stubEnv("PIXABAY_API_KEY", ""); indexarOferta(); juizAprovaTudo(); }],
     ["sem termos de busca (videoQueries vazio e categoria desconhecida)", () => { buscaAoVivo.mockResolvedValue([]); }],
   ];
@@ -258,7 +260,7 @@ describe("3. fail-open duro — o Reel SEMPRE sai com 5 cenas", () => {
     // o que casar → o ao vivo entra normalmente, como sempre.
     vi.stubEnv("ANTHROPIC_API_KEY", "");
     indexarOferta();
-    juiz.mockResolvedValue({ reject: false, reason: "sem ANTHROPIC_API_KEY — QA pulado", cached: false });
+    juiz.mockResolvedValue({ reject: false, reason: "sem ANTHROPIC_API_KEY — QA pulado", cached: false, paid: false });
     const comSujeito = await selectFootage(["a"], "self", 4242, NUM_CLIPS, "k", "man");
     expect(comSujeito.filter(éAoVivo)).toEqual([]);
     expect(comSujeito).toHaveLength(NUM_CLIPS);
@@ -352,7 +354,7 @@ describe("5. tema `man` nunca recebe `woman` — nem curado, nem ao vivo", () =>
     // QA pulado por falta de chave. Na whitelist "sem who" é fail-OPEN (o clipe foi curado
     // por gente); ao vivo ninguém olhou → não entra. O Reel sai igual, pela whitelist.
     indexarOferta(6, () => undefined);
-    juiz.mockImplementation(async () => ({ reject: false, reason: "clear scene", who: undefined, cached: false }));
+    juiz.mockImplementation(async () => ({ reject: false, reason: "clear scene", who: undefined, cached: false, paid: true }));
     const clips = await selectFootage(["a"], "self", 555, NUM_CLIPS, "k", "man");
     expect(clips.filter(éAoVivo)).toEqual([]);
     expect(clips).toHaveLength(NUM_CLIPS);
@@ -392,7 +394,7 @@ describe("6. teto de vereditos PAGOS por Reel (protege o balde ig-reels)", () =>
     // Sem o teto: 4 fontes × 20 candidatos × 7 rodadas de candidatos novos = centenas de
     // chamadas pagas num único Reel → o balde ig-reels (US$0,30/dia) estoura sozinho.
     indexarOferta(20);
-    juiz.mockImplementation(async () => ({ reject: true, reason: "skin macro", cached: false }));
+    juiz.mockImplementation(async () => ({ reject: true, reason: "skin macro", cached: false, paid: true }));
     const clips = await selectFootage(["a"], "mind", 4242, NUM_CLIPS, "k");
     expect(juiz.mock.calls.length).toBeLessThanOrEqual(12);
     expect(clips).toHaveLength(NUM_CLIPS); // fail-open: whitelist completa
@@ -401,7 +403,7 @@ describe("6. teto de vereditos PAGOS por Reel (protege o balde ig-reels)", () =>
   it("cache HIT não consome a cota (veredito de graça não é gasto)", async () => {
     indexarOferta(20);
     // tudo rejeitado, mas TUDO vindo do cache → pode varrer à vontade sem pagar
-    juiz.mockImplementation(async () => ({ reject: true, reason: "skin macro", cached: true }));
+    juiz.mockImplementation(async () => ({ reject: true, reason: "skin macro", cached: true, paid: false }));
     const clips = await selectFootage(["a"], "mind", 4242, NUM_CLIPS, "k");
     expect(juiz.mock.calls.length).toBeGreaterThan(12);
     expect(clips).toHaveLength(NUM_CLIPS);
@@ -444,5 +446,82 @@ describe("7. clipe no avoid (usado nos últimos 14d, cross-fonte) nunca entra pe
     // …e o PT, lendo o banco JÁ com a vaga gravada, escolhe os MESMOS clipes (não se auto-envenena)
     const pt = await selectFootage(["a"], "self", 12345, NUM_CLIPS, "self|2026-07-17");
     expect(pt).toEqual(es);
+  });
+});
+
+// ── 8. Incidente "El sabio ausente" (1º Reel pós-100%-vivo, 2026-07-18) ──────
+// Produção: cena 1 saiu ao vivo e as cenas 2–5 caíram na whitelist REPETIDA. Causa:
+// vereditos de ERRO (custo US$0 — ex.: poster inválido da Pixabay → HTTP 400 no juiz)
+// contavam contra o teto de 12 julgamentos PAGOS e não deixavam rastro no cache — 12
+// falhas gratuitas matavam o harvest em silêncio. Estes testes reproduzem o cenário e
+// travam o conserto: erro não come teto pago; tentativas têm teto próprio (tempo);
+// rodada seca não encerra a colheita com termos por tentar.
+describe("8. erro do juiz NÃO queima o teto pago (incidente El sabio ausente)", () => {
+  // Juiz por FONTE: as 3 primeiras fontes só devolvem erro gratuito (como o poster .mp4
+  // da Pixabay fazia); pexels-photo funciona. O harvest tem que ENCHER o Reel pela fonte sã.
+  function juizQuebradoMenosPexelsPhoto() {
+    juiz.mockImplementation(async (id) => {
+      const url = URL_POR_ID.get(id);
+      if (url && fonteDe(url) === "pexels-photo") {
+        return { reject: false, reason: "clear scene", who: whoPorUrl.get(url) ?? "none", cached: false, paid: true };
+      }
+      // erro HTTP do juiz: fail-safe rejeita, NÃO cobra, NÃO cacheia
+      return { reject: true, reason: "QA HTTP 400 → rejeitado (fail-safe)", who: undefined, cached: false, paid: false };
+    });
+  }
+
+  it("3 fontes só dão erro gratuito → a fonte sã ainda enche as 5 cenas (antes: teto queimado, whitelist repetida)", async () => {
+    indexarOferta(6);
+    juizQuebradoMenosPexelsPhoto();
+    const clips = await selectFootage(["a", "b", "c"], "self", 12345, NUM_CLIPS, "k");
+    expect(clips).toHaveLength(NUM_CLIPS);
+    expect(clips.every(éAoVivo)).toBe(true); // NADA de whitelist
+    expect(clips.every((u) => fonteDe(u) === "pexels-photo")).toBe(true); // tudo da fonte sã
+  });
+
+  it("'sem poster — QA pulado' também não conta como pago (custou US$0)", async () => {
+    indexarOferta(6);
+    juiz.mockImplementation(async (id) => {
+      const url = URL_POR_ID.get(id);
+      if (url && fonteDe(url) === "pexels-video") {
+        return { reject: false, reason: "clear scene", who: "none", cached: false, paid: true };
+      }
+      return { reject: false, reason: "sem poster — QA pulado", who: undefined, cached: false, paid: false };
+    });
+    // tema COM sujeito: o "QA pulado" (who desconhecido) é fail-closed → só a fonte com
+    // veredito real entra; e os pulados não podem ter comido o teto no caminho.
+    const clips = await selectFootage(["a"], "self", 999, NUM_CLIPS, "k", "man");
+    expect(clips.filter(éAoVivo).length).toBeGreaterThan(0);
+    expect(clips.filter(éAoVivo).every((u) => fonteDe(u) === "pexels-video")).toBe(true);
+  });
+
+  it("juiz TOTALMENTE fora: para no teto de tentativas (sem loop infinito) e a whitelist salva o Reel", async () => {
+    indexarOferta(20);
+    juiz.mockImplementation(async () => ({ reject: true, reason: "QA HTTP 529 → rejeitado (fail-safe)", cached: false, paid: false }));
+    const clips = await selectFootage(["a", "b"], "mind", 4242, NUM_CLIPS, "k");
+    expect(juiz.mock.calls.length).toBeLessThanOrEqual(40); // MAX_JUDGE_ATTEMPTS
+    expect(clips).toHaveLength(NUM_CLIPS); // fail-open: whitelist completa
+  });
+
+  it("rodada com termo SECO não encerra o harvest — o termo seguinte ainda é tentado", async () => {
+    // termo "dry" → 0 candidatos; termo "wet" → oferta normal. Antes, UMA rodada sem
+    // progresso encerrava tudo (progressed=false) e o Reel caía na whitelist.
+    const TAG: Record<FootageSourceKey, number> = {
+      "pexels-video": 0, "pexels-photo": 1, "pixabay-video": 2, "pixabay-photo": 3,
+    };
+    buscaAoVivo.mockImplementation(async (k, term) => {
+      if (term === "dry") return [];
+      return Array.from({ length: 6 }, (_, i) => {
+        const c = candidato(k, i + 1, "none");
+        whoPorUrl.set(c.url, "none");
+        URL_POR_ID.set(c.sourceId * 10 + TAG[k], c.url);
+        return c;
+      });
+    });
+    juizAprovaTudo();
+    // seed PAR → rodada 0 usa terms[0] = "dry" (o caso que matava a colheita)
+    const clips = await selectFootage(["dry", "wet"], "network", 2, NUM_CLIPS, "k");
+    expect(clips).toHaveLength(NUM_CLIPS);
+    expect(clips.every(éAoVivo)).toBe(true); // a rodada 1 ("wet") completou o Reel
   });
 });

@@ -131,9 +131,20 @@ export async function searchPixabayVideo(term: string, key: string | undefined):
     const pick = pool[0];
     if (!(pick.height >= pick.width)) continue; // sem opção retrato → descarta (evita paisagem esticada)
     if ((h.duration || 0) < 4) continue;
+    // 2026-07-18 (incidente "El sabio ausente"): a API da Pixabay REMOVEU `picture_id`
+    // (sondado ao vivo: undefined em TODOS os hits; o campo atual é `videos.<size>.thumbnail`,
+    // um jpg no cdn.pixabay.com — verificado acessível, 200 image/jpeg). O fallback antigo
+    // mandava o PRÓPRIO MP4 como "poster" → o juiz de visão recebia vídeo como imagem →
+    // erro HTTP → rejeição fail-safe que queimava o teto de julgamentos em silêncio.
+    // Sem thumbnail em NENHUM tamanho → candidato descartado: sem poster não há como o QA
+    // reputacional da marca olhar o clipe (fail-safe > material não-vetado).
+    const poster = [pick, sizes.large, sizes.medium, sizes.small, sizes.tiny]
+      .map((s: any) => (s && typeof s.thumbnail === "string" ? s.thumbnail : ""))
+      .find((t: string) => t !== "");
+    if (!poster) continue;
     out.push({
       url: pick.url,
-      poster: h.picture_id ? `https://i.vimeocdn.com/video/${h.picture_id}_295x166.jpg` : pick.url,
+      poster,
       mediaType: "video",
       source: "pixabay",
       sourceId: h.id,
