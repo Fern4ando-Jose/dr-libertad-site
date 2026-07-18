@@ -236,17 +236,22 @@ async function recentClipUses(excludeKey?: string): Promise<{ uses: Map<string, 
 // busca ao vivo — as 4 fontes trabalham no caminho NORMAL, sem depender de a whitelist falhar.
 //
 // Regulável SEM deploy (decisão do dono, P7): env FOOTAGE_LIVE_SLOTS.
-//   0  = botão de pânico: comportamento IDÊNTICO ao de antes desta mudança (whitelist
+//   0  = botão de pânico: comportamento IDÊNTICO ao anterior a 2026-07-17 (whitelist
 //        entrega as 5, o harvest nem é chamado — provado por invariante).
-//   2  = default: 3 cenas curadas (a CAPA entre elas) + 2 ao vivo.
-// Clampado em [0, numClips-1]: nunca deixa a whitelist de fora por completo — ela é a
-// única base determinística e é o colchão do fail-open.
-const DEFAULT_LIVE_SLOTS = 2;
+//   5  = default (ordem do dono 2026-07-17, ao ver a MESMA capa em Reels de 15/07 e
+//        17/07): "não quero vídeos repetidos; se o acervo está defasado, não pode ser
+//        usado". TODAS as cenas — inclusive a CAPA — vêm da busca AO VIVO nas 4 fontes;
+//        a whitelist curada deixa de ser fonte primária e vira SÓ o colchão de fail-open
+//        (busca morta / QA rejeitando / banco fora → completarComWhitelist, como sempre).
+// Clampado em [0, numClips]: o teto agora é o Reel inteiro. A whitelist NÃO some do
+// sistema — ela continua sendo o fail-open de TODA saída ruim (e o único caminho com
+// !dbOk); só deixa de ocupar cena quando a busca ao vivo dá conta.
+const DEFAULT_LIVE_SLOTS = 5;
 
 export function liveSlotsFor(numClips: number, raw = process.env.FOOTAGE_LIVE_SLOTS): number {
   const n = raw == null || raw.trim() === "" ? DEFAULT_LIVE_SLOTS : Number(raw);
   if (!Number.isFinite(n)) return DEFAULT_LIVE_SLOTS; // env com lixo → default (fail-open)
-  return Math.max(0, Math.min(Math.floor(n), Math.max(0, numClips - 1)));
+  return Math.max(0, Math.min(Math.floor(n), Math.max(0, numClips)));
 }
 
 // Teto de vereditos PAGOS do juiz de footage por chamada de selectFootage. O harvest
@@ -331,7 +336,7 @@ export async function selectFootage(
   // exatamente o comportamento de hoje. Determinismo > variedade.
   const liveSlots = dbOk ? liveSlotsFor(numClips) : 0;
 
-  // ── PRIMÁRIO: biblioteca CURADA por pilar (whitelist — 4 fontes já vetadas) ──
+  // ── Whitelist curada — hoje SÓ colchão (default: 0 cenas daqui) ─────────────
   // Sorteia clipes DISTINTOS do pilar, determinístico por (tópico,dia) → footage
   // idêntico entre ES e PT, sem repetir clipe no mesmo reel. A whitelist MISTURA
   // Pexels vídeo/foto + Pixabay vídeo/foto (metadado `source`/`mediaType` em cada
@@ -342,10 +347,14 @@ export async function selectFootage(
   // acabou de sair). Filtro por sujeito do tema (`themeWho`) e sorteio moram em
   // pickFromWhitelist (puro, com invariantes).
   //
-  // Agora pede `numClips - liveSlots`, deixando as últimas cenas para a busca ao vivo.
-  // `pickFromWhitelist(…, k)` é PREFIXO de `pickFromWhitelist(…, K)` para k<K (o
-  // sorteio é o mesmo, só a fatia muda) → reservar cenas NÃO reembaralha o que a
-  // whitelist já dava, e a CAPA (cena 1) continua vindo do acervo curado.
+  // Pede `numClips - liveSlots` cenas — com o default 5, ZERO: todas as cenas (capa
+  // inclusive) vêm da busca ao vivo, e a whitelist só entra pelo completarComWhitelist.
+  // A CAPA ao vivo é segura: o render (video/Reel.tsx → SceneBg) só usa a STRING da URL
+  // (isPhotoUrl decide foto→Ken Burns / vídeo→OffthreadVideo, mesma grade duotone da
+  // marca nas duas) — nenhum metadado exclusivo da whitelist é necessário em cena alguma.
+  // `pickFromWhitelist(…, k)` continua PREFIXO de `pickFromWhitelist(…, K)` para k<K
+  // (o sorteio é o mesmo, só a fatia muda) → com FOOTAGE_LIVE_SLOTS parcial (ex.: 2),
+  // a parte curada sai idêntica à de sempre.
   const picked = pickFromWhitelist(cat, seed, numClips - liveSlots, avoid, themeWho);
   if (picked.length >= numClips) return picked.slice(0, numClips); // liveSlots=0 → sai aqui, como antes
 
