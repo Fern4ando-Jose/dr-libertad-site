@@ -1,39 +1,43 @@
-/* Identidade "quente / vintage" do livro I Love Dopamina — funil próprio (landing + quiz).
-   Base tonal herdada do funil "Amanhecer" (quiz do 100 dias), que já normaliza a marca
-   Dr. Liberdade na faixa quente/sépia. Scoped via CSS Module para não vazar sobre o site.
-   --serif = Fraunces (var global --font-serif, já no root layout);
-   --sans  = Instrument Sans (var --font-instrument, injetada pelo componente via next/font). */
+/* Funil "I Love Dopamina" (landing + quiz) vestindo a identidade REAL do site
+   drlibertad.com — mesmos tokens de src/app/globals.css e da home:
+     ink #0B0B0C · offwhite #F4F0E8 · warm-gray #B9B0A2 · muted-red #A45A5A
+     --font-serif = Fraunces (títulos) · --font-sans = Inter (corpo) — as vars
+     globais injetadas pelo root layout; NENHUMA fonte própria.
+   Vocabulário visual espelhado da home: cards rounded-3xl border warm-gray/15
+   bg white/3 backdrop-blur; inputs rounded-2xl bg-ink/35 focus muted-red/60;
+   botão sólido muted-red (newsletter) e pill uppercase tracked (hero);
+   eyebrow 12px tracking .26em warm-gray/80; régua gradient muted-red→warm-gray.
+   Scoped via CSS Module para não vazar sobre o site. */
 
 .root {
-  --bg: #160f0c;
-  --card: rgba(42, 32, 25, 0.66);
-  --cardhi: rgba(52, 39, 29, 0.72);
-  --cream: #f6eedf;
-  --cream2: #eadfcb;
-  --warm: #c6b49b;
-  --dim: #93826d;
-  --red: #ce7266;
-  --red-deep: #b65a4f;
-  --ember: #ebb073;
-  --gold: #dfa75e;
-  --line: rgba(210, 190, 160, 0.12);
-  --line2: rgba(210, 190, 160, 0.22);
-  --line3: rgba(235, 176, 115, 0.34);
-  --serif: var(--font-serif), Georgia, serif;
-  --sans: var(--font-instrument), system-ui, sans-serif;
+  --ink: #0b0b0c;
+  --offwhite: #f4f0e8;
+  --offwhite90: rgba(244, 240, 232, 0.9);
+  --warm: #b9b0a2;
+  --warm90: rgba(185, 176, 162, 0.9);
+  --warm80: rgba(185, 176, 162, 0.8);
+  --dim: rgba(185, 176, 162, 0.65);
+  --red: #a45a5a;
+  --line: rgba(185, 176, 162, 0.1);
+  --line2: rgba(185, 176, 162, 0.18);
+  --line3: rgba(164, 90, 90, 0.4);
+  --card: rgba(255, 255, 255, 0.03);
+  --cardhi: rgba(255, 255, 255, 0.04);
+  --inner: rgba(11, 11, 12, 0.25);
+  --serif: var(--font-serif), ui-serif, Georgia, serif;
+  --sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --wrap: 760px;
-  --lit: inset 0 1px 0 rgba(255, 238, 214, 0.06);
-  --shadow: 0 26px 60px -34px rgba(0, 0, 0, 0.75);
+  --shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
 
   position: relative;
   min-height: 100vh;
-  background: var(--bg);
-  color: var(--cream);
+  background: var(--ink);
+  color: var(--offwhite);
   font-family: var(--sans);
   line-height: 1.65;
+  letter-spacing: -0.01em; /* mesmo body do site */
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  letter-spacing: normal;
 }
 
 .root *,
@@ -49,37 +53,16 @@
   border: none;
 }
 
-/* Céu / brasas — fundo fixo */
+/* Fundo fixo: os mesmos radial-gradients do hero da home (decorativo puro). */
 .sky {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, #221610 0%, #1a120d 34%, #160f0c 70%);
-}
-.sun {
-  position: absolute;
-  top: -32vh;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 130vw;
-  height: 96vh;
-  background: radial-gradient(50% 58% at 50% 0%, rgba(235, 176, 115, 0.28), rgba(206, 114, 102, 0.12) 34%, transparent 60%);
-}
-.ember {
-  position: absolute;
-  bottom: -14px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(235, 176, 115, 0.9), rgba(235, 176, 115, 0));
-  animation: ember linear infinite;
-}
-@keyframes ember {
-  0% { transform: translateY(0); opacity: 0; }
-  12% { opacity: 0.8; }
-  90% { opacity: 0.5; }
-  100% { transform: translateY(-112vh); opacity: 0; }
+  background:
+    radial-gradient(1000px circle at 40% -20%, rgba(164, 90, 90, 0.22), transparent 60%),
+    radial-gradient(800px circle at 80% 10%, rgba(231, 221, 204, 0.12), transparent 55%),
+    var(--ink);
 }
 
 .app {
@@ -92,59 +75,60 @@
   padding: 0 26px;
 }
 
-/* Botões */
-.btn {
+/* Botões — o vocabulário do site, sem invenção:
+   .btn      = botão SÓLIDO muted-red (o submit da newsletter da home)
+   .btnGhost = pill com borda + uppercase tracked (os CTAs do hero da home) */
+.root .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   font-family: var(--sans);
-  font-weight: 500;
+  font-weight: 600;
   font-size: 14px;
-  padding: 14px 28px;
-  border-radius: 100px;
+  letter-spacing: 0;
+  padding: 13px 24px;
+  border-radius: 16px;
   border: 1px solid transparent;
-  background: linear-gradient(180deg, var(--red), var(--red-deep));
-  color: #fdf6ec;
-  box-shadow: 0 12px 30px -12px rgba(206, 114, 102, 0.75), var(--lit);
-  transition: 0.2s;
+  background: var(--red);
+  color: var(--offwhite);
+  transition: background 0.2s, opacity 0.2s;
   text-align: center;
 }
-.btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.07);
+.root .btn:hover {
+  background: rgba(164, 90, 90, 0.85);
 }
-.btn:disabled {
-  opacity: 0.4;
+.root .btn:disabled {
+  opacity: 0.55;
   pointer-events: none;
-  transform: none;
 }
-.btnGhost {
-  background: none;
-  border: 1px solid var(--line3);
-  color: var(--cream2);
-  box-shadow: none;
+.root .btnGhost {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(185, 176, 162, 0.2);
+  color: var(--offwhite90);
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  border-radius: 9999px;
+  padding: 13px 24px;
 }
-.btnGhost:hover {
-  background: rgba(235, 176, 115, 0.08);
-  border-color: var(--ember);
-  filter: none;
+.root .btnGhost:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .kick {
   font-family: var(--sans);
   font-size: 12px;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--ember);
-  font-weight: 500;
+  color: var(--warm80);
 }
+/* Régua de seção — a mesma da SectionHeading da home. */
 .rrule {
-  width: 56px;
-  height: 3px;
-  background: linear-gradient(90deg, var(--ember), var(--red));
-  border-radius: 2px;
-  box-shadow: 0 0 20px -2px rgba(235, 176, 115, 0.5);
+  width: 112px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(164, 90, 90, 0.7), rgba(185, 176, 162, 0.25), transparent);
 }
 
 /* ── LANDING ─────────────────────────────────────────────────────── */
@@ -157,42 +141,45 @@
   text-align: center;
   padding: 96px 0 56px;
 }
+/* Chip estático (não-clicável) — clone do .dl-chip do site. */
 .badge {
   font-family: var(--sans);
   font-size: 11px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--ember);
-  border: 1px solid var(--line3);
-  border-radius: 100px;
-  padding: 7px 16px;
+  color: var(--offwhite90);
+  border: 1px solid rgba(185, 176, 162, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 9999px;
+  padding: 8px 12px;
   margin-bottom: 26px;
 }
 .heroTitle {
   font-family: var(--serif);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.02;
-  color: var(--cream);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+  color: var(--offwhite);
   font-size: clamp(40px, 8vw, 74px);
   max-width: 15ch;
+  text-wrap: balance;
 }
 .hero .rrule {
   margin: 28px auto 24px;
 }
 .heroSub {
-  font-family: var(--serif);
-  font-size: clamp(18px, 2.4vw, 21px);
-  font-weight: 300;
-  line-height: 1.6;
-  color: var(--cream2);
-  max-width: 46ch;
+  font-family: var(--sans);
+  font-size: clamp(16px, 2vw, 17px);
+  line-height: 1.85;
+  color: var(--warm90);
+  max-width: 52ch;
 }
 .ctaRow {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
   margin-top: 34px;
 }
 
@@ -203,29 +190,30 @@
 .eyebrow {
   font-family: var(--sans);
   font-size: 12px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--ember);
-  font-weight: 500;
+  color: var(--warm80);
   margin-bottom: 14px;
 }
 .h2 {
   font-family: var(--serif);
-  font-weight: 600;
+  font-weight: 400;
   font-size: clamp(27px, 4.4vw, 38px);
-  letter-spacing: -0.01em;
-  line-height: 1.12;
-  color: var(--cream);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--offwhite);
   margin-bottom: 20px;
+  text-wrap: balance;
 }
 .lead {
-  font-family: var(--serif);
-  font-size: 18px;
-  line-height: 1.7;
-  color: var(--cream2);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--warm90);
 }
 
-/* Identificação — lista de sintomas */
+/* Identificação — lista de sintomas (marcador = ponto muted-red, sem brilho:
+   inequivocamente um bullet, não um ícone clicável). */
 .checklist {
   list-style: none;
   margin: 18px 0 22px;
@@ -234,41 +222,41 @@
   gap: 12px;
 }
 .checklist li {
-  font-family: var(--serif);
-  font-size: 18px;
-  line-height: 1.5;
-  color: var(--cream);
-  padding-left: 34px;
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--offwhite90);
+  padding-left: 30px;
   position: relative;
 }
 .checklist li::before {
   content: "";
   position: absolute;
   left: 6px;
-  top: 9px;
-  width: 8px;
-  height: 8px;
+  top: 10px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--ember);
-  box-shadow: 0 0 12px -1px rgba(235, 176, 115, 0.6);
+  background: var(--red);
 }
 .punch {
-  font-family: var(--serif);
-  font-size: 19px;
-  line-height: 1.6;
-  color: var(--cream);
-  border-left: 3px solid var(--red);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--offwhite);
+  border-left: 2px solid var(--red);
   padding: 8px 0 8px 18px;
   margin: 22px 0 24px;
 }
 
-/* Prévia — card destaque */
+/* Prévia — card destaque (rounded-3xl border warm-gray/15 bg white/3, a home). */
 .previaCard {
-  border: 1px solid var(--line3);
-  border-radius: 22px;
+  border: 1px solid rgba(185, 176, 162, 0.15);
+  border-radius: 24px;
   padding: 30px;
-  background: var(--cardhi);
-  box-shadow: var(--shadow), var(--lit);
+  background: var(--card);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow);
 }
 .previaList {
   list-style: none;
@@ -276,40 +264,46 @@
   padding: 0;
   display: grid;
   gap: 16px;
+  counter-reset: previa;
 }
 .previaList li {
   font-family: var(--sans);
-  font-size: 15.5px;
-  line-height: 1.55;
-  color: var(--cream2);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--warm90);
   padding-left: 26px;
   position: relative;
 }
+/* Numeração "01" em muted-red — o padrão de lista da home (manifesto),
+   no lugar da seta "→" que parecia link clicável. */
 .previaList li::before {
-  content: "→";
+  content: counter(previa, decimal-leading-zero);
+  counter-increment: previa;
   position: absolute;
   left: 0;
-  top: 0;
-  color: var(--ember);
+  top: 1px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--red);
   font-weight: 600;
 }
 .closer {
-  font-family: var(--serif);
-  font-size: 17px;
-  color: var(--cream);
+  font-family: var(--sans);
+  font-size: 16px;
+  color: var(--offwhite);
   margin: 6px 0 16px;
 }
 .recommend {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .recommend small {
   font-family: var(--sans);
   font-size: 11px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--ember);
+  color: var(--warm80);
 }
 
 /* Formulário "só a prévia" */
@@ -320,9 +314,9 @@
 }
 .previaForm label {
   display: block;
-  font-family: var(--serif);
-  font-size: 16px;
-  color: var(--cream);
+  font-family: var(--sans);
+  font-size: 15px;
+  color: var(--offwhite90);
   margin-bottom: 12px;
 }
 .inputRow {
@@ -330,25 +324,30 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+/* Input — o da newsletter da home: rounded-2xl, bg-ink/35, foco muted-red/60. */
 .input {
   flex: 1;
   min-width: 220px;
-  background: rgba(18, 12, 9, 0.5);
-  border: 1px solid var(--line2);
-  border-radius: 12px;
-  color: var(--cream);
+  background: rgba(11, 11, 12, 0.35);
+  border: 1px solid rgba(185, 176, 162, 0.15);
+  border-radius: 16px;
+  color: var(--offwhite);
   font-family: var(--sans);
   font-size: 15px;
   padding: 13px 15px;
 }
+.input::placeholder {
+  color: rgba(185, 176, 162, 0.5);
+}
 .input:focus {
   outline: none;
-  border-color: var(--ember);
+  border-color: rgba(164, 90, 90, 0.6);
 }
 .formNote {
   font-size: 12px;
   color: var(--dim);
   margin-top: 12px;
+  line-height: 1.6;
 }
 .formErr {
   color: var(--red);
@@ -356,32 +355,33 @@
   margin-top: 10px;
 }
 .formOk {
-  font-family: var(--serif);
-  color: var(--ember);
-  font-size: 16px;
+  font-family: var(--sans);
+  color: var(--offwhite);
+  font-size: 15px;
   margin-top: 12px;
 }
 
 /* Prova / honestidade */
 .proofBody {
-  font-family: var(--serif);
-  font-size: 18px;
-  line-height: 1.75;
-  color: var(--cream2);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--warm90);
 }
 .honesty {
   font-family: var(--sans);
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--cream);
-  background: rgba(206, 114, 102, 0.1);
-  border: 1px solid var(--line3);
-  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--offwhite90);
+  background: rgba(164, 90, 90, 0.08);
+  border: 1px solid rgba(164, 90, 90, 0.25);
+  border-radius: 16px;
   padding: 16px 18px;
   margin-top: 22px;
 }
 
-/* FAQ */
+/* FAQ — texto estático (pergunta + resposta sempre visíveis; nada de acordeão
+   nem chevron que sugerisse clique). */
 .faq {
   display: grid;
   gap: 4px;
@@ -394,14 +394,14 @@
 .faqQ {
   font-family: var(--serif);
   font-size: 19px;
-  color: var(--cream);
+  color: var(--offwhite);
   margin-bottom: 6px;
 }
 .faqA {
   font-family: var(--sans);
   font-size: 15px;
-  line-height: 1.6;
-  color: var(--warm);
+  line-height: 1.7;
+  color: var(--warm90);
 }
 
 /* Rodapé de repetição do CTA */
@@ -418,30 +418,32 @@
 }
 .quizTitle {
   font-family: var(--serif);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.04;
-  color: var(--cream);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  color: var(--offwhite);
   font-size: clamp(34px, 6vw, 56px);
   margin: 8px 0;
+  text-wrap: balance;
 }
+/* em itálico em muted-red — o mesmo acento do h1 da home. */
 .quizTitle em {
   font-style: italic;
   font-weight: 400;
-  color: var(--ember);
+  color: var(--red);
 }
 .quizSub {
-  font-family: var(--serif);
-  font-size: 18px;
-  font-weight: 300;
-  color: var(--cream2);
+  font-family: var(--sans);
+  font-size: 16px;
+  color: var(--warm90);
+  line-height: 1.8;
 }
 .opening {
-  font-family: var(--serif);
-  font-size: 17px;
-  color: var(--cream2);
-  line-height: 1.7;
-  border-left: 3px solid var(--red);
+  font-family: var(--sans);
+  font-size: 15px;
+  color: var(--warm90);
+  line-height: 1.8;
+  border-left: 2px solid var(--red);
   padding: 6px 0 6px 16px;
   margin: 26px 0 8px;
 }
@@ -454,63 +456,55 @@
 .slab .n {
   font-family: var(--sans);
   font-size: 12px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--ember);
-  font-weight: 500;
+  color: var(--warm80);
   white-space: nowrap;
 }
 .slab .ln {
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, var(--line3), transparent);
-}
-.q {
-  padding: 22px 0;
-  border-top: 1px solid var(--line);
-}
-.qn {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 15px;
-  color: var(--ember);
-  margin-bottom: 2px;
+  background: linear-gradient(90deg, rgba(164, 90, 90, 0.7), rgba(185, 176, 162, 0.25), transparent);
 }
 .qtext {
   font-family: var(--serif);
-  font-size: 20px;
-  color: var(--cream);
-  line-height: 1.35;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  color: var(--offwhite);
+  line-height: 1.25;
   margin-bottom: 14px;
 }
 .opts {
   display: grid;
   gap: 9px;
 }
+/* Alternativas: cards clicáveis no padrão da home (rounded-2xl, borda
+   warm-gray, hover claro) — affordance de botão inequívoca. */
 .root .opt {
   font-family: var(--sans);
   font-size: 14px;
-  color: var(--warm);
-  border: 1px solid var(--line2);
-  border-radius: 14px;
+  color: var(--warm90);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(185, 176, 162, 0.15);
+  border-radius: 16px;
   padding: 13px 16px;
   transition: 0.18s;
   text-align: left;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 .root .opt:hover {
-  border-color: var(--line3);
-  color: var(--cream);
-  background: rgba(235, 176, 115, 0.08);
+  border-color: rgba(185, 176, 162, 0.55);
+  color: var(--offwhite);
+  background: rgba(255, 255, 255, 0.05);
 }
 .root .optSel {
-  background: linear-gradient(180deg, var(--red), var(--red-deep));
+  background: var(--red);
   border-color: transparent;
-  color: #fdf6ec;
+  color: var(--offwhite);
 }
 .root .optSel:hover {
-  background: linear-gradient(180deg, var(--red), var(--red-deep));
-  color: #fdf6ec;
+  background: var(--red);
+  color: var(--offwhite);
 }
 
 /* Wizard: uma pergunta por vez */
@@ -527,23 +521,22 @@
 .stepCount {
   font-family: var(--sans);
   font-size: 12px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--ember);
-  font-weight: 500;
+  color: var(--warm80);
   white-space: nowrap;
 }
 .stepAxis {
   font-family: var(--serif);
   font-style: italic;
   font-size: 15px;
-  color: var(--cream2);
+  color: var(--warm90);
   text-align: right;
 }
 .stepTrack {
   height: 3px;
   border-radius: 99px;
-  background: rgba(210, 190, 160, 0.14);
+  background: rgba(185, 176, 162, 0.15);
   overflow: hidden;
   margin-bottom: 26px;
 }
@@ -551,7 +544,7 @@
   display: block;
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, var(--red-deep), var(--ember));
+  background: var(--red);
   transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .stepCard {
@@ -574,20 +567,23 @@
   gap: 12px;
   margin-top: 18px;
 }
+/* Navegação do wizard: pill com borda, uppercase tracked — o CTA-pill do site
+   em tamanho menor. */
 .root .stepBtn {
   font-family: var(--sans);
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  color: var(--cream2);
-  border: 1px solid var(--line2);
-  border-radius: 99px;
-  padding: 9px 18px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--offwhite90);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(185, 176, 162, 0.2);
+  border-radius: 9999px;
+  padding: 10px 18px;
   transition: 0.18s;
-  background: transparent;
 }
 .root .stepBtn:hover:not(:disabled) {
-  color: var(--cream);
-  border-color: var(--line3);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--offwhite);
 }
 .root .stepBtn:disabled {
   opacity: 0.35;
@@ -605,44 +601,49 @@
   }
 }
 
-/* Gate de e-mail do quiz */
+/* Gate de e-mail do quiz — card do site. */
 .gate {
-  border: 1px solid var(--line3);
-  border-radius: 22px;
+  border: 1px solid rgba(185, 176, 162, 0.15);
+  border-radius: 24px;
   padding: 28px;
   margin: 28px 0;
-  background: var(--cardhi);
-  box-shadow: var(--shadow), var(--lit);
+  background: var(--card);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow);
   text-align: center;
 }
 .gate h3 {
   font-family: var(--serif);
-  font-weight: 600;
-  font-size: 24px;
+  font-weight: 400;
+  font-size: 26px;
+  letter-spacing: -0.02em;
   margin-bottom: 8px;
 }
 .gate p {
-  font-family: var(--serif);
-  color: var(--cream2);
-  font-size: 16px;
-  line-height: 1.6;
+  font-family: var(--sans);
+  color: var(--warm90);
+  font-size: 15px;
+  line-height: 1.7;
   margin-bottom: 18px;
 }
 .gate input {
   width: 100%;
   max-width: 360px;
-  background: rgba(18, 12, 9, 0.5);
-  border: 1px solid var(--line2);
-  border-radius: 12px;
-  color: var(--cream);
+  background: rgba(11, 11, 12, 0.35);
+  border: 1px solid rgba(185, 176, 162, 0.15);
+  border-radius: 16px;
+  color: var(--offwhite);
   font-family: var(--sans);
   font-size: 15px;
   padding: 13px 15px;
   margin-bottom: 14px;
 }
+.gate input::placeholder {
+  color: rgba(185, 176, 162, 0.5);
+}
 .gate input:focus {
   outline: none;
-  border-color: var(--ember);
+  border-color: rgba(164, 90, 90, 0.6);
 }
 .gateHint {
   font-size: 12px;
@@ -650,69 +651,73 @@
   margin-top: 12px;
   margin-bottom: 0;
 }
-.gateErr {
-  color: var(--red);
-  font-size: 13px;
-  margin-top: 10px;
-  margin-bottom: 0;
-}
 
 /* Resultado */
 .verdict {
   background: var(--card);
-  border: 1px solid var(--line2);
-  border-radius: 22px;
+  border: 1px solid rgba(185, 176, 162, 0.15);
+  border-radius: 24px;
   padding: 30px;
   margin-top: 14px;
-  box-shadow: var(--shadow), var(--lit);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow);
 }
 .band {
   font-family: var(--sans);
   font-size: 12px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  font-weight: 500;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Ponto de cor da faixa (substitui o emoji — status decorativo, não ícone). */
+.bandDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
 }
 .verdict h3 {
   font-family: var(--serif);
-  font-weight: 600;
+  font-weight: 400;
   font-size: 29px;
-  line-height: 1.15;
-  margin: 6px 0 4px;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  margin: 8px 0 4px;
 }
 .meter {
   display: flex;
-  height: 9px;
-  border-radius: 100px;
+  height: 8px;
+  border-radius: 9999px;
   overflow: hidden;
   margin: 18px 0;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 .meter i {
   display: block;
 }
 .verdict .v {
-  font-family: var(--serif);
-  font-size: 18px;
-  line-height: 1.72;
-  color: var(--cream);
+  font-family: var(--sans);
+  font-size: 15.5px;
+  line-height: 1.8;
+  color: var(--offwhite90);
   margin: 14px 0;
 }
 .promise {
   font-family: var(--sans);
   font-size: 14px;
-  color: var(--ember);
+  color: var(--warm90);
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
   margin-top: 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
 }
 .disc {
   font-family: var(--sans);
   font-size: 12.5px;
   color: var(--dim);
   line-height: 1.6;
-  border-left: 2px solid var(--line3);
+  border-left: 2px solid var(--line2);
   padding: 6px 0 6px 14px;
   margin: 30px 0 0;
 }
@@ -727,10 +732,15 @@
 @media (max-width: 640px) {
   .wrap { padding: 0 20px; }
   .hero { padding: 84px 0 44px; }
-  .ctaRow .btn { width: 100%; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ember { animation: none; display: none; }
-  .btn:hover { transform: none; }
+  .ctaRow .btn,
+  .ctaRow .btnGhost { width: 100%; }
+  /* Em coluna estreita o CTA + selo "recomendado" empilham (lado a lado
+     esmagava o botão em 3 linhas). */
+  .recommend {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+  .root .recommend .btn { width: 100%; }
 }

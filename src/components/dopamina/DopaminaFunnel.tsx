@@ -1,27 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Instrument_Sans } from "next/font/google";
 import type { Lang } from "@/lib/i18n/dictionaries";
 import MetaPixel from "@/components/survey/MetaPixel";
 import { dopaminaContent, faixaForScore, type Band } from "./dopamina.content";
 import styles from "./dopamina.module.css";
 
-// Instrument Sans compõe o par tipográfico com a Fraunces (global --font-serif).
-const instrument = Instrument_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-instrument",
-  display: "swap",
-});
+// Tipografia: Fraunces (--font-serif) + Inter (--font-sans), AS MESMAS do site —
+// a landing veste a identidade do drlibertad.com, não uma fonte própria.
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const EMBERS = [
-  { left: "12%", dur: "15s", delay: "0s", size: 5 },
-  { left: "34%", dur: "19s", delay: "5s", size: 5 },
-  { left: "58%", dur: "16s", delay: "2s", size: 6 },
-  { left: "78%", dur: "21s", delay: "8s", size: 5 },
-];
 
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
 type Utm = Partial<Record<(typeof UTM_KEYS)[number], string>>;
@@ -163,19 +151,13 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
   const q = c.quiz;
 
   return (
-    <div className={`${styles.root} ${instrument.variable}`}>
+    <div className={styles.root}>
       <MetaPixel event="dopamina_funnel_view" />
 
-      <div className={styles.sky} aria-hidden="true">
-        <div className={styles.sun} />
-        {EMBERS.map((e, i) => (
-          <span
-            key={i}
-            className={styles.ember}
-            style={{ left: e.left, width: e.size, height: e.size, animationDuration: e.dur, animationDelay: e.delay }}
-          />
-        ))}
-      </div>
+      {/* Fundo decorativo: os MESMOS radial-gradients do hero da home (ink +
+          muted-red + offwhite). Puro CSS, pointer-events none — inequivocamente
+          decorativo, nada de partículas/ícones ambíguos. */}
+      <div className={styles.sky} aria-hidden="true" />
 
       <div className={styles.app}>
         {/* HERO */}
@@ -384,20 +366,20 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
 
           {result && (
             <div ref={resultRef} className={styles.verdict} aria-live="polite">
+              {/* Marcador de faixa: ponto de cor via CSS (vocabulário do site),
+                  não emoji — emoji parecia ícone clicável/ambíguo. */}
               <div className={styles.band} style={{ color: result.band.color }}>
-                {result.band.emoji} {result.total}
+                <i className={styles.bandDot} style={{ background: result.band.color }} aria-hidden="true" />
+                {result.total}
                 {q.result.scoreSuffix}
               </div>
               <h3>{result.band.name}</h3>
               <div className={styles.meter}>
                 <i style={{ width: `${pct}%`, background: result.band.color }} />
-                <i style={{ flex: 1, background: "rgba(210,190,160,.12)" }} />
+                <i style={{ flex: 1, background: "rgba(185,176,162,.15)" }} />
               </div>
               <p className={styles.v}>{result.band.verdict}</p>
-              <p className={styles.promise}>
-                <span aria-hidden="true">✉️</span>
-                {q.result.guidePromise}
-              </p>
+              <p className={styles.promise}>{q.result.guidePromise}</p>
             </div>
           )}
 

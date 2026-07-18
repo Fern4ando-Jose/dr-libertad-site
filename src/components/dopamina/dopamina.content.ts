@@ -112,7 +112,7 @@ const BAND_META: Record<Faixa, { min: number; max: number; emoji: string; color:
   verde: { min: 0, max: 5, emoji: "🟢", color: "#5a9c6b" },
   amarelo: { min: 6, max: 12, emoji: "🟡", color: "#d8b53a" },
   vermelho: { min: 13, max: 18, emoji: "🟠", color: "#dd8a43" },
-  critico: { min: 19, max: 24, emoji: "🔴", color: "#CE7266" },
+  critico: { min: 19, max: 24, emoji: "🔴", color: "#A45A5A" }, // muted-red do site
 };
 
 // ─────────────────────────────────────────────────────────────────────
