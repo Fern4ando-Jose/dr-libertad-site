@@ -3,17 +3,23 @@
 /**
  * A TRAVESSIA DA GAIOLA — abertura cinematográfica da home.
  *
- * Uma section alta (≈100vh por cena) com um palco sticky: conforme o visitante
- * rola, os QUADROS dos vídeos das 7 cenas avançam (e retrocedem) num <canvas>,
- * com os textos reais do dicionário entrando por cena. Sem ScrollTrigger/pin:
- * o progresso é lido num rAF próprio a partir do scroll nativo (que o Lenis
- * anima), o que evita conflito com o GsapOrchestrator global e é 100% reversível.
+ * VISUAL: uma section alta (≈100vh por cena) com um palco sticky; um rAF próprio
+ * lê o scroll nativo (animado pelo Lenis) e desenha no <canvas> os QUADROS dos
+ * vídeos das 7 cenas (ida e volta), com crossfade nas emendas. Fail-open: sem
+ * manifest.json, a cena usa o poster (storyboard) parado.
  *
- * Fail-open: se um manifest.json de cena não existir/falhar, a cena usa o
- * poster (storyboard) parado — a narrativa nunca quebra.
+ * TIPOGRAFIA (refino do dono, 19/07): scroll-scrubbed masked split-text reveal —
+ * GSAP + ScrollTrigger (scrub) + SplitText (mask: "lines"). Cada frase-beat entra
+ * de baixo da máscara (yPercent ~115, blur 8px), atada DIRETAMENTE à rolagem
+ * (reversível), e sai subindo (-70%) com desfoque quando a narrativa avança.
+ * Atos com comportamento próprio: captura = rápida e fragmentada; silêncio =
+ * lenta, poucas palavras por vez; final = frase estável, sem sair.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { SplitText } from "gsap/SplitText";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 
 const SCENES = [1, 2, 3, 4, 5, 6, 7] as const;
@@ -41,12 +47,25 @@ type SceneMedia = {
   failed: boolean;
 };
 
+/** Um beat tipográfico: frase + janela de entrada/saída no progresso global (0..1). */
+type Beat = {
+  id: string;
+  text: string;
+  /** "title" = grande, quebra por linhas · "words" = menor, revela palavra a palavra */
+  kind: "title" | "words";
+  enter: [number, number];
+  /** null = frase final estável, nunca sai */
+  exit: [number, number] | null;
+  /** fração do enter usada em stagger (captura maior = mais fragmentado) */
+  frag: number;
+  accent?: boolean;
+};
+
 function framePath(base: string, m: Manifest, i: number) {
   const n = String(m.first + i).padStart(3, "0");
   return `${base}/${m.pattern.replace("%03d", n)}`;
 }
 
-/** desenha a imagem em modo "cover" (preenche sem distorcer) */
 function drawCover(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -65,16 +84,14 @@ export default function TravessiaOpening() {
   const { t, lang } = useLang();
   const sectionRef = useRef<HTMLElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const beatsWrapRef = useRef<HTMLDivElement | null>(null);
+  const ctasRef = useRef<HTMLDivElement | null>(null);
   const mediaRef = useRef<SceneMedia[]>([]);
-  const progressRef = useRef(0);
   const rafRef = useRef<number>(0);
   const [reduced, setReduced] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [ready, setReady] = useState(false);
-  /** cena ativa (0..6) — só muda em limiares; controla os textos via CSS */
   const [active, setActive] = useState(0);
-  /** passo do texto dentro da cena (0..3) para entradas graduais */
-  const [step, setStep] = useState(0);
 
   const tv = t.travessia;
 
@@ -95,6 +112,27 @@ export default function TravessiaOpening() {
 
   const variant = isMobile ? "mobile" : "desktop";
 
+  /**
+   * Os 8 beats na ordem ditada pelo dono (19/07), sincronizados com as cenas:
+   * gaiola se formando → aproximação → travessia → saturação → pausa →
+   * espaço entre impulso e resposta → liberdade (estável).
+   */
+  const beats = useMemo<Beat[]>(
+    () => [
+      { id: "b1", text: tv.c1a, kind: "title", enter: [0.015, 0.085], exit: [0.095, 0.13], frag: 0.35 },
+      { id: "b2", text: tv.c1b, kind: "title", enter: [0.135, 0.18], exit: [0.195, 0.23], frag: 0.35, accent: true },
+      { id: "b3", text: tv.c2b, kind: "title", enter: [0.24, 0.29], exit: [0.305, 0.34], frag: 0.4 },
+      { id: "b4", text: tv.c3b, kind: "words", enter: [0.35, 0.4], exit: [0.425, 0.455], frag: 0.45 },
+      { id: "b5", text: tv.b90, kind: "words", enter: [0.475, 0.565], exit: [0.59, 0.62], frag: 0.6 },
+      { id: "b6", text: tv.c5a, kind: "title", enter: [0.635, 0.695], exit: [0.72, 0.75], frag: 0.3 },
+      { id: "b7", text: tv.bfim, kind: "title", enter: [0.79, 0.86], exit: null, frag: 0.25, accent: true },
+    ],
+    [tv]
+  );
+
+  /** passos do ritual — surgem devagar, um por vez, dentro do silêncio (cena 4) */
+  const steps = t.hero.deckSteps;
+
   const loadScene = useCallback(
     (idx: number) => {
       const media = mediaRef.current[idx];
@@ -109,15 +147,24 @@ export default function TravessiaOpening() {
         .then((m) => {
           media.manifest = m;
           media.frames = new Array(m.frameCount).fill(null);
-          // carrega progressivamente; os primeiros com prioridade
-          for (let i = 0; i < m.frameCount; i++) {
-            const img = new Image();
-            img.decoding = "async";
-            img.src = framePath(base, m, i);
-            img.onload = () => {
-              media.frames[i] = img;
-            };
-          }
+          // fila de carregamento (6 por vez) — evita rajada de ~100 requisições
+          let next = 0;
+          let inFlight = 0;
+          const pump = () => {
+            while (inFlight < 6 && next < m.frameCount) {
+              const i = next++;
+              inFlight++;
+              const img = new Image();
+              img.decoding = "async";
+              img.onload = img.onerror = () => {
+                media.frames[i] = img;
+                inFlight--;
+                pump();
+              };
+              img.src = framePath(base, m, i);
+            }
+          };
+          pump();
         })
         .catch(() => {
           media.failed = true;
@@ -138,7 +185,6 @@ export default function TravessiaOpening() {
       poster.src = `/generated/storyboard/scene-0${s}.png`;
       return { manifest: null, frames: [], poster, loading: false, failed: false };
     });
-    // cena 1 e 2 já começam a carregar; as demais quando se aproximarem
     loadScene(0);
     loadScene(1);
     const first = mediaRef.current[0].poster;
@@ -151,7 +197,7 @@ export default function TravessiaOpening() {
     };
   }, [reduced, loadScene]);
 
-  // laço principal: progresso -> desenho + estados de texto
+  // laço do CANVAS: progresso -> desenho dos quadros + cena ativa (pontos)
   useEffect(() => {
     if (reduced) return;
     const canvas = canvasRef.current;
@@ -161,16 +207,13 @@ export default function TravessiaOpening() {
     if (!ctx) return;
 
     let lastActive = -1;
-    let lastStep = -1;
 
     const tick = () => {
       rafRef.current = requestAnimationFrame(tick);
       const rect = section.getBoundingClientRect();
       const total = rect.height - window.innerHeight;
       const p = total > 0 ? Math.min(1, Math.max(0, -rect.top / total)) : 0;
-      progressRef.current = p;
 
-      // dimensões (DPR até 2)
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const cw = Math.round(canvas.clientWidth * dpr);
       const ch = Math.round(canvas.clientHeight * dpr);
@@ -181,9 +224,8 @@ export default function TravessiaOpening() {
 
       const seg = 1 / N;
       const idx = Math.min(N - 1, Math.floor(p / seg));
-      const local = (p - idx * seg) / seg; // 0..1 dentro da cena
+      const local = (p - idx * seg) / seg;
 
-      // pré-carrega vizinhas
       loadScene(idx);
       if (idx + 1 < N) loadScene(idx + 1);
 
@@ -195,7 +237,6 @@ export default function TravessiaOpening() {
             m.manifest.frameCount - 1,
             Math.max(0, Math.round(lp * (m.manifest.frameCount - 1)))
           );
-          // usa o quadro mais próximo já carregado (busca para trás)
           for (let k = fi; k >= 0; k--) {
             const f = m.frames[k];
             if (f && f.complete && f.naturalWidth > 0) return f;
@@ -213,7 +254,6 @@ export default function TravessiaOpening() {
         ctx.globalAlpha = 1;
         drawCover(ctx, img, cw, ch);
       }
-      // crossfade: início da cena atual recebe o fim da anterior por cima
       if (idx > 0 && local < FADE) {
         const prev = pick(idx - 1, 1);
         if (prev) {
@@ -227,16 +267,133 @@ export default function TravessiaOpening() {
         lastActive = idx;
         setActive(idx);
       }
-      const st = local < 0.3 ? 0 : local < 0.55 ? 1 : local < 0.8 ? 2 : 3;
-      if (st !== lastStep) {
-        lastStep = st;
-        setStep(st);
-      }
     };
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
   }, [reduced, loadScene]);
+
+  // TIPOGRAFIA: timeline única, scrubada pela rolagem, com máscara + split
+  useEffect(() => {
+    if (reduced) return;
+    const section = sectionRef.current;
+    const wrap = beatsWrapRef.current;
+    if (!section || !wrap) return;
+
+    gsap.registerPlugin(ScrollTrigger, SplitText);
+
+    let tl: gsap.core.Timeline | null = null;
+    const splits: SplitText[] = [];
+    let killed = false;
+
+    // fontes prontas antes de dividir (senão as linhas quebram errado)
+    const fontsReady: Promise<unknown> =
+      (document as any).fonts?.ready ?? Promise.resolve();
+
+    fontsReady.then(() => {
+      if (killed) return;
+
+      tl = gsap.timeline({
+        defaults: { ease: "none" }, // atado ao scrub — a rolagem É o tempo
+        scrollTrigger: {
+          trigger: section,
+          start: "top top",
+          end: "bottom bottom",
+          scrub: 0.9,
+        },
+      });
+
+      const els = Array.from(
+        wrap.querySelectorAll<HTMLElement>("[data-beat]")
+      );
+
+      els.forEach((el) => {
+        const beat = beats.find((b) => b.id === el.dataset.beat);
+        if (!beat) return;
+        el.style.visibility = "visible";
+
+        // linhas mascaradas; textos menores também dividem palavras
+        const split = new SplitText(el.querySelector(".beat-text")!, {
+          type: beat.kind === "words" ? "lines,words" : "lines",
+          mask: "lines",
+          linesClass: "beat-line",
+        });
+        splits.push(split);
+        const targets = beat.kind === "words" ? split.words : split.lines;
+
+        const [e0, e1] = beat.enter;
+        const eLen = e1 - e0;
+        // entrada: de baixo da máscara, com leve desfoque
+        tl!.fromTo(
+          targets,
+          { yPercent: 115, opacity: 0, filter: "blur(8px)" },
+          {
+            yPercent: 0,
+            opacity: 1,
+            filter: "blur(0px)",
+            duration: eLen * (1 - beat.frag),
+            stagger: targets.length > 1 ? (eLen * beat.frag) / (targets.length - 1) : 0,
+          },
+          e0
+        );
+
+        if (beat.exit) {
+          const [x0, x1] = beat.exit;
+          const xLen = x1 - x0;
+          // saída: sobe discretamente, perde opacidade, ganha desfoque, some na máscara
+          tl!.to(
+            targets,
+            {
+              yPercent: -70,
+              opacity: 0,
+              filter: "blur(8px)",
+              duration: xLen * 0.85,
+              stagger: targets.length > 1 ? (xLen * 0.15) / (targets.length - 1) : 0,
+            },
+            x0
+          );
+        }
+      });
+
+      // passos do ritual (silêncio): palavras poucas, bem devagar, um por vez
+      const stepEls = Array.from(
+        wrap.querySelectorAll<HTMLElement>("[data-step]")
+      );
+      stepEls.forEach((el, i) => {
+        el.style.visibility = "visible";
+        const split = new SplitText(el, { type: "lines", mask: "lines", linesClass: "beat-line" });
+        splits.push(split);
+        const at = 0.505 + i * 0.028;
+        tl!.fromTo(
+          split.lines,
+          { yPercent: 115, opacity: 0, filter: "blur(6px)" },
+          { yPercent: 0, opacity: 1, filter: "blur(0px)", duration: 0.022 },
+          at
+        );
+        tl!.to(
+          split.lines,
+          { yPercent: -70, opacity: 0, filter: "blur(8px)", duration: 0.02 },
+          0.59
+        );
+      });
+
+      // CTAs do hero: presentes na captura, saem quando a narrativa mergulha
+      if (ctasRef.current) {
+        tl!.to(ctasRef.current, { opacity: 0, yPercent: -30, duration: 0.03 }, 0.115);
+      }
+
+      ScrollTrigger.refresh();
+    });
+
+    return () => {
+      killed = true;
+      splits.forEach((s) => s.revert());
+      if (tl) {
+        tl.scrollTrigger?.kill();
+        tl.kill();
+      }
+    };
+  }, [reduced, beats, isMobile]);
 
   const scrollToManifesto = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -250,134 +407,17 @@ export default function TravessiaOpening() {
 
   const estudoHref = lang === "es" ? "/el-estudio" : "/o-estudo";
 
-  /** classes utilitárias de entrada de texto (fade + máscara vertical suave) */
-  const on = "opacity-100 translate-y-0";
-  const off = "opacity-0 translate-y-4";
-  const baseTxt =
-    "transition-all duration-700 ease-out will-change-transform";
-
-  const sceneTexts = useMemo(
-    () => [
-      // cena 1 — captura (título + CTAs reais do hero)
-      (a: boolean, s: number) => (
-        <div className="max-w-3xl">
-          <div className={`${baseTxt} ${a ? on : off} flex flex-wrap gap-2`}>
-            {t.hero.chips.map((chip) => (
-              <span key={chip} className="dl-chip">
-                {chip}
-              </span>
-            ))}
-          </div>
-          <h1 className={`${baseTxt} ${a ? on : off} mt-6 font-serif text-[clamp(2.4rem,5.2vw,4.8rem)] leading-[0.98] tracking-[-0.04em]`}>
-            {tv.c1a}{" "}
-            <em className={`${baseTxt} ${a && s >= 1 ? on : off} not-italic md:italic text-muted-red inline-block`}>
-              {tv.c1b}
-            </em>
-          </h1>
-          <div className={`${baseTxt} ${a && s >= 1 ? on : off} mt-8 flex flex-wrap items-center gap-3`}>
-            <a
-              href="#manifesto"
-              onClick={scrollToManifesto}
-              className="inline-flex items-center rounded-full border border-warm-gray/25 bg-black/30 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:bg-black/50 transition"
-            >
-              {t.hero.ctaPrimary} <span className="ml-3 text-muted-red">→</span>
-            </a>
-            <a
-              href={estudoHref}
-              className="inline-flex items-center rounded-full border border-muted-red/40 bg-black/30 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:border-muted-red/70 transition"
-            >
-              {t.hero.ctaSecondary} <span className="ml-3 text-muted-red">→</span>
-            </a>
-          </div>
-        </div>
-      ),
-      // cena 2 — repetição
-      (a: boolean, s: number) => (
-        <div className="max-w-2xl">
-          <p className={`${baseTxt} ${a ? on : off} font-serif text-[clamp(1.9rem,3.6vw,3.2rem)] leading-[1.05]`}>
-            {tv.c2a}
-          </p>
-          <p className={`${baseTxt} ${a && s >= 1 ? on : off} mt-4 font-serif text-[clamp(1.9rem,3.6vw,3.2rem)] leading-[1.05] text-muted-red`}>
-            {tv.c2b}
-          </p>
-        </div>
-      ),
-      // cena 3 — saturação
-      (a: boolean, s: number) => (
-        <div className="max-w-2xl">
-          <p className={`${baseTxt} ${a ? on : off} font-serif text-[clamp(1.8rem,3.2vw,2.9rem)] leading-[1.08]`}>
-            {tv.c3a}
-          </p>
-          <p className={`${baseTxt} ${a && s >= 1 ? on : off} mt-3 font-serif text-[clamp(1.8rem,3.2vw,2.9rem)] leading-[1.08]`}>
-            {tv.c3b}
-          </p>
-          <p className={`${baseTxt} ${a && s >= 2 ? on : off} mt-3 font-serif text-[clamp(1.8rem,3.2vw,2.9rem)] leading-[1.08] text-warm-gray`}>
-            {tv.c3c}
-          </p>
-        </div>
-      ),
-      // cena 4 — pausa (ritual dos 90s, um passo por vez)
-      (a: boolean, s: number) => (
-        <div className="max-w-2xl">
-          <p className={`${baseTxt} ${a ? on : off} font-serif text-[clamp(1.7rem,3vw,2.7rem)] leading-[1.12]`}>
-            {t.hero.deckTitle}
-          </p>
-          <ol className="mt-7 space-y-3">
-            {t.hero.deckSteps.map((item, i) => (
-              <li
-                key={item}
-                className={`${baseTxt} ${a && s >= i + 1 ? on : off} flex items-center gap-3 text-base md:text-lg text-offwhite/90`}
-              >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-offwhite/25 text-xs text-warm-gray">
-                  {i + 1}
-                </span>
-                {item}
-              </li>
-            ))}
-          </ol>
-        </div>
-      ),
-      // cena 5 — consciência
-      (a: boolean, s: number) => (
-        <div className="max-w-2xl">
-          <p className={`${baseTxt} ${a ? on : off} font-serif text-[clamp(1.9rem,3.6vw,3.2rem)] leading-[1.06]`}>
-            {tv.c5a}
-          </p>
-          <p className={`${baseTxt} ${a && s >= 1 ? on : off} mt-4 font-serif text-[clamp(1.9rem,3.6vw,3.2rem)] leading-[1.06] text-muted-red`}>
-            {tv.c5b}
-          </p>
-        </div>
-      ),
-      // cena 6 — escolha
-      (a: boolean, s: number) => (
-        <div className="max-w-2xl">
-          {tv.c6.map((line, i) => (
-            <p
-              key={line}
-              className={`${baseTxt} ${a && s >= i ? on : off} font-serif text-[clamp(2rem,4vw,3.6rem)] leading-[1.05] ${
-                i === tv.c6.length - 1 ? "text-muted-red" : ""
-              }`}
-            >
-              {line}
-            </p>
-          ))}
-        </div>
-      ),
-      // cena 7 — liberdade
-      (a: boolean) => (
-        <div className="max-w-2xl">
-          <p className={`${baseTxt} ${a ? on : off} font-serif text-[clamp(2rem,4.2vw,3.8rem)] leading-[1.05] text-ink md:text-ink`}>
-            {tv.c7}
-          </p>
-        </div>
-      ),
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, tv, estudoHref]
-  );
-
   /* ---------- Versão de movimento reduzido: tudo estático e legível ---------- */
   if (reduced) {
+    const staticTexts = [
+      `${tv.c1a} ${tv.c1b}`,
+      tv.c2b,
+      tv.c3b,
+      `${tv.b90} ${steps.join(". ")}.`,
+      tv.c5a,
+      tv.bfim,
+      tv.c7,
+    ];
     return (
       <section id="top" className="border-b border-warm-gray/10">
         {SCENES.map((s, i) => (
@@ -390,7 +430,19 @@ export default function TravessiaOpening() {
               loading={i === 0 ? "eager" : "lazy"}
             />
             <figcaption className="mx-auto max-w-3xl px-6 py-10">
-              {sceneTexts[i](true, 3)}
+              <p className="font-serif text-[clamp(1.6rem,3vw,2.6rem)] leading-[1.15]">
+                {staticTexts[i]}
+              </p>
+              {i === 0 && (
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <a href="#manifesto" className="inline-flex items-center rounded-full border border-warm-gray/25 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90">
+                    {t.hero.ctaPrimary} →
+                  </a>
+                  <a href={estudoHref} className="inline-flex items-center rounded-full border border-muted-red/40 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90">
+                    {t.hero.ctaSecondary} →
+                  </a>
+                </div>
+              )}
             </figcaption>
           </figure>
         ))}
@@ -428,17 +480,73 @@ export default function TravessiaOpening() {
           </div>
         )}
 
-        {/* textos por cena */}
-        <div className="absolute inset-x-0 bottom-0 z-10 px-6 pb-16 md:px-14 md:pb-20">
-          {sceneTexts.map((render, i) => (
+        {/* BEATS tipográficos — todos empilhados no mesmo palco; o timeline decide quem vive */}
+        <div
+          ref={beatsWrapRef}
+          className="absolute inset-x-0 bottom-0 z-10 px-6 pb-16 md:px-14 md:pb-20"
+        >
+          {beats.map((b) => (
             <div
-              key={i}
-              className={i === active ? "block" : "hidden"}
-              aria-hidden={i !== active}
+              key={b.id}
+              data-beat={b.id}
+              className="absolute inset-x-6 bottom-16 md:inset-x-14 md:bottom-20"
+              style={{ visibility: "hidden" }}
             >
-              {render(i === active, step)}
+              <p
+                className={`beat-text max-w-3xl font-serif leading-[1.04] tracking-[-0.03em] ${
+                  b.kind === "title"
+                    ? "text-[clamp(2.2rem,4.8vw,4.4rem)]"
+                    : "text-[clamp(1.7rem,3.4vw,3rem)]"
+                } ${b.accent ? "text-muted-red" : b.id === "b7" ? "text-ink" : "text-offwhite"}`}
+              >
+                {b.text}
+              </p>
             </div>
           ))}
+
+          {/* passos do ritual (cena 4) — pequenos, lentos */}
+          <div className="absolute inset-x-6 bottom-6 md:inset-x-14 md:bottom-8">
+            {steps.map((s, i) => (
+              <p
+                key={s}
+                data-step={i}
+                className="font-sans text-sm md:text-base tracking-[0.08em] text-warm-gray"
+                style={{ visibility: "hidden" }}
+              >
+                {i + 1} · {s}
+              </p>
+            ))}
+          </div>
+
+          {/* chips + CTAs do hero (só na captura) */}
+          <div
+            ref={ctasRef}
+            className="absolute inset-x-6 md:inset-x-14"
+            style={{ bottom: "calc(4rem + clamp(6rem, 14vh, 9rem))" }}
+          >
+            <div className="flex flex-wrap gap-2">
+              {t.hero.chips.map((chip) => (
+                <span key={chip} className="dl-chip">
+                  {chip}
+                </span>
+              ))}
+            </div>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <a
+                href="#manifesto"
+                onClick={scrollToManifesto}
+                className="inline-flex items-center rounded-full border border-warm-gray/25 bg-black/30 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:bg-black/50 transition"
+              >
+                {t.hero.ctaPrimary} <span className="ml-3 text-muted-red">→</span>
+              </a>
+              <a
+                href={estudoHref}
+                className="inline-flex items-center rounded-full border border-muted-red/40 bg-black/30 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:border-muted-red/70 transition"
+              >
+                {t.hero.ctaSecondary} <span className="ml-3 text-muted-red">→</span>
+              </a>
+            </div>
+          </div>
         </div>
 
         {/* trilha de progresso da narrativa (7 pontos) */}

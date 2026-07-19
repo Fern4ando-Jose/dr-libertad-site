@@ -121,6 +121,27 @@ quadro REAL da cena anterior + storyboard de destino):
   cartões de feed desfocados (decisão adiada pelo dono) · afinar velocidade da "explosão" da
   cena 3 se ele quiser mais · carregamento dos quadros em fila (throttle) p/ suavizar picos.
 
+## 2026-07-19 · RODADA DE REFINO 1 (notas do dono de manhã)
+
+Notas literais: cena 1 "o celular tem duas frentes… deve iniciar com a parte de traz";
+tipografia = scroll-scrubbed masked split-text (spec completa dele); cena 3 "a animação
+dela não existe… deixe as cores da forma que estava e crie a animação… pontos devem
+percorrer de um neurônio a outro"; cena 4 "deve surgir de um desses pontos que brilham";
+"o principal… foi a fluidez entre cenas".
+
+| Item | O que foi feito | Custo |
+|---|---|---|
+| Cena 1 v2 | REJEITADA NO MEU QA (traseira virou iPhone com logo Apple — nunca chegou ao dono; `REJEITADA-scene-01-v2-logo-apple.mp4`) | ≈ US$ 0,91 |
+| Traseira limpa (imagem) | NB2 /edit ancorado na mestra: traseira lisa sem câmera/logo, sala espelhada corretamente — APROVADA no QA (`transitions/scene-01-back-start.png`) | US$ 0,08 |
+| Cena 1 v3 OFICIAL | órbita 180° traseira→frente, termina na âncora da cena 2 · req `019f7a31-b9cc…` | ≈ US$ 0,91 |
+| Cena 3 v4 OFICIAL | cores da imagem do dono preservadas; pontos enfileirados PERCORRENDO os filamentos entre os neurônios · req `019f7a29-0651…` | ≈ US$ 1,21 |
+| Cena 4 v2 OFICIAL | o pulso branco É um ponto viajante que sobrevive, desacelera e esquenta (não nasce do nada) · req `019f7a32-3961…` | ≈ US$ 1,21 |
+| Tipografia | GSAP + ScrollTrigger(scrub 0.9) + SplitText(mask lines) — 7 beats na sequência ditada; rápida na captura, palavra-a-palavra no silêncio, estável no fim; frases novas curtas `b90`/`bfim` no dicionário PT+ES | US$ 0 |
+
+- Quadros re-extraídos (cenas 1=73, 3=97, 4=97) + pôster da cena 1 = traseira; filme
+  completo remontado (51 s). verify VERDE (tsc + vitest + next build).
+- **Total do projeto ≈ US$ 12,2 de US$ 20** (estimativas de tabela; extrato 403).
+
 ## 2026-07-18 · Fase 4 · Prova técnica — detalhes
 
 - **Resultado (18/07, QA do agente): APROVADO.** Vídeo 1280×720 · 24 qps · 5,04 s · 2,9 MB ·

@@ -68,6 +68,9 @@ export const pt = {
     c5b: "É ali — e só ali — que a liberdade começa.",
     c6: ["Menos estímulo.", "Mais clareza.", "Decisões com alma."],
     c7: "Uma mente que volta a ser sua.",
+    // versões curtas ditadas pelo dono na rodada de refino (19/07)
+    b90: "90 segundos antes da reação automática.",
+    bfim: "É ali que a liberdade começa.",
   },
   manifesto: {
     eyebrow: "MANIFESTO",
@@ -471,6 +474,8 @@ export const es: Dict = {
     c5b: "Ahí — y solo ahí — empieza la libertad.",
     c6: ["Menos estímulo.", "Más claridad.", "Decisiones con alma."],
     c7: "Una mente que vuelve a ser tuya.",
+    b90: "90 segundos antes de la reacción automática.",
+    bfim: "Ahí empieza la libertad.",
   },
   manifesto: {
     eyebrow: "MANIFIESTO",
