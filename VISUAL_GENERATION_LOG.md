@@ -103,3 +103,20 @@
 - **Custo:** o extrato (`usage`) não é acessível com esta chave (403). Pela tabela pública
   do endpoint (US$ 0,007/1000 tokens): ≈ 108 mil tokens p/ 720p·5s ⇒ **≈ US$ 0,76
   (estimado, não confirmado)**. Total do projeto: ≈ US$ 1,64 de US$ 20,00.
+
+## PROCESSO NOVO (ordem do dono, 18/07): vídeo/cena UM POR VEZ, com aprovação dele entre cada
+
+- Frase literal: "não vai funcionar vc fazer tudo sozinho, vamos ter que ir por video e
+  cena de cada vez comigo aprovando". Loop: gerar 1 → QA do agente → MP4 na conversa →
+  "pode" → próxima. Orçamento (teto US$ 20) segue autorizado; engenharia segue em paralelo.
+- **Cena 1 APROVADA pelo dono na conversa** ("sim pode, vamos para o proximo").
+
+## 2026-07-19 · Fase 5 · Vídeo da CENA 2 — a travessia do vidro (em geração)
+
+- **Modelo:** `bytedance/seedance-2.0/mini/reference-to-video` · 720p · 6 s · 16:9 · mudo.
+- **Continuidade:** `@Image1` = último quadro REAL do vídeo da cena 1
+  (`transitions/scene-01-last-frame.png`) · `@Image2` = storyboard da cena 2 (destino).
+  Movimento: dolly frontal lento → o vidro preto toma o quadro → atravessa → emerge na
+  arquitetura de estímulos. Plano único, sem cortes.
+- **Request:** `019f7831-2dde-7323-844e-1834d7b4b548` · custo estimado ≈ US$ 0,91
+  (tabela; 720p·6s ≈ 130 mil tokens).
