@@ -1,0 +1,67 @@
+# VISUAL_GENERATION_LOG — "A Travessia da Gaiola"
+
+> Registro obrigatório de TODA geração visual do redesign (VISUAL_DIRECTION.md §15).
+> Orçamento: `FAL_MAX_BUDGET_USD=20` (aprovado pelo dono em 18/07/2026, "sim" na conversa).
+
+## Resumo de gasto
+
+| Data | Lote | Gerações | Custo | Acumulado |
+|---|---|---|---|---|
+| 2026-07-18 | Fase 2 — imagem-mestra (3 alternativas) | 3 × Nano Banana 2 | US$ 0,24 | US$ 0,24 / 20,00 |
+| 2026-07-18 | Fase 2 — rodada da REFERÊNCIA do dono (2 candidatas finais) | 2 × Nano Banana 2 | US$ 0,16 | US$ 0,40 / 20,00 |
+
+## 2026-07-18 · Fase 2 · Imagem-mestra — 3 alternativas
+
+- **Modelo:** `fal-ai/gemini-3.1-flash-image-preview` (Nano Banana 2 — modelo de imagem padrão da marca, decisão do dono 2026-07-15)
+- **Endpoint:** `https://queue.fal.run/fal-ai/gemini-3.1-flash-image-preview`
+- **Parâmetros comuns:** aspect_ratio 16:9 · resolution 2K (2752×1536) · output png · num_images 1
+- **Custo:** US$ 0,08/imagem × 3 = **US$ 0,24** (autorização registrada no gate da casa antes do disparo)
+- **Prompts:** variações A/B/C do prompt-mestre derivado de VISUAL_DIRECTION.md §1–§8
+  (cena: smartphone grafite sem marca suspenso + gaiola tridimensional de impulsos âmbar
+  #BE7A2A + silhueta adulta sentada ao fundo + fundo preto #0B0B0C + chiaroscuro + grão
+  de filme + espaço negativo p/ tipografia; negativos: sem texto/logo/UI/neon/roxo/
+  holograma/circuito/barras literais).
+
+| Alt | request_id | seed | Arquivo local | Resultado do QA do agente |
+|---|---|---|---|---|
+| A | `019f780f-5fa3-7b23-98d8-c6ddc6722b5f` | 20260718 | `public/generated/master/master-alt-A.png` | Composição-altar centrada, fiel ao briefing. ⚠️ recorte de tela estilo iPhone (corrigir na edição antes de virar mestra); rosto desfocado ok, escurecer na mesma edição. |
+| B | `019f780f-e2ea-77f1-95d3-3ebbf7aeb9e9` | 20260719 | `public/generated/master/master-alt-B.png` | Macro monólito, pessoa quase invisível (fiel ao fundo do briefing). ⚠️ mesmo recorte iPhone; gaiola densa beira "faiscante". |
+| C | `019f780f-f064-7480-b159-2cd2778269df` | 20260720 | `public/generated/master/master-alt-C.png` | Relação pessoa-aparelho em terços; aparelho 100% original. ⚠️ rosto identificável demais — escurecer p/ silhueta na edição. |
+
+- **Downloads:** feitos imediatamente (nenhuma dependência de URL temporária).
+- **Estado:** SUPERADAS — antes de escolher A/B/C o dono enviou uma REFERÊNCIA visual
+  própria na conversa; a rodada seguinte substitui esta.
+
+## 2026-07-18 · Fase 2 · Rodada da REFERÊNCIA do dono — 2 candidatas finais
+
+- **Contexto:** o dono respondeu à prova A/B/C enviando uma imagem de referência
+  (aparelho limpo sem recorte · cortina de fios verticais âmbar com sinos de notificação ·
+  ondas concêntricas no chão · homem pensativo em poltrona à esquerda · friso de luz
+  vertical na parede · espaço negativo à direita). Prompt reescrito fiel à referência.
+- **Modelo/params:** `fal-ai/gemini-3.1-flash-image-preview` · 16:9 · 2K · png · US$ 0,08/img.
+
+| Cand. | request_id | seed | Arquivo local | QA do agente |
+|---|---|---|---|---|
+| 1 | `019f7816-cf41-7491-8288-cb7dfd4e36a1` | 20260721 | `public/generated/master/master-ref-1.png` | Fiel; aparelho reto e limpo (SEM recorte); 1 anel orbital; personagem em meia-luz, anônimo. APROVADA no QA. |
+| 2 | `019f7816-ea3d-7e11-927e-46f64eadc21d` | 20260722 | `public/generated/master/master-ref-2.png` | Fiel; cortina densa de fios+sinos (mais próxima da referência); aparelho levemente inclinado; personagem mais na sombra. APROVADA no QA — recomendada. |
+
+- **Estado:** SUPERADAS — decisão do dono (18/07, na conversa): **a imagem-mestra é a
+  IMAGEM DE REFERÊNCIA QUE ELE PRÓPRIO ENVIOU**, não uma geração. Motivo declarado:
+  resultados de IA vinham abaixo do esperado; a referência dele já é a cena desejada.
+
+## 2026-07-18 · Fase 2 · DECISÃO FINAL — imagem-mestra = a imagem do DONO (custo US$ 0,00)
+
+- **Origem:** imagem enviada pelo dono na conversa (resgatada do transcript da sessão,
+  1672×941 WebP) → ampliação FIEL local (ffmpeg lanczos + leve nitidez, sem IA, cena
+  idêntica) para **1920×1080**.
+- **Arquivos:** `public/generated/master/master-scene.png` (oficial, 1920×1080) ·
+  `public/generated/master/master-scene-dono.webp` (original preservado).
+- **QA do agente:** aparelho limpo sem marca ✓ · cortina de fios âmbar com sinos ✓ ·
+  ondas concêntricas no chão ✓ · personagem anônimo na poltrona ✓ · friso de luz ✓ ·
+  espaço negativo à direita p/ tipografia ✓ · sem texto/logo ✓ · ampliação sem artefatos ✓.
+- **Alternativas descartadas** (5 gerações, US$ 0,40 já contabilizados): movidas para
+  `Arquivo-Midia/Travessia-Master-Alternativas/` (fora do git e fora dos ativos finais).
+- **Regra nova do projeto (pedido do dono):** toda geração futura de storyboard/vídeo é
+  ANCORADA nesta imagem (modo edição/referência — nunca texto puro), para o resultado
+  não fugir do que ele aprovou. Se a prova técnica de animação ficar abaixo do esperado,
+  parar o gasto e cair no plano B: hero estática + movimento por código (custo zero).
