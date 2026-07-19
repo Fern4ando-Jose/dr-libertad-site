@@ -38,7 +38,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 
-const SCENES = [1, 2, 3, 4, 5, 6] as const;
+const SCENES = [1, 2, 3, 4, 5, 6, 7] as const;
 const N = SCENES.length;
 /** sobreposição do crossfade entre cenas, em fração do trecho de UMA cena */
 const FADE = 0.18;
@@ -149,6 +149,8 @@ type Beat = {
   accent?: boolean;
   /** tamanho reduzido (frases de apoio) */
   small?: boolean;
+  /** cena CLARA (final do livro): texto tinta + proteção de leitura clara */
+  claro?: boolean;
 };
 
 export default function TravessiaOpening() {
@@ -203,6 +205,8 @@ export default function TravessiaOpening() {
       { id: "m4", text: tv.b90, kind: "words", pos: "inset-x-6 bottom-[22vh] md:inset-x-14 md:top-[34vh] md:bottom-auto", small: true },
       { id: "m5", text: tv.c5a, kind: "title", pos: "inset-x-6 bottom-[16vh] md:inset-x-14 md:bottom-[22vh]" },
       { id: "m6", text: tv.bfim, kind: "title", pos: "inset-x-6 bottom-[18vh] md:inset-x-14 md:top-[26vh] md:bottom-auto", accent: true },
+      // 7 · o prêmio: o homem lendo — frase final estável sobre a cena clara
+      { id: "m7", text: tv.c7, kind: "title", pos: "inset-x-6 bottom-[16vh] md:left-[48%] md:right-14 md:top-[28vh] md:bottom-auto", claro: true },
     ],
     [tv]
   );
@@ -768,9 +772,9 @@ export default function TravessiaOpening() {
           if (sh) tl.to(sh, { opacity: 0, duration: 0.16 * SEG }, (4 + 0.74) * SEG);
         }
 
-        /* ── CENA 6 · GESTO FINAL ───────────────────────────────────────
-           a frase final entra SÓ quando o telefone é pousado, e permanece
-           imóvel, nítida, com tempo de leitura até o fim. */
+        /* ── CENA 6 · GESTO ─────────────────────────────────────────────
+           a frase entra no pouso do telefone, tem tempo de leitura, e sai
+           POR COMPLETO antes da luz do epílogo. */
         const s6 = splitOf("m6");
         if (s6?.lines?.length) {
           tl.fromTo(
@@ -783,11 +787,38 @@ export default function TravessiaOpening() {
               duration: 0.18 * SEG,
               stagger: (0.05 * SEG) / Math.max(1, s6.lines.length - 1),
             },
-            (5 + 0.55) * SEG
+            (5 + 0.52) * SEG
           );
           const sh = shadeOf("m6");
-          if (sh) tl.fromTo(sh, { opacity: 0 }, { opacity: 1, duration: 0.16 * SEG }, (5 + 0.56) * SEG);
-          // sem saída: imóvel e nítida até o fim (tempo de leitura garantido)
+          if (sh) tl.fromTo(sh, { opacity: 0 }, { opacity: 1, duration: 0.16 * SEG }, (5 + 0.53) * SEG);
+          tl.to(
+            s6.lines,
+            { opacity: 0, filter: "blur(8px)", duration: 0.12 * SEG },
+            (5 + 0.84) * SEG
+          );
+          if (sh) tl.to(sh, { opacity: 0, duration: 0.1 * SEG }, (5 + 0.85) * SEG);
+        }
+
+        /* ── CENA 7 · O LIVRO (final, ordem do dono 19/07) ──────────────
+           o prêmio da jornada: o homem lendo na luz. A frase final surge
+           devagar com a manhã e permanece imóvel, nítida, até o fim. */
+        const s7 = splitOf("m7");
+        if (s7?.lines?.length) {
+          tl.fromTo(
+            s7.lines,
+            { opacity: 0, filter: "blur(9px)", yPercent: 18 },
+            {
+              opacity: 1,
+              filter: "blur(0px)",
+              yPercent: 0,
+              duration: 0.26 * SEG,
+              stagger: (0.07 * SEG) / Math.max(1, s7.lines.length - 1),
+            },
+            (6 + 0.3) * SEG
+          );
+          const sh = shadeOf("m7");
+          if (sh) tl.fromTo(sh, { opacity: 0 }, { opacity: 1, duration: 0.2 * SEG }, (6 + 0.32) * SEG);
+          // sem saída: imóvel até o fim (tempo de leitura garantido)
         }
 
         // CTAs — discretos, só na conclusão, sem competir com o gesto
@@ -836,6 +867,7 @@ export default function TravessiaOpening() {
       `${tv.b90} ${steps.join(". ")}.`,
       tv.c5a,
       tv.bfim,
+      tv.c7,
     ];
     return (
       <section id="top" className="border-b border-warm-gray/10">
@@ -962,13 +994,15 @@ export default function TravessiaOpening() {
               className={`absolute ${b.pos}`}
               style={{ visibility: "hidden", transformStyle: "preserve-3d" }}
             >
-              {/* proteção de leitura: gradiente radial amplo, sem borda perceptível */}
+              {/* proteção de leitura: gradiente radial amplo, sem borda perceptível
+                  (escuro nas cenas noturnas; CLARO na cena final do livro) */}
               <div
                 aria-hidden="true"
                 className="beat-shade pointer-events-none absolute -inset-x-[34%] -inset-y-[85%]"
                 style={{
-                  background:
-                    "radial-gradient(ellipse 58% 52% at 42% 52%, rgba(11,11,12,0.5), rgba(11,11,12,0.22) 46%, transparent 72%)",
+                  background: b.claro
+                    ? "radial-gradient(ellipse 58% 52% at 42% 52%, rgba(244,240,232,0.55), rgba(244,240,232,0.25) 46%, transparent 72%)"
+                    : "radial-gradient(ellipse 58% 52% at 42% 52%, rgba(11,11,12,0.5), rgba(11,11,12,0.22) 46%, transparent 72%)",
                 }}
               />
               <p
@@ -976,8 +1010,12 @@ export default function TravessiaOpening() {
                   b.kind === "title" && !b.small
                     ? "text-[clamp(2rem,5vw,4.1rem)]"
                     : "text-[clamp(1.55rem,3.2vw,2.8rem)]"
-                } ${b.accent ? "text-muted-red" : "text-offwhite"}`}
-                style={{ textShadow: "0 1px 22px rgba(11,11,12,0.55)" }}
+                } ${b.accent ? "text-muted-red" : b.claro ? "text-ink" : "text-offwhite"}`}
+                style={{
+                  textShadow: b.claro
+                    ? "0 1px 20px rgba(244,240,232,0.6)"
+                    : "0 1px 22px rgba(11,11,12,0.55)",
+                }}
               >
                 {b.text}
               </p>
