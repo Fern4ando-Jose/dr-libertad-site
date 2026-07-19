@@ -1,11 +1,11 @@
 {
-  "frameCount": 73,
+  "frameCount": 61,
   "pattern": "frame-%03d.webp",
   "first": 1,
   "width": 768,
   "height": 432,
   "ext": "webp",
   "fps": 12,
-  "sourceDuration": 6.04,
-  "poster": "/generated/transitions/scene-01-poster.webp"
+  "sourceDuration": 5.04,
+  "poster": "/generated/storyboard/scene-01.png"
 }
