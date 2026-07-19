@@ -119,9 +119,9 @@ export default function StudioNav() {
           >
             {t.nav.study}
           </a>
-          <a href={`${home}/quiz`} className={`${linkCls} whitespace-nowrap`}>
-            {t.nav.quiz}
-          </a>
+          {/* "TESTE" (/quiz do 100 Dias) fora do menu por ora (decisão do dono
+              2026-07-18, opção B): a rota segue VIVA por link direto, mas sai da
+              navegação até ter um funil de venda ao redor. */}
           <a href={`${home}/livros`} className={linkCls}>
             {t.nav.books}
           </a>
@@ -177,9 +177,7 @@ export default function StudioNav() {
               >
                 {t.nav.study}
               </a>
-              <a href={`${home}/quiz`} onClick={() => setOpen(false)} className={mobileItemCls}>
-                {t.nav.quiz}
-              </a>
+              {/* "TESTE" (/quiz) fora do menu — decisão do dono 2026-07-18 (opção B). */}
               <a href={`${home}/livros`} onClick={() => setOpen(false)} className={mobileItemCls}>
                 {t.nav.books}
               </a>
