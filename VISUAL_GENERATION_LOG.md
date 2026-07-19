@@ -193,6 +193,13 @@ percorrer de um neurônio a outro"; cena 4 "deve surgir de um desses pontos que 
 | Still final (módulo 2 lentes) | NB2 /edit 2K | 019f7bcb-e790 | ✅ módulo-pílula 2 lentes igual ao verso canônico; edição clareou a cena → composto POR CÓDIGO só a região da câmera sobre o quadro original (frame-061) | US$ 0,08 |
 
 - **Custo real da rodada ≈ US$ 2,44 · projeto ≈ US$ 16,3 de US$ 20** (estimativas de tabela; extrato 403).
+- **Correção pós-entrega (bronca do dono "isso é serio?"):** a edição G0b do palco tinha deixado
+  uma MANCHA em formato de telefone + pontos escuros na parede — invisível de frente (o slab
+  cobre), exposta no PERFIL do giro (lia como "placa de papelão" atrás do aparelho). Palco
+  reeditado (NB2 /edit, req `019f7c02-01ce`, US$ 0,08) → `quarto-sem-telefone-G0c.png`;
+  QA no giro real em θ≈90°/194°/260°: parede limpa, aparelho único com espessura. Rodada ≈
+  US$ 2,52 · projeto ≈ US$ 16,4/20. Lição: QA de palco "sem objeto" tem que fotografar o
+  PERFIL do giro (ângulo que descobre o fundo), não só frente/verso.
 - Emenda 1→2 POR CÓDIGO: o slab do hero é CONDUZIDO à posição/escala do aparelho do 1º quadro
   da cena 2 durante o dissolve (alvo 0.493×0.478, altura 0.545 — medido no quadro real) — um
   aparelho só, sem imagem dupla.

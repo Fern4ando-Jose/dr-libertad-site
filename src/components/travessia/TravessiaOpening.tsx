@@ -51,7 +51,7 @@ const SEG = 1 / N;
    rolagem até a frente plena na emenda com a cena 2. Motivo: o gerador de
    vídeo carimbou logo de marca no verso em 2 tentativas pagas — rotação
    precisa é CÓDIGO (loop matemático, zero risco de marca). ─────────────── */
-const PALCO_HERO = "/generated/transitions/quarto-sem-telefone-G0b.png";
+const PALCO_HERO = "/generated/transitions/quarto-sem-telefone-G0c.png";
 const FACE_FRENTE = "/generated/transitions/face-frente.png";
 const FACE_VERSO = "/generated/transitions/face-verso.png";
 /** âncora do centro da gaiola DENTRO do palco (fração da largura da imagem) */
