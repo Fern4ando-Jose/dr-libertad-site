@@ -79,9 +79,9 @@
 |---|---|---|---|---|---|
 | 01 | captura | — (é a mestra do dono) | — | `storyboard/scene-01.png` | aprovada por definição |
 | 02 | repetição | `019f7823-c468…` | 20260802 | `storyboard/scene-02.png` | corredores de vidro negro + laços âmbar circulares + sinos; paleta idêntica ✓ |
-| 03 | saturação | `019f7823-d7e9…` | 20260803 | `storyboard/scene-03.png` | filamentos orgânicos (não-cérebro) saturados de sinais âmbar ✓ |
+| 03 | saturação | **SUBSTITUÍDA pelo dono (18/07)** | — | `storyboard/scene-03.png` | o dono enviou a própria imagem na conversa ("troca pela scene-03 por essa"): sinapse orgânica com sinais âmbar, 1672×941→1920×1080 ampliação fiel (lanczos, sem IA). Original em `scene-03-dono.webp`; a gerada foi para `Arquivo-Midia/Travessia-Master-Alternativas/scene-03-gerada-descartada.png` ✓ |
 | 04 | pausa | `019f7823-ea5e…` | 20260804 | `storyboard/scene-04.png` | sinos apagados congelados + único pulso branco quente central; manteve a SALA da mestra (continuidade extra) ✓ |
-| 05 | consciência | `019f7824-004f…` | 20260805 | `storyboard/scene-05.png` | mesmo homem/sala/aparelho; mão para a centímetros do vidro; mão anatômica ✓; luz branca entrando ✓ |
+| 05 | consciência | **SUBSTITUÍDA pelo dono (18/07)** | — | `storyboard/scene-05.png` | o dono enviou a própria imagem ("scena-05 por essa"): homem de costas/perfil TOTALMENTE na sombra, mão a centímetros do aparelho, reflexo no vidro; 1672×941→1920×1080 fiel. Original em `scene-05-dono.webp`; a gerada foi p/ `Arquivo-Midia` (o rosto "borrado" da gerada era intencional — regra de personagem anônimo; a do dono resolve melhor) ✓ |
 | 06 | escolha | `019f7824-14c6…` | 20260806 | `storyboard/scene-06.png` | aparelho de TELA PARA BAIXO na mesa + livro/papel/caneta/xícara; fios se desfazendo ✓ (obs.: miolo do livro tem texto impresso ilegível — realismo de objeto, não mensagem; aceito) |
 | 07 | liberdade | `019f7824-2432…` | 20260807 | `storyboard/scene-07.png` | manhã, mesmo homem lendo na mesma poltrona, janela à direita, zero aparelho/fios; rosto suave não identificável ✓ |
 
@@ -94,5 +94,12 @@
   720p · 5 s · 16:9 · `generate_audio: false` (filme mudo) · request `019f7826-0843…`.
 - **Movimento pedido:** órbita lenta ao redor do aparelho; pulsos sobem/descem os fios;
   sinos pulsam; ondas do chão se expandem; homem imóvel respirando; sem cortes, sem tremor.
-- **Custo:** unidade de cobrança do Seedance 2.0 será confirmada no extrato (`usage`) logo
-  após a conclusão e registrada aqui — é exatamente o que esta prova barata existe para medir.
+- **Resultado (18/07, QA do agente): APROVADO.** Vídeo 1280×720 · 24 qps · 5,04 s · 2,9 MB ·
+  seed 133643690. Órbita lenta real ao redor do aparelho, cena do dono preservada (sala,
+  poltrona, homem, fios, sinos, ondas), sem cortes, sem tremor, sem deformação.
+- **Arquivos:** original em `Arquivo-Midia/Travessia-Videos/scene-01.mp4` (fora do git);
+  quadros extraídos a 12 qps → `public/generated/sequences/scene-01/desktop/` (61× webp
+  1280×720, 2,0 MB) e `mobile/` (61× webp 768×432, 0,97 MB) + `manifest.json` em cada.
+- **Custo:** o extrato (`usage`) não é acessível com esta chave (403). Pela tabela pública
+  do endpoint (US$ 0,007/1000 tokens): ≈ 108 mil tokens p/ 720p·5s ⇒ **≈ US$ 0,76
+  (estimado, não confirmado)**. Total do projeto: ≈ US$ 1,64 de US$ 20,00.
