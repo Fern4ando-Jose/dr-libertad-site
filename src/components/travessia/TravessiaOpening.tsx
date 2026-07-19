@@ -45,6 +45,31 @@ const FADE = 0.18;
 /** fração de UMA cena no progresso global (0..1) */
 const SEG = 1 / N;
 
+/* ── HERO POR CÓDIGO: o quarto SEM o telefone é o palco; o aparelho é um slab
+   3D com as duas faces REAIS (frente = mestra do dono; verso = G0 sem marca),
+   girando devagar por tempo enquanto a página está parada e CONDUZIDO pela
+   rolagem até a frente plena na emenda com a cena 2. Motivo: o gerador de
+   vídeo carimbou logo de marca no verso em 2 tentativas pagas — rotação
+   precisa é CÓDIGO (loop matemático, zero risco de marca). ─────────────── */
+const PALCO_HERO = "/generated/transitions/quarto-sem-telefone-G0b.png";
+const FACE_FRENTE = "/generated/transitions/face-frente.png";
+const FACE_VERSO = "/generated/transitions/face-verso.png";
+/** âncora do centro da gaiola DENTRO do palco (fração da largura da imagem) */
+const GAIOLA_X = 0.345;
+/** onde a gaiola deve cair NA TELA (fração da largura do viewport) */
+const GAIOLA_TELA_X = 0.42;
+/** proporção do aparelho (largura/altura dos recortes frontais gêmeos) */
+const FONE_PROP = 635 / 1313;
+/** altura do aparelho como fração da altura desenhada do palco */
+const FONE_ALT = 0.6;
+/** um giro completo em segundos (parada = vivo, lento, elegante) */
+const GIRO_S = 16;
+
+function suavizar(a: number, b: number, x: number) {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+
 type Manifest = {
   frameCount: number;
   pattern: string;
@@ -131,6 +156,7 @@ export default function TravessiaOpening() {
   const sectionRef = useRef<HTMLElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const beatsWrapRef = useRef<HTMLDivElement | null>(null);
+  const slabRef = useRef<HTMLDivElement | null>(null);
   const stepsRef = useRef<HTMLDivElement | null>(null);
   const ctasRef = useRef<HTMLDivElement | null>(null);
   const hintRef = useRef<HTMLDivElement | null>(null);
@@ -227,16 +253,17 @@ export default function TravessiaOpening() {
     [variant]
   );
 
-  // mídia: posters sempre; quadros sob demanda
+  // mídia: posters sempre; quadros sob demanda.
+  // Cena 1 é o HERO POR CÓDIGO: palco fixo (quarto sem telefone) + slab 3D —
+  // não busca quadros de vídeo (failed=true faz o pick cair no pôster).
   useEffect(() => {
     if (reduced) return;
-    mediaRef.current = SCENES.map((s) => {
+    mediaRef.current = SCENES.map((s, i) => {
       const poster = new Image();
       poster.decoding = "async";
-      poster.src = `/generated/storyboard/scene-0${s}.png`;
-      return { manifest: null, frames: [], poster, loading: false, failed: false };
+      poster.src = i === 0 ? PALCO_HERO : `/generated/storyboard/scene-0${s}.png`;
+      return { manifest: null, frames: [], poster, loading: false, failed: i === 0 };
     });
-    loadScene(0);
     loadScene(1);
     const first = mediaRef.current[0].poster;
     if (first) {
@@ -258,6 +285,7 @@ export default function TravessiaOpening() {
     if (!ctx) return;
 
     let lastActive = -1;
+    const nascidoEm = performance.now();
 
     // micro-vida do hero
     const sinais: Sinal[] = [];
@@ -305,17 +333,70 @@ export default function TravessiaOpening() {
       ctx.fillStyle = "#0B0B0C";
       ctx.fillRect(0, 0, cw, ch);
 
-      const img = pick(idx, local);
-      if (img) {
+      /* palco do hero: desenho ANCORADO (a gaiola cai em GAIOLA_TELA_X mesmo
+         no corte vertical do celular) + geometria compartilhada com o slab */
+      const drawPalco = (image: HTMLImageElement, alfa: number) => {
+        const iw = image.naturalWidth || 1;
+        const ih = image.naturalHeight || 1;
+        const esc = Math.max(cw / iw, ch / ih);
+        const dw = iw * esc;
+        const dh = ih * esc;
+        let ox = cw * GAIOLA_TELA_X - GAIOLA_X * dw;
+        ox = Math.min(0, Math.max(cw - dw, ox));
+        const oy = (ch - dh) / 2;
+        ctx.globalAlpha = alfa;
+        ctx.drawImage(image, ox, oy, dw, dh);
         ctx.globalAlpha = 1;
-        drawCover(ctx, img, cw, ch);
+        return { ox, oy, dw, dh };
+      };
+
+      const img = pick(idx, local);
+      let geoPalco: { ox: number; oy: number; dw: number; dh: number } | null = null;
+      if (img) {
+        if (idx === 0) geoPalco = drawPalco(img, 1);
+        else drawCover(ctx, img, cw, ch);
       }
       if (idx > 0 && local < FADE) {
         const prev = pick(idx - 1, 1);
         if (prev) {
-          ctx.globalAlpha = 1 - local / FADE;
-          drawCover(ctx, prev, cw, ch);
-          ctx.globalAlpha = 1;
+          const alfa = 1 - local / FADE;
+          if (idx === 1) geoPalco = drawPalco(prev, alfa);
+          else {
+            ctx.globalAlpha = alfa;
+            drawCover(ctx, prev, cw, ch);
+            ctx.globalAlpha = 1;
+          }
+        }
+      }
+
+      /* slab 3D do hero: posição/escala saem da MESMA geometria do palco;
+         giro por tempo na espera, conduzido à frente plena pela rolagem, e
+         dissolve no crossfade para a cena 2 (o vídeo assume o aparelho). */
+      const slab = slabRef.current;
+      if (slab) {
+        const local0 = Math.min(1, p / SEG);
+        const emC2 = p > SEG ? Math.min(1, (p - SEG) / (SEG * FADE)) : 0;
+        if (geoPalco && emC2 < 1) {
+          const dpr2 = dpr;
+          const alturaFone = (geoPalco.dh * FONE_ALT) / dpr2;
+          const larguraFone = alturaFone * FONE_PROP;
+          const cx = (geoPalco.ox + (GAIOLA_X + 0.004) * geoPalco.dw) / dpr2;
+          const cy = (geoPalco.oy + 0.485 * geoPalco.dh) / dpr2;
+          const tempoS = (performance.now() - nascidoEm) / 1000;
+          const giroLivre = (tempoS / GIRO_S) * 360;
+          const conducao = suavizar(0.2, 0.6, local0);
+          const alvo = Math.round(giroLivre / 360) * 360; // frente mais próxima
+          const teta = giroLivre + (alvo - giroLivre) * conducao;
+          slab.style.display = "block";
+          slab.style.left = `${cx - larguraFone / 2}px`;
+          slab.style.top = `${cy - alturaFone / 2}px`;
+          slab.style.width = `${larguraFone}px`;
+          slab.style.height = `${alturaFone}px`;
+          slab.style.opacity = String(1 - emC2);
+          const miolo = slab.firstElementChild as HTMLElement | null;
+          if (miolo) miolo.style.transform = `rotateY(${teta}deg)`;
+        } else {
+          slab.style.display = "none";
         }
       }
 
@@ -327,8 +408,9 @@ export default function TravessiaOpening() {
       tAnterior = agora;
       if (idx === 0) {
         const forca = local < 0.6 ? 1 : Math.max(0, 1 - (local - 0.6) / 0.3);
-        const ax = cw * 0.47; // atrator ≈ centro do aparelho
-        const ay = ch * 0.46;
+        // atrator = centro real do aparelho (mesma geometria do palco/slab)
+        const ax = geoPalco ? geoPalco.ox + (GAIOLA_X + 0.004) * geoPalco.dw : cw * 0.42;
+        const ay = geoPalco ? geoPalco.oy + 0.485 * geoPalco.dh : ch * 0.48;
         if (forca > 0.05) {
           // nascem na periferia da gaiola, poucos por vez
           if (sinais.length < 13 && Math.random() < 0.05) {
@@ -806,6 +888,56 @@ export default function TravessiaOpening() {
       `}</style>
       <div className="sticky top-0 h-screen w-full overflow-hidden bg-ink">
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+
+        {/* O APARELHO DO HERO — slab 3D com as duas faces REAIS (frente = a
+            mestra; verso = G0 sem marca). Gira devagar por tempo na espera;
+            a rolagem o conduz à frente plena antes da travessia da tela.
+            Posição/escala escritas pelo laço do canvas (mesma geometria). */}
+        <div
+          ref={slabRef}
+          aria-hidden="true"
+          className="absolute z-[5]"
+          style={{ display: "none", perspective: "1400px" }}
+        >
+          <div
+            className="relative h-full w-full"
+            style={{ transformStyle: "preserve-3d" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={FACE_FRENTE}
+              alt=""
+              className="absolute inset-0 h-full w-full rounded-[9%] object-cover"
+              style={{ backfaceVisibility: "hidden", transform: "translateZ(3px)" }}
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={FACE_VERSO}
+              alt=""
+              className="absolute inset-0 h-full w-full rounded-[9%] object-cover"
+              style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg) translateZ(3px)" }}
+            />
+            {/* bordas metálicas (espessura do aparelho) */}
+            <div
+              aria-hidden="true"
+              className="absolute bottom-[2%] left-0 top-[2%] w-[6px]"
+              style={{
+                background: "linear-gradient(#3a3a3e, #17171a 30%, #232327 70%, #3a3a3e)",
+                transform: "rotateY(-90deg)",
+                transformOrigin: "left center",
+              }}
+            />
+            <div
+              aria-hidden="true"
+              className="absolute bottom-[2%] right-0 top-[2%] w-[6px]"
+              style={{
+                background: "linear-gradient(#3a3a3e, #17171a 30%, #232327 70%, #3a3a3e)",
+                transform: "rotateY(90deg)",
+                transformOrigin: "right center",
+              }}
+            />
+          </div>
+        </div>
 
         {/* tela de espera discreta até o 1º quadro */}
         {!ready && (
