@@ -9,6 +9,8 @@
 |---|---|---|---|---|
 | 2026-07-18 | Fase 2 — imagem-mestra (3 alternativas) | 3 × Nano Banana 2 | US$ 0,24 | US$ 0,24 / 20,00 |
 | 2026-07-18 | Fase 2 — rodada da REFERÊNCIA do dono (2 candidatas finais) | 2 × Nano Banana 2 | US$ 0,16 | US$ 0,40 / 20,00 |
+| 2026-07-18 | Fase 3 — storyboard cenas 2–7 ANCORADO na mestra (cena 1 = mestra, custo 0) | 6 × Nano Banana 2 /edit | US$ 0,48 | US$ 0,88 / 20,00 |
+| 2026-07-18 | Fase 4 — prova técnica: vídeo cena 1 (720p · 5 s · mudo) | 1 × Seedance 2.0 mini ref-to-video | a confirmar no extrato | — |
 
 ## 2026-07-18 · Fase 2 · Imagem-mestra — 3 alternativas
 
@@ -65,3 +67,32 @@
   ANCORADA nesta imagem (modo edição/referência — nunca texto puro), para o resultado
   não fugir do que ele aprovou. Se a prova técnica de animação ficar abaixo do esperado,
   parar o gasto e cair no plano B: hero estática + movimento por código (custo zero).
+
+## 2026-07-18 · Fase 3 · Storyboard (autorização integral do dono: "finalize dentro do que já foi aprovado")
+
+- **Modelo:** `fal-ai/gemini-3.1-flash-image-preview/edit` (Nano Banana 2, modo edição) —
+  `image_urls = [master-scene.png]` em TODAS: o modelo copia o mundo visual da mestra.
+- **Params:** 16:9 · 2K · png · US$ 0,08/img · 6 gerações (cena 1 = a própria mestra, custo 0).
+- **QA do agente: 7/7 APROVADAS na 1ª rodada, zero re-tentativas.**
+
+| Cena | Arco | request_id | seed | Arquivo | QA |
+|---|---|---|---|---|---|
+| 01 | captura | — (é a mestra do dono) | — | `storyboard/scene-01.png` | aprovada por definição |
+| 02 | repetição | `019f7823-c468…` | 20260802 | `storyboard/scene-02.png` | corredores de vidro negro + laços âmbar circulares + sinos; paleta idêntica ✓ |
+| 03 | saturação | `019f7823-d7e9…` | 20260803 | `storyboard/scene-03.png` | filamentos orgânicos (não-cérebro) saturados de sinais âmbar ✓ |
+| 04 | pausa | `019f7823-ea5e…` | 20260804 | `storyboard/scene-04.png` | sinos apagados congelados + único pulso branco quente central; manteve a SALA da mestra (continuidade extra) ✓ |
+| 05 | consciência | `019f7824-004f…` | 20260805 | `storyboard/scene-05.png` | mesmo homem/sala/aparelho; mão para a centímetros do vidro; mão anatômica ✓; luz branca entrando ✓ |
+| 06 | escolha | `019f7824-14c6…` | 20260806 | `storyboard/scene-06.png` | aparelho de TELA PARA BAIXO na mesa + livro/papel/caneta/xícara; fios se desfazendo ✓ (obs.: miolo do livro tem texto impresso ilegível — realismo de objeto, não mensagem; aceito) |
+| 07 | liberdade | `019f7824-2432…` | 20260807 | `storyboard/scene-07.png` | manhã, mesmo homem lendo na mesma poltrona, janela à direita, zero aparelho/fios; rosto suave não identificável ✓ |
+
+- **Downloads:** imediatos. **Custo real do lote: US$ 0,48** (o gate reserva US$ 0,50/chamada
+  por superestimativa conhecida do NB2; o real cobrado é US$ 0,08/img).
+
+## 2026-07-18 · Fase 4 · Prova técnica — vídeo da cena 1
+
+- **Modelo:** `bytedance/seedance-2.0/mini/reference-to-video` · `@Image1 = master-scene.png` ·
+  720p · 5 s · 16:9 · `generate_audio: false` (filme mudo) · request `019f7826-0843…`.
+- **Movimento pedido:** órbita lenta ao redor do aparelho; pulsos sobem/descem os fios;
+  sinos pulsam; ondas do chão se expandem; homem imóvel respirando; sem cortes, sem tremor.
+- **Custo:** unidade de cobrança do Seedance 2.0 será confirmada no extrato (`usage`) logo
+  após a conclusão e registrada aqui — é exatamente o que esta prova barata existe para medir.
