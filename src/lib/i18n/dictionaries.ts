@@ -109,17 +109,17 @@ export const pt = {
   },
   topics: {
     eyebrow: "TEMAS",
-    title: "Pilares editoriais com ritmo de estúdio.",
+    title: "O que investigamos aqui.",
     label: "tema",
+    // Índice editorial: 6 temas DISTINTOS (saíram "Vício em redes" e
+    // "Comportamento humano", redundantes com desintoxicação e hábito).
     items: [
       { title: "Desintoxicação digital", desc: "Redesenhe seus incentivos para recuperar desejo e presença." },
       { title: "Psicologia do hábito", desc: "Compreenda o ciclo de gatilho, rotina e recompensa." },
       { title: "Ansiedade moderna", desc: "Ruído social + previsão excessiva = tensão constante." },
-      { title: "Vício em redes", desc: "Quando o scroll vira regulação emocional." },
       { title: "Masculinidade consciente", desc: "Força, vulnerabilidade e disciplina com inteligência afetiva." },
-      { title: "Liberdade", desc: "Escolha deliberada sobre impulsos e recompensas rápidas." },
       { title: "Inteligência emocional", desc: "Nomeie, processe e transforme emoção em ação." },
-      { title: "Comportamento humano", desc: "Biologia + aprendizado + contexto. Sem moralismo." },
+      { title: "Liberdade", desc: "Escolha deliberada sobre impulsos e recompensas rápidas." },
     ],
   },
   gallery: {
@@ -403,13 +403,23 @@ export const pt = {
     ],
     contactNote: "Dúvidas sobre privacidade? Fale com contato@drlibertad.com.",
   },
+  discover: {
+    eyebrow: "PARA CONTINUAR",
+    title: "Três caminhos a partir daqui.",
+    booksCta: "Ver os livros",
+    studyCta: "Conhecer o estudo",
+    authorCta: "Conhecer o autor",
+  },
   footer: {
     tagline: "Filosofia aplicada à atenção e ao comportamento.",
     legal: "Privacidade",
+    sectionsLabel: "Nesta página",
+    pagesLabel: "O estúdio",
     links: [
       { label: "Manifesto", id: "manifesto" },
-      { label: "Tópicos", id: "topics" },
-      { label: "Galeria", id: "gallery" },
+      { label: "Temas", id: "topics" },
+      { label: "Editorial", id: "gallery" },
+      { label: "Citações", id: "quotes" },
       { label: "Newsletter", id: "newsletter" },
     ],
   },
@@ -514,17 +524,15 @@ export const es: Dict = {
   },
   topics: {
     eyebrow: "TEMAS",
-    title: "Pilares editoriales con ritmo de estudio.",
+    title: "Lo que investigamos aquí.",
     label: "tema",
     items: [
       { title: "Desintoxicación digital", desc: "Rediseña tus incentivos para recuperar deseo y presencia." },
       { title: "Psicología del hábito", desc: "Comprende el ciclo de disparador, rutina y recompensa." },
       { title: "Ansiedad moderna", desc: "Ruido social + exceso de anticipación = tensión constante." },
-      { title: "Adicción a las redes", desc: "Cuando el scroll se vuelve regulación emocional." },
       { title: "Masculinidad consciente", desc: "Fuerza, vulnerabilidad y disciplina con inteligencia afectiva." },
-      { title: "Libertad", desc: "Elección deliberada sobre impulsos y recompensas rápidas." },
       { title: "Inteligencia emocional", desc: "Nombra, procesa y transforma la emoción en acción." },
-      { title: "Comportamiento humano", desc: "Biología + aprendizaje + contexto. Sin moralismo." },
+      { title: "Libertad", desc: "Elección deliberada sobre impulsos y recompensas rápidas." },
     ],
   },
   gallery: {
@@ -808,13 +816,23 @@ export const es: Dict = {
     ],
     contactNote: "¿Dudas sobre privacidad? Escribe a contacto@drlibertad.com.",
   },
+  discover: {
+    eyebrow: "PARA CONTINUAR",
+    title: "Tres caminos a partir de aquí.",
+    booksCta: "Ver los libros",
+    studyCta: "Conocer el estudio",
+    authorCta: "Conocer al autor",
+  },
   footer: {
     tagline: "Filosofía aplicada a la atención y al comportamiento.",
     legal: "Privacidad",
+    sectionsLabel: "En esta página",
+    pagesLabel: "El estudio",
     links: [
       { label: "Manifiesto", id: "manifesto" },
       { label: "Temas", id: "topics" },
-      { label: "Galería", id: "gallery" },
+      { label: "Editorial", id: "gallery" },
+      { label: "Citas", id: "quotes" },
       { label: "Newsletter", id: "newsletter" },
     ],
   },

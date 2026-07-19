@@ -8,6 +8,7 @@ import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
 import Marquee from "@/components/ui/Marquee";
 import { useLang } from "@/lib/i18n/LanguageProvider";
+import { estudoContent } from "@/components/estudo/estudo.content";
 
 function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
@@ -126,32 +127,14 @@ export default function Page() {
         </StudioContainer>
       </section>
 
-      {/* TOPICS */}
+      {/* TEMAS — índice editorial interativo: títulos grandes, números discretos,
+          uma frase de contexto revelada no tema ativo (hover no desktop, toque no mobile) */}
       <section id="topics" className="py-16 md:py-24 border-b border-warm-gray/10">
         <StudioContainer>
           <Reveal>
             <SectionHeading eyebrow={t.topics.eyebrow} title={t.topics.title} />
           </Reveal>
-          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {t.topics.items.map((topic, idx) => (
-              <motion.article
-                key={topic.title}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.25 }}
-                transition={{ duration: 0.6, delay: idx * 0.04 }}
-                whileHover={{ y: -4, borderColor: "rgba(185,176,162,0.55)" }}
-                className="group rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur transition-colors"
-              >
-                <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
-                  {t.topics.label} {String(idx + 1).padStart(2, "0")}
-                </div>
-                <h3 className="mt-3 text-[1.25rem] leading-[1.1]">{topic.title}</h3>
-                <p className="mt-3 text-sm leading-[1.7] text-warm-gray/90">{topic.desc}</p>
-                <div className="mt-5 h-[1px] w-14 bg-warm-gray/25 group-hover:bg-muted-red transition-colors" />
-              </motion.article>
-            ))}
-          </div>
+          <TopicsIndex />
         </StudioContainer>
       </section>
 
@@ -184,20 +167,83 @@ export default function Page() {
                 transition={{ duration: 0.6, delay: idx * 0.04 }}
                 className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
-                      {t.quotes.noteLabel}
-                    </div>
-                    <p className="mt-3 text-[1.35rem] leading-[1.4]">&ldquo;{q.quote}&rdquo;</p>
-                  </div>
-                  <div className="hidden sm:block text-muted-red text-5xl leading-none font-serif">
-                    &ldquo;
-                  </div>
+                <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
+                  {t.quotes.noteLabel} {String(idx + 1).padStart(2, "0")}
                 </div>
+                <p className="mt-3 text-[1.35rem] leading-[1.4]">&ldquo;{q.quote}&rdquo;</p>
                 <footer className="mt-5 text-sm text-warm-gray/90">{q.meta}</footer>
               </motion.blockquote>
             ))}
+          </div>
+        </StudioContainer>
+      </section>
+
+      {/* PARA CONTINUAR — destaques reais: Livros, Estudo e Autor */}
+      <section id="descobrir" className="py-16 md:py-24 border-b border-warm-gray/10">
+        <StudioContainer>
+          <Reveal>
+            <SectionHeading eyebrow={t.discover.eyebrow} title={t.discover.title} />
+          </Reveal>
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {/* LIVROS */}
+            <motion.a
+              href={`/${lang}/livros`}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.25 }}
+              transition={{ duration: 0.6 }}
+              whileHover={{ y: -5 }}
+              className="group flex flex-col rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur"
+            >
+              <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">{t.nav.books}</div>
+              <h3 className="mt-4 font-serif text-[1.5rem] leading-[1.15]">{t.livrosIndex.title}</h3>
+              <p className="mt-3 text-sm leading-[1.7] text-warm-gray/90">
+                {t.livro.title} {t.livro.titleAccent} · {t.dopamina.title} {t.dopamina.titleAccent}
+              </p>
+              <div className="mt-auto pt-6 text-xs tracking-[0.22em] uppercase text-muted-red group-hover:text-offwhite transition">
+                {t.discover.booksCta} →
+              </div>
+            </motion.a>
+
+            {/* ESTUDO */}
+            <motion.a
+              href={lang === "es" ? "/el-estudio" : "/o-estudo"}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.25 }}
+              transition={{ duration: 0.6, delay: 0.05 }}
+              whileHover={{ y: -5 }}
+              className="group flex flex-col rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur"
+            >
+              <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">{t.nav.study}</div>
+              <h3 className="mt-4 font-serif text-[1.5rem] leading-[1.15]">
+                {estudoContent[lang].hero.titlePre}
+                <em className="text-muted-red not-italic">{estudoContent[lang].hero.titleEm}</em>
+                {estudoContent[lang].hero.titlePost}
+              </h3>
+              <p className="mt-3 text-sm leading-[1.7] text-warm-gray/90">{estudoContent[lang].hero.kicker}</p>
+              <div className="mt-auto pt-6 text-xs tracking-[0.22em] uppercase text-muted-red group-hover:text-offwhite transition">
+                {t.discover.studyCta} →
+              </div>
+            </motion.a>
+
+            {/* AUTOR */}
+            <motion.a
+              href={`/${lang}/autor`}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.25 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              whileHover={{ y: -5 }}
+              className="group flex flex-col rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur"
+            >
+              <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">{t.author.eyebrow}</div>
+              <h3 className="mt-4 font-serif text-[1.5rem] leading-[1.15]">{t.author.title}</h3>
+              <p className="mt-3 text-sm leading-[1.7] text-warm-gray/90 line-clamp-3">{t.author.lead}</p>
+              <div className="mt-auto pt-6 text-xs tracking-[0.22em] uppercase text-muted-red group-hover:text-offwhite transition">
+                {t.discover.authorCta} →
+              </div>
+            </motion.a>
           </div>
         </StudioContainer>
       </section>
@@ -243,42 +289,138 @@ export default function Page() {
         </StudioContainer>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-warm-gray/10 py-10">
+      {/* FOOTER — marca à esquerda; duas colunas nomeadas (âncoras desta página ·
+          páginas do estúdio), cada item na sua linha */}
+      <footer className="border-t border-warm-gray/10 py-12">
         <StudioContainer>
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <div className="font-serif text-[1.75rem] font-semibold leading-none tracking-[-0.01em] text-offwhite">
                 {t.brand}
               </div>
               <div className="mt-4 h-[2px] w-11 bg-muted-red" />
-              <div className="mt-4 text-sm tracking-[0.02em] text-warm-gray/90">{t.footer.tagline}</div>
+              <div className="mt-4 max-w-[32ch] text-sm leading-[1.7] tracking-[0.02em] text-warm-gray/90">
+                {t.footer.tagline}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-warm-gray/90">
-              {t.footer.links.map((link) => (
-                <a
-                  key={link.id}
-                  className="hover:text-offwhite transition"
-                  href={`#${link.id}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollToSection(link.id);
-                  }}
-                >
-                  {link.label}
-                </a>
-              ))}
-              <a
-                className="text-warm-gray/70 hover:text-offwhite transition"
-                href={`/${lang}/privacidade`}
-              >
-                {t.footer.legal}
-              </a>
+            <div>
+              <div className="text-xs tracking-[0.22em] text-warm-gray/60 uppercase">
+                {t.footer.sectionsLabel}
+              </div>
+              <ul className="mt-4 space-y-2.5 text-sm text-warm-gray/90">
+                {t.footer.links.map((link) => (
+                  <li key={link.id}>
+                    <a
+                      className="hover:text-offwhite transition"
+                      href={`#${link.id}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        scrollToSection(link.id);
+                      }}
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <div className="text-xs tracking-[0.22em] text-warm-gray/60 uppercase">
+                {t.footer.pagesLabel}
+              </div>
+              <ul className="mt-4 space-y-2.5 text-sm text-warm-gray/90">
+                <li>
+                  <a className="hover:text-offwhite transition" href={`/${lang}/livros`}>
+                    {t.nav.books}
+                  </a>
+                </li>
+                <li>
+                  <a
+                    className="hover:text-offwhite transition"
+                    href={lang === "es" ? "/el-estudio" : "/o-estudo"}
+                  >
+                    {t.nav.study}
+                  </a>
+                </li>
+                <li>
+                  <a className="hover:text-offwhite transition" href={`/${lang}/autor`}>
+                    {t.nav.author}
+                  </a>
+                </li>
+                <li>
+                  <a className="hover:text-offwhite transition" href={`/${lang}/quiz`}>
+                    {t.nav.quiz}
+                  </a>
+                </li>
+                <li>
+                  <a
+                    className="text-warm-gray/70 hover:text-offwhite transition"
+                    href={`/${lang}/privacidade`}
+                  >
+                    {t.footer.legal}
+                  </a>
+                </li>
+              </ul>
             </div>
           </div>
         </StudioContainer>
       </footer>
     </motion.main>
+  );
+}
+
+/**
+ * Índice editorial dos temas: linhas com número discreto e título grande;
+ * o tema ativo (hover no desktop, toque no mobile) revela a frase de contexto.
+ */
+function TopicsIndex() {
+  const { t } = useLang();
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  return (
+    <div className="mt-10 border-t border-warm-gray/12">
+      {t.topics.items.map((topic, idx) => {
+        const isActive = idx === activeIdx;
+        return (
+          <button
+            key={topic.title}
+            type="button"
+            aria-expanded={isActive}
+            onClick={() => setActiveIdx(idx)}
+            onMouseEnter={() => setActiveIdx(idx)}
+            onFocus={() => setActiveIdx(idx)}
+            className="group block w-full border-b border-warm-gray/12 py-5 text-left md:py-6"
+          >
+            <div className="flex items-baseline gap-5 md:gap-8">
+              <span
+                className={`w-8 shrink-0 font-sans text-xs tracking-[0.2em] transition-colors ${
+                  isActive ? "text-muted-red" : "text-warm-gray/50"
+                }`}
+              >
+                {String(idx + 1).padStart(2, "0")}
+              </span>
+              <span
+                className={`font-serif text-[clamp(1.6rem,4vw,2.9rem)] leading-[1.08] tracking-[-0.02em] transition-colors ${
+                  isActive ? "text-offwhite" : "text-warm-gray/75 group-hover:text-offwhite"
+                }`}
+              >
+                {topic.title}
+              </span>
+            </div>
+            <motion.div
+              initial={false}
+              animate={{ height: isActive ? "auto" : 0, opacity: isActive ? 1 : 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="overflow-hidden"
+            >
+              <p className="pl-13 pt-3 text-sm leading-[1.7] text-warm-gray/90 md:pl-16 md:text-base">
+                {topic.desc}
+              </p>
+            </motion.div>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

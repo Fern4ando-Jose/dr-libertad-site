@@ -111,16 +111,23 @@ export default function EditorialGrid() {
 
   useEffect(() => {
     let alive = true;
-    fetch(`/api/posts?lang=${lang}`)
+    // Limite de 8s: se a API/banco demorar (Neon frio), cai no fallback em vez
+    // de deixar a seção presa em "Carregando…" para sempre.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    fetch(`/api/posts?lang=${lang}`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
         if (!alive) return;
         const list: EditorialPost[] = data?.posts ?? [];
         setPosts(list.length > 0 ? list : FALLBACK);
       })
-      .catch(() => alive && setPosts(FALLBACK));
+      .catch(() => alive && setPosts(FALLBACK))
+      .finally(() => clearTimeout(timer));
     return () => {
       alive = false;
+      ctrl.abort();
+      clearTimeout(timer);
     };
   }, [lang]);
 

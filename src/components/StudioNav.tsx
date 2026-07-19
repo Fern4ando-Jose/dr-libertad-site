@@ -104,12 +104,19 @@ export default function StudioNav() {
           />
         </a>
 
+        {/* Menu desktop ENXUTO (pedido do dono 19/07): só o essencial — as demais
+            seções vivem na própria rolagem, no rodapé e no painel mobile. */}
         <nav className="hidden items-center gap-6 md:flex">
-          {t.nav.items.map((it) => (
-            <a key={it.id} {...sectionProps(it.id)} className={linkCls}>
-              {it.label}
-            </a>
-          ))}
+          {t.nav.items
+            .filter((it) => it.id === "manifesto")
+            .map((it) => (
+              <a key={it.id} {...sectionProps(it.id)} className={linkCls}>
+                {it.label}
+              </a>
+            ))}
+          <a href={`${home}/livros`} className={linkCls}>
+            {t.nav.books}
+          </a>
           <a
             href={studyHref}
             className={
@@ -118,12 +125,6 @@ export default function StudioNav() {
             }
           >
             {t.nav.study}
-          </a>
-          <a href={`${home}/quiz`} className={`${linkCls} whitespace-nowrap`}>
-            {t.nav.quiz}
-          </a>
-          <a href={`${home}/livros`} className={linkCls}>
-            {t.nav.books}
           </a>
           <a href={`${home}/autor`} className={linkCls}>
             {t.nav.author}
