@@ -84,6 +84,36 @@ function drawCover(
   ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
 }
 
+/* ── micro-vida do hero (só cena 1): sinais abstratos que nascem na borda da
+   gaiola, derivam devagar rumo ao aparelho e se apagam; pulsos ocasionais nos
+   anéis. Sutis, adultos, sem interface literal. Rodam POR TEMPO (a cena parada
+   continua viva) e se dissipam quando a narrativa avança. ─────────────────── */
+type Sinal = {
+  x: number; y: number; vx: number; vy: number;
+  vida: number; dur: number; tipo: 0 | 1 | 2; // 0=bolha · 1=alerta · 2=coração
+  r: number;
+};
+
+function desenharCoracao(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + r * 0.9);
+  ctx.bezierCurveTo(x - r * 1.3, y - r * 0.1, x - r * 0.55, y - r, x, y - r * 0.35);
+  ctx.bezierCurveTo(x + r * 0.55, y - r, x + r * 1.3, y - r * 0.1, x, y + r * 0.9);
+  ctx.fill();
+}
+
+function desenharSino(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, Math.PI, 0);
+  ctx.lineTo(x + r, y + r * 0.7);
+  ctx.lineTo(x - r, y + r * 0.7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y + r * 0.95, r * 0.22, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 /** Uma frase da narrativa: texto + posição própria (espaço negativo da cena). */
 type Beat = {
   id: string;
@@ -229,6 +259,12 @@ export default function TravessiaOpening() {
 
     let lastActive = -1;
 
+    // micro-vida do hero
+    const sinais: Sinal[] = [];
+    let tAnterior = performance.now();
+    let proxPulso = 1.6; // segundos até o próximo pulso da gaiola
+    const pulsos: { r: number; alfa: number }[] = [];
+
     const tick = () => {
       rafRef.current = requestAnimationFrame(tick);
       const rect = section.getBoundingClientRect();
@@ -281,6 +317,81 @@ export default function TravessiaOpening() {
           drawCover(ctx, prev, cw, ch);
           ctx.globalAlpha = 1;
         }
+      }
+
+      /* micro-vida (só na cena 1): sinais rumo ao aparelho + pulsos na gaiola.
+         Intensidade morre conforme a cena sai (local>0.6) — nada compete com a
+         transição. Tempo próprio: a cena PARADA continua viva. */
+      const agora = performance.now();
+      const dt = Math.min(0.05, (agora - tAnterior) / 1000);
+      tAnterior = agora;
+      if (idx === 0) {
+        const forca = local < 0.6 ? 1 : Math.max(0, 1 - (local - 0.6) / 0.3);
+        const ax = cw * 0.47; // atrator ≈ centro do aparelho
+        const ay = ch * 0.46;
+        if (forca > 0.05) {
+          // nascem na periferia da gaiola, poucos por vez
+          if (sinais.length < 13 && Math.random() < 0.05) {
+            const ang = Math.random() * Math.PI * 2;
+            const dist = Math.min(cw, ch) * (0.34 + Math.random() * 0.2);
+            const sorte = Math.random();
+            sinais.push({
+              x: ax + Math.cos(ang) * dist,
+              y: ay + Math.sin(ang) * dist * 0.85,
+              vx: 0, vy: 0, vida: 0,
+              dur: 5 + Math.random() * 4,
+              tipo: sorte < 0.55 ? 0 : sorte < 0.82 ? 1 : 2,
+              r: (2.4 + Math.random() * 3.2) * (cw / 1600),
+            });
+          }
+          if ((proxPulso -= dt) <= 0) {
+            proxPulso = 3 + Math.random() * 2.6;
+            pulsos.push({ r: Math.min(cw, ch) * 0.16, alfa: 0.34 });
+          }
+        }
+        for (let i = sinais.length - 1; i >= 0; i--) {
+          const s = sinais[i];
+          s.vida += dt;
+          if (s.vida > s.dur) { sinais.splice(i, 1); continue; }
+          // deriva lenta rumo ao aparelho, com leve flutuação orgânica
+          const dx = ax - s.x; const dy = ay - s.y;
+          const d = Math.hypot(dx, dy) || 1;
+          s.vx += (dx / d) * 6 * dt + Math.sin(agora / 900 + i) * 0.6 * dt;
+          s.vy += (dy / d) * 5 * dt + Math.cos(agora / 1100 + i * 2) * 0.6 * dt;
+          s.x += s.vx; s.y += s.vy;
+          const fase = Math.min(s.vida / 1.2, 1) * Math.min((s.dur - s.vida) / 1.4, 1);
+          const alfa = 0.42 * fase * forca;
+          if (alfa <= 0.01) continue;
+          ctx.globalAlpha = alfa;
+          if (s.tipo === 2) {
+            ctx.fillStyle = "#A45A5A";
+            desenharCoracao(ctx, s.x, s.y, s.r * 1.15);
+          } else if (s.tipo === 1) {
+            ctx.fillStyle = "#C98A3D";
+            desenharSino(ctx, s.x, s.y, s.r);
+          } else {
+            ctx.fillStyle = "#BE7A2A";
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        for (let i = pulsos.length - 1; i >= 0; i--) {
+          const p = pulsos[i];
+          p.r += dt * Math.min(cw, ch) * 0.09;
+          p.alfa -= dt * 0.14;
+          if (p.alfa <= 0.01) { pulsos.splice(i, 1); continue; }
+          ctx.globalAlpha = p.alfa * forca;
+          ctx.strokeStyle = "#C98A3D";
+          ctx.lineWidth = Math.max(1, cw / 1400);
+          ctx.beginPath();
+          ctx.ellipse(ax, ay + ch * 0.18, p.r, p.r * 0.34, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      } else if (sinais.length || pulsos.length) {
+        sinais.length = 0;
+        pulsos.length = 0;
       }
 
       if (idx !== lastActive) {
