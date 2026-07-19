@@ -4,113 +4,126 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
-<title>Plano de correção da sequência visual — auditoria cena a cena</title>
+<title>Plano v2 — suas correções aplicadas: segundos exatos, modelo e custo por trecho</title>
 <style>
-  :root{--ink:#0B0B0C;--paper:#F4F0E8;--gray:#B9B0A2;--amber:#C98A3D;--verde:#7A9B6D;--red:#A45A5A;--card:#151517;--line:rgba(185,176,162,.22)}
+  :root{--ink:#0B0B0C;--paper:#F4F0E8;--gray:#B9B0A2;--amber:#C98A3D;--verde:#7A9E7E;--red:#A45A5A;--card:#151517;--line:rgba(185,176,162,.22)}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--ink);color:var(--paper);font-family:Georgia,serif;line-height:1.6;padding:0 0 70px}
   .wrap{max-width:760px;margin:0 auto;padding:0 20px}
-  header{padding:36px 0 20px;border-bottom:1px solid var(--line);margin-bottom:24px}
+  header{padding:36px 0 20px;border-bottom:1px solid var(--line);margin-bottom:8px}
   .kicker{font-family:Arial,sans-serif;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--amber);margin-bottom:10px}
-  h1{font-size:clamp(21px,5vw,29px);line-height:1.25}
-  h2{font-size:16px;margin:32px 0 10px;color:var(--amber);font-family:Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase}
-  p{color:#DDD6C9;margin:8px 0}
-  ul{margin:8px 0 8px 20px;color:#DDD6C9}
-  li{margin:6px 0}
-  .cena{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}
-  .cena img{display:block;width:100%;border-radius:8px;margin-bottom:10px}
-  .tag{display:inline-block;font-family:Arial,sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:3px 10px;border-radius:99px;margin-right:6px}
-  .t-manter{background:rgba(122,155,109,.18);color:#A8C79A;border:1px solid rgba(122,155,109,.4)}
-  .t-editar{background:rgba(201,138,61,.15);color:#DCA96A;border:1px solid rgba(201,138,61,.4)}
-  .t-gerar{background:rgba(164,90,90,.16);color:#C98787;border:1px solid rgba(164,90,90,.45)}
-  .cena b{color:var(--paper)}
-  .custo{font-family:Arial,sans-serif;font-size:13px;color:var(--gray)}
-  .decisao{background:linear-gradient(135deg,#1c1710,#151517);border:1.5px solid var(--amber);border-radius:12px;padding:18px 20px;margin:26px 0}
-  .rec{border-left:3px solid var(--amber);padding:10px 14px;background:rgba(201,138,61,.07);border-radius:0 8px 8px 0;margin:12px 0}
-  .rec b{color:var(--paper)}
-  .duas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  h1{font-size:clamp(21px,4.5vw,28px);line-height:1.25}
+  h2{font-size:16px;margin:34px 0 6px;color:var(--amber);font-family:Arial,sans-serif;letter-spacing:.08em}
+  h3{font-size:15px;margin:0 0 8px;color:var(--paper)}
+  p,li{color:#DDD6C9;font-size:15px}
+  ul{margin:6px 0 6px 20px}
+  li{margin:5px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:12px 0}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px;font-family:Arial,sans-serif}
+  th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}
+  th{color:var(--gray);font-weight:normal;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+  .decisao{background:linear-gradient(135deg,#1c1710,#151517);border:1.5px solid var(--amber);border-radius:12px;padding:18px 20px;margin:28px 0}
+  .selo{display:inline-block;font-family:Arial,sans-serif;font-size:10px;letter-spacing:.15em;text-transform:uppercase;padding:2px 8px;border-radius:99px;border:1px solid var(--line);margin-left:6px}
+  .s-verde{color:var(--verde);border-color:rgba(122,158,126,.5)}
+  .s-ambar{color:var(--amber);border-color:rgba(201,138,61,.5)}
+  .s-red{color:var(--red);border-color:rgba(164,90,90,.5)}
+  .cap{font-family:Arial,sans-serif;font-size:12px;color:var(--gray);margin-top:6px}
 </style>
 </head>
 <body>
 <div class="wrap">
 
 <header>
-  <div class="kicker">Dr. Liberdade · A Travessia da Gaiola · plano de correção · 19/07/2026</div>
-  <h1>Auditoria das 7 cenas + plano: o que fica, o que se edita de graça, o que precisa gerar</h1>
+  <div class="kicker">Dr. Liberdade · A Travessia da Gaiola · plano v2 · 19/07/2026</div>
+  <h1>Suas correções, aplicadas: o que se reaproveita (segundo a segundo), o que se corta, o que se gera — e quanto custa</h1>
 </header>
 
-<h2>O que eu fiz</h2>
-<ul>
-  <li>8 auditores examinaram <b>quadro a quadro</b> (início, meio e fim de cada cena, com recortes ampliados) contra as suas regras: mesmo quarto, mesma poltrona/mesa, mesma luz noturna, mesmo telefone com frente e verso coerentes, final com a tela para baixo.</li>
-  <li><b>Nada foi gerado.</b> Saldo disponível: <b>≈ US$ 7,80</b> dos US$ 20. Este plano gasta <b>≈ US$ 2</b> e conserta o resto por código (de graça).</li>
-</ul>
+<p style="margin-top:14px"><b>Regra geral aceita e incorporada:</b> nenhum defeito será "resolvido" escondendo com corte, enquadramento ou aceleração. Toda emenda desta lista existe para produzir continuidade REAL — mesmo quarto, mesmo aparelho (frente, verso, botões, câmeras), mesma luz, mesma escala. E nada gerado entra na página sem passar pela página de revisão.</p>
 
-<h2>Veredito cena a cena</h2>
+<h2>O DESENHO FINAL (6 cenas — a diurna sai)</h2>
+<p>A jornada termina na cena da mão: telefone na mesa, <b>tela para baixo, verso visível</b>, quarto noturno, gaiola se apagando — e daí a página desliza suave para o Manifesto. A cena diurna do homem lendo <b>sai da sequência principal e fica guardada</b> (nada é apagado).</p>
 
-<div class="cena">
-  <img src="/generated/sequences/scene-01/desktop/frame-001.webp" alt="">
-  <span class="tag t-editar">EDITAR · grátis</span> <b>Cena 1 — Hero.</b>
-  <p>Do início até o telefone ficar de perfil, é a sua imagem em movimento — <b>fica intacta</b>. O problema está no fim da cena: o giro termina mostrando OUTRA tela (com recorte no topo e botões do lado trocado) — as "duas frentes" que você proibiu. Conserto por código: a cena passa a fechar no perfil, sem o trecho ruim. As micro-animações que você pediu (pulsos na grade, notificações, corações discretos piscando) entram <b>por código, por cima</b> — custo zero.</p>
+<h2>CENA A CENA — reaproveitar · cortar · gerar</h2>
+
+<div class="card">
+  <h3>Cena 1 · Hero (5,04s hoje)<span class="selo s-red">1 geração</span><span class="selo s-verde">+ código</span></h3>
+  <ul>
+    <li><b>Reaproveitar:</b> 0,0–2,5s (quadros 1–30: a sua imagem exata → giro até o perfil, fiel à mestra).</li>
+    <li><b>Cortar:</b> 2,5–5,04s (quadros 31–61: a "segunda frente" — recorte no vidro e botões do lado trocado). O corte aqui não esconde o defeito: o trecho é <b>substituído por rotação verdadeira</b>.</li>
+    <li><b>Gerar (G1):</b> rotação completa e lenta de 360° partindo da sua mestra — frente (uma tela só) → lateral com botões → <b>verso com módulo de câmeras</b> → outra lateral → frente. Vira o <b>giro contínuo do hero enquanto o visitante está parado</b>, com o reinício do loop suavizado por código (sem salto). O verso deste giro vira a referência canônica do aparelho para o resto do filme.</li>
+    <li><b>Antes do G1, uma imagem-referência (G0):</b> o verso canônico (câmeras, sem nenhuma marca, mesma espessura/cantos da mestra) — amarra G1 e G3 ao MESMO verso.</li>
+    <li><b>Código (custo zero):</b> micro-animações — notificações abstratas, pequenos corações, alertas, pulsos na gaiola, sinais se aproximando da tela; suaves, aparecendo e sumindo, reagindo discretamente à rotação; nada infantil, nenhuma interface de rede real. Poltrona já está na mestra; mesa e luz de janela entram na composição do G1 para o quarto ser reconhecível desde o início.</li>
+  </ul>
 </div>
 
-<div class="cena">
-  <img src="/generated/sequences/scene-02/desktop/frame-037.webp" alt="">
-  <span class="tag t-editar">EDITAR · grátis</span> <b>Cena 2 — Entrada pela tela.</b>
-  <p>A câmera entra <b>pela frente do aparelho</b> (como você mandou) e o final bate 1:1 com o storyboard. O defeito é o primeiro trecho, que reencena o quarto (câmera de frente, homem fora do lugar). Conserto por código: recorte fechado no telefone + leve aceleração desse trecho. O <b>mundo digital interno</b> ganha por código os sinais de captura (bolhas, curtidas abstratas, caminhos que voltam sempre ao mesmo lugar) — sutis, sem interface literal.</p>
+<div class="card">
+  <h3>Cena 2 · Entrada pela tela (6,04s)<span class="selo s-verde">reaproveitar 100%</span></h3>
+  <ul>
+    <li><b>Reaproveitar:</b> 0,0–6,04s inteiros — ela já começa com a frente dominante e a câmera atravessa a TELA (no meio da cena o vidro ocupa tudo; no fim estamos dentro do mundo espelhado).</li>
+    <li><b>Costura 1→2:</b> a rolagem conduz o giro do hero até a frente ficar plenamente voltada à câmera — o mesmo ângulo/escala/posição do primeiro quadro da cena 2 — e só então a travessia acontece. Vou validar quadro a quadro: mesmo aparelho, mesmos botões, mesmo eixo, sem salto de escala. Se a emenda não passar, ela entra na fila de geração com o seu OK (não vou esconder com close).</li>
+    <li><b>Código:</b> sinais sutis no mundo interno — notificações chegando, curtidas abstratas, ciclos que voltam ao mesmo ponto, bolhas de atenção; sem marcas, sem interface literal.</li>
+  </ul>
 </div>
 
-<div class="cena">
-  <img src="/generated/sequences/scene-03/desktop/frame-049.webp" alt="">
-  <span class="tag t-editar">EDITAR · grátis</span> <b>Cena 3 — Sinapse.</b>
-  <p>O meio e o fim são a sua sinapse, em paleta certa. Corte do primeiro terço (uma "caixa espelhada" que não pertence ao mundo) e, por cima do vídeo, a <b>sinapse VIVA por código</b>: pontos de verdade percorrendo os filamentos, pulsos atravessando a fenda, ritmo orgânico — controlável e reversível na rolagem, sem loteria de gerador.</p>
+<div class="card">
+  <h3>Cena 3 · Sinapse VIVA (8,04s)<span class="selo s-verde">reaproveitar + código</span></h3>
+  <ul>
+    <li><b>Reaproveitar:</b> 0,0–2,0s (saída do mundo espelhado → chegada à sinapse — mantida só se a passagem continuar compreensível na revisão) e o quadro pleno da SUA sinapse (cores originais) como palco.</li>
+    <li><b>Código (o coração da cena):</b> sinais desenhados sobre a GEOMETRIA real da sua imagem — trajetórias traçadas filamento a filamento: o sinal percorre o braço do neurônio, chega à terminação, <b>atravessa a fenda</b>, é recebido do outro lado e acende a conexão; velocidades e brilhos variados, ritmo orgânico (sem fluxo biológico errado, sem aleatoriedade), intensidade crescendo até comunicar saturação; tudo <b>reversível com a rolagem</b>. Nada de partícula genérica jogada por cima do vídeo.</li>
+  </ul>
 </div>
 
-<div class="cena">
-  <img src="/generated/sequences/scene-04/desktop/frame-049.webp" alt="">
-  <span class="tag t-manter">MANTER · grátis</span> <b>Cena 4 — Tudo se apaga e o quarto volta.</b>
-  <p>É exatamente a transição que você pediu no item 6: a atividade desacelera, os brilhos se apagam, e <b>o quarto reaparece</b> nos quadros finais. Fica como está; só a desaceleração da sinapse ganha reforço por código na costura.</p>
+<div class="card">
+  <h3>Cena 4 · Saída da sinapse (8,04s)<span class="selo s-verde">costura nova por código</span><span class="selo s-ambar">contingência</span></h3>
+  <ul>
+    <li><b>Não dou por resolvida.</b> A costura será REFEITA por inteiro e julgada de novo: sinais desacelerando → pontos se rarefazendo e virando brilhos do ambiente/reflexos no vidro → o quarto reaparecendo sem corte brusco → o telefone de volta ao quadro.</li>
+    <li><b>Reaproveitar:</b> a teia desacelerando (0–8,04s) como fundo da desaceleração.</li>
+    <li><b>Contingência declarada:</b> se, com a costura nova pronta, a passagem ainda não for clara, gero SÓ o trecho de emenda (≈4s, ~US$ 0,80) — com um novo OK seu, não agora.</li>
+  </ul>
 </div>
 
-<div class="cena">
-  <img src="/generated/sequences/scene-05/desktop/frame-043.webp" alt="">
-  <span class="tag t-gerar">GERAR só o início · ~US$ 1</span> <b>Cena 5 — O telefone de volta ao quarto.</b>
-  <p>O miolo é fiel (mesmo quarto, mesma luz, telefone de frente). Mas o primeiro trecho <b>perdeu o telefone</b> (virou uma esfera de luz branca, fria). Regenerar só esse comecinho, ancorado no fim da cena 4, com o aparelho presente desde o início.</p>
+<div class="card">
+  <h3>Cena 5 · Volta ao quarto — o telefone encolhe (7,04s hoje)<span class="selo s-red">1 geração</span></h3>
+  <ul>
+    <li><b>Cortar:</b> 0,0–3,5s (quadros 1–42: o telefone some e vira esfera branca — o defeito que você apontou).</li>
+    <li><b>Reaproveitar:</b> o quadro 43 (quarto correto, telefone grande frontal) como âncora de partida — só ele; o resto não serve ao movimento pedido.</li>
+    <li><b>Gerar (G2):</b> ≈5s contínuos — telefone visível o tempo todo, grande porque a câmera está perto, <b>encolhendo gradualmente enquanto a câmera recua</b>; o quarto reaparece, a MESA volta ao enquadramento, e o aparelho termina em tamanho real junto à mesa, frente coerente, posicionado para a mão alcançar — sem nenhum corte grande→pequeno. A poltrona escura e a luz noturna são corrigidas nesta geração (a âncora atual tem poltrona clara; trato antes de gerar).</li>
+  </ul>
 </div>
 
-<div class="cena">
-  <div class="duas">
-    <img src="/generated/sequences/scene-06/desktop/frame-049.webp" alt="" style="margin-bottom:0">
-    <img src="/generated/sequences/scene-06/desktop/frame-097.webp" alt="" style="margin-bottom:0">
-  </div>
-  <p style="margin-top:10px"><span class="tag t-gerar">GERAR só o pouso · ~US$ 1</span> <b>Cena 6 — A mão e a mesa.</b></p>
-  <p>A mão pegando o telefone e a mesa com livro e xícara <b>já existem e ficam</b>. Duas violações no pixel: o aparelho pousa e aparece com a <b>tela para CIMA</b> (o contrário da sua regra), e o verso que aparece na descida tem um <b>logotipo de marca alheia</b> — proibido. Regenerar só o pouso final: a mão deposita o aparelho com o <b>verso limpo visível (câmera traseira, sem logo)</b>, poltrona escura, clima noturno. O escurecimento do trecho (que está claro demais) sai por código.</p>
+<div class="card">
+  <h3>Cena 6 · Mão, mesa e o gesto final (8,04s)<span class="selo s-red">1 geração</span><span class="selo s-verde">+ código</span></h3>
+  <ul>
+    <li><b>Reaproveitar:</b> ≈2,5–6,0s (a mão descendo o aparelho em tamanho real, a mesa com livro/xícara/caneta — os trechos bons que você mandou preservar).</li>
+    <li><b>Cortar:</b> 0–2,5s (telefone ainda gigante, sinos físicos) e 6,0–8,04s (o pouso ERRADO: tela para cima).</li>
+    <li><b>Gerar (G3):</b> ≈5s do gesto completo, contínuo, sem esconder a virada em corte — a mão segura, faz a <b>rotação natural</b>, leva à mesa, pousa <b>com a tela para baixo</b>, se afasta, e o <b>verso limpo</b> fica visível num quadro final estável. O verso = o MESMO do G0/G1 (câmeras visíveis, SEM logotipo — o material atual traz uma marca indevida no verso, mais um motivo para regerar). Mesma mesa, mesma poltrona escura, mesmos objetos, sem dedos extras.</li>
+    <li><b>Código:</b> acerto do clima noturno (escurecimento moderado, testado quadro a quadro para NÃO destruir pele, materiais nem a lógica da luz — se degradar, a correção migra para a própria G3). Gaiola/notificações se apagando; quadro final estável → frase final → transição suave ao Manifesto.</li>
+  </ul>
 </div>
 
-<div class="cena">
-  <img src="/generated/sequences/scene-07/desktop/frame-049.webp" alt="">
-  <span class="tag t-editar">DECISÃO SUA</span> <b>Cena 7 — O epílogo do homem lendo.</b>
-  <p>Ela vira <b>dia claro</b>, a poltrona muda de cor e o telefone some — quebra as regras de continuidade que você escreveu. Minha recomendação: <b>a jornada termina no gesto</b> (verso na mesa, cena 6 corrigida) e esta cena sai da rolagem — guardamos o material. Se preferir mantê-la como "respiro" final mesmo sendo diurna, também funciona; me diga.</p>
-</div>
+<h2>CUSTO DA RODADA (só gero com o seu "pode" — um por vez)</h2>
+<table>
+  <tr><th>item</th><th>o que é</th><th>modelo</th><th>custo est.</th></tr>
+  <tr><td>G0</td><td>imagem do verso canônico (câmeras, sem marca)</td><td>Nano Banana 2 (edição da mestra, 2K)</td><td>US$ 0,08</td></tr>
+  <tr><td>G1</td><td>rotação 360° do hero (≈5s)</td><td>Seedance mini 720p (imagem→vídeo)</td><td>≈ US$ 0,70</td></tr>
+  <tr><td>G2</td><td>telefone encolhe até a mesa (≈5s)</td><td>Seedance mini 720p</td><td>≈ US$ 0,80</td></tr>
+  <tr><td>G3</td><td>virar e pousar tela p/ baixo (≈5s)</td><td>Seedance mini 720p</td><td>≈ US$ 0,80</td></tr>
+  <tr><td colspan="3"><b>Total desta rodada</b> (a contingência da cena 4 fica FORA — só com novo OK)</td><td><b>≈ US$ 2,40</b> dos US$ 7,80</td></tr>
+</table>
+<p class="cap">Cada geração passa primeiro no MEU controle de qualidade quadro a quadro (verso com câmeras e sem marca · botões do mesmo lado · mesma espessura · mesma mesa/poltrona/luz). O que reprovar é refeito ou descartado antes de chegar a você — você só vê candidato aprovado.</p>
 
-<h2>Duas verdades que preciso te dizer (antes de gastar)</h2>
-<div class="rec"><b>Janela grande desde a 1ª cena:</b> a SUA imagem-mestra — que você definiu como intocável — <b>não tem janela grande</b>; a linguagem dela é a fresta de luz quente na parede (que aparece do início ao fim). Impor uma janela = re-encenar a sua hero, o erro que você já me proibiu de repetir. Recomendo tratar a fresta/cortina como a "janela" da direção de arte. Vou nessa linha, salvo ordem sua.</div>
-<div class="rec"><b>Ver o verso no hero:</b> o giro do hero aprovado vai até o perfil. Mostrar o verso REAL logo na 1ª cena exigiria regerar a hero (imutável). Recomendo: no hero a rotação vai até o perfil; o verso aparece com força no <b>final</b> (o pouso na mesa) — que é onde a história precisa dele.</div>
-
-<h2>Resumo de custos</h2>
-<ul>
-  <li>Por código, grátis: cortes das cenas 1/2/3 · micro-animações do hero · sinais do mundo digital · sinapse viva · escurecimento/paleta das cenas 5-6 · suavização das emendas e da escala do telefone.</li>
-  <li>Geração nova: <b>2 trechos curtos</b> (início da cena 5 + pouso final da cena 6) ≈ <b>US$ 2</b> de US$ 7,80 disponíveis. Cada um passa pela sua aprovação <b>antes</b> de entrar na página.</li>
-</ul>
+<h2>VALIDAÇÃO ANTES DE INTEGRAR</h2>
+<p>Nada entra na homepage sem passar pela <b>página de revisão</b> com os 10 quadros que você listou: loop frente/verso · fim da cena 1 ligado ao início da 2 · entrada pela tela · mundo digital · sinapse viva · saída da sinapse · encolhimento · mão pegando · pouso tela para baixo · quadro final. Você aprova lá; só depois integro ao scroll.</p>
 
 <div class="decisao">
-  <p><b>A ÚNICA DECISÃO AGORA:</b> aprova este plano como está (com as duas recomendações acima e a cena 7 saindo da rolagem)? Responda <b>"pode"</b> — ou corrija qualquer linha. Só depois do seu "pode" eu gero os 2 trechos, um por vez, te mostrando cada um.</p>
+  <p><b>A ÚNICA DECISÃO AGORA:</b> posso executar este plano v2 — a parte de código (custo zero) + as gerações G0→G1→G2→G3 (≈ US$ 2,40, uma por vez, cada uma auditada antes de você ver)? Responda <b>"pode"</b> — ou corrija qualquer linha antes.</p>
 </div>
 
-<h2>O que ainda está comigo (depois do seu OK)</h2>
+<h2>O QUE AINDA ESTÁ COMIGO</h2>
 <ul>
-  <li>Executar as edições por código e gerar os 2 trechos (um a um, com sua aprovação).</li>
-  <li>Montar a <b>página de revisão visual</b> com os 8 quadros-chave (hero · giro · entrada pela tela · mundo digital · sinapse viva · volta ao quarto · mão · verso na mesa) antes de integrar ao scroll — como manda o seu item 11.</li>
-  <li>Bateria completa desktop + celular de novo, e o relatório dos 10 pontos do seu item 12.</li>
+  <li>Traçar as trajetórias da sinapse sobre a sua imagem (trabalho fino, custo zero).</li>
+  <li>Montar a página de revisão com os 10 quadros conforme os trechos ficarem prontos.</li>
+  <li>Contingência da cena 4 (só se a costura nova não bastar; pedirei novo OK).</li>
 </ul>
 
 </div>
