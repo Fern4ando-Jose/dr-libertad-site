@@ -1,11 +1,11 @@
 {
-  "frameCount": 85,
+  "frameCount": 49,
   "pattern": "frame-%03d.webp",
   "first": 1,
   "width": 768,
   "height": 432,
   "ext": "webp",
   "fps": 12,
-  "sourceDuration": 7.04,
-  "poster": "/generated/storyboard/scene-05.png"
+  "sourceDuration": 4.05,
+  "poster": "/generated/transitions/anchor-G2-final.png"
 }

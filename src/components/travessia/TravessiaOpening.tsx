@@ -421,10 +421,32 @@ export default function TravessiaOpening() {
         const emC2 = p > SEG ? Math.min(1, (p - SEG) / (SEG * FADE)) : 0;
         if (geoPalco && emC2 < 1) {
           const dpr2 = dpr;
-          const alturaFone = (geoPalco.dh * FONE_ALT) / dpr2;
+          let alturaFone = (geoPalco.dh * FONE_ALT) / dpr2;
+          let cx = (geoPalco.ox + (GAIOLA_X + 0.004) * geoPalco.dw) / dpr2;
+          let cy = (geoPalco.oy + 0.485 * geoPalco.dh) / dpr2;
+          /* emenda 1→2: durante o dissolve, o slab é CONDUZIDO até a posição/
+             escala exatas do aparelho no 1º quadro do vídeo da cena 2 (medido:
+             centro 0.493×0.478, altura 0.545 da fonte) — um aparelho só, sem
+             imagem dupla na travessia. */
+          if (emC2 > 0) {
+            const img2 = pick(1, 0);
+            if (img2) {
+              const iw2 = img2.naturalWidth || 1;
+              const ih2 = img2.naturalHeight || 1;
+              const esc2 = Math.max(cw / iw2, ch / ih2);
+              const dw2 = iw2 * esc2;
+              const dh2 = ih2 * esc2;
+              const ox2 = (cw - dw2) / 2;
+              const oy2 = (ch - dh2) / 2;
+              /* chega ao alvo na METADE do dissolve: a maior parte do fade
+                 acontece com os dois aparelhos já perfeitamente alinhados. */
+              const m = suavizar(0, 0.5, emC2);
+              cx = cx * (1 - m) + ((ox2 + 0.493 * dw2) / dpr2) * m;
+              cy = cy * (1 - m) + ((oy2 + 0.478 * dh2) / dpr2) * m;
+              alturaFone = alturaFone * (1 - m) + ((dh2 * 0.545) / dpr2) * m;
+            }
+          }
           const larguraFone = alturaFone * FONE_PROP;
-          const cx = (geoPalco.ox + (GAIOLA_X + 0.004) * geoPalco.dw) / dpr2;
-          const cy = (geoPalco.oy + 0.485 * geoPalco.dh) / dpr2;
           const tempoS = (performance.now() - nascidoEm) / 1000;
           const giroLivre = (tempoS / GIRO_S) * 360;
           const conducao = suavizar(0.2, 0.6, local0);
@@ -514,6 +536,59 @@ export default function TravessiaOpening() {
           }
           ctx.globalCompositeOperation = "source-over";
         }
+      }
+
+      /* COSTURA 4→5: a saída da sinapse não corta — os sinais remanescentes
+         DESACELERAM, rareiam e escorrem como brilhos de ambiente até o vidro
+         do aparelho que volta ao quadro na cena 5. Uma única fase contínua
+         atravessa a fronteira (fim da cena 4 → crossfade da cena 5); tudo é
+         função da rolagem, logo reversível. */
+      if ((idx === 3 && local > 0.66) || (idx === 4 && local < FADE)) {
+        const fase =
+          idx === 3
+            ? suavizar(0.66, 1, local) * 0.55
+            : 0.55 + (local / FADE) * 0.45;
+        const tS = performance.now() / 1000;
+        // o aparelho da cena 5 vive à esquerda do centro (âncora do G2)
+        const axc = cw * 0.4;
+        const ayc = ch * 0.48;
+        const alfaBase = Math.sin(fase * Math.PI) * 0.5;
+        const nPontos = Math.max(2, Math.round(9 * (1 - fase * 0.75)));
+        // avanço desacelerado: derivada (1 − fase) → quase parados no fim
+        const tk = fase - fase * fase * 0.5;
+        ctx.globalCompositeOperation = "lighter";
+        for (let k = 0; k < nPontos; k++) {
+          const rota = ROTAS_SINAPSE[k % ROTAS_SINAPSE.length];
+          const veloc = 1 + (k % 3) * 0.4;
+          const faseK = (k * 0.211) % 1;
+          const t =
+            ((tk * 1.3 * veloc + faseK + tS * 0.01 * (1 - fase)) % 1 + 1) % 1;
+          const [px, py] = pontoNaRota(rota, t);
+          // deriva: da rota da sinapse para um halo elíptico junto ao vidro
+          const mix = suavizar(0.5, 1, fase);
+          const angK = faseK * Math.PI * 2 + k;
+          const rx = ch * 0.1 * (0.5 + 0.5 * ((k * 0.37) % 1));
+          const gx = axc + Math.cos(angK) * rx;
+          const gy = ayc + Math.sin(angK) * rx * 1.6;
+          const sx = px * cw * (1 - mix) + gx * mix;
+          const sy = py * ch * (1 - mix) + gy * mix;
+          const alfa = alfaBase * (0.5 + 0.5 * ((k * 0.53) % 1));
+          if (alfa <= 0.01) continue;
+          const r = (ch / 720) * (2.6 - 1.6 * mix);
+          const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 3);
+          grad.addColorStop(0, `rgba(255,214,160,${alfa})`);
+          grad.addColorStop(0.5, `rgba(255,175,95,${alfa * 0.4})`);
+          grad.addColorStop(1, "rgba(255,150,60,0)");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(sx, sy, r * 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = `rgba(255,240,220,${Math.min(1, alfa * 1.3)})`;
+          ctx.beginPath();
+          ctx.arc(sx, sy, r * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalCompositeOperation = "source-over";
       }
 
       /* micro-vida (só na cena 1): sinais rumo ao aparelho + pulsos na gaiola.

@@ -181,6 +181,28 @@ percorrer de um neurônio a outro"; cena 4 "deve surgir de um desses pontos que 
 | G1 rotação 360° t2 | seedance-2.0 mini 720p 6s (prompt anti-marca endurecido) | 019f7b5b-e015 | ❌ REPROVADO no QA: logo Apple DE NOVO + giro não fecha na frente | ~US$ 0,78 |
 
 **Total da rodada ≈ US$ 1,72 real · projeto ≈ US$ 13,9 de US$ 20.**
+
+## Rodada G2/G3 — 19/07 noite (fechamento do plano v2)
+
+| item | modelo | request_id | resultado | custo est. |
+|---|---|---|---|---|
+| Âncora G2 (poltrona escura) | NB2 /edit 2K | 019f7bbd-4522 | ⚠️ escureceu pouco → acabamento POR CÓDIGO (máscara gaussiana ffmpeg, custo 0) — APROVADA | US$ 0,08 |
+| G3 t1 (pouso tela p/ baixo) | seedance-2.0 mini 720p 5s | 019f7bbd-cf77 | ❌ REPROVADO no QA: virada frente→verso aconteceu FORA de cena (1º quadro já de verso); pouso/verso limpos ok | ~US$ 0,76 |
+| G2 (telefone encolhe até a mesa) | seedance-2.0 mini 720p 5s | 019f7bbf-721b | ✅ APROVADO 0–4,0s (quadros 1–49); últimos ~0,8s REPROVADOS (aparelho-fantasma sob a mão) e CORTADOS — fantasma fora do site | ~US$ 0,76 |
+| G3 t2 (virada VISÍVEL em cena) | seedance-2.0 mini 720p 5s | 019f7bc4-4771 | ✅ APROVADO integral (61 quadros): tela→borda→verso em cena, pouso tela p/ baixo, verso sem logo, mão sai, quadro final estável | ~US$ 0,76 |
+| Still final (módulo 2 lentes) | NB2 /edit 2K | 019f7bcb-e790 | ✅ módulo-pílula 2 lentes igual ao verso canônico; edição clareou a cena → composto POR CÓDIGO só a região da câmera sobre o quadro original (frame-061) | US$ 0,08 |
+
+- **Custo real da rodada ≈ US$ 2,44 · projeto ≈ US$ 16,3 de US$ 20** (estimativas de tabela; extrato 403).
+- Emenda 1→2 POR CÓDIGO: o slab do hero é CONDUZIDO à posição/escala do aparelho do 1º quadro
+  da cena 2 durante o dissolve (alvo 0.493×0.478, altura 0.545 — medido no quadro real) — um
+  aparelho só, sem imagem dupla.
+- Costura 4→5 POR CÓDIGO: sinais remanescentes desaceleram (derivada 1−fase), rareiam e viram
+  brilhos junto ao vidro do aparelho que volta ao quadro; fase única atravessa a fronteira;
+  reversível com a rolagem.
+- Sequências: cena 5 = 49 quadros (G2 0–4,0s) · cena 6 = 61 quadros (G3 t2; frame-061 = still
+  composto). Antigas arquivadas em `Arquivo-Midia/Travessia-Sequencias-Antigas/` (nada apagado).
+- Bateria v3 (spec vigente, 7 cenas): **37/37 verdes** — desktop, celular, ES, reversibilidade,
+  fronteiras, ritual um-por-vez, console limpo.
 **Lição/decisão:** verso escuro fosco de smartphone = atrator iPhone; o gerador carimba a maçã
 mesmo com proibição explícita e referência limpa (2 provas pagas). A rotação do hero migra para
 CÓDIGO (slab 3D com as faces reais: frente = mestra, verso = G0) — determinístico, loop perfeito,
