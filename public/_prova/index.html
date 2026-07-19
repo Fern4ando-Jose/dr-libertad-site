@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Prova — os efeitos de texto estão no ar (e o que atrapalha no celular)</title>
+<style>
+  :root{--ink:#0B0B0C;--paper:#F4F0E8;--gray:#B9B0A2;--amber:#C98A3D;--card:#151517;--line:rgba(185,176,162,.22)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--ink);color:var(--paper);font-family:Georgia,serif;line-height:1.6;padding:0 0 70px}
+  .wrap{max-width:680px;margin:0 auto;padding:0 20px}
+  header{padding:36px 0 20px;border-bottom:1px solid var(--line);margin-bottom:24px}
+  .kicker{font-family:Arial,sans-serif;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--amber);margin-bottom:10px}
+  h1{font-size:clamp(22px,5vw,30px);line-height:1.25}
+  h2{font-size:17px;margin:30px 0 8px;color:var(--amber);font-family:Arial,sans-serif;letter-spacing:.06em}
+  p{color:#DDD6C9;margin:8px 0}
+  ul{margin:8px 0 8px 20px;color:#DDD6C9}
+  li{margin:6px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;margin:14px 0}
+  video,img{display:block;width:100%;border-radius:8px}
+  .cap{font-family:Arial,sans-serif;font-size:12px;color:var(--gray);padding:8px 4px 2px}
+  .duas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .decisao{background:linear-gradient(135deg,#1c1710,#151517);border:1.5px solid var(--amber);border-radius:12px;padding:18px 20px;margin:26px 0}
+  .decisao b{color:var(--paper)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Dr. Liberdade · A Travessia da Gaiola · 19/07/2026</div>
+  <h1>Os efeitos de texto ESTÃO no ar — o vídeo abaixo é a página de hoje, filmada num celular simulado</h1>
+</header>
+
+<h2>O QUE EU FIZ</h2>
+<ul>
+  <li>Filmei a página provisória rolando, no tamanho exato de um celular (18 segundos, sem nenhuma edição).</li>
+  <li>As frases entram por baixo, atrás de uma linha invisível, desfocadas → nítidas, e saem por cima — presas ao seu dedo: rolou, andam; voltou, desandam. Exatamente a especificação que você ditou.</li>
+  <li>E descobri por que você não as percebeu no seu aparelho — está no fim da página.</li>
+</ul>
+
+<div class="card">
+  <video controls autoplay muted loop playsinline src="efeitos-texto-celular.mp4"></video>
+  <p class="cap">A página de hoje, rolando devagar do início até a 3ª frase. Repare no rodapé: "A sua gaiola não tem grade." sobe linha a linha, fica plena, e sai desfocando por cima quando a história avança.</p>
+</div>
+
+<div class="duas">
+  <div class="card"><img src="frase-subindo-da-mascara.jpg" alt=""><p class="cap">Frase no MEIO da subida — metade ainda escondida atrás da linha invisível.</p></div>
+  <div class="card"><img src="frase-saindo-por-cima.jpg" alt=""><p class="cap">A mesma frase indo embora por cima, desfocando.</p></div>
+</div>
+
+<h2>POR QUE VOCÊ NÃO VIU NO SEU CELULAR</h2>
+<p>O efeito existe, mas <b>no celular ele está mal apresentado — a culpa é da composição que eu montei, não do seu aparelho</b>:</p>
+<ul>
+  <li>Os 3 chips ("gaiola sem grade", "dopamina barata", "atenção") e os 2 botões do topo antigo ficam <b>parados no centro da tela</b> durante todo o comecinho da história — só saem de cena depois da 1ª frase. Numa tela pequena, eles roubam o palco.</li>
+  <li>As frases animadas vivem <b>só numa faixinha no rodapé</b> — no celular sobra pouco espaço para elas brilharem.</li>
+</ul>
+<div class="card"><img src="tela-inicial-celular.png" alt=""><p class="cap">A tela como ela abre no celular hoje: os 5 elementos parados dominam; a frase animada nasce apertada lá embaixo.</p></div>
+
+<div class="decisao">
+  <p><b>A ÚNICA DECISÃO AGORA:</b> posso consertar a apresentação no celular? Os chips e botões sairiam de cena logo no primeiro movimento de rolagem (ou entrariam na coreografia), e as frases ganhariam o palco — maiores e mais altas na tela. <b>Custo: zero</b> (é só código, nenhuma imagem nova). Responda "pode" ou "não pode".</p>
+</div>
+
+<h2>O QUE AINDA ESTÁ COMIGO (sem mexer até você mandar)</h2>
+<ul>
+  <li>A animação da sinapse feita por código sobre a SUA imagem (pontos percorrendo os fios de verdade) — custo zero, aguardando sua palavra.</li>
+  <li>Religar o cadeado das prévias do Vercel quando você aprovar o conjunto.</li>
+</ul>
+
+</div>
+</body>
+</html>
