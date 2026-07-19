@@ -9,6 +9,9 @@ import {
   isFaixa,
   previaTemplateId,
   buildPreviaEmailPayload,
+  buildResultEmailPayload,
+  buildResultEmailHtml,
+  type ResultEmailInput,
 } from "./brevo-dopamina";
 import { dopaminaContent, faixaForScore } from "@/components/dopamina/dopamina.content";
 
@@ -99,6 +102,58 @@ describe("E0 — entrega da prévia (e-mail transacional)", () => {
       sender: { email: "dr@drlibertad.com", name: "Dr. Libertad" },
     });
     expect(p.sender).toEqual({ email: "dr@drlibertad.com", name: "Dr. Libertad" });
+  });
+});
+
+describe("e-mail de RESULTADO do quiz (veredito + prévia)", () => {
+  const base = (lang: "pt" | "es"): ResultEmailInput => {
+    const cl = dopaminaContent[lang];
+    const band = cl.bands.find((b) => b.key === "vermelho")!;
+    return {
+      email: "lead@exemplo.com",
+      lang,
+      previaUrl: "https://www.drlibertad.com/lead/I-Love-Dopamina_Previa_PT.pdf",
+      faixa: "vermelho",
+      faixaNome: band.name,
+      veredito: band.verdict,
+      cor: band.color,
+      score: 15,
+      scoreMax: 24,
+      copy: cl.resultEmail,
+      disclaimer: cl.quiz.disclaimer,
+      brand: lang === "es" ? "Dr. Libertad" : "Dr. Liberdade",
+    };
+  };
+
+  it("payload leva destinatário, subject da copy e htmlContent (NÃO templateId)", () => {
+    const p = buildResultEmailPayload(base("pt"));
+    expect(p.to).toEqual([{ email: "lead@exemplo.com" }]);
+    expect(p.subject).toBe(dopaminaContent.pt.resultEmail.subject);
+    expect(typeof p.htmlContent).toBe("string");
+    expect(p.templateId).toBeUndefined(); // resultado não depende de template do Brevo
+  });
+
+  it("o HTML CONTÉM o veredito da faixa, a pontuação e o link da prévia (o conserto)", () => {
+    const input = base("pt");
+    const html = buildResultEmailHtml(input);
+    expect(html).toContain(input.faixaNome);
+    expect(html).toContain("15/24");
+    expect(html).toContain(input.previaUrl);
+    expect(html).toContain(dopaminaContent.pt.resultEmail.ctaLabel);
+  });
+
+  it("ES usa a copy/veredito ES (isolamento de idioma)", () => {
+    const html = buildResultEmailHtml(base("es"));
+    expect(html).toContain(dopaminaContent.es.bands.find((b) => b.key === "vermelho")!.name);
+    expect(html).toContain(dopaminaContent.es.resultEmail.ctaLabel);
+  });
+
+  it("HTML escapa aspas/sinais para não quebrar o markup", () => {
+    const input = { ...base("pt"), faixaNome: 'A <b>"conta"</b> & cia' };
+    const html = buildResultEmailHtml(input);
+    expect(html).toContain("&lt;b&gt;");
+    expect(html).toContain("&amp;");
+    expect(html).not.toContain("<b>");
   });
 });
 

@@ -212,3 +212,145 @@ export async function sendPreviaEmail(input: {
     return { ok: false, gated: false, error: String(err) };
   }
 }
+
+// ── E-mail de RESULTADO do QUIZ (veredito da faixa + próximo passo + prévia) ──
+// O funil enviava SÓ a prévia (E0), tanto pra quem só pediu a prévia quanto pra
+// quem fez o teste — o RESULTADO do teste ficava só na tela e nunca chegava por
+// e-mail. Este envio conserta isso: quando o lead vem do QUIZ, ele recebe um
+// e-mail com o SEU veredito (faixa + pontuação, na voz da marca) E o botão da
+// prévia — tudo num e-mail só. A copy vive no REPO (dopamina.content.ts →
+// resultEmail + bands), então é revisável/aprovável sem depender de um template
+// no painel do Brevo: montamos o HTML aqui e mandamos por htmlContent.
+//
+// GATED como o resto: sem BREVO_API_KEY → { gated } e o chamador loga + persiste.
+
+export interface ResultEmailInput {
+  email: string;
+  lang: "pt" | "es";
+  /** URL ABSOLUTA do PDF da prévia (botão "Baixar a prévia"). */
+  previaUrl: string;
+  faixa: Faixa;
+  /** Nome da faixa (bands[].name) e veredito (bands[].verdict) — voz da marca. */
+  faixaNome: string;
+  veredito: string;
+  /** Cor da faixa (bands[].color) para o selo de pontuação. */
+  cor: string;
+  score: number;
+  scoreMax: number;
+  /** Copy fixa do e-mail (dopamina.content.ts → resultEmail). */
+  copy: {
+    subject: string;
+    preheader: string;
+    greeting: string;
+    intro: string;
+    scoreLabel: string;
+    ctaIntro: string;
+    ctaLabel: string;
+    ps: string;
+    closing: string;
+  };
+  disclaimer: string;
+  brand: string;
+  sender?: { email: string; name?: string };
+}
+
+const esc = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/** HTML do e-mail de resultado — puro, testável, inline-styled (e-mail-safe). */
+export function buildResultEmailHtml(input: ResultEmailInput): string {
+  const { copy } = input;
+  const closingHtml = esc(input.copy.closing).replace(/\n/g, "<br>");
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#0B0B0C;">
+<span style="display:none;opacity:0;color:#0B0B0C;font-size:1px;line-height:1px;max-height:0;max-width:0;overflow:hidden;">${esc(copy.preheader)}</span>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B0B0C;">
+<tr><td align="center" style="padding:32px 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#141416;border:1px solid rgba(185,176,162,0.15);border-radius:20px;overflow:hidden;">
+<tr><td style="padding:30px 32px 8px;">
+<p style="margin:0 0 4px;font-family:Georgia,'Times New Roman',serif;font-size:20px;color:#F4F0E8;letter-spacing:-0.01em;">${esc(input.brand)}</p>
+<div style="height:2px;width:28px;background:#A45A5A;"></div>
+</td></tr>
+<tr><td style="padding:20px 32px 0;">
+<h1 style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-weight:normal;font-size:26px;line-height:1.15;color:#F4F0E8;">${esc(copy.greeting)}</h1>
+<p style="margin:0 0 22px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#B9B0A2;">${esc(copy.intro)}</p>
+</td></tr>
+<tr><td style="padding:0 32px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.03);border:1px solid rgba(185,176,162,0.15);border-radius:16px;">
+<tr><td style="padding:22px 24px;">
+<p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:${esc(input.cor)};font-weight:bold;">${esc(copy.scoreLabel)}: ${input.score}/${input.scoreMax}</p>
+<p style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1.2;color:#F4F0E8;">${esc(input.faixaNome)}</p>
+<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.75;color:#E9E3D8;">${esc(input.veredito)}</p>
+</td></tr>
+</table>
+</td></tr>
+<tr><td style="padding:24px 32px 0;">
+<p style="margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#B9B0A2;">${esc(copy.ctaIntro)}</p>
+<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#A45A5A;border-radius:14px;">
+<a href="${esc(input.previaUrl)}" style="display:inline-block;padding:14px 26px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#F4F0E8;text-decoration:none;">${esc(copy.ctaLabel)} &rarr;</a>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:24px 32px 0;">
+<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.7;color:#8f877b;">${esc(copy.ps)}</p>
+</td></tr>
+<tr><td style="padding:22px 32px 30px;">
+<p style="margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#B9B0A2;">${closingHtml}</p>
+<p style="margin:0;padding-top:18px;border-top:1px solid rgba(185,176,162,0.12);font-family:Arial,Helvetica,sans-serif;font-size:11.5px;line-height:1.6;color:#6f685d;">${esc(input.disclaimer)}</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
+/** Corpo do POST /v3/smtp/email para o resultado — puro, testável. */
+export function buildResultEmailPayload(input: ResultEmailInput): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    to: [{ email: input.email }],
+    subject: input.copy.subject,
+    htmlContent: buildResultEmailHtml(input),
+    params: {
+      FAIXA: input.faixa,
+      FAIXA_NOME: input.faixaNome,
+      SCORE: input.score,
+      PREVIA_URL: input.previaUrl,
+      LANG: input.lang,
+    },
+    tags: ["dopamina", "resultado-quiz", input.lang],
+  };
+  if (input.sender?.email) {
+    payload.sender = input.sender.name
+      ? { email: input.sender.email, name: input.sender.name }
+      : { email: input.sender.email };
+  }
+  return payload;
+}
+
+/**
+ * Envia o e-mail de RESULTADO do quiz (veredito + prévia). No-op HONESTO quando
+ * gated (sem chave). Diferente da prévia, NÃO exige template no Brevo — o HTML é
+ * montado a partir da copy do repo.
+ */
+export async function sendResultEmail(input: Omit<ResultEmailInput, "sender">): Promise<PreviaSendResult> {
+  const key = process.env.BREVO_API_KEY;
+  if (!key) return { ok: true, gated: true, reason: "no_api_key" };
+
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": key,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify(buildResultEmailPayload({ ...input, sender: previaSender() })),
+    });
+    if (res.status === 201) {
+      const j = (await res.json().catch(() => ({}))) as { messageId?: string };
+      return { ok: true, gated: false, status: 201, messageId: j?.messageId };
+    }
+    const body = await res.text().catch(() => "");
+    return { ok: false, gated: false, status: res.status, error: body.slice(0, 300) };
+  } catch (err) {
+    return { ok: false, gated: false, error: String(err) };
+  }
+}

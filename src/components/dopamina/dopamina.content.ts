@@ -105,6 +105,21 @@ export interface DopaminaContent {
     disclaimer: string;
   };
 
+  // E-mail de RESULTADO do quiz (o veredito da faixa + próximo passo + prévia).
+  // A copy fixa vive aqui; o nome/veredito da faixa vêm de `bands` (por faixa).
+  // ⚠️ voz PENDENTE de OK do dono / guardião-editorial antes de ir ao ar.
+  resultEmail: {
+    subject: string;
+    preheader: string;
+    greeting: string;
+    intro: string;
+    scoreLabel: string; // rótulo do "X/24"
+    ctaIntro: string;
+    ctaLabel: string;
+    ps: string;
+    closing: string;
+  };
+
   bands: Band[];
 }
 
@@ -294,6 +309,19 @@ const pt: DopaminaContent = {
     },
     disclaimer:
       "Este resultado é educativo e reflexivo — não é diagnóstico, laudo nem avaliação clínica. “Dr. Liberdade” é uma persona editorial; o conteúdo não substitui acompanhamento profissional de saúde. Se o uso de telas, jogos ou outras compulsões está afetando o seu trabalho, seu sono ou suas relações, procure um profissional de saúde.",
+  },
+
+  resultEmail: {
+    subject: "Seu resultado do teste + a prévia de I Love Dopamina",
+    preheader: "Onde o seu sistema de recompensa está hoje — e o primeiro passo.",
+    greeting: "Você fez o teste. Aqui está o espelho.",
+    intro:
+      "Isto não é um laudo, e não é uma nota. É um retrato de um momento — o quanto, hoje, o seu sistema de recompensa ainda responde a você, e o quanto já responde à tela. Leia com calma:",
+    scoreLabel: "Sua pontuação",
+    ctaIntro: "O próximo passo é o que eu prometi junto com o resultado: a prévia de I Love Dopamina — um capítulo real, não um resumo. Ela explica por que o seu cérebro chegou onde chegou, e o que começar a fazer a respeito.",
+    ctaLabel: "Baixar a prévia grátis",
+    ps: "P.S. — Guarde este e-mail. Daqui a algumas semanas, refaça o teste e compare. É assim que se vê a recalibração acontecendo.",
+    closing: "Um abraço,\nDr. Liberdade · @dr.liberdade.br",
   },
 
   bands: [
@@ -507,6 +535,19 @@ const es: DopaminaContent = {
     },
     disclaimer:
       "Este resultado es educativo y reflexivo — no es diagnóstico, informe ni evaluación clínica. “Dr. Libertad” es una persona editorial; el contenido no sustituye el acompañamiento profesional de la salud. Si el uso de pantallas, juegos u otras compulsiones está afectando tu trabajo, tu sueño o tus relaciones, busca a un profesional de la salud.",
+  },
+
+  resultEmail: {
+    subject: "Tu resultado del test + el adelanto de I Love Dopamina",
+    preheader: "Dónde está tu sistema de recompensa hoy — y el primer paso.",
+    greeting: "Hiciste el test. Aquí está el espejo.",
+    intro:
+      "Esto no es un informe, y no es una nota. Es un retrato de un momento — cuánto, hoy, tu sistema de recompensa todavía te responde a ti, y cuánto ya le responde a la pantalla. Léelo con calma:",
+    scoreLabel: "Tu puntuación",
+    ctaIntro: "El siguiente paso es lo que te prometí junto con el resultado: el adelanto de I Love Dopamina — un capítulo real, no un resumen. Explica por qué tu cerebro llegó a donde llegó, y qué empezar a hacer al respecto.",
+    ctaLabel: "Descargar el adelanto gratis",
+    ps: "P.D. — Guarda este correo. Dentro de unas semanas, repite el test y compara. Así se ve la recalibración sucediendo.",
+    closing: "Un abrazo,\nDr. Libertad · @dr.liberdad",
   },
 
   bands: [

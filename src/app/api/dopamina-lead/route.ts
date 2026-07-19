@@ -3,11 +3,13 @@ import { isRateLimited } from "@/lib/rate-limit";
 import {
   upsertDopaminaContact,
   sendPreviaEmail,
+  sendResultEmail,
   isFaixa,
   type PreviaSendResult,
 } from "@/lib/brevo-dopamina";
 import { recordDopaminaLead } from "@/lib/dopamina-leads";
 import { getBook } from "@/lib/books";
+import { dopaminaContent } from "@/components/dopamina/dopamina.content";
 
 export const runtime = "nodejs";
 
@@ -91,18 +93,46 @@ export async function POST(req: NextRequest) {
     utm,
   });
 
-  // (2) E0 — entrega imediata da prévia por e-mail transacional. Depende do template
-  // do Brevo (o dono aprova o conteúdo lá). Sem previaUrl (leadPdf ausente) não há o
-  // que enviar — sinaliza claramente o que falta em vez de fingir que enviou.
+  // (2) E-mail transacional. Dois casos, e AGORA são diferentes:
+  //   • source="quiz"  → e-mail de RESULTADO (o veredito da faixa + pontuação, na voz
+  //     da marca) COM o botão da prévia — tudo num e-mail só. Antes o quiz recebia só
+  //     a prévia (o resultado nunca chegava por e-mail); este é o conserto. Não depende
+  //     de template no Brevo — o HTML sai da copy do repo (revisável/aprovável).
+  //   • source="previa" → E0 da prévia (template do Brevo), como antes.
+  // Sem previaUrl (leadPdf ausente) não há o que enviar — sinaliza o que falta.
   const previaUrl = previaUrlFor(lang);
   let emailSend: PreviaSendResult;
-  if (previaUrl) {
-    emailSend = await sendPreviaEmail({ email, lang, previaUrl });
-  } else {
+  let emailKind: "resultado" | "previa" = source === "quiz" ? "resultado" : "previa";
+  if (!previaUrl) {
     emailSend = { ok: false, gated: false, error: "no_previa_url" };
     console.error(
-      `[dopamina-lead] E0 NÃO enviado: leadPdf ausente para lang=${lang} (defina books.ts leadPdf ou o PDF em public/lead).`,
+      `[dopamina-lead] e-mail NÃO enviado: leadPdf ausente para lang=${lang} (defina books.ts leadPdf ou o PDF em public/lead).`,
     );
+  } else if (source === "quiz" && isFaixa(cleanFaixa)) {
+    const cl = dopaminaContent[lang];
+    const band = cl.bands.find((b) => b.key === cleanFaixa);
+    if (band) {
+      emailSend = await sendResultEmail({
+        email,
+        lang,
+        previaUrl,
+        faixa: cleanFaixa,
+        faixaNome: band.name,
+        veredito: band.verdict,
+        cor: band.color,
+        score: cleanScore ?? 0,
+        scoreMax: 24,
+        copy: cl.resultEmail,
+        disclaimer: cl.quiz.disclaimer,
+        brand: lang === "es" ? "Dr. Libertad" : "Dr. Liberdade",
+      });
+    } else {
+      // faixa desconhecida (não deveria ocorrer após a validação) → cai na prévia.
+      emailKind = "previa";
+      emailSend = await sendPreviaEmail({ email, lang, previaUrl });
+    }
+  } else {
+    emailSend = await sendPreviaEmail({ email, lang, previaUrl });
   }
 
   // (3) Rede de segurança — persiste o lead no Neon (nunca perder). Fail-open.
@@ -134,11 +164,11 @@ export async function POST(req: NextRequest) {
   }
   if (emailSend.gated) {
     console.warn(
-      `[dopamina-lead] E0 (prévia) NÃO enviado — ${emailSend.reason} ` +
-        `(falta BREVO_API_KEY ou BREVO_TEMPLATE_DOPAMINA_PREVIA_${lang.toUpperCase()}). Lead salvo=${persisted.ok}.`,
+      `[dopamina-lead] e-mail (${emailKind}) NÃO enviado — ${emailSend.reason} ` +
+        `(falta BREVO_API_KEY${emailKind === "previa" ? ` ou BREVO_TEMPLATE_DOPAMINA_PREVIA_${lang.toUpperCase()}` : ""}). Lead salvo=${persisted.ok}.`,
     );
   } else if (!emailSend.ok && previaUrl) {
-    console.error(`[dopamina-lead] E0 (prévia) FALHOU status=${emailSend.status ?? "?"}: ${emailSend.error}`);
+    console.error(`[dopamina-lead] e-mail (${emailKind}) FALHOU status=${emailSend.status ?? "?"}: ${emailSend.error}`);
   }
   if (!persisted.ok) {
     console.error(`[dopamina-lead] PERSISTÊNCIA FALHOU (lead em risco de se perder): ${persisted.error}`);
