@@ -70,6 +70,41 @@ function suavizar(a: number, b: number, x: number) {
   return t * t * (3 - 2 * t);
 }
 
+/* ── SINAPSE VIVA (cena 3, por código): trajetórias traçadas à mão sobre os
+   filamentos REAIS do quadro pleno da sinapse do dono (frame-097). Os sinais
+   percorrem o braço do neurônio esquerdo, ATRAVESSAM a fenda pelos fios,
+   são recebidos no corpo direito e ACENDEM a conexão de chegada. Posição
+   atada à ROLAGEM (reversível); um sopro de tempo mantém a cena viva parada;
+   quantidade/brilho crescem com o avanço = saturação. Coordenadas em fração
+   do quadro (16:9), válidas para desktop e celular. ─────────────────────── */
+const ROTAS_SINAPSE: [number, number][][] = [
+  // superior: braço alto esquerdo → arco de cima → entrada alta direita
+  [[0.26, 0.36], [0.33, 0.32], [0.40, 0.29], [0.47, 0.26], [0.55, 0.30], [0.63, 0.36], [0.72, 0.41]],
+  // média-alta: reta viva do meio
+  [[0.29, 0.45], [0.37, 0.43], [0.45, 0.44], [0.53, 0.46], [0.62, 0.47], [0.71, 0.49]],
+  // média-baixa
+  [[0.28, 0.55], [0.36, 0.55], [0.44, 0.57], [0.52, 0.58], [0.61, 0.56], [0.70, 0.55]],
+  // inferior: mergulha e sobe na chegada
+  [[0.25, 0.63], [0.34, 0.64], [0.43, 0.67], [0.52, 0.68], [0.60, 0.64], [0.69, 0.60]],
+  // diagonal ascendente
+  [[0.30, 0.50], [0.40, 0.42], [0.50, 0.34], [0.58, 0.31], [0.66, 0.33], [0.73, 0.38]],
+  // CONTRAMÃO (retorno raro — direção oposta, biologicamente plausível como feedback)
+  [[0.73, 0.45], [0.64, 0.41], [0.55, 0.38], [0.46, 0.37], [0.37, 0.40], [0.29, 0.44]],
+];
+
+/** ponto ao longo de uma rota poligonal (t 0..1), com suavização por segmento */
+function pontoNaRota(rota: [number, number][], t: number): [number, number] {
+  const n = rota.length - 1;
+  const x = Math.min(0.99999, Math.max(0, t)) * n;
+  const i = Math.floor(x);
+  const f = x - i;
+  const ff = f * f * (3 - 2 * f);
+  return [
+    rota[i][0] + (rota[i + 1][0] - rota[i][0]) * ff,
+    rota[i][1] + (rota[i + 1][1] - rota[i][1]) * ff,
+  ];
+}
+
 type Manifest = {
   frameCount: number;
   pattern: string;
@@ -354,7 +389,11 @@ export default function TravessiaOpening() {
         return { ox, oy, dw, dh };
       };
 
-      const img = pick(idx, local);
+      /* cena 3: o vídeo é só a ENTRADA (primeiros 28% do trecho); dali em
+         diante o quadro pleno da sinapse segura o palco e os SINAIS por
+         código assumem o movimento (reversível com a rolagem). */
+      const localQuadro = idx === 2 ? Math.min(1, local / 0.28) : local;
+      const img = pick(idx, localQuadro);
       let geoPalco: { ox: number; oy: number; dw: number; dh: number } | null = null;
       if (img) {
         if (idx === 0) geoPalco = drawPalco(img, 1);
@@ -401,6 +440,79 @@ export default function TravessiaOpening() {
           if (miolo) miolo.style.transform = `rotateY(${teta}deg)`;
         } else {
           slab.style.display = "none";
+        }
+      }
+
+      /* SINAPSE VIVA (cena 3): sinais percorrem os filamentos reais, cruzam a
+         fenda com brilho maior e ACENDEM a conexão na chegada; contramão rara;
+         quantidade e intensidade crescem com o avanço (saturação). */
+      if (idx === 2 && img) {
+        const vida = suavizar(0.3, 0.5, local);
+        const saturacao = suavizar(0.35, 0.95, local);
+        if (vida > 0.01) {
+          const iw2 = img.naturalWidth || 1;
+          const ih2 = img.naturalHeight || 1;
+          const esc2 = Math.max(cw / iw2, ch / ih2);
+          const dw2 = iw2 * esc2;
+          const dh2 = ih2 * esc2;
+          const ox2 = (cw - dw2) / 2;
+          const oy2 = (ch - dh2) / 2;
+          const tSin = performance.now() / 1000;
+          const nSinais = 4 + Math.round(8 * saturacao);
+          ctx.globalCompositeOperation = "lighter";
+          for (let k = 0; k < nSinais; k++) {
+            const rota = ROTAS_SINAPSE[k % ROTAS_SINAPSE.length];
+            const veloc = 1 + (k % 3) * 0.5;
+            const fase = (k * 0.173) % 1;
+            // rolagem manda (reversível); sopro de tempo mantém vivo parado
+            const t = (((local * 2.2 * veloc + fase + tSin * 0.015) % 1) + 1) % 1;
+            const [px, py] = pontoNaRota(rota, t);
+            const sx = ox2 + px * dw2;
+            const sy = oy2 + py * dh2;
+            const fenda = 1 - Math.abs(t - 0.5) * 2;
+            const chegada = suavizar(0.86, 0.97, t);
+            const alfa = vida * (0.32 + 0.38 * saturacao) * (0.7 + 0.5 * fenda);
+            const r = (dh2 / 720) * (2.2 + 1.6 * fenda + 2.4 * chegada) * (0.8 + 0.4 * saturacao);
+            const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 3);
+            grad.addColorStop(0, `rgba(255,214,160,${alfa})`);
+            grad.addColorStop(0.4, `rgba(255,170,90,${alfa * 0.5})`);
+            grad.addColorStop(1, "rgba(255,150,60,0)");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(sx, sy, r * 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = `rgba(255,240,220,${Math.min(1, alfa * 1.6)})`;
+            ctx.beginPath();
+            ctx.arc(sx, sy, r * 0.55, 0, Math.PI * 2);
+            ctx.fill();
+            // rastro curto atrás do sinal
+            for (let e = 1; e <= 3; e++) {
+              const te = t - e * 0.02 * veloc;
+              if (te < 0) continue;
+              const ea = alfa * (0.5 - e * 0.13);
+              if (ea <= 0) continue;
+              const [ex, ey] = pontoNaRota(rota, te);
+              ctx.fillStyle = `rgba(255,190,120,${ea})`;
+              ctx.beginPath();
+              ctx.arc(ox2 + ex * dw2, oy2 + ey * dh2, r * 0.4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            // a chegada ACENDE a conexão no corpo receptor
+            if (chegada > 0.01) {
+              const fim = rota[rota.length - 1];
+              const fxs = ox2 + fim[0] * dw2;
+              const fys = oy2 + fim[1] * dh2;
+              const fr = Math.max(1, r * 5 * chegada);
+              const g2 = ctx.createRadialGradient(fxs, fys, 0, fxs, fys, fr);
+              g2.addColorStop(0, `rgba(255,220,170,${0.35 * chegada * vida})`);
+              g2.addColorStop(1, "rgba(255,170,80,0)");
+              ctx.fillStyle = g2;
+              ctx.beginPath();
+              ctx.arc(fxs, fys, fr, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+          ctx.globalCompositeOperation = "source-over";
         }
       }
 
