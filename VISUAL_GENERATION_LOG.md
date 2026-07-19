@@ -170,3 +170,20 @@ percorrer de um neurônio a outro"; cena 4 "deve surgir de um desses pontos que 
   arquitetura de estímulos. Plano único, sem cortes.
 - **Request:** `019f7831-2dde-7323-844e-1834d7b4b548` · custo estimado ≈ US$ 0,91
   (tabela; 720p·6s ≈ 130 mil tokens).
+
+## Rodada plano v2 — 19/07 noite (janela "aplique isso e siga!!")
+
+| item | modelo | request_id | resultado | custo est. |
+|---|---|---|---|---|
+| G0 verso canônico | NB2 /edit 2K | 019f7b52-412b | ✅ APROVADO (sem logo, câmeras ok; desvio vigiado: lado dos botões) | US$ 0,08 |
+| G0 correção botões | NB2 /edit 2K | 019f7b53-9d5f | ⚠️ editor ignorou a mudança; v2 mantida como referência | US$ 0,08 |
+| G1 rotação 360° t1 | seedance-2.0 mini 720p 6s | 019f7b56-5f7c | ❌ REPROVADO no QA: LOGO Apple no verso | ~US$ 0,78 |
+| G1 rotação 360° t2 | seedance-2.0 mini 720p 6s (prompt anti-marca endurecido) | 019f7b5b-e015 | ❌ REPROVADO no QA: logo Apple DE NOVO + giro não fecha na frente | ~US$ 0,78 |
+
+**Total da rodada ≈ US$ 1,72 real · projeto ≈ US$ 13,9 de US$ 20.**
+**Lição/decisão:** verso escuro fosco de smartphone = atrator iPhone; o gerador carimba a maçã
+mesmo com proibição explícita e referência limpa (2 provas pagas). A rotação do hero migra para
+CÓDIGO (slab 3D com as faces reais: frente = mestra, verso = G0) — determinístico, loop perfeito,
+zero risco de marca. Falta 1 edição barata (quarto sem o telefone, ~US$0,08) como fundo do composite.
+G3 (pouso) carrega o mesmo risco no verso → mitigação planejada: verso em sombra parcial + troca
+pelo still limpo no quadro final por código.
