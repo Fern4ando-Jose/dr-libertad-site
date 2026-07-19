@@ -53,6 +53,22 @@ export const pt = {
     "MASCULINIDADE",
     "INTELIGÊNCIA EMOCIONAL",
   ],
+  // A Travessia da Gaiola — textos da abertura cinematográfica (frases REAIS já
+  // usadas no site; única nova: c7, aprovada no esboço do dono em 18/07)
+  travessia: {
+    skip: "Pular a abertura",
+    c1a: "A sua gaiola não tem grade.",
+    c1b: "Você é que não voa.",
+    c2a: "Você não é preguiçoso.",
+    c2b: "A sua recompensa foi sequestrada.",
+    c3a: "A dopamina barata é gentil.",
+    c3b: "Ela só pede mais cinco minutos.",
+    c3c: "Todo dia. A vida inteira.",
+    c5a: "Entre o impulso e a resposta existe um espaço.",
+    c5b: "É ali — e só ali — que a liberdade começa.",
+    c6: ["Menos estímulo.", "Mais clareza.", "Decisões com alma."],
+    c7: "Uma mente que volta a ser sua.",
+  },
   manifesto: {
     eyebrow: "MANIFESTO",
     title: "Você não é preguiçoso. A sua recompensa foi sequestrada.",
@@ -442,6 +458,20 @@ export const es: Dict = {
     "MASCULINIDAD",
     "INTELIGENCIA EMOCIONAL",
   ],
+  travessia: {
+    skip: "Saltar la apertura",
+    c1a: "Tu jaula no tiene rejas.",
+    c1b: "Eres tú quien no vuela.",
+    c2a: "No eres perezoso.",
+    c2b: "Tu recompensa fue secuestrada.",
+    c3a: "La dopamina barata es amable.",
+    c3b: "Solo pide cinco minutos más.",
+    c3c: "Cada día. La vida entera.",
+    c5a: "Entre el impulso y la respuesta existe un espacio.",
+    c5b: "Ahí — y solo ahí — empieza la libertad.",
+    c6: ["Menos estímulo.", "Más claridad.", "Decisiones con alma."],
+    c7: "Una mente que vuelve a ser tuya.",
+  },
   manifesto: {
     eyebrow: "MANIFIESTO",
     title: "No eres perezoso. Tu recompensa fue secuestrada.",

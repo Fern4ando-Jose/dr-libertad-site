@@ -1,8 +1,8 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import { useState } from "react";
-import HeroFloatingDeck from "@/components/HeroFloatingDeck";
+import TravessiaOpening from "@/components/travessia/TravessiaOpening";
 import EditorialGrid from "@/components/EditorialGrid";
 import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
@@ -21,23 +21,6 @@ function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) 
   );
 }
 
-function ScrollHint() {
-  return (
-    <div className="mt-10 flex items-center gap-3 text-xs tracking-[0.16em] text-warm-gray/80 uppercase">
-      <div className="h-[1px] w-10 bg-warm-gray/30" />
-      <div className="relative h-6 w-6">
-        <motion.div
-          aria-hidden="true"
-          className="absolute left-1/2 top-0 h-3 w-[2px] -translate-x-1/2 rounded-full bg-muted-red"
-          animate={{ y: [0, 14, 0] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
-      <div className="h-[1px] w-14 bg-warm-gray/30" />
-    </div>
-  );
-}
-
 export default function Page() {
   const { t, lang } = useLang();
 
@@ -50,13 +33,6 @@ export default function Page() {
     else window.scrollTo({ top: y, behavior: "smooth" });
   };
 
-  const { scrollYProgress } = useScroll();
-  const heroParallax = useTransform(scrollYProgress, [0, 0.8], [0, -70]);
-  const heroGridShift = useTransform(scrollYProgress, [0, 1], [0, 46]);
-  const heroScale = useTransform(scrollYProgress, [0, 0.55], [1, 0.985]);
-  const heroBlur = useTransform(scrollYProgress, [0, 0.45], [0, 16]);
-  const heroFilter = useTransform(heroBlur, (v) => `blur(${v}px)`);
-
   return (
     <motion.main
       className="relative z-10"
@@ -64,154 +40,8 @@ export default function Page() {
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.9, ease: "easeOut" }}
     >
-      {/* HERO */}
-      <section
-        id="top"
-        className="relative flex min-h-[92vh] items-center overflow-hidden border-b border-warm-gray/10"
-      >
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute left-0 right-0 top-0 z-0 h-20 bg-[linear-gradient(to_bottom,rgba(11,11,12,0.9),rgba(11,11,12,0))]"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute left-0 right-0 bottom-0 z-0 h-24 bg-[linear-gradient(to_top,rgba(11,11,12,0.95),rgba(11,11,12,0))]"
-        />
-
-        <div className="absolute inset-0" data-gsap="parallax" data-gsap-parallax="24">
-          <motion.div
-            style={{ y: heroParallax, scale: heroScale, filter: heroFilter }}
-            className="h-full w-full bg-[radial-gradient(1000px_circle_at_40%_-20%,rgba(164,90,90,0.22),transparent_60%),radial-gradient(800px_circle_at_80%_10%,rgba(231,221,204,0.12),transparent_55%)]"
-          />
-
-          <motion.div
-            aria-hidden="true"
-            className="absolute inset-0 opacity-[0.14]"
-            style={{ y: heroGridShift }}
-          >
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage:
-                  "linear-gradient(to right, rgba(185,176,162,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(185,176,162,0.07) 1px, transparent 1px)",
-                backgroundSize: "90px 90px",
-              }}
-            />
-          </motion.div>
-
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 opacity-60"
-            data-gsap="float"
-            data-gsap-float="12"
-            style={{
-              background:
-                "radial-gradient(900px circle at 12% 8%, rgba(164,90,90,0.22), transparent 55%), radial-gradient(700px circle at 85% 15%, rgba(231,221,204,0.16), transparent 52%)",
-            }}
-          />
-        </div>
-
-        <StudioContainer>
-          <div className="relative pb-14 pt-28 md:pb-20 md:pt-32" data-gsap="hero">
-            <div className="grid gap-10 lg:grid-cols-12 lg:items-start">
-              <div className="lg:col-span-7">
-                <div data-gsap="stagger" data-gsap-stagger="0.06">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {t.hero.chips.map((chip) => (
-                      <span key={chip} className="dl-chip" data-gsap-child="line">
-                        {chip}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-7" data-gsap="stagger" data-gsap-stagger="0.07">
-                  <h1
-                    className="max-w-[18ch] font-serif text-[clamp(2.5rem,5.4vw,5.1rem)] leading-[0.96] tracking-[-0.05em] text-pretty"
-                    data-gsap-child="line"
-                  >
-                    {t.hero.title}{" "}
-                    <em className="italic text-muted-red">{t.hero.titleAccent}</em>
-                  </h1>
-                </div>
-
-                <div className="mt-6" data-gsap="reveal">
-                  <p className="prose-justify max-w-xl text-[1.05rem] leading-[1.85] text-warm-gray/90">
-                    {t.hero.lead}
-                  </p>
-                </div>
-
-                <div className="mt-10 flex flex-wrap items-center gap-3" data-gsap="reveal">
-                  <a
-                    href="#manifesto"
-                    className="group inline-flex items-center rounded-full border border-warm-gray/20 bg-white/5 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:bg-white/10 transition"
-                  >
-                    {t.hero.ctaPrimary}
-                    <span className="ml-3 text-muted-red transition group-hover:translate-x-0.5">
-                      {String.fromCharCode(8594)}
-                    </span>
-                  </a>
-                  <a
-                    href={lang === "es" ? "/el-estudio" : "/o-estudo"}
-                    className="inline-flex items-center rounded-full border border-muted-red/40 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:text-offwhite hover:border-muted-red/70 transition"
-                  >
-                    {t.hero.ctaSecondary}
-                    <span className="ml-3 text-muted-red transition group-hover:translate-x-0.5">
-                      {String.fromCharCode(8594)}
-                    </span>
-                  </a>
-                </div>
-
-                <ScrollHint />
-              </div>
-
-              <div className="lg:col-span-5">
-                <HeroFloatingDeck>
-                  <motion.div
-                    initial={{ opacity: 0, y: 40 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1.2, ease: "easeOut" }}
-                    whileHover={{ y: -6, scale: 1.02 }}
-                    className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.03] backdrop-blur-xl p-8 shadow-[0_20px_80px_rgba(0,0,0,0.45)]"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] to-transparent pointer-events-none" />
-                    <div className="relative z-10">
-                      <div className="text-[10px] uppercase tracking-[0.35em] text-warm-gray/70">
-                        {t.hero.deckEyebrow}
-                      </div>
-                      <h3 className="mt-4 text-3xl leading-[1.15] font-light text-offwhite">
-                        {t.hero.deckTitle}
-                      </h3>
-                      <p className="mt-4 text-sm leading-relaxed text-warm-gray/80">
-                        {t.hero.deckLead}
-                      </p>
-                      <div className="mt-8 flex items-center gap-3">
-                        <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.25em] text-warm-gray/75">
-                          {t.hero.deckTag}
-                        </div>
-                        <div className="text-2xl font-semibold text-offwhite">90s</div>
-                      </div>
-                      <div className="mt-8 space-y-3">
-                        {t.hero.deckSteps.map((item, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3"
-                          >
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 text-xs text-warm-gray">
-                              {i + 1}
-                            </div>
-                            <span className="text-sm text-warm-gray/90">{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                </HeroFloatingDeck>
-              </div>
-            </div>
-          </div>
-        </StudioContainer>
-      </section>
+      {/* ABERTURA CINEMATOGRAFICA — A Travessia da Gaiola */}
+      <TravessiaOpening />
 
       {/* MARQUEE */}
       <section className="border-b border-warm-gray/10">

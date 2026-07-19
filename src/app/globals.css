@@ -5,6 +5,8 @@
   --color-offwhite: #F4F0E8;
   --color-warm-gray: #B9B0A2;
   --color-muted-red: #A45A5A;
+  /* âmbar queimado da narrativa "A Travessia da Gaiola" (acento oficial da marca) */
+  --color-amber: #BE7A2A;
 }
 
 /* Base cinematic feel: tighter leading, subtle letter spacing. */
