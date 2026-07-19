@@ -1,24 +1,35 @@
 "use client";
 
 /**
- * A TRAVESSIA DA GAIOLA — abertura cinematográfica da home.
+ * A TRAVESSIA DA GAIOLA — abertura cinematográfica da home (6 cenas).
  *
- * VISUAL: uma section alta (≈100vh por cena) com um palco sticky; um rAF próprio
- * lê o scroll nativo (animado pelo Lenis) e desenha no <canvas> os QUADROS dos
- * vídeos das 7 cenas (ida e volta), com crossfade nas emendas. Fail-open: sem
- * manifest.json, a cena usa o poster (storyboard) parado.
+ * VISUAL: section alta com palco sticky; um rAF próprio lê o scroll nativo
+ * (animado pelo Lenis) e desenha no <canvas> os QUADROS dos vídeos das cenas
+ * (ida e volta), com crossfade nas emendas. Fail-open: sem manifest.json, a
+ * cena usa o poster parado. A cena diurna (antiga 7) SAIU da sequência
+ * principal por ordem do dono (19/07) — os arquivos ficam guardados no repo.
  *
- * NARRATIVA (reconstrução ditada pelo dono, 19/07): UMA frase por momento —
- * a anterior SAI COMPLETAMENTE antes da próxima entrar. Sete momentos, um por
- * cena: gaiola → captura da recompensa → entrada no celular/saturação → silêncio
- * (único lugar do ritual de 90s) → interrupção do impulso → escolha → liberdade.
- * Primeira tela: só a cena, a 1ª frase e um indicador discreto de rolagem.
- * CTAs aparecem apenas na conclusão da sequência (cena 7).
- *
- * TIPOGRAFIA: scroll-scrubbed masked split-text reveal — GSAP + ScrollTrigger
- * (scrub) + SplitText (mask: "lines"). Entrada de baixo da máscara (yPercent
- * ~115, blur), reversível com a rolagem; saída subindo com desfoque.
- * Entrelinha 1.15 + folga na máscara: sem corte de descendentes ("g", "ç").
+ * TIPOGRAFIA CINEMATOGRÁFICA (spec do dono, 19/07 — 22 pontos): as frases são
+ * HTML real, posicionadas no ESPAÇO NEGATIVO de cada cena, protegidas por um
+ * gradiente amplo e imperceptível (nunca caixa/painel/card), e cada cena tem
+ * coreografia própria, atada ao scroll (reversível):
+ *  · hero: revelação editorial por linhas; parada = ponto de estabilidade
+ *    (respiração quase imperceptível); a SAÍDA acompanha o giro do telefone
+ *    (deslocamento lateral + leve rotação de eixo + compressão) e termina
+ *    ANTES da câmera atravessar a tela;
+ *  · mundo digital: entra da PROFUNDIDADE (z/escala/desfoque) e sai alongando
+ *    na direção da câmera ao mergulhar para a sinapse;
+ *  · sinapse: 1ª frase emerge das áreas escuras e se dissolve na saturação;
+ *    a 2ª ("Todo dia. A vida inteira.") entra firme e fica QUASE IMÓVEL —
+ *    quanto mais agitada a imagem, mais estável a frase;
+ *  · silêncio: o movimento mais lento da sequência; os 3 passos do ritual
+ *    entram UM DE CADA VEZ, no MESMO lugar, substituindo-se limpos;
+ *  · retorno: surge difusa e RECUPERA nitidez conforme o quarto volta;
+ *  · mão/final: a frase se apaga devagar quando a mão age; a frase final
+ *    entra só no gesto de pousar o telefone e permanece imóvel e nítida.
+ * Máscara de linha = mecanismo técnico invisível (sem fundo/borda; folga
+ * vertical para nunca cortar descendentes). prefers-reduced-motion: fades
+ * suaves, sem rotação/perspectiva, conteúdo íntegro.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -27,7 +38,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 
-const SCENES = [1, 2, 3, 4, 5, 6, 7] as const;
+const SCENES = [1, 2, 3, 4, 5, 6] as const;
 const N = SCENES.length;
 /** sobreposição do crossfade entre cenas, em fração do trecho de UMA cena */
 const FADE = 0.18;
@@ -54,20 +65,6 @@ type SceneMedia = {
   failed: boolean;
 };
 
-/** Um beat tipográfico: UMA frase por cena, com janela própria no progresso global. */
-type Beat = {
-  id: string;
-  text: string;
-  /** "title" = grande, linhas · "words" = menor, palavra a palavra (silêncio) */
-  kind: "title" | "words";
-  /** null = primeira frase: já está em cena na tela inicial (entra no load) */
-  enter: [number, number] | null;
-  /** null = frase final estável, nunca sai */
-  exit: [number, number] | null;
-  accent?: boolean;
-  dark?: boolean;
-};
-
 function framePath(base: string, m: Manifest, i: number) {
   const n = String(m.first + i).padStart(3, "0");
   return `${base}/${m.pattern.replace("%03d", n)}`;
@@ -86,6 +83,18 @@ function drawCover(
   const dh = ih * scale;
   ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
 }
+
+/** Uma frase da narrativa: texto + posição própria (espaço negativo da cena). */
+type Beat = {
+  id: string;
+  text: string;
+  kind: "title" | "words";
+  /** classes de POSIÇÃO — cada cena ancora sua frase no espaço negativo dela */
+  pos: string;
+  accent?: boolean;
+  /** tamanho reduzido (frases de apoio) */
+  small?: boolean;
+};
 
 export default function TravessiaOpening() {
   const { t, lang } = useLang();
@@ -122,34 +131,27 @@ export default function TravessiaOpening() {
   const variant = isMobile ? "mobile" : "desktop";
 
   /**
-   * SETE momentos, UMA frase cada (ordem ditada pelo dono, 19/07):
-   * cada frase vive dentro do trecho da SUA cena e sai por completo
-   * (termina em i+0.92·SEG) antes da próxima entrar (começa em i+1.12·SEG).
+   * As frases da jornada (6 cenas). Posições escolhidas contra os quadros
+   * reais: hero = alto-esquerda (o homem ocupa o baixo-esquerda, o telefone o
+   * centro); mundo digital = baixo-esquerda (o palco é centrado); sinapse =
+   * baixo-esquerda (área escura da imagem); silêncio = centro-esquerda; volta
+   * e final = esquerda, acima da mesa. No mobile todas descem para o terço
+   * inferior (o corte vertical centraliza o telefone).
    */
-  const beats = useMemo<Beat[]>(() => {
-    const win = (i: number): Pick<Beat, "enter" | "exit"> => ({
-      enter: [(i + 0.14) * SEG, (i + 0.42) * SEG],
-      exit: [(i + 0.68) * SEG, (i + 0.92) * SEG],
-    });
-    return [
-      // 1 · Gaiola sem grade — já está na primeira tela; só sai.
-      { id: "m1", text: tv.c1a, kind: "title", enter: null, exit: [0.66 * SEG, 0.9 * SEG] },
-      // 2 · Captura da recompensa
-      { id: "m2", text: tv.c2b, kind: "title", ...win(1), accent: true },
-      // 3 · Entrada no celular / dopamina barata
-      { id: "m3", text: tv.c3b, kind: "title", ...win(2) },
-      // 4 · Saturação → silêncio: o ritual mora SÓ aqui (passos entram à parte)
-      { id: "m4", text: tv.b90, kind: "words", enter: [(3 + 0.12) * SEG, (3 + 0.4) * SEG], exit: [(3 + 0.72) * SEG, (3 + 0.94) * SEG] },
-      // 5 · Interrupção do impulso
-      { id: "m5", text: tv.c5a, kind: "title", ...win(4) },
-      // 6 · Escolha
-      { id: "m6", text: tv.bfim, kind: "title", ...win(5), accent: true },
-      // 7 · Liberdade — frase final estável (fundo claro → tinta escura)
-      { id: "m7", text: tv.c7, kind: "title", enter: [(6 + 0.16) * SEG, (6 + 0.46) * SEG], exit: null, dark: true },
-    ];
-  }, [tv]);
+  const beats = useMemo<Beat[]>(
+    () => [
+      { id: "m1", text: tv.c1a, kind: "title", pos: "inset-x-6 bottom-[16vh] md:inset-x-14 md:top-[24vh] md:bottom-auto" },
+      { id: "m2", text: tv.c2b, kind: "title", pos: "inset-x-6 bottom-[16vh] md:inset-x-14 md:bottom-[20vh]" },
+      { id: "m3a", text: tv.c3b, kind: "title", pos: "inset-x-6 bottom-[16vh] md:inset-x-14 md:bottom-[18vh]" },
+      { id: "m3b", text: tv.c3c, kind: "title", pos: "inset-x-6 bottom-[16vh] md:inset-x-14 md:bottom-[18vh]" },
+      { id: "m4", text: tv.b90, kind: "words", pos: "inset-x-6 bottom-[22vh] md:inset-x-14 md:top-[34vh] md:bottom-auto", small: true },
+      { id: "m5", text: tv.c5a, kind: "title", pos: "inset-x-6 bottom-[16vh] md:inset-x-14 md:bottom-[22vh]" },
+      { id: "m6", text: tv.bfim, kind: "title", pos: "inset-x-6 bottom-[18vh] md:inset-x-14 md:top-[26vh] md:bottom-auto", accent: true },
+    ],
+    [tv]
+  );
 
-  /** passos do ritual — só na cena do silêncio (4ª), um por vez, devagar */
+  /** passos do ritual — um por vez, no MESMO lugar, dentro do silêncio */
   const steps = t.hero.deckSteps;
 
   const loadScene = useCallback(
@@ -291,7 +293,10 @@ export default function TravessiaOpening() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [reduced, loadScene]);
 
-  // TIPOGRAFIA: timeline única, scrubada pela rolagem, com máscara + split
+  /**
+   * TIPOGRAFIA CINEMATOGRÁFICA — uma timeline-mestra scrubada (reversível),
+   * com coreografia própria por cena. gsap.context limpa tudo ao desmontar.
+   */
   useEffect(() => {
     if (reduced) return;
     const section = sectionRef.current;
@@ -300,158 +305,321 @@ export default function TravessiaOpening() {
 
     gsap.registerPlugin(ScrollTrigger, SplitText);
 
-    let tl: gsap.core.Timeline | null = null;
-    let intro: gsap.core.Tween | null = null;
-    const splits: SplitText[] = [];
-    let killed = false;
+    // no celular, perspectiva e deslocamentos laterais são reduzidos
+    const M = isMobile ? 0.35 : 1;
 
-    // fontes prontas antes de dividir (senão as linhas quebram errado)
-    const fontsReady: Promise<unknown> =
-      (document as any).fonts?.ready ?? Promise.resolve();
+    const ctx = gsap.context(() => {
+      const fontsReady: Promise<unknown> =
+        (document as any).fonts?.ready ?? Promise.resolve();
 
-    fontsReady.then(() => {
-      if (killed) return;
+      fontsReady.then(() => {
+        if (!beatsWrapRef.current) return;
 
-      tl = gsap.timeline({
-        defaults: { ease: "none" }, // atado ao scrub — a rolagem É o tempo
-        scrollTrigger: {
-          trigger: section,
-          start: "top top",
-          end: "bottom bottom",
-          scrub: 0.9,
-        },
-      });
-
-      const els = Array.from(
-        wrap.querySelectorAll<HTMLElement>("[data-beat]")
-      );
-
-      els.forEach((el) => {
-        const beat = beats.find((b) => b.id === el.dataset.beat);
-        if (!beat) return;
-        el.style.visibility = "visible";
-
-        const split = new SplitText(el.querySelector(".beat-text")!, {
-          type: beat.kind === "words" ? "lines,words" : "lines",
-          mask: "lines",
-          linesClass: "beat-line",
+        const tl = gsap.timeline({
+          defaults: { ease: "none" },
+          scrollTrigger: {
+            trigger: section,
+            start: "top top",
+            end: "bottom bottom",
+            scrub: 0.9,
+          },
         });
-        splits.push(split);
-        const targets = beat.kind === "words" ? split.words : split.lines;
 
-        if (beat.enter) {
-          const [e0, e1] = beat.enter;
-          const eLen = e1 - e0;
-          const frag = beat.kind === "words" ? 0.55 : 0.3;
-          // entrada: de baixo da máscara, com leve desfoque
-          tl!.fromTo(
-            targets,
-            { yPercent: 115, opacity: 0, filter: "blur(8px)" },
-            {
-              yPercent: 0,
-              opacity: 1,
-              filter: "blur(0px)",
-              duration: eLen * (1 - frag),
-              stagger: targets.length > 1 ? (eLen * frag) / (targets.length - 1) : 0,
-            },
-            e0
-          );
-        }
+        const el = (id: string) =>
+          wrap.querySelector<HTMLElement>(`[data-beat="${id}"]`);
+        const splitOf = (id: string) => {
+          const host = el(id);
+          if (!host) return null;
+          host.style.visibility = "visible";
+          const beat = beats.find((b) => b.id === id)!;
+          return new SplitText(host.querySelector(".beat-text")!, {
+            type: beat.kind === "words" ? "lines,words" : "lines",
+            mask: "lines",
+            linesClass: "beat-line",
+          });
+        };
+        const shadeOf = (id: string) =>
+          el(id)?.querySelector<HTMLElement>(".beat-shade") ?? null;
 
-        if (beat.exit) {
-          const [x0, x1] = beat.exit;
-          const xLen = x1 - x0;
-          // saída: sobe, perde opacidade, ganha desfoque, some na máscara
-          tl!.to(
-            targets,
-            {
-              yPercent: -70,
-              opacity: 0,
-              filter: "blur(8px)",
-              duration: xLen * 0.85,
-              stagger: targets.length > 1 ? (xLen * 0.15) / (targets.length - 1) : 0,
-            },
-            x0
-          );
-        }
-      });
-
-      // 1ª frase: já pertence à primeira tela — entra UMA vez no carregamento
-      // (tempo, não rolagem), e daí em diante só a saída é scrubada.
-      const first = els.find((e) => e.dataset.beat === "m1");
-      if (first) {
-        const split0 = splits[0];
-        if (split0?.lines?.length) {
-          intro = gsap.from(split0.lines, {
-            yPercent: 115,
+        /* ── CENA 1 · HERO ──────────────────────────────────────────────
+           entrada editorial no CARREGAMENTO (tempo); parada = estabilidade
+           com respiração imperceptível; saída CARREGADA pelo giro do
+           telefone, terminando antes da travessia da tela. */
+        const s1 = splitOf("m1");
+        if (s1?.lines?.length) {
+          gsap.from(s1.lines, {
+            yPercent: 100,
             opacity: 0,
-            filter: "blur(8px)",
-            duration: 1.05,
-            delay: 0.25,
-            stagger: 0.09,
+            filter: "blur(10px)",
+            scale: 0.98,
+            duration: 1.1,
+            delay: 0.3,
+            stagger: 0.1,
             ease: "power3.out",
           });
+          const heroP = el("m1")!.querySelector(".beat-text");
+          // respiração quase imperceptível (só opacidade; nada flutua)
+          gsap.to(heroP, {
+            opacity: 0.96,
+            duration: 3.4,
+            yoyo: true,
+            repeat: -1,
+            ease: "sine.inOut",
+            delay: 1.8,
+          });
+          const sh1 = shadeOf("m1");
+          if (sh1) gsap.from(sh1, { opacity: 0, duration: 1.4, delay: 0.25 });
+
+          // saída: atraída pelo movimento do giro (lateral + eixo + compressão)
+          tl.to(
+            el("m1"),
+            {
+              xPercent: 16 * M,
+              yPercent: -8,
+              rotationY: 7 * M,
+              rotationZ: 1 * M,
+              scale: 0.96,
+              transformOrigin: "60% 50%",
+              duration: 0.2 * SEG,
+            },
+            0.62 * SEG
+          );
+          tl.to(
+            s1.lines,
+            {
+              opacity: 0,
+              filter: "blur(13px)",
+              yPercent: (i: number) => -4 * i, // linhas convergem levemente
+              duration: 0.2 * SEG,
+              stagger: (0.05 * SEG) / Math.max(1, s1.lines.length - 1),
+            },
+            0.64 * SEG
+          );
+          const sh = shadeOf("m1");
+          if (sh) tl.to(sh, { opacity: 0, duration: 0.16 * SEG }, 0.66 * SEG);
+          // some por completo antes da câmera atravessar a tela (fim da cena 1)
         }
-      }
 
-      // passos do ritual — SÓ na cena do silêncio: um por vez, bem devagar,
-      // e TODOS saem antes da frase da cena seguinte entrar.
-      if (stepsRef.current) {
-        const stepEls = Array.from(
-          stepsRef.current.querySelectorAll<HTMLElement>("[data-step]")
-        );
-        stepEls.forEach((el, i) => {
-          el.style.visibility = "visible";
-          const split = new SplitText(el, { type: "lines", mask: "lines", linesClass: "beat-line" });
-          splits.push(split);
-          // um por vez, e os TRÊS convivem em cena antes de sair juntos
-          const at = (3 + 0.4 + i * 0.07) * SEG;
-          tl!.fromTo(
-            split.lines,
-            { yPercent: 115, opacity: 0, filter: "blur(6px)" },
-            { yPercent: 0, opacity: 1, filter: "blur(0px)", duration: 0.055 * SEG },
-            at
+        /* ── CENA 2 · MUNDO DIGITAL ─────────────────────────────────────
+           entra da PROFUNDIDADE; sai alongando na direção da câmera. */
+        const s2 = splitOf("m2");
+        if (s2?.lines?.length) {
+          tl.fromTo(
+            el("m2"),
+            { z: -120 * M, scale: 0.9, transformOrigin: "50% 50%" },
+            { z: 0, scale: 1, duration: 0.3 * SEG },
+            (1 + 0.16) * SEG
           );
-          tl!.to(
-            split.lines,
-            { yPercent: -70, opacity: 0, filter: "blur(8px)", duration: 0.16 * SEG },
-            (3 + 0.76) * SEG
+          tl.fromTo(
+            s2.lines,
+            { opacity: 0, filter: "blur(14px)" },
+            {
+              opacity: 1,
+              filter: "blur(0px)",
+              duration: 0.26 * SEG,
+              stagger: (0.06 * SEG) / Math.max(1, s2.lines.length - 1),
+            },
+            (1 + 0.18) * SEG
           );
-        });
-      }
+          const sh = shadeOf("m2");
+          if (sh) tl.fromTo(sh, { opacity: 0 }, { opacity: 1, duration: 0.2 * SEG }, (1 + 0.18) * SEG);
+          // saída rumo à sinapse: alonga em direção à câmera e dissolve
+          tl.to(
+            el("m2"),
+            { z: 70 * M, scale: 1.05, duration: 0.22 * SEG },
+            (1 + 0.68) * SEG
+          );
+          tl.to(
+            s2.lines,
+            { opacity: 0, filter: "blur(12px)", duration: 0.2 * SEG },
+            (1 + 0.7) * SEG
+          );
+          if (sh) tl.to(sh, { opacity: 0, duration: 0.18 * SEG }, (1 + 0.7) * SEG);
+        }
 
-      // CTAs — apenas na CONCLUSÃO da sequência (fim da cena 7); a entrada
-      // completa ANTES do último pixel de rolagem, para ninguém ficar sem vê-los
-      if (ctasRef.current) {
-        tl!.fromTo(
-          ctasRef.current,
-          { autoAlpha: 0, y: 22 },
-          { autoAlpha: 1, y: 0, duration: 0.032 },
-          0.93
-        );
-      }
+        /* ── CENA 3 · SINAPSE ───────────────────────────────────────────
+           1ª frase emerge das áreas escuras e se dissolve NA saturação;
+           2ª entra firme e fica quase imóvel (estável contra a agitação). */
+        const s3a = splitOf("m3a");
+        if (s3a?.lines?.length) {
+          tl.fromTo(
+            s3a.lines,
+            { opacity: 0, filter: "blur(9px)", yPercent: 24 },
+            {
+              opacity: 1,
+              filter: "blur(0px)",
+              yPercent: 0,
+              duration: 0.24 * SEG,
+              stagger: (0.05 * SEG) / Math.max(1, s3a.lines.length - 1),
+            },
+            (2 + 0.12) * SEG
+          );
+          const sh = shadeOf("m3a");
+          if (sh) tl.fromTo(sh, { opacity: 0 }, { opacity: 1, duration: 0.18 * SEG }, (2 + 0.13) * SEG);
+          // dissolve encoberta pela luz da saturação (sem deslocamento)
+          tl.to(
+            s3a.lines,
+            { opacity: 0, filter: "blur(14px)", duration: 0.16 * SEG },
+            (2 + 0.46) * SEG
+          );
+          if (sh) tl.to(sh, { opacity: 0, duration: 0.14 * SEG }, (2 + 0.48) * SEG);
+        }
+        const s3b = splitOf("m3b");
+        if (s3b?.lines?.length) {
+          // firme e direta; depois QUASE imóvel — contraste com a sinapse ativa
+          tl.fromTo(
+            s3b.lines,
+            { opacity: 0, yPercent: 14 },
+            {
+              opacity: 1,
+              yPercent: 0,
+              duration: 0.13 * SEG,
+              stagger: (0.03 * SEG) / Math.max(1, s3b.lines.length - 1),
+            },
+            (2 + 0.66) * SEG
+          );
+          const sh = shadeOf("m3b");
+          if (sh) tl.fromTo(sh, { opacity: 0 }, { opacity: 1, duration: 0.12 * SEG }, (2 + 0.66) * SEG);
+          // sai POR COMPLETO antes da fronteira com o silêncio
+          tl.to(
+            s3b.lines,
+            { opacity: 0, filter: "blur(8px)", duration: 0.11 * SEG },
+            (2 + 0.86) * SEG
+          );
+          if (sh) tl.to(sh, { opacity: 0, duration: 0.09 * SEG }, (2 + 0.87) * SEG);
+        }
 
-      // âncora em 1.0: a linha do tempo dura EXATAMENTE o percurso da rolagem
-      // (sem ela, o scrub esticaria as janelas em ~2%)
-      tl!.set({}, {}, 1);
+        /* ── CENA 4 · SILÊNCIO ──────────────────────────────────────────
+           o movimento mais LENTO da sequência; depois os 3 passos entram
+           um por vez, no MESMO lugar, substituindo-se limpos. */
+        const s4 = splitOf("m4");
+        if (s4) {
+          const alvo4 = s4.words?.length ? s4.words : s4.lines;
+          tl.fromTo(
+            alvo4,
+            { opacity: 0, filter: "blur(10px)", yPercent: 20 },
+            {
+              opacity: 1,
+              filter: "blur(0px)",
+              yPercent: 0,
+              duration: 0.3 * SEG,
+              stagger: (0.14 * SEG) / Math.max(1, alvo4.length - 1),
+            },
+            (3 + 0.08) * SEG
+          );
+          const sh = shadeOf("m4");
+          if (sh) tl.fromTo(sh, { opacity: 0 }, { opacity: 1, duration: 0.2 * SEG }, (3 + 0.1) * SEG);
+          tl.to(
+            alvo4,
+            { opacity: 0, filter: "blur(8px)", yPercent: -10, duration: 0.12 * SEG },
+            (3 + 0.42) * SEG
+          );
+          if (sh) tl.to(sh, { opacity: 0, duration: 0.1 * SEG }, (3 + 0.44) * SEG);
+        }
+        // passos do ritual — sequência limpa no mesmo espaço
+        if (stepsRef.current) {
+          const stepEls = Array.from(
+            stepsRef.current.querySelectorAll<HTMLElement>("[data-step]")
+          );
+          stepEls.forEach((se, i) => {
+            se.style.visibility = "visible";
+            const split = new SplitText(se, {
+              type: "lines",
+              mask: "lines",
+              linesClass: "beat-line",
+            });
+            const at = (3 + 0.5 + i * 0.15) * SEG;
+            tl.fromTo(
+              split.lines,
+              { opacity: 0, filter: "blur(8px)", yPercent: 18 },
+              { opacity: 1, filter: "blur(0px)", yPercent: 0, duration: 0.08 * SEG },
+              at
+            );
+            tl.to(
+              split.lines,
+              { opacity: 0, filter: "blur(8px)", yPercent: -12, duration: 0.06 * SEG },
+              at + 0.11 * SEG
+            );
+          });
+        }
 
-      // indicador de rolagem — some assim que a jornada começa
-      if (hintRef.current) {
-        tl!.to(hintRef.current, { autoAlpha: 0, duration: 0.018 }, 0.006);
-      }
+        /* ── CENA 5 · RETORNO AO QUARTO ─────────────────────────────────
+           surge difusa junto com a volta do quarto e RECUPERA nitidez. */
+        const s5 = splitOf("m5");
+        if (s5?.lines?.length) {
+          tl.fromTo(
+            s5.lines,
+            { opacity: 0, filter: "blur(12px)" },
+            {
+              opacity: 0.65,
+              filter: "blur(4px)",
+              duration: 0.2 * SEG,
+              stagger: (0.05 * SEG) / Math.max(1, s5.lines.length - 1),
+            },
+            (4 + 0.12) * SEG
+          );
+          // o quarto volta → a frase encontra nitidez e estabilidade plenas
+          tl.to(
+            s5.lines,
+            { opacity: 1, filter: "blur(0px)", duration: 0.16 * SEG },
+            (4 + 0.36) * SEG
+          );
+          const sh = shadeOf("m5");
+          if (sh) tl.fromTo(sh, { opacity: 0 }, { opacity: 1, duration: 0.22 * SEG }, (4 + 0.14) * SEG);
+          // a mão vai agir: a frase se apaga devagar, sem movimento brusco
+          tl.to(
+            s5.lines,
+            { opacity: 0, filter: "blur(6px)", duration: 0.2 * SEG },
+            (4 + 0.72) * SEG
+          );
+          if (sh) tl.to(sh, { opacity: 0, duration: 0.16 * SEG }, (4 + 0.74) * SEG);
+        }
 
-      ScrollTrigger.refresh();
-    });
+        /* ── CENA 6 · GESTO FINAL ───────────────────────────────────────
+           a frase final entra SÓ quando o telefone é pousado, e permanece
+           imóvel, nítida, com tempo de leitura até o fim. */
+        const s6 = splitOf("m6");
+        if (s6?.lines?.length) {
+          tl.fromTo(
+            s6.lines,
+            { opacity: 0, filter: "blur(8px)", yPercent: 16 },
+            {
+              opacity: 1,
+              filter: "blur(0px)",
+              yPercent: 0,
+              duration: 0.18 * SEG,
+              stagger: (0.05 * SEG) / Math.max(1, s6.lines.length - 1),
+            },
+            (5 + 0.55) * SEG
+          );
+          const sh = shadeOf("m6");
+          if (sh) tl.fromTo(sh, { opacity: 0 }, { opacity: 1, duration: 0.16 * SEG }, (5 + 0.56) * SEG);
+          // sem saída: imóvel e nítida até o fim (tempo de leitura garantido)
+        }
 
-    return () => {
-      killed = true;
-      intro?.kill();
-      splits.forEach((s) => s.revert());
-      if (tl) {
-        tl.scrollTrigger?.kill();
-        tl.kill();
-      }
-    };
+        // CTAs — discretos, só na conclusão, sem competir com o gesto
+        if (ctasRef.current) {
+          tl.fromTo(
+            ctasRef.current,
+            { autoAlpha: 0, y: 18 },
+            { autoAlpha: 1, y: 0, duration: 0.03 },
+            0.965
+          );
+        }
+
+        // indicador de rolagem — some assim que a jornada começa
+        if (hintRef.current) {
+          tl.to(hintRef.current, { autoAlpha: 0, duration: 0.018 }, 0.006);
+        }
+
+        // âncora em 1.0: a timeline dura exatamente o percurso da rolagem
+        tl.set({}, {}, 1);
+
+        ScrollTrigger.refresh();
+      });
+    }, wrap);
+
+    return () => ctx.revert();
   }, [reduced, beats, isMobile, steps]);
 
   const scrollToManifesto = useCallback((e: React.MouseEvent) => {
@@ -466,16 +634,15 @@ export default function TravessiaOpening() {
 
   const estudoHref = lang === "es" ? "/el-estudio" : "/o-estudo";
 
-  /* ---------- Versão de movimento reduzido: tudo estático e legível ---------- */
+  /* ---------- Movimento reduzido: fades suaves, sequência íntegra ---------- */
   if (reduced) {
     const staticTexts = [
       tv.c1a,
       tv.c2b,
-      tv.c3b,
+      `${tv.c3b} ${tv.c3c}`,
       `${tv.b90} ${steps.join(". ")}.`,
       tv.c5a,
       tv.bfim,
-      tv.c7,
     ];
     return (
       <section id="top" className="border-b border-warm-gray/10">
@@ -514,28 +681,20 @@ export default function TravessiaOpening() {
       ref={sectionRef}
       id="top"
       className="relative border-b border-warm-gray/10"
-      style={{ height: isMobile ? `${N * 88}vh` : `${N * 100}vh` }}
+      style={{ height: isMobile ? `${N * 92}vh` : `${N * 105}vh` }}
     >
-      {/* folga na máscara do split: sem corte de descendentes ("g", "ç", "p") */}
+      {/* máscara técnica INVISÍVEL: sem fundo/borda; folga vertical para nunca
+          cortar descendentes ("g", "ç"); o wrapper nunca vira um bloco visível */}
       <style>{`
         .beat-text .beat-line, .trav-step .beat-line {
           padding-bottom: 0.18em;
           margin-bottom: -0.18em;
+          background: none;
+          border: 0;
         }
       `}</style>
       <div className="sticky top-0 h-screen w-full overflow-hidden bg-ink">
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
-        {/* vinheta p/ legibilidade do texto, sem matar a imagem */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              active === N - 1
-                ? "linear-gradient(to right, rgba(244,240,232,0.72) 0%, rgba(244,240,232,0.25) 45%, transparent 70%)"
-                : "linear-gradient(to top, rgba(11,11,12,0.72) 0%, rgba(11,11,12,0.15) 34%, transparent 55%)",
-          }}
-        />
 
         {/* tela de espera discreta até o 1º quadro */}
         {!ready && (
@@ -546,65 +705,76 @@ export default function TravessiaOpening() {
           </div>
         )}
 
-        {/* AS SETE FRASES — uma por cena, empilhadas no mesmo palco baixo-esquerdo;
-            a timeline garante: a anterior SAI por completo antes da próxima entrar */}
+        {/* AS FRASES — HTML real, cada uma no espaço negativo da SUA cena,
+            protegida por um gradiente amplo e imperceptível (nunca uma caixa) */}
         <div
           ref={beatsWrapRef}
-          className="absolute inset-x-0 bottom-0 z-10"
+          className="absolute inset-0 z-10"
+          style={{ perspective: "1000px" }}
         >
           {beats.map((b) => (
             <div
               key={b.id}
               data-beat={b.id}
-              className="absolute inset-x-6 bottom-[14vh] md:inset-x-14 md:bottom-[16vh]"
-              style={{ visibility: "hidden" }}
+              className={`absolute ${b.pos}`}
+              style={{ visibility: "hidden", transformStyle: "preserve-3d" }}
             >
+              {/* proteção de leitura: gradiente radial amplo, sem borda perceptível */}
+              <div
+                aria-hidden="true"
+                className="beat-shade pointer-events-none absolute -inset-x-[34%] -inset-y-[85%]"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 58% 52% at 42% 52%, rgba(11,11,12,0.5), rgba(11,11,12,0.22) 46%, transparent 72%)",
+                }}
+              />
               <p
-                className={`beat-text max-w-[13ch] md:max-w-3xl font-serif leading-[1.15] tracking-[-0.02em] ${
-                  b.kind === "title"
-                    ? "text-[clamp(2.1rem,5.2vw,4.3rem)]"
-                    : "text-[clamp(1.6rem,3.4vw,2.9rem)]"
-                } ${b.accent ? "text-muted-red" : b.dark ? "text-ink" : "text-offwhite"}`}
+                className={`beat-text relative max-w-[14ch] md:max-w-3xl font-serif leading-[1.16] tracking-[-0.02em] ${
+                  b.kind === "title" && !b.small
+                    ? "text-[clamp(2rem,5vw,4.1rem)]"
+                    : "text-[clamp(1.55rem,3.2vw,2.8rem)]"
+                } ${b.accent ? "text-muted-red" : "text-offwhite"}`}
+                style={{ textShadow: "0 1px 22px rgba(11,11,12,0.55)" }}
               >
                 {b.text}
               </p>
             </div>
           ))}
+
+          {/* ritual — 3 passos, um por vez, no MESMO lugar (cena do silêncio) */}
+          <div
+            ref={stepsRef}
+            className="absolute inset-x-6 bottom-[14vh] md:inset-x-14 md:top-[52vh] md:bottom-auto"
+          >
+            {steps.map((s, i) => (
+              <p
+                key={s}
+                data-step={i}
+                className="trav-step absolute inset-x-0 font-serif text-[clamp(1.3rem,2.4vw,2rem)] leading-[1.2] text-offwhite/90"
+                style={{ visibility: "hidden", textShadow: "0 1px 18px rgba(11,11,12,0.6)" }}
+              >
+                {s}.
+              </p>
+            ))}
+          </div>
         </div>
 
-        {/* ritual de 90 segundos — SÓ na cena do silêncio */}
-        <div
-          ref={stepsRef}
-          className="absolute inset-x-6 bottom-[6vh] z-10 md:inset-x-14 md:bottom-[8vh]"
-        >
-          {steps.map((s, i) => (
-            <p
-              key={s}
-              data-step={i}
-              className="trav-step font-sans text-sm tracking-[0.08em] text-warm-gray md:text-base"
-              style={{ visibility: "hidden" }}
-            >
-              {i + 1} · {s}
-            </p>
-          ))}
-        </div>
-
-        {/* CTAs — apenas depois da conclusão da sequência (cena da liberdade) */}
+        {/* CTAs — apenas na conclusão, discretos sobre o quadro final */}
         <div
           ref={ctasRef}
-          className="invisible absolute inset-x-6 bottom-[5vh] z-10 opacity-0 md:inset-x-14 md:bottom-[7vh]"
+          className="invisible absolute inset-x-6 bottom-[6vh] z-10 opacity-0 md:inset-x-14 md:bottom-[8vh]"
         >
           <div className="flex flex-wrap items-center gap-3">
             <a
               href="#manifesto"
               onClick={scrollToManifesto}
-              className="inline-flex items-center rounded-full bg-ink px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite transition hover:bg-ink/85"
+              className="inline-flex items-center rounded-full border border-warm-gray/25 bg-black/35 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 backdrop-blur-sm transition hover:bg-black/55"
             >
               {t.hero.ctaPrimary} <span className="ml-3 text-muted-red">→</span>
             </a>
             <a
               href={estudoHref}
-              className="inline-flex items-center rounded-full border border-ink/35 px-6 py-3 text-xs tracking-[0.22em] uppercase text-ink/85 transition hover:border-ink/70"
+              className="inline-flex items-center rounded-full border border-muted-red/40 bg-black/35 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 backdrop-blur-sm transition hover:border-muted-red/70"
             >
               {t.hero.ctaSecondary} <span className="ml-3 text-muted-red">→</span>
             </a>
@@ -630,7 +800,7 @@ export default function TravessiaOpening() {
           `}</style>
         </div>
 
-        {/* trilha de progresso da narrativa (7 pontos) */}
+        {/* trilha de progresso da narrativa (6 pontos) */}
         <div
           aria-hidden="true"
           className="absolute right-4 top-1/2 z-10 hidden -translate-y-1/2 flex-col gap-2.5 md:flex"
