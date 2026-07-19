@@ -94,6 +94,35 @@
   720p · 5 s · 16:9 · `generate_audio: false` (filme mudo) · request `019f7826-0843…`.
 - **Movimento pedido:** órbita lenta ao redor do aparelho; pulsos sobem/descem os fios;
   sinos pulsam; ondas do chão se expandem; homem imóvel respirando; sem cortes, sem tremor.
+## 2026-07-19 (madrugada) · Fase 5 completa — corrente das cenas 3–7 + montagem
+
+Mandato do dono antes de dormir: *"amanhã refinamos, deixe pronto, ok?"*. Produção da noite
+(todas `bytedance/seedance-2.0/mini/reference-to-video`, 720p, mudo, ancoradas no último
+quadro REAL da cena anterior + storyboard de destino):
+
+| Cena | Duração | request_id | Resultado |
+|---|---|---|---|
+| 3 v1 "brusca" | 6 s | `019f7836-6faa…` | dono reprovou a entrada — guardada p/ comparação |
+| 3 v2 "suave" | 8 s | `019f783c-630b…` | alternativa guardada |
+| 3 v3 **EXPLOSIVA** (escolhida) | 8 s | `019f783d-73bf…` | entrada gradual + erupção de sinais (2 notas do dono atendidas) |
+| 4 silêncio | 8 s | `019f7841-c285…` | desaceleração até parar + pulso branco central ✓ |
+| 5 consciência | 7 s | `019f7846-a5ec…` | mão para a cm do vidro; nota: leve recorte no aparelho (refino) |
+| 6 escolha (2ª tentativa) | 8 s | `019f7852-989e…` | 1ª recusada pelo filtro do provedor (rosto na âncora, 422 **sem custo**) → âncora RECORTADA sem pessoa resolveu; aparelho pousado de tela p/ baixo ✓ |
+| 7 presença | 8 s | `019f7857-7ba4…` | manhã, leitura, janela; fecho limpo ✓ |
+
+- **Custo estimado da noite** (tabela mini US$ 0,007/1000 tokens; extrato 403 p/ esta chave):
+  cenas 2–7 + repetições ≈ **US$ 6,8**; imagens US$ 1,04; **total do projeto ≈ US$ 7,9 de US$ 20**.
+- **Filme de prévia:** `Arquivo-Midia/Travessia-Videos/travessia-completa-720p.mp4` (50 s,
+  7 cenas emendadas) — entregue ao dono na conversa.
+- **Montagem no site:** `TravessiaOpening` + quadros de TODAS as cenas; verify VERDE;
+  testes reais no navegador (PT+ES, desktop+mobile, ida+volta) na madrugada.
+- **Lista de refino aberta (para a sessão com o dono):** entrada da cena 2 com leve recorte
+  estilo iPhone no aparelho (~1 s) · idem sutil na cena 5 · enriquecer cena 2 com corações/
+  cartões de feed desfocados (decisão adiada pelo dono) · afinar velocidade da "explosão" da
+  cena 3 se ele quiser mais · carregamento dos quadros em fila (throttle) p/ suavizar picos.
+
+## 2026-07-18 · Fase 4 · Prova técnica — detalhes
+
 - **Resultado (18/07, QA do agente): APROVADO.** Vídeo 1280×720 · 24 qps · 5,04 s · 2,9 MB ·
   seed 133643690. Órbita lenta real ao redor do aparelho, cena do dono preservada (sala,
   poltrona, homem, fios, sinos, ondas), sem cortes, sem tremor, sem deformação.
