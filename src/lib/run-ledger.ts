@@ -102,6 +102,26 @@ export function slotSkipGate(
   return null;
 }
 
+// Veredito do gate de ORÇAMENTO do preview do Reel (PURO, load-bearing). O gate mora no
+// TOPO do preview e protege a ÚNICA despesa paga do preview: a ilustração da fal (só o
+// Reel CLÁSSICO, illus=1, a usa). Antes, orçamento estourado → 402 e o preview inteiro
+// ABORTAVA — matando também o footage (grátis) e derrubando o slot das 19h; e a "cascata
+// pra footage" do workflow re-batia no MESMO gate e 402ava de novo. Regra:
+//  • orçamento OK, ou irmã da MESMA vaga já publicou (atomicidade ES+PT) → "proceed";
+//  • estourou E é o clássico (wantsIllus) → "degrade-footage": pula a ilustração paga
+//    (zero fal) e o footage — via de RESERVA — assume a capa (slot SAI como Reel de
+//    footage; não conta bumpAttempt, pois COMPLETA, não falha);
+//  • estourou E é Reel regular (footage já é o produto, sem fal) → "block-402": mantém o
+//    DISJUNTOR (402 + hard bumpAttempt) que estanca a tempestade de redisparo do catchup.
+export type PreviewBudgetVerdict = "proceed" | "degrade-footage" | "block-402";
+export function previewBudgetVerdict(
+  gateOk: boolean, siblingAlreadyPublished: boolean, wantsIllus: boolean,
+): PreviewBudgetVerdict {
+  if (gateOk || siblingAlreadyPublished) return "proceed";
+  if (wantsIllus) return "degrade-footage";
+  return "block-402";
+}
+
 // ── Poll de processamento do container (carrossel/reel) ───────────────────────
 // Antes de `media_publish`, o container precisa estar FINISHED. Publicar cedo demais
 // dá "Media not ready" (erro NÃO-duro) → vaga falha INTERMITENTE (bug C1: o carrossel
