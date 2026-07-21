@@ -123,20 +123,24 @@ describe("disjuntor de publicação (anti-martelo / anti-bloqueio de conta)", ()
   // disjuntor. Bug de raiz: o gate estava no TOPO do preview, indiferente ao illus → a
   // "cascata pra footage" do workflow re-batia no mesmo gate e 402ava de novo.
   describe("previewBudgetVerdict — 402 do preview não derruba o clássico (footage assume)", () => {
-    it("orçamento OK → proceed (gera ilustração normalmente), independe do illus", () => {
-      expect(previewBudgetVerdict(true, false, true)).toBe("proceed");
-      expect(previewBudgetVerdict(true, false, false)).toBe("proceed");
+    it("orçamento OK → proceed (gera ilustração normalmente), independe de illus/flag", () => {
+      expect(previewBudgetVerdict(true, false, true, true)).toBe("proceed");
+      expect(previewBudgetVerdict(true, false, false, false)).toBe("proceed");
     });
-    it("estourou + CLÁSSICO (illus=1) → degrade-footage (pula fal, footage assume, sem 402)", () => {
-      expect(previewBudgetVerdict(false, false, true)).toBe("degrade-footage");
+    it("estourou + CLÁSSICO + flag LIGADO → degrade-footage (pula fal, footage assume, sem 402)", () => {
+      expect(previewBudgetVerdict(false, false, true, true)).toBe("degrade-footage");
     });
-    it("estourou + Reel REGULAR (sem illus) → block-402 (mantém o disjuntor documentado)", () => {
-      expect(previewBudgetVerdict(false, false, false)).toBe("block-402");
+    it("FLAG DESLIGADO (default) → clássico volta a block-402 (deploy dormente, byte-idêntico)", () => {
+      expect(previewBudgetVerdict(false, false, true, false)).toBe("block-402");
+    });
+    it("estourou + Reel REGULAR (sem illus) → block-402 sempre (disjuntor; flag não muda)", () => {
+      expect(previewBudgetVerdict(false, false, false, false)).toBe("block-402");
+      expect(previewBudgetVerdict(false, false, false, true)).toBe("block-402");
     });
     it("irmã da MESMA vaga já publicou → proceed SEMPRE (atomicidade ES+PT, nunca órfão)", () => {
-      // vence o estouro de orçamento p/ ambos os formatos — completa o par
-      expect(previewBudgetVerdict(false, true, true)).toBe("proceed");
-      expect(previewBudgetVerdict(false, true, false)).toBe("proceed");
+      // vence o estouro de orçamento p/ ambos os formatos e independe do flag — completa o par
+      expect(previewBudgetVerdict(false, true, true, false)).toBe("proceed");
+      expect(previewBudgetVerdict(false, true, false, false)).toBe("proceed");
     });
   });
 });

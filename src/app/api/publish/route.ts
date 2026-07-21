@@ -865,7 +865,10 @@ export async function GET(req: NextRequest) {
       // ATOMICIDADE ES+PT: se a língua-IRMÃ da MESMA vaga JÁ publicou, o gate NÃO bloqueia
       // (senão o par vira ÓRFÃO — PT run 0, 07/07: ES publicou 14:27, PT morreu no 402).
       const sibling = await siblingPublished(dayBRT(now), r, lang);
-      const verdict = previewBudgetVerdict(gate.ok, sibling, wantsIllus);
+      // FLAG (default OFF): deploy DORMENTE. Desligado → clássico volta a "block-402"
+      // (comportamento atual byte-idêntico). O dono LIGA por env (P7), sem novo deploy.
+      const classicFootageFallback = (process.env.REEL_CLASSIC_FOOTAGE_FALLBACK ?? "").toLowerCase() === "on";
+      const verdict = previewBudgetVerdict(gate.ok, sibling, wantsIllus, classicFootageFallback);
       if (verdict === "degrade-footage") {
         // CLÁSSICO (illus=1): degrada p/ FOOTAGE em vez de 402. Antes o 402 derrubava o
         // slot das 19h inteiro — e a "cascata pra footage" do workflow re-batia neste
