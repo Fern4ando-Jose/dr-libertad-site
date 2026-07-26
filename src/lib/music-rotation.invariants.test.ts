@@ -141,12 +141,24 @@ describe("trilha que gira — não repete cedo", () => {
     }
   });
 
+  // Uma amostra de temas por pilar já prova o ponto: varrer os 183 × 40 dias faz milhares
+  // de checagens de disco e estoura o tempo do teste sem acrescentar informação.
   it("o conjunto não deixa faixa encalhada (era 76 antes da rotação)", () => {
-    const temas = Object.keys(pools);
+    const porPilar = new Map<string, string[]>();
+    for (const [t, p] of Object.entries(pools)) {
+      const cat = /bed-pilar-([a-z]+)/.exec(p[0])?.[1] ?? "?";
+      const lista = porPilar.get(cat) ?? [];
+      if (lista.length < 3) lista.push(t); // 3 temas por pilar bastam
+      porPilar.set(cat, lista);
+    }
+    const amostra = [...porPilar.values()].flat();
+    const maiorPool = Math.max(...Object.values(pools).map((p) => p.length));
+
     const alcancadas = new Set<string>();
-    for (let d = 20000; d < 20030; d++) for (const t of temas) alcancadas.add(noDia(d, t));
+    for (let d = 20000; d < 20000 + maiorPool; d++) for (const t of amostra) alcancadas.add(noDia(d, t));
+
     const teto = new Set(Object.values(pools).flat()).size;
-    expect(alcancadas.size).toBeGreaterThan(80);
+    expect(alcancadas.size).toBeGreaterThan(100); // era 76 com uma faixa por tema
     expect(alcancadas.size).toBeLessThanOrEqual(teto);
   });
 });
