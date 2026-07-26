@@ -1,0 +1,52 @@
+name: Guardião de PRs — trabalho pronto que não foi ao ar
+
+# TERCEIRO guardião da casa, irmão dos outros dois:
+#   • guardiao.yml     vigia os POSTS do dia (6/6 nas 2 contas);
+#   • runs-monitor.yml vigia a REPUTAÇÃO (duplicatas/órfãos);
+#   • ESTE             vigia o TRABALHO PRONTO que não foi ao ar.
+#
+# Nasceu do incidente 2026-07-26: a trilha dos Reels ficou 11 dias presa em 5 faixas
+# porque o PR #172 (92 faixas novas, CI verde, mergeável, sem review pendente) ficou
+# aberto e ninguém mergeou. A auditoria do mesmo dia achou mais 5 PRs prontos e
+# parados — o mais velho de 39 dias — e 3 que apodreceram até conflitar com a main.
+# Cada um deles é uma melhoria terminada que o feed não recebeu.
+#
+# Roda de manhã (09:00 BRT) para o dia ainda render. Quando acha trabalho parado,
+# FALHA o run (vermelho) — o mesmo alarme do runs-monitor: e-mail do GitHub + a aba
+# Actions + o supervisor diário local enxergam. Tudo limpo → verde e silencioso.
+#
+# NÃO mergeia sozinho: publicar em produção segue exigindo o OK do dono (P4/P7).
+# O guardião garante que o trabalho pronto seja VISTO, não que suba sozinho.
+#
+# Custo ZERO (só a API do GitHub; nenhuma API paga). Read-only e idempotente.
+
+on:
+  schedule:
+    - cron: "0 12 * * *" # 12:00 UTC = 09:00 BRT
+  workflow_dispatch:
+    inputs:
+      max_dias:
+        description: "Dias de tolerância antes de considerar um PR engavetado"
+        required: false
+        default: "2"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-guardiao
+  cancel-in-progress: false
+
+jobs:
+  guardiao-prs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inventariar PRs abertos e alarmar o que está pronto e parado
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          MAX_DIAS: ${{ github.event.inputs.max_dias || '2' }}
+        run: node scripts/pr-guardiao.mjs
