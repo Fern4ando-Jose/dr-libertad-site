@@ -39,6 +39,12 @@ export function proxy(req: NextRequest) {
 // pesquisa "Redes Sociais e Relacionamentos" (1 idioma por rota, link da bio do IG).
 // /o-estudo (PT) e /el-estudio (ES): as páginas institucionais que explicam o
 // estudo e levam ao funil (mesma lógica de rota fixa por idioma).
+// /terms (EN): os Termos de Uso em inglês, para leitores que não falam pt|es
+// (o revisor do painel de developers do TikTok exige uma ToS URL e lê em
+// inglês). Sem a exclusão cairia em /pt/terms → 404. Os espelhos PT/ES são
+// /pt/termos e /es/termos e seguem o i18n normalmente.
 export const config = {
-  matcher: ["/((?!api|insights|admin|pesquisa|investigacion|o-estudo|el-estudio|_next|.*\\..*).*)"],
+  matcher: [
+    "/((?!api|insights|admin|pesquisa|investigacion|o-estudo|el-estudio|terms|_next|.*\\..*).*)",
+  ],
 };
