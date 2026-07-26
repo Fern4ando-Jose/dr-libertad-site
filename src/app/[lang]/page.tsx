@@ -444,6 +444,14 @@ export default function Page() {
               >
                 {t.footer.legal}
               </a>
+              {/* Crédito da trilha dos Reels — obrigação de licença (CC BY): o link
+                  precisa existir num lugar fácil de achar. Ver src/components/CreditsView.tsx */}
+              <a
+                className="text-warm-gray/70 hover:text-offwhite transition"
+                href={`/${lang}/creditos`}
+              >
+                Créditos
+              </a>
             </div>
           </div>
         </StudioContainer>
