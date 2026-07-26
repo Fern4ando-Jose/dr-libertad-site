@@ -19,6 +19,7 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const ROUTE = path.join(ROOT, "src/app/api/publish/route.ts");
 const MUSIC_DIR = path.join(ROOT, "public/music");
 const MANIFEST = path.join(MUSIC_DIR, "manifest.json");
+const POOLS = path.join(MUSIC_DIR, "pools.json");
 const OVERRIDES = path.join(MUSIC_DIR, "overrides.json");
 
 // hash determinístico (mesmo topic → sempre o mesmo índice, reprodutível entre builds)
@@ -100,6 +101,24 @@ for (const { topic, cat } of themes) {
 }
 
 writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + "\n");
+
+// ─── pools.json — o que faz a trilha GIRAR (2026-07-26, pedido do dono) ──────
+// Problema que isto resolve: com uma faixa PRESA a cada tema, a mesma música voltava
+// junto com o tema — e 17 faixas nunca tocavam (o pilar "anxiety" tem 13 temas p/ 16
+// faixas: 3 jamais sairiam). Aqui gravamos, por tema, o POOL INTEIRO do seu pilar;
+// o picker (pick-music.cjs) escolhe dentro dele girando por DIA, então a cada aparição
+// do tema sai uma faixa diferente e a mesma só volta depois de percorrer o pool todo.
+// O manifest.json acima continua igual (faixa âncora) — é o fallback de quem não
+// conhece o pools.json, e mantém o comportamento antigo se este arquivo faltar.
+const pools = {};
+for (const { topic, cat } of themes) {
+  if (overrides[topic]) { pools[topic] = [overrides[topic]]; continue; } // faixa final do dono manda
+  pools[topic] = poolForPillar(cat).map((f) => `music/${f}`);
+}
+writeFileSync(POOLS, JSON.stringify(pools, null, 2) + "\n");
+const tamanhos = [...new Set(Object.values(pools).map((p) => p.length))].sort((a, b) => a - b);
+const todasNoPool = new Set(Object.values(pools).flat());
+console.log(`[manifest] pools.json: ${Object.keys(pools).length} temas · pool de ${tamanhos[0]}–${tamanhos[tamanhos.length - 1]} faixas · ${todasNoPool.size} faixas alcançáveis`);
 console.log(`[manifest] ${themes.length} temas → manifest.json`);
 console.log(`[manifest] faixa FINAL (override): ${nFinal} · fallback de pilar: ${nFallback}`);
 console.log(`[manifest] fallback por pilar:`, byPillar);
