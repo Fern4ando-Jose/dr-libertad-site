@@ -1,0 +1,694 @@
+{
+  "credits": [
+    {
+      "artist": "JR Tundra",
+      "source": "YouTube Audio Library",
+      "sourceUrl": "https://www.youtube.com/audiolibrary",
+      "license": "a confirmar",
+      "licenseUrl": "",
+      "line": "JR Tundra — YouTube Audio Library",
+      "works": 1
+    },
+    {
+      "artist": "Kevin MacLeod",
+      "source": "incompetech.com",
+      "sourceUrl": "https://incompetech.com/",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "line": "Kevin MacLeod (incompetech.com) — Licensed under Creative Commons: By Attribution 4.0 License",
+      "works": 82
+    }
+  ],
+  "works": [
+    {
+      "title": "Across The Ocean",
+      "artist": "JR Tundra",
+      "year": "",
+      "files": [
+        "bed-pilar-freedom.mp3"
+      ]
+    },
+    {
+      "title": "",
+      "artist": "Kevin MacLeod",
+      "year": "2008",
+      "files": [
+        "bed-pilar-anxiety-01.mp3",
+        "bed-pilar-anxiety-02.mp3",
+        "bed-pilar-anxiety-03.mp3",
+        "bed-pilar-dopamine-01.mp3",
+        "bed-pilar-dopamine-12.mp3",
+        "bed-pilar-dopamine-14.mp3"
+      ]
+    },
+    {
+      "title": "Aggressor",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-dopamine-11.mp3"
+      ]
+    },
+    {
+      "title": "Airport Lounge",
+      "artist": "Kevin MacLeod",
+      "year": "2011",
+      "files": [
+        "bed-pilar-self-14.mp3"
+      ]
+    },
+    {
+      "title": "Amazing Plan",
+      "artist": "Kevin MacLeod",
+      "year": "2010",
+      "files": [
+        "bed-pilar-mind-14.mp3"
+      ]
+    },
+    {
+      "title": "Angevin 120 loop",
+      "artist": "Kevin MacLeod",
+      "year": "2012",
+      "files": [
+        "bed-pilar-self-05.mp3"
+      ]
+    },
+    {
+      "title": "Anguish",
+      "artist": "Kevin MacLeod",
+      "year": "2014",
+      "files": [
+        "bed-pilar-anxiety-08.mp3"
+      ]
+    },
+    {
+      "title": "Arcadia",
+      "artist": "Kevin MacLeod",
+      "year": "2007",
+      "files": [
+        "bed-pilar-network-01.mp3"
+      ]
+    },
+    {
+      "title": "Bass Walker",
+      "artist": "Kevin MacLeod",
+      "year": "2012",
+      "files": [
+        "bed-pilar-network-11.mp3"
+      ]
+    },
+    {
+      "title": "Bittersweet",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-self-11.mp3"
+      ]
+    },
+    {
+      "title": "Broken Reality",
+      "artist": "Kevin MacLeod",
+      "year": "2014",
+      "files": [
+        "bed-pilar-anxiety-15.mp3"
+      ]
+    },
+    {
+      "title": "Call to Adventure",
+      "artist": "Kevin MacLeod",
+      "year": "2013-03-20 20:42",
+      "files": [
+        "bed-pilar-freedom-04.mp3"
+      ]
+    },
+    {
+      "title": "Cipher",
+      "artist": "Kevin MacLeod",
+      "year": "2011",
+      "files": [
+        "bed-pilar-mind-08.mp3"
+      ]
+    },
+    {
+      "title": "Comfortable Mystery",
+      "artist": "Kevin MacLeod",
+      "year": "2005",
+      "files": [
+        "bed-pilar-mind-01.mp3"
+      ]
+    },
+    {
+      "title": "Constance",
+      "artist": "Kevin MacLeod",
+      "year": "2011",
+      "files": [
+        "bed-pilar-network-03.mp3"
+      ]
+    },
+    {
+      "title": "Crypto",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-dopamine-06.mp3"
+      ]
+    },
+    {
+      "title": "Curse of the Scarab",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-anxiety-16.mp3"
+      ]
+    },
+    {
+      "title": "Danger Storm hi",
+      "artist": "Kevin MacLeod",
+      "year": "2015",
+      "files": [
+        "bed-pilar-dopamine-09.mp3"
+      ]
+    },
+    {
+      "title": "Danse Macabre",
+      "artist": "Kevin MacLeod",
+      "year": "2008-02-08 22:50",
+      "files": [
+        "bed-pilar-mind-09.mp3"
+      ]
+    },
+    {
+      "title": "Dark Fog",
+      "artist": "Kevin MacLeod",
+      "year": "2013",
+      "files": [
+        "bed-pilar-anxiety-05.mp3"
+      ]
+    },
+    {
+      "title": "Dark Times",
+      "artist": "Kevin MacLeod",
+      "year": "2010",
+      "files": [
+        "bed-pilar-network-04.mp3"
+      ]
+    },
+    {
+      "title": "Darkest Child",
+      "artist": "Kevin MacLeod",
+      "year": "2011",
+      "files": [
+        "bed-pilar-anxiety-07.mp3"
+      ]
+    },
+    {
+      "title": "Deadly Roulette",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-dopamine-10.mp3"
+      ]
+    },
+    {
+      "title": "Deliberate Thought",
+      "artist": "Kevin MacLeod",
+      "year": "2007",
+      "files": [
+        "bed-pilar-mind-04.mp3"
+      ]
+    },
+    {
+      "title": "Dreams Become Real",
+      "artist": "Kevin MacLeod",
+      "year": "2015",
+      "files": [
+        "bed-pilar-self-16.mp3"
+      ]
+    },
+    {
+      "title": "Enter the Maze",
+      "artist": "Kevin MacLeod",
+      "year": "2011",
+      "files": [
+        "bed-pilar-freedom-11.mp3"
+      ]
+    },
+    {
+      "title": "Ether Vox",
+      "artist": "Kevin MacLeod",
+      "year": "2020",
+      "files": [
+        "bed-pilar-mind-03.mp3"
+      ]
+    },
+    {
+      "title": "Faster Does It",
+      "artist": "Kevin MacLeod",
+      "year": "2011",
+      "files": [
+        "bed-pilar-network-05.mp3"
+      ]
+    },
+    {
+      "title": "Fearless First",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-freedom-07.mp3"
+      ]
+    },
+    {
+      "title": "Firmament",
+      "artist": "Kevin MacLeod",
+      "year": "2008-07-17 00:56",
+      "files": [
+        "bed-pilar-freedom-01.mp3"
+      ]
+    },
+    {
+      "title": "Five Armies",
+      "artist": "Kevin MacLeod",
+      "year": "2011",
+      "files": [
+        "bed-pilar-freedom-08.mp3"
+      ]
+    },
+    {
+      "title": "Fluidscape",
+      "artist": "Kevin MacLeod",
+      "year": "2007",
+      "files": [
+        "bed-pilar-mind-13.mp3"
+      ]
+    },
+    {
+      "title": "Gathering Darkness",
+      "artist": "Kevin MacLeod",
+      "year": "2011",
+      "files": [
+        "bed-pilar-anxiety-06.mp3"
+      ]
+    },
+    {
+      "title": "Ghost Story",
+      "artist": "Kevin MacLeod",
+      "year": "2013",
+      "files": [
+        "bed-pilar-anxiety-09.mp3"
+      ]
+    },
+    {
+      "title": "Gymnopedie No 1",
+      "artist": "Kevin MacLeod",
+      "year": "2011-01-04 02:00",
+      "files": [
+        "bed-pilar-self-09.mp3"
+      ]
+    },
+    {
+      "title": "Gymnopedie No 3",
+      "artist": "Kevin MacLeod",
+      "year": "2011-01-05 18:42",
+      "files": [
+        "bed-pilar-self-10.mp3"
+      ]
+    },
+    {
+      "title": "Hard Boiled",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-self-08.mp3"
+      ]
+    },
+    {
+      "title": "Hero Down",
+      "artist": "Kevin MacLeod",
+      "year": "2011",
+      "files": [
+        "bed-pilar-freedom-02.mp3"
+      ]
+    },
+    {
+      "title": "Hidden Agenda",
+      "artist": "Kevin MacLeod",
+      "year": "2012",
+      "files": [
+        "bed-pilar-anxiety-10.mp3"
+      ]
+    },
+    {
+      "title": "Hitman",
+      "artist": "Kevin MacLeod",
+      "year": "2013",
+      "files": [
+        "bed-pilar-dopamine-05.mp3"
+      ]
+    },
+    {
+      "title": "Impact Allegretto",
+      "artist": "Kevin MacLeod",
+      "year": "2009",
+      "files": [
+        "bed-pilar-freedom-14.mp3"
+      ]
+    },
+    {
+      "title": "Impact intermezzo",
+      "artist": "Kevin MacLeod",
+      "year": "2009",
+      "files": [
+        "bed-pilar-dopamine-16.mp3"
+      ]
+    },
+    {
+      "title": "Impact Lento",
+      "artist": "Kevin MacLeod",
+      "year": "2009-10-28 14:34",
+      "files": [
+        "bed-pilar-mind-16.mp3"
+      ]
+    },
+    {
+      "title": "Impact Moderato",
+      "artist": "Kevin MacLeod",
+      "year": "2009-10-28 13:41",
+      "files": [
+        "bed-pilar-network-06.mp3"
+      ]
+    },
+    {
+      "title": "Impact Prelude",
+      "artist": "Kevin MacLeod",
+      "year": "2009",
+      "files": [
+        "bed-pilar-dopamine-08.mp3"
+      ]
+    },
+    {
+      "title": "In a Heartbeat",
+      "artist": "Kevin MacLeod",
+      "year": "2006",
+      "files": [
+        "bed-pilar-freedom-06.mp3"
+      ]
+    },
+    {
+      "title": "Interloper",
+      "artist": "Kevin MacLeod",
+      "year": "2008",
+      "files": [
+        "bed-pilar-dopamine-02.mp3"
+      ]
+    },
+    {
+      "title": "Investigations",
+      "artist": "Kevin MacLeod",
+      "year": "2009",
+      "files": [
+        "bed-pilar-mind-02.mp3"
+      ]
+    },
+    {
+      "title": "Killers",
+      "artist": "Kevin MacLeod",
+      "year": "",
+      "files": [
+        "bed-pilar-dopamine-13.mp3"
+      ]
+    },
+    {
+      "title": "Kool Kats",
+      "artist": "Kevin MacLeod",
+      "year": "2009",
+      "files": [
+        "bed-pilar-network-10.mp3"
+      ]
+    },
+    {
+      "title": "Long Note Four",
+      "artist": "Kevin MacLeod",
+      "year": "2008",
+      "files": [
+        "bed-pilar-anxiety-04.mp3"
+      ]
+    },
+    {
+      "title": "Lord of the Land",
+      "artist": "Kevin MacLeod",
+      "year": "2014",
+      "files": [
+        "bed-pilar-freedom-10.mp3"
+      ]
+    },
+    {
+      "title": "Loss",
+      "artist": "Kevin MacLeod",
+      "year": "",
+      "files": [
+        "bed-pilar-self-03.mp3"
+      ]
+    },
+    {
+      "title": "Machinations",
+      "artist": "Kevin MacLeod",
+      "year": "2008-08-31 03:05",
+      "files": [
+        "bed-pilar-mind-10.mp3"
+      ]
+    },
+    {
+      "title": "Meditation Impromptu 01",
+      "artist": "Kevin MacLeod",
+      "year": "2005",
+      "files": [
+        "bed-pilar-mind-06.mp3"
+      ]
+    },
+    {
+      "title": "Meditation Impromptu 02",
+      "artist": "Kevin MacLeod",
+      "year": "2005",
+      "files": [
+        "bed-pilar-mind-07.mp3"
+      ]
+    },
+    {
+      "title": "Meditation Impromptu 03",
+      "artist": "Kevin MacLeod",
+      "year": "2005",
+      "files": [
+        "bed-pilar-self-04.mp3"
+      ]
+    },
+    {
+      "title": "Merry Go",
+      "artist": "Kevin MacLeod",
+      "year": "2010",
+      "files": [
+        "bed-pilar-network-09.mp3"
+      ]
+    },
+    {
+      "title": "Mesmerize High Quality",
+      "artist": "Kevin MacLeod",
+      "year": "",
+      "files": [
+        "bed-pilar-anxiety-11.mp3"
+      ]
+    },
+    {
+      "title": "Neolith",
+      "artist": "Kevin MacLeod",
+      "year": "2007",
+      "files": [
+        "bed-pilar-mind-11.mp3"
+      ]
+    },
+    {
+      "title": "Night Cave",
+      "artist": "Kevin MacLeod",
+      "year": "2008",
+      "files": [
+        "bed-pilar-anxiety-14.mp3"
+      ]
+    },
+    {
+      "title": "Odyssey High Quality",
+      "artist": "Kevin MacLeod",
+      "year": "2015",
+      "files": [
+        "bed-pilar-mind-12.mp3"
+      ]
+    },
+    {
+      "title": "Overworld",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-freedom-09.mp3"
+      ]
+    },
+    {
+      "title": "Pamgaea",
+      "artist": "Kevin MacLeod",
+      "year": "2013",
+      "files": [
+        "bed-pilar-network-12.mp3"
+      ]
+    },
+    {
+      "title": "Phantom from Space",
+      "artist": "Kevin MacLeod",
+      "year": "2015",
+      "files": [
+        "bed-pilar-anxiety-13.mp3"
+      ]
+    },
+    {
+      "title": "Prelude and Action",
+      "artist": "Kevin MacLeod",
+      "year": "2011",
+      "files": [
+        "bed-pilar-freedom-13.mp3"
+      ]
+    },
+    {
+      "title": "Rains Will Fall",
+      "artist": "Kevin MacLeod",
+      "year": "2010",
+      "files": [
+        "bed-pilar-self-13.mp3"
+      ]
+    },
+    {
+      "title": "Ripples",
+      "artist": "Kevin MacLeod",
+      "year": "2010",
+      "files": [
+        "bed-pilar-self-12.mp3"
+      ]
+    },
+    {
+      "title": "Rite of Passage",
+      "artist": "Kevin MacLeod",
+      "year": "2011-06-12 01:52",
+      "files": [
+        "bed-pilar-mind-15.mp3"
+      ]
+    },
+    {
+      "title": "Ryno's Theme",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-freedom-03.mp3"
+      ]
+    },
+    {
+      "title": "Showdown",
+      "artist": "Kevin MacLeod",
+      "year": "2008",
+      "files": [
+        "bed-pilar-freedom-12.mp3"
+      ]
+    },
+    {
+      "title": "Sneaky Adventure",
+      "artist": "Kevin MacLeod",
+      "year": "2009",
+      "files": [
+        "bed-pilar-dopamine-15.mp3"
+      ]
+    },
+    {
+      "title": "Spy Glass",
+      "artist": "Kevin MacLeod",
+      "year": "2015",
+      "files": [
+        "bed-pilar-self-06.mp3"
+      ]
+    },
+    {
+      "title": "Stormfront",
+      "artist": "Kevin MacLeod",
+      "year": "2012",
+      "files": [
+        "bed-pilar-anxiety-12.mp3"
+      ]
+    },
+    {
+      "title": "Take a Chance",
+      "artist": "Kevin MacLeod",
+      "year": "2013",
+      "files": [
+        "bed-pilar-self-07.mp3"
+      ]
+    },
+    {
+      "title": "Thinking Music",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-mind-05.mp3"
+      ]
+    },
+    {
+      "title": "Trouble",
+      "artist": "Kevin MacLeod",
+      "year": "2006",
+      "files": [
+        "bed-pilar-dopamine-03.mp3"
+      ]
+    },
+    {
+      "title": "Undaunted",
+      "artist": "Kevin MacLeod",
+      "year": "2014",
+      "files": [
+        "bed-pilar-network-02.mp3"
+      ]
+    },
+    {
+      "title": "Volitile Reaction",
+      "artist": "Kevin MacLeod",
+      "year": "2014",
+      "files": [
+        "bed-pilar-dopamine-04.mp3"
+      ]
+    },
+    {
+      "title": "Voxel Revolution",
+      "artist": "Kevin MacLeod",
+      "year": "2020",
+      "files": [
+        "bed-pilar-freedom-15.mp3"
+      ]
+    },
+    {
+      "title": "Wallpaper",
+      "artist": "Kevin MacLeod",
+      "year": "2011",
+      "files": [
+        "bed-pilar-self-01.mp3"
+      ]
+    },
+    {
+      "title": "Werq",
+      "artist": "Kevin MacLeod",
+      "year": "2018",
+      "files": [
+        "bed-pilar-dopamine-07.mp3"
+      ]
+    },
+    {
+      "title": "Wounded",
+      "artist": "Kevin MacLeod",
+      "year": "2009",
+      "files": [
+        "bed-pilar-self-02.mp3"
+      ]
+    }
+  ],
+  "aiCount": 16
+}
