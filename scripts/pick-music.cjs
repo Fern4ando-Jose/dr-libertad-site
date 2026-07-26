@@ -75,15 +75,26 @@ function diaCorrido() {
 
 // Escolhe girando: passo do dia + posição inicial do tema. Pula faixa que não está no
 // disco (fail-open) e devolve null se nenhuma do pool existir.
+// Índice da faixa no pool: anda UMA casa por dia, partindo de uma posição própria do
+// tema. Em dias seguidos percorre o pool inteiro e só então repete.
+//
+// LIMITE CONHECIDO (medido, não suposto): o tema não reaparece todo dia — volta a cada
+// k dias (hoje ~26: 183 temas ÷ 7 posts). Nesse regime o tema visita n/mdc(k,n) faixas
+// do seu pool. Com a cadência de hoje: pools de 11, 15 e 17 → TODAS as faixas; pool de
+// 16 → 8 das 16 (mdc(26,16)=2). Mesmo o pior caso é 8× melhor que o desenho antigo, que
+// dava UMA faixa por tema para sempre.
+// Tentei algoritmos "mais espertos" (passo variável por bloco) e ficaram PIORES: criavam
+// buracos em outras cadências e repetição em aparições seguidas. Este é simples, previsível
+// e testado — `music-rotation.invariants.test.ts` mede a cobertura na cadência real e
+// FALHA se cair abaixo de metade do pool, avisando quem mexer em temas/dia.
+function indiceNoPool(topic, n, d) {
+  return (hashStr(topic) + d) % n;
+}
+
 function pickFromPool(topic, pool) {
   const n = pool.length;
   if (!n) return null;
-  // O "+ dia/n" é um passo extra a cada volta completa do pool. Sem ele, um tema que
-  // reaparece a cada k dias só visitaria n/mdc(k,n) faixas — ex.: pool de 12 e retorno
-  // a cada 26 dias ficaria preso em 6 das 12. Com o passo extra o padrão desencaixa e o
-  // tema acaba passando por TODAS as faixas do seu pilar.
-  const d = diaCorrido();
-  const base = (hashStr(topic) + d + Math.floor(d / n)) % n;
+  const base = indiceNoPool(topic, n, diaCorrido());
   for (let i = 0; i < n; i++) {
     const file = pool[(base + i) % n];
     if (typeof file === "string" && fs.existsSync(path.resolve(MUSIC_DIR, "..", file))) return file;
