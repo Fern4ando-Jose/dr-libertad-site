@@ -19,9 +19,20 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Auditoria de dependências (npm audit — informativo, não bloqueia)
-        # Versões estão pinadas; roda a cada CI p/ FLAGAR CVE nova sem travar o merge.
-        # `|| true` = não falha o build (é alerta, não gate). Ver o resultado no log do job.
+      - name: Auditoria de PRODUÇÃO (BLOQUEIA em alta/crítica)
+        # ⛔ Gate de verdade — sem `|| true`. Só o que VAI PRO AR (`--omit=dev`).
+        # Nasceu de 2026-07-26: o passo antigo tinha `|| true`, então 22 falhas
+        # (11 CRÍTICAS, incl. execução remota de código no Remotion 4.0.290 e 9
+        # defeitos do Next 16.2.6) ficaram MESES só imprimindo no log, sem ninguém
+        # ler. Alerta que não trava não é trava. Falhou aqui = subir a dependência
+        # ou registrar a exceção com justificativa; NÃO reintroduzir `|| true`.
+        run: npm audit --omit=dev --audit-level=high
+      - name: Auditoria completa, dev incluso (informativo — não bloqueia)
+        # Ferramenta de desenvolvimento não vai pro ar, então não trava o merge;
+        # fica visível no log para a gente subir quando houver correção upstream.
+        # Hoje acusa `brace-expansion` 1.x (DoS) preso no minimatch@3 que os plugins
+        # do eslint-config-next exigem — a correção só existe na linha 5.x, que
+        # QUEBRA o minimatch@3 ("expand is not a function"). Rever a cada bump.
         run: npm audit --audit-level=high || true
       - name: Typecheck (tsc --noEmit)
         run: npx tsc --noEmit
