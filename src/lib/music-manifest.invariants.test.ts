@@ -54,9 +54,20 @@ describe("música por tema — manifest", () => {
 });
 
 describe("música por tema — picker", () => {
-  it("resolve o tema pela entrada do manifest", () => {
+  // Desde 2026-07-26 a faixa NÃO é mais presa ao tema: o picker gira dentro do pool do
+  // pilar (public/music/pools.json) para nenhuma faixa encalhar e nenhuma repetir cedo —
+  // ver src/lib/music-rotation.invariants.test.ts. O manifest continua sendo a âncora e o
+  // FALLBACK (vale quando pools.json falta), então o que se garante aqui é: o picker
+  // devolve uma faixa do POOL daquele tema, e o manifest é uma delas.
+  it("resolve o tema para uma faixa do pool daquele tema", () => {
+    const pools = JSON.parse(
+      readFileSync(resolve(ROOT, "public/music/pools.json"), "utf8"),
+    ) as Record<string, string[]>;
     const [topic, file] = Object.entries(manifest)[0];
-    expect(pickMusic({ topic, run: 0 })).toBe(file);
+    const pool = pools[topic];
+    expect(pool, `tema sem pool: ${topic}`).toBeTruthy();
+    expect(pool).toContain(file);
+    expect(pool).toContain(pickMusic({ topic, run: 0 }));
   });
 
   it("tema fora do manifest é fail-open (devolve string, nunca lança)", () => {
