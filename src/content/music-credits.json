@@ -16,7 +16,7 @@
       "license": "CC BY 4.0",
       "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
       "line": "Kevin MacLeod (incompetech.com) — Licensed under Creative Commons: By Attribution 4.0 License",
-      "works": 82
+      "works": 142
     }
   ],
   "works": [
@@ -58,11 +58,43 @@
       ]
     },
     {
+      "title": "Almost Bliss",
+      "artist": "Kevin MacLeod",
+      "year": "2019",
+      "files": [
+        "bed-pilar-self-23.mp3"
+      ]
+    },
+    {
       "title": "Amazing Plan",
       "artist": "Kevin MacLeod",
       "year": "2010",
       "files": [
         "bed-pilar-mind-14.mp3"
+      ]
+    },
+    {
+      "title": "Ancient Rite",
+      "artist": "Kevin MacLeod",
+      "year": "2019",
+      "files": [
+        "bed-pilar-mind-18.mp3"
+      ]
+    },
+    {
+      "title": "Andreas Theme",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-mind-27.mp3"
+      ]
+    },
+    {
+      "title": "Angel Share",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-self-28.mp3"
       ]
     },
     {
@@ -82,11 +114,27 @@
       ]
     },
     {
+      "title": "Aquarium",
+      "artist": "Kevin MacLeod",
+      "year": "2019",
+      "files": [
+        "bed-pilar-self-22.mp3"
+      ]
+    },
+    {
       "title": "Arcadia",
       "artist": "Kevin MacLeod",
       "year": "2007",
       "files": [
         "bed-pilar-network-01.mp3"
+      ]
+    },
+    {
+      "title": "Ascending the Vale",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-mind-30.mp3"
       ]
     },
     {
@@ -114,11 +162,27 @@
       ]
     },
     {
+      "title": "Burnt Spirit",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-freedom-19.mp3"
+      ]
+    },
+    {
       "title": "Call to Adventure",
       "artist": "Kevin MacLeod",
       "year": "2013-03-20 20:42",
       "files": [
         "bed-pilar-freedom-04.mp3"
+      ]
+    },
+    {
+      "title": "Canon In D Interstellar Mix",
+      "artist": "Kevin MacLeod",
+      "year": "2020",
+      "files": [
+        "bed-pilar-self-19.mp3"
       ]
     },
     {
@@ -143,6 +207,14 @@
       "year": "2011",
       "files": [
         "bed-pilar-network-03.mp3"
+      ]
+    },
+    {
+      "title": "Crusade - Heavy Industry",
+      "artist": "Kevin MacLeod",
+      "year": "2019",
+      "files": [
+        "bed-pilar-self-25.mp3"
       ]
     },
     {
@@ -202,6 +274,14 @@
       ]
     },
     {
+      "title": "Darkling",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-freedom-20.mp3"
+      ]
+    },
+    {
       "title": "Deadly Roulette",
       "artist": "Kevin MacLeod",
       "year": "2016",
@@ -215,6 +295,22 @@
       "year": "2007",
       "files": [
         "bed-pilar-mind-04.mp3"
+      ]
+    },
+    {
+      "title": "Devonshire Waltz Allegretto",
+      "artist": "Kevin MacLeod",
+      "year": "2021",
+      "files": [
+        "bed-pilar-network-13.mp3"
+      ]
+    },
+    {
+      "title": "Dreamer",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-network-21.mp3"
       ]
     },
     {
@@ -234,11 +330,35 @@
       ]
     },
     {
+      "title": "Envision",
+      "artist": "Kevin MacLeod",
+      "year": "",
+      "files": [
+        "bed-pilar-mind-21.mp3"
+      ]
+    },
+    {
+      "title": "Eternal Terminal",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-self-27.mp3"
+      ]
+    },
+    {
       "title": "Ether Vox",
       "artist": "Kevin MacLeod",
       "year": "2020",
       "files": [
         "bed-pilar-mind-03.mp3"
+      ]
+    },
+    {
+      "title": "Evening",
+      "artist": "Kevin MacLeod",
+      "year": "2023",
+      "files": [
+        "bed-pilar-self-17.mp3"
       ]
     },
     {
@@ -258,6 +378,22 @@
       ]
     },
     {
+      "title": "Final Battle of the Dark Wizards",
+      "artist": "Kevin MacLeod",
+      "year": "2015",
+      "files": [
+        "bed-pilar-self-34.mp3"
+      ]
+    },
+    {
+      "title": "Fireflies and Stardust",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-self-32.mp3"
+      ]
+    },
+    {
       "title": "Firmament",
       "artist": "Kevin MacLeod",
       "year": "2008-07-17 00:56",
@@ -274,11 +410,35 @@
       ]
     },
     {
+      "title": "Floating Cities",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-network-23.mp3"
+      ]
+    },
+    {
       "title": "Fluidscape",
       "artist": "Kevin MacLeod",
       "year": "2007",
       "files": [
         "bed-pilar-mind-13.mp3"
+      ]
+    },
+    {
+      "title": "Fresh Air",
+      "artist": "Kevin MacLeod",
+      "year": "2015",
+      "files": [
+        "bed-pilar-network-26.mp3"
+      ]
+    },
+    {
+      "title": "Fretless",
+      "artist": "Kevin MacLeod",
+      "year": "2015",
+      "files": [
+        "bed-pilar-self-35.mp3"
       ]
     },
     {
@@ -322,6 +482,14 @@
       ]
     },
     {
+      "title": "Heavy Heart",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-network-25.mp3"
+      ]
+    },
+    {
       "title": "Hero Down",
       "artist": "Kevin MacLeod",
       "year": "2011",
@@ -338,11 +506,43 @@
       ]
     },
     {
+      "title": "Hiding Your Reality",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-self-26.mp3"
+      ]
+    },
+    {
       "title": "Hitman",
       "artist": "Kevin MacLeod",
       "year": "2013",
       "files": [
         "bed-pilar-dopamine-05.mp3"
+      ]
+    },
+    {
+      "title": "Hot Pursuit",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-freedom-05.mp3"
+      ]
+    },
+    {
+      "title": "I Can Feel it Coming",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-mind-25.mp3"
+      ]
+    },
+    {
+      "title": "Immersed",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-network-24.mp3"
       ]
     },
     {
@@ -394,6 +594,14 @@
       ]
     },
     {
+      "title": "Infinite Perspective",
+      "artist": "Kevin MacLeod",
+      "year": "2015",
+      "files": [
+        "bed-pilar-self-36.mp3"
+      ]
+    },
+    {
       "title": "Interloper",
       "artist": "Kevin MacLeod",
       "year": "2008",
@@ -410,6 +618,14 @@
       ]
     },
     {
+      "title": "Jet Fueled Vixen",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-freedom-17.mp3"
+      ]
+    },
+    {
       "title": "Killers",
       "artist": "Kevin MacLeod",
       "year": "",
@@ -423,6 +639,22 @@
       "year": "2009",
       "files": [
         "bed-pilar-network-10.mp3"
+      ]
+    },
+    {
+      "title": "Late Night Radio",
+      "artist": "Kevin MacLeod",
+      "year": "2021",
+      "files": [
+        "bed-pilar-network-15.mp3"
+      ]
+    },
+    {
+      "title": "Leaving Home",
+      "artist": "Kevin MacLeod",
+      "year": "",
+      "files": [
+        "bed-pilar-mind-20.mp3"
       ]
     },
     {
@@ -455,6 +687,38 @@
       "year": "2008-08-31 03:05",
       "files": [
         "bed-pilar-mind-10.mp3"
+      ]
+    },
+    {
+      "title": "Magic Forest",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-mind-32.mp3"
+      ]
+    },
+    {
+      "title": "Magistar",
+      "artist": "Kevin MacLeod",
+      "year": "",
+      "files": [
+        "bed-pilar-self-24.mp3"
+      ]
+    },
+    {
+      "title": "Man Down",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-mind-24.mp3"
+      ]
+    },
+    {
+      "title": "Mana Two - Part 3",
+      "artist": "Kevin MacLeod",
+      "year": "2018-11-25",
+      "files": [
+        "bed-pilar-network-17.mp3"
       ]
     },
     {
@@ -498,11 +762,59 @@
       ]
     },
     {
+      "title": "Miami Nights - Extended Theme",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-freedom-18.mp3"
+      ]
+    },
+    {
+      "title": "Midnight Tale",
+      "artist": "Kevin MacLeod",
+      "year": "",
+      "files": [
+        "bed-pilar-network-20.mp3"
+      ]
+    },
+    {
+      "title": "Morgana Rides",
+      "artist": "Kevin MacLeod",
+      "year": "2018",
+      "files": [
+        "bed-pilar-mind-22.mp3"
+      ]
+    },
+    {
+      "title": "Morning",
+      "artist": "Kevin MacLeod",
+      "year": "2023",
+      "files": [
+        "bed-pilar-self-15.mp3"
+      ]
+    },
+    {
+      "title": "Mystery Sax",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-mind-26.mp3"
+      ]
+    },
+    {
       "title": "Neolith",
       "artist": "Kevin MacLeod",
       "year": "2007",
       "files": [
         "bed-pilar-mind-11.mp3"
+      ]
+    },
+    {
+      "title": "Neon Laser Horizon",
+      "artist": "Kevin MacLeod",
+      "year": "2020",
+      "files": [
+        "bed-pilar-self-18.mp3"
       ]
     },
     {
@@ -514,11 +826,35 @@
       ]
     },
     {
+      "title": "Night Vigil",
+      "artist": "Kevin MacLeod",
+      "year": "2018-11-25",
+      "files": [
+        "bed-pilar-mind-19.mp3"
+      ]
+    },
+    {
       "title": "Odyssey High Quality",
       "artist": "Kevin MacLeod",
       "year": "2015",
       "files": [
         "bed-pilar-mind-12.mp3"
+      ]
+    },
+    {
+      "title": "On My Way",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-self-31.mp3"
+      ]
+    },
+    {
+      "title": "Outfoxing the Fox",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-freedom-16.mp3"
       ]
     },
     {
@@ -554,11 +890,27 @@
       ]
     },
     {
+      "title": "Rainbows",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-self-30.mp3"
+      ]
+    },
+    {
       "title": "Rains Will Fall",
       "artist": "Kevin MacLeod",
       "year": "2010",
       "files": [
         "bed-pilar-self-13.mp3"
+      ]
+    },
+    {
+      "title": "Return of the Mummy",
+      "artist": "Kevin MacLeod",
+      "year": "2017",
+      "files": [
+        "bed-pilar-mind-28.mp3"
       ]
     },
     {
@@ -578,11 +930,59 @@
       ]
     },
     {
+      "title": "River of Io",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-mind-29.mp3"
+      ]
+    },
+    {
+      "title": "Royal Coupling",
+      "artist": "Kevin MacLeod",
+      "year": "2018-11-24",
+      "files": [
+        "bed-pilar-self-20.mp3"
+      ]
+    },
+    {
       "title": "Ryno's Theme",
       "artist": "Kevin MacLeod",
       "year": "2016",
       "files": [
         "bed-pilar-freedom-03.mp3"
+      ]
+    },
+    {
+      "title": "Rynos Theme",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-self-33.mp3"
+      ]
+    },
+    {
+      "title": "SCP-x7x (6th Floor)",
+      "artist": "Kevin MacLeod",
+      "year": "2020",
+      "files": [
+        "bed-pilar-anxiety-17.mp3"
+      ]
+    },
+    {
+      "title": "Screen Saver",
+      "artist": "Kevin MacLeod",
+      "year": "2019",
+      "files": [
+        "bed-pilar-network-16.mp3"
+      ]
+    },
+    {
+      "title": "Shenyang",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-self-29.mp3"
       ]
     },
     {
@@ -594,11 +994,35 @@
       ]
     },
     {
+      "title": "Sincerely",
+      "artist": "Kevin MacLeod",
+      "year": "",
+      "files": [
+        "bed-pilar-network-19.mp3"
+      ]
+    },
+    {
       "title": "Sneaky Adventure",
       "artist": "Kevin MacLeod",
       "year": "2009",
       "files": [
         "bed-pilar-dopamine-15.mp3"
+      ]
+    },
+    {
+      "title": "Soaring",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-network-22.mp3"
+      ]
+    },
+    {
+      "title": "Southern Gothic",
+      "artist": "Kevin MacLeod",
+      "year": "2023",
+      "files": [
+        "bed-pilar-mind-17.mp3"
       ]
     },
     {
@@ -610,11 +1034,35 @@
       ]
     },
     {
+      "title": "Starting Out Waltz Vivace",
+      "artist": "Kevin MacLeod",
+      "year": "2021",
+      "files": [
+        "bed-pilar-network-07.mp3"
+      ]
+    },
+    {
       "title": "Stormfront",
       "artist": "Kevin MacLeod",
       "year": "2012",
       "files": [
         "bed-pilar-anxiety-12.mp3"
+      ]
+    },
+    {
+      "title": "Strength of the Titans",
+      "artist": "Kevin MacLeod",
+      "year": "2018-11-25",
+      "files": [
+        "bed-pilar-self-21.mp3"
+      ]
+    },
+    {
+      "title": "Suave Standpipe",
+      "artist": "Kevin MacLeod",
+      "year": "2015",
+      "files": [
+        "bed-pilar-network-27.mp3"
       ]
     },
     {
@@ -642,11 +1090,35 @@
       ]
     },
     {
+      "title": "Twisting",
+      "artist": "Kevin MacLeod",
+      "year": "2018",
+      "files": [
+        "bed-pilar-mind-23.mp3"
+      ]
+    },
+    {
       "title": "Undaunted",
       "artist": "Kevin MacLeod",
       "year": "2014",
       "files": [
         "bed-pilar-network-02.mp3"
+      ]
+    },
+    {
+      "title": "Valse Gymnopedie",
+      "artist": "Kevin MacLeod",
+      "year": "2021",
+      "files": [
+        "bed-pilar-network-14.mp3"
+      ]
+    },
+    {
+      "title": "Vanishing",
+      "artist": "Kevin MacLeod",
+      "year": "2016",
+      "files": [
+        "bed-pilar-mind-31.mp3"
       ]
     },
     {
@@ -679,6 +1151,14 @@
       "year": "2018",
       "files": [
         "bed-pilar-dopamine-07.mp3"
+      ]
+    },
+    {
+      "title": "Wholesome",
+      "artist": "Kevin MacLeod",
+      "year": "2019",
+      "files": [
+        "bed-pilar-network-18.mp3"
       ]
     },
     {
