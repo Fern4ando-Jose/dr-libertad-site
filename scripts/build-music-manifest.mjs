@@ -31,11 +31,34 @@ function hashStr(s) {
 // Pool por pilar: além do bed-pilar-<cat>.mp3 legado, aceita bed-pilar-<cat>-NN.mp3
 // (curadoria YouTube Audio Library, "sem atribuição"). Cada tema pega 1 faixa fixa do
 // pool do seu pilar via hash do topic — reprodutível, sem regenerar a cada build.
+// Faixa de origem DESCONHECIDA não entra no sorteio (2026-07-26). A curadoria de 15/07
+// dizia que as 92 vinham todas do incompetech; a leitura das tags ID3 mostrou 5 sem autor
+// nenhum — duas delas nem cortadas (320 kbps, 2m45 e 3m48, uma com foto embutida), ou seja,
+// de outro processo. Enquanto ninguém confirmar de onde vieram, elas ficam fora do ar:
+// publicar trilha sem saber a licença é risco que não se assume por descuido.
+// A lista sai de src/content/music-credits.json (campo `unverified`), gerado por
+// scripts/build-music-credits.mjs — RODE-O ANTES deste script.
+function lerNaoVerificadas() {
+  const p = path.join(ROOT, "src/content/music-credits.json");
+  if (!existsSync(p)) {
+    console.warn("[manifest] ⚠️ music-credits.json ausente — rode build-music-credits.mjs;");
+    console.warn("[manifest]    seguindo com o pool INTEIRO (fail-open, não trava a automação).");
+    return new Set();
+  }
+  try {
+    return new Set(JSON.parse(readFileSync(p, "utf8")).unverified || []);
+  } catch {
+    console.warn("[manifest] ⚠️ music-credits.json inválido — seguindo com o pool inteiro.");
+    return new Set();
+  }
+}
+const NAO_VERIFICADAS = lerNaoVerificadas();
+
 function poolForPillar(cat) {
   let files;
   try { files = readdirSync(MUSIC_DIR); } catch { return [`bed-pilar-${cat}.mp3`]; }
   const re = new RegExp(`^bed-pilar-${cat}(-\\d+)?\\.mp3$`, "i");
-  const pool = files.filter((f) => re.test(f)).sort();
+  const pool = files.filter((f) => re.test(f) && !NAO_VERIFICADAS.has(f)).sort();
   return pool.length ? pool : [`bed-pilar-${cat}.mp3`];
 }
 
