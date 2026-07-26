@@ -99,6 +99,11 @@ export async function GET(req: NextRequest) {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `;
+    // Sincronia (2026-07-26): a MEDIDA da voz mora junto com o áudio — duração real
+    // do mp3 e o tempo de cada palavra. Sem elas o re-disparo reusaria o áudio e
+    // perderia a sincronia (ou repagaria o Scribe só pra remedir o mesmo arquivo).
+    await sql`ALTER TABLE narration_cache ADD COLUMN IF NOT EXISTS duration_sec REAL`;
+    await sql`ALTER TABLE narration_cache ADD COLUMN IF NOT EXISTS words JSONB`;
     results.push("narration_cache table: ok");
   } catch (e) {
     results.push("narration_cache table: " + String(e));

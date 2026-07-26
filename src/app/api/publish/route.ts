@@ -969,19 +969,22 @@ export async function GET(req: NextRequest) {
     const followLine = lang === "pt"
       ? "Me siga se você prefere a verdade incômoda ao aplauso."
       : "Sígueme si prefieres la verdad incómoda al aplauso.";
-    const narrationText =
-      [content.postTitle, ...(Array.isArray(content.slides) ? content.slides : [])]
-        .map((s) => String(s).trim()).filter(Boolean)
-        .map((s) => (/[.!?]$/.test(s) ? s : s + "."))
-        .join(" ") + " " + followLine;
-    // Janela de voz = capa(3) + insights(5,6×n) + cta(4,6), SEM o end-card. A narração ajusta
-    // a velocidade p/ CABER nela → o texto acaba junto com a voz (mesmo sincronismo ES/PT, sem
-    // a voz "atrasada" quando o idioma é mais verboso). n = nº de slides mostrados (cap 3).
-    // nº de slides que o RENDER mostra (dedupado, cap 3) — MESMA contagem do ReelV2.
-    // Usar slides.length CRU calibrava a voz p/ um vídeo mais longo → a frase final cortava.
-    const nSlides = Math.min(Math.max(dedupeSlides(content.postTitle, content.slides).length, 1), 3);
-    const voiceWindowSec = 3.0 + 5.6 * nSlides + 4.6 - 0.6;
-    const narr = await generateNarration(narrationText, lang, topic, day, { automation: "ig-reels", meta: { run: r }, targetSeconds: voiceWindowSec });
+    // A voz fala EXATAMENTE os slides que a tela MOSTRA (dedupados, cap 3) — antes o
+    // roteiro usava `content.slides` CRU enquanto o render usava os dedupados, então
+    // num tópico com slide[0] == título a voz narrava um insight que a tela nunca
+    // exibia (a legenda "voz = tela" quebrava logo no 1º corte).
+    const spokenSlides = dedupeSlides(content.postTitle, content.slides).slice(0, 3);
+    // Blocos do roteiro NA ORDEM falada — o render usa esta MESMA lista pra saber onde
+    // cada cena começa (fonte única do alinhamento voz↔tela).
+    const narrationSegments = [content.postTitle, ...spokenSlides]
+      .map((s) => String(s).trim()).filter(Boolean)
+      .map((s) => (/[.!?]$/.test(s) ? s : s + "."))
+      .concat(followLine);
+    const narrationText = narrationSegments.join(" ");
+    // SEM janela-alvo: a voz sai em velocidade natural e o VÍDEO é que se ajusta a ela
+    // (o áudio é o relógio). A antiga `voiceWindowSec` — 3,0 + 5,6·n + 4,6 − 0,6 — era a
+    // estimativa que espremia a voz e causava a dessincronia que o dono reprovou.
+    const narr = await generateNarration(narrationText, lang, topic, day, { automation: "ig-reels", meta: { run: r } });
 
     return NextResponse.json({
       preview: true,
@@ -1002,6 +1005,11 @@ export async function GET(req: NextRequest) {
       clips,        // footage COMPARTILHADO (mesmo vídeo ES/PT); [] → fetch-footage.mjs busca no CI
       sharedFootage: clips.length > 0, // diagnóstico: veio da base compartilhada?
       narrationUrl: narr.url ?? undefined, // voz TTS (gated REEL_NARRATION_ENABLED); ausente → Reel só com música
+      // A MEDIDA da voz — é ela que dimensiona o vídeo e trava a legenda (o áudio é o
+      // relógio). Ausentes → o render cai na fórmula de slides de sempre, sem regressão.
+      narrationDurationSec: narr.durationSec,
+      narrationWords: narr.words,
+      narrationSegments: narr.url ? narrationSegments : undefined, // fronteiras de cena = fronteiras da fala
       narrationError: narr.error,
       illustration: illustrationUrl,
       illustrationError,

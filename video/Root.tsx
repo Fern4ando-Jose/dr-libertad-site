@@ -8,7 +8,7 @@ import React from "react";
 import { Composition } from "remotion";
 import { Reel, reelDefaultProps, reelDurations, ReelProps, FPS } from "./Reel";
 import { ReelClassic, reelClassicDefaultProps, ReelClassicProps } from "./ReelClassic";
-import { ReelV2, reelV2DefaultProps, reelDurationsV2, dedupeSlides } from "./ReelV2";
+import { ReelV2, reelV2DefaultProps, reelDurationsV2, reelPlanV2 } from "./ReelV2";
 import { KenBurnsProof, kenBurnsProofDefaultProps, kenBurnsProofDuration } from "./KenBurns";
 
 // Duração do motor clássico (mesma matemática inline do componente original).
@@ -37,8 +37,11 @@ export const RemotionRoot: React.FC = () => {
         }}
       />
 
-      {/* Composição EXPERIMENTAL de retenção (capa curta + legenda cinética).
-          NÃO usada em produção — só pra render de teste (--composition=ReelV2). */}
+      {/* PRODUÇÃO dos Reels de footage (capa curta + legenda cinética + voz).
+          A duração sai do MESMO plano que o componente usa (reelPlanV2): com voz
+          medida, o vídeo tem o tamanho da FALA (o áudio é o relógio); sem voz, a
+          fórmula de slides de sempre. Uma só fonte → nunca sobra cena preta no fim
+          nem a voz é cortada. */}
       <Composition
         id="ReelV2"
         component={ReelV2}
@@ -49,8 +52,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={reelV2DefaultProps}
         calculateMetadata={({ props }) => {
           const p = props as ReelProps;
-          const count = dedupeSlides(p.title, p.slides).length; // de-dup → duração bate c/ os insights reais
-          return { durationInFrames: reelDurationsV2(count, !!p.funnel).total };
+          return { durationInFrames: reelPlanV2(p, FPS).total };
         }}
       />
 
