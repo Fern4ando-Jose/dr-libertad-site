@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dayBRT, publishedRunsToday, recentDuplicateTopics, attemptsToday, shouldStopRetrying, orphanedPairs } from "@/lib/run-ledger";
-import { minOfDayBRT, RUN_HOUR_BRT } from "@/lib/day";
+import { minOfDayBRT, RUN_HOUR_BRT, ACTIVE_RUNS, POSTS_PER_DAY } from "@/lib/day";
 import { accountFor, type Lang } from "@/lib/accounts";
 
 // GUARDIÃO diário: verifica se as 6 vagas do dia publicaram em CADA conta (ES + PT).
@@ -21,7 +21,10 @@ export const dynamic = "force-dynamic";
 // RUN_HOUR_BRT (run→hora BRT) mora em @/lib/day — FONTE ÚNICA compartilhada com catchup/runs-status.
 const GRACE_MIN = 75;
 const ACTIVE_LANGS: Lang[] = ["es", "pt"];
-const EXPECTED = 7; // 7 vagas/dia por conta (2 carrosséis + 4 reels vídeo + 1 clássico)
+// Vagas esperadas por conta/dia. NÃO é número solto: sai da cadência em @/lib/day
+// (hoje 4 = 1 carrossel + 2 reels vídeo + 1 clássico). Escrever "7" aqui à mão foi o
+// que fez o vigia cobrar 7 enquanto os crons entregavam outra coisa.
+const EXPECTED = POSTS_PER_DAY;
 
 function authed(req: NextRequest): boolean {
   const t = req.headers.get("authorization") ?? "";
@@ -96,7 +99,7 @@ export async function GET(req: NextRequest) {
   const notRun: { lang: string; run: number }[] = [];     // dia passado que não publicou (irrecuperável)
   for (const lang of ACTIVE_LANGS) {
     const done = new Set(published[lang] ?? []);
-    for (let run = 0; run <= 6; run++) {
+    for (const run of ACTIVE_RUNS) {
       const dueMin = RUN_HOUR_BRT[run] * 60 + GRACE_MIN;
       if (isToday && nowMin < dueMin) continue; // ainda não venceu
       if (done.has(run)) continue;

@@ -111,15 +111,21 @@ writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + "\n");
 // O manifest.json acima continua igual (faixa âncora) — é o fallback de quem não
 // conhece o pools.json, e mantém o comportamento antigo se este arquivo faltar.
 // COBERTURA — por que o tamanho do pool importa (corrigido 2026-07-27, CI vermelho):
-// o picker anda 1 casa por DIA, mas o tema só volta a cada k dias (hoje k≈26: 183 temas
-// ÷ 7 posts). Entre duas aparições o índice avança k, então o tema visita n/mdc(k,n)
-// faixas. Quando n DIVIDE k a conta desaba para UMA faixa só: foi o que aconteceu com
-// "anxiety" ao cair para 13 faixas (26 = 2×13) depois de o dono reprovar 16 na escuta.
-// Nenhum passo linear no dia salva esse caso — 26·p ≡ 0 (mod 13) para todo p. A saída é
-// o TAMANHO: cada tema usa as primeiras n' faixas de um pool GIRADO a partir de um ponto
-// só dele, com n' o maior tamanho coprimo com k. Girar é o detalhe que evita órfã: temas
-// diferentes cortam faixas diferentes, então toda faixa continua alcançável por alguém.
-const CICLO_DIAS = 26;
+// o picker anda 1 casa por DIA, mas o tema só volta a cada k dias. Entre duas aparições
+// o índice avança k, então o tema visita n/mdc(k,n) faixas. Quando n DIVIDE k a conta
+// desaba para UMA faixa só: foi o que aconteceu com "anxiety" ao cair para 13 faixas
+// (k era 26 = 2×13) depois de o dono reprovar 16 na escuta. Nenhum passo linear no dia
+// salva esse caso — 26·p ≡ 0 (mod 13) para todo p. A saída é o TAMANHO: cada tema usa as
+// primeiras n' faixas de um pool GIRADO a partir de um ponto só dele, com n' o maior
+// tamanho coprimo com k. Girar é o detalhe que evita órfã: temas diferentes cortam faixas
+// diferentes, então toda faixa continua alcançável por alguém.
+//
+// k é DERIVADO, não fixado (2026-07-27): quando o dono mudou a cadência de 7 para 4 posts
+// por dia, um "26" escrito à mão aqui teria silenciosamente errado a conta de cobertura.
+// k = nº de temas ÷ posts por dia. POSTS_PER_DAY espelha src/lib/day.ts (fonte única da
+// cadência); este é um script .mjs e não importa TS — se mudar lá, muda aqui.
+const POSTS_PER_DAY = 4;
+const CICLO_DIAS = Math.max(2, Math.round(themes.length / POSTS_PER_DAY));
 const mdc = (a, b) => (b ? mdc(b, a % b) : a);
 function poolDoTema(pool, topic) {
   let n = pool.length;

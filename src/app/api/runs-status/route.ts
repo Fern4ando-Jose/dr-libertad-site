@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dayBRT, publishedRunsToday, recentDuplicateTopics, attemptsToday, shouldStopRetrying, orphanedPairs } from "@/lib/run-ledger";
-import { minOfDayBRT, RUN_HOUR_BRT } from "@/lib/day";
+import { minOfDayBRT, RUN_HOUR_BRT, ACTIVE_RUNS } from "@/lib/day";
 
 // Status dos 6 runs do dia por idioma — o que JÁ publicou e o que está FALTANDO
 // (vencido por agora e ainda sem publicação). O watchdog (catchup.yml) consome
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   const gaveUp: { lang: string; run: number; attempts: number }[] = [];
   for (const lang of ACTIVE_LANGS) {
     const done = new Set(published[lang] ?? []);
-    for (let run = 0; run <= 6; run++) {
+    for (const run of ACTIVE_RUNS) {
       const dueMin = RUN_HOUR_BRT[run] * 60 + GRACE_MIN; // venceu por agora?
       if (nowMin < dueMin || done.has(run)) continue;
       const attempts = await attemptsToday(day, run, lang);

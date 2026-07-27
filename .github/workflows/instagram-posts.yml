@@ -1,7 +1,8 @@
 name: Instagram — publicar posts (ES + PT)
 
 # Agendamento gratuito via GitHub Actions (substitui os crons do Vercel).
-# 2 CARROSSÉIS/dia por idioma (runs 4 e 5 — tópicos distintos dos Reels, que usam 0..3,6).
+# 1 CARROSSEL/dia por idioma (run 4 — tópico distinto dos Reels, que usam 0 e 2 vídeo + 3 clássico).
+# O run 5 existe no código para backfill manual, mas NÃO tem mais cron (cadência 4/dia, 27/07).
 #
 # WORKFLOW ÚNICO ES+PT (fusão 2026-07-14): antes eram 2 arquivos quase idênticos
 # (instagram-posts.yml + instagram-posts-pt.yml) que DIVERGIAM à mão. Agora o
@@ -11,10 +12,10 @@ name: Instagram — publicar posts (ES + PT)
 # `run` também vem da expressão cron, não do relógio (atraso do cron não colide com o vizinho).
 on:
   schedule:
+    # Cadência 4/dia por idioma (determinação do dono 19/07, aplicada 27/07): 1 carrossel
+    # por idioma. O run 5 (14:17) foi RETIRADO — ver RUN_HOUR_BRT em src/lib/day.ts (fonte única).
     - cron: "17 12 * * *" # 09:17 BRT — ES run 4
-    - cron: "17 17 * * *" # 14:17 BRT — ES run 5
     - cron: "22 12 * * *" # 09:22 BRT — PT run 4 (5 min após o ES)
-    - cron: "22 17 * * *" # 14:22 BRT — PT run 5
   workflow_dispatch:
     inputs:
       lang:
