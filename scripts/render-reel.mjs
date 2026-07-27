@@ -47,9 +47,16 @@ function loadComposition() {
   return ALLOWED.has(id) ? id : "Reel";
 }
 
+// Chromium a usar. No CI (e por padrão) fica `null` → o Remotion baixa o dele,
+// como sempre. Localmente, apontar `REMOTION_BROWSER_EXECUTABLE` para um
+// chrome-headless-shell já instalado evita rebaixar 102 MB a cada máquina nova
+// (e destrava o render aqui, onde o download costuma ser interrompido).
+const browserExecutable = process.env.REMOTION_BROWSER_EXECUTABLE || null;
+
 async function main() {
   const inputProps = loadInputProps();
   const compositionId = loadComposition();
+  if (browserExecutable) console.log(`[render] usando Chromium local: ${browserExecutable}`);
 
   // ─── 2. Empacotar a composição Remotion ─────────────────────────────────────
   const entry = resolve(ROOT, "video", "index.ts");
@@ -67,6 +74,7 @@ async function main() {
     serveUrl,
     id: compositionId,
     inputProps: inputProps ?? {},
+    browserExecutable,
   });
 
   // ─── 4. Renderizar para out/reel.mp4 ────────────────────────────────────────
@@ -84,6 +92,7 @@ async function main() {
     codec: "h264", // H.264 + AAC, compatível com Reels
     outputLocation,
     inputProps: inputProps ?? {},
+    browserExecutable,
     crf: 22,
     onProgress: ({ progress }) => {
       const pct = Math.round(progress * 100);

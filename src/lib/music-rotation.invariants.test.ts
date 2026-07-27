@@ -117,7 +117,13 @@ describe("trilha que gira — não repete cedo", () => {
     }
   });
 
-  it("na cadência real, aparições seguidas do mesmo tema nunca dão a mesma faixa", () => {
+  // ⏱️ 20s (2026-07-26): a LÓGICA está intacta — isto é só o relógio. Este caso varre
+  // todos os pilares × 60 dias e leva ~890ms rodando sozinho, mas ESTOURA os 5s padrão
+  // quando o vitest roda os 43 arquivos em paralelo numa máquina carregada. Como o
+  // `verify.sh` é a trava de pre-commit, o estouro BLOQUEAVA o commit de todas as
+  // sessões no repo. Aumentar o limite não afrouxa nenhuma garantia: o teste segue
+  // exigindo o mesmo resultado, só deixa de falhar por lentidão da máquina.
+  it("na cadência real, aparições seguidas do mesmo tema nunca dão a mesma faixa", { timeout: 20000 }, () => {
     for (const [n, topic] of porTamanho) {
       for (let i = 0; i < 60; i++) {
         const d = 20000 + i * RETORNO;

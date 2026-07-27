@@ -253,6 +253,11 @@ function SceneBg({
           <OffthreadVideo
             src={clip}
             muted
+            // ⚠️ NÃO existe prop `loop` no OffthreadVideo desta versão (4.0.499) —
+            // tentei e o typecheck barrou. Se um dia a cena (que agora dura o tempo da
+            // FALA) passar do fim do clipe, o Remotion aborta com "No frame found at
+            // position N"; a saída então é <Loop> por fora ou clipe mais longo, não
+            // esta prop.
             style={{ width: "100%", height: "100%", objectFit: "cover", filter: gradeFilterCss(cat as Pillar) }}
           />
         </AbsoluteFill>
