@@ -3,6 +3,7 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve, dirname } from "node:path";
 import pickMusicMod from "../../scripts/pick-music.cjs";
+import { POSTS_PER_DAY } from "./day";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INVARIANTE — A TRILHA GIRA (pedido do dono 2026-07-26: "não devem ficar repetindo
@@ -64,9 +65,10 @@ function noDia(dia: number, topic: string): string {
 }
 
 // Quantos dias, em média, até o tema reaparecer: nº de temas ÷ posts por dia.
-// Derivado dos THEMES para o teste acompanhar a cadência real em vez de fixar 26.
-const POSTS_POR_DIA = 7;
-const RETORNO = Math.max(2, Math.round(readThemes().length / POSTS_POR_DIA));
+// Derivado dos THEMES *e* da cadência real (POSTS_PER_DAY em ./day é a fonte única —
+// mudou de 7 p/ 4 em 2026-07-27 por determinação do dono), para o teste acompanhar em
+// vez de fixar um número que envelhece calado.
+const RETORNO = Math.max(2, Math.round(readThemes().length / POSTS_PER_DAY));
 
 // Um tema representativo de cada tamanho de pool existente.
 const porTamanho = new Map<number, string>();

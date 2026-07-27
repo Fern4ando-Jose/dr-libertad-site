@@ -4,7 +4,9 @@
 // seguinte como já publicadas → o reel renderizava e PULAVA. Ancorar em BRT mantém
 // todos os 6 slots (09h–21h) no MESMO dia do calendário da conta.
 import { describe, it, expect } from "vitest";
-import { dayBRT, minOfDayBRT, RUN_HOUR_BRT } from "./day";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { dayBRT, minOfDayBRT, RUN_HOUR_BRT, ACTIVE_RUNS, POSTS_PER_DAY } from "./day";
 
 describe("dayBRT — dia ancorado em Brasília (UTC-3)", () => {
   it("meio do dia BRT fica no dia certo", () => {
@@ -39,12 +41,61 @@ describe("minOfDayBRT — minuto-do-dia em BRT (janela do watchdog)", () => {
 describe("RUN_HOUR_BRT — FONTE ÚNICA do horário-alvo por run (watchdog)", () => {
   // Antes o mapa vivia COPIADO nas 3 rotas do watchdog (catchup/guardian/runs-status).
   // Aqui trava o contrato: se a cadência mudar, muda SÓ este mapa e o teste avisa.
-  it("cobre os 7 runs da cadência com as horas dos crons dos workflows", () => {
-    expect(RUN_HOUR_BRT).toEqual({ 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14, 6: 7 });
+  it("cobre as 4 vagas da cadência com as horas dos crons dos workflows", () => {
+    // Cadência 4/dia por idioma (determinação do dono 19/07, aplicada 27/07):
+    // 9h carrossel · 12h reel vídeo · 19h reel clássico · 21h reel vídeo.
+    expect(RUN_HOUR_BRT).toEqual({ 4: 9, 0: 12, 3: 19, 2: 21 });
+  });
+
+  it("ACTIVE_RUNS sai do mapa, em ordem de horário, sem número solto", () => {
+    expect(ACTIVE_RUNS).toEqual([4, 0, 3, 2]);
+    expect(POSTS_PER_DAY).toBe(4);
   });
 
   it("o dueMin do watchdog casa com o horário do run (ex.: run 2 = 21h)", () => {
     const GRACE_MIN = 75; // mesma carência das rotas
     expect(RUN_HOUR_BRT[2] * 60 + GRACE_MIN).toBe(21 * 60 + 75);
+  });
+});
+
+// ─── A TRAVA QUE FALTAVA (2026-07-27) ────────────────────────────────────────
+// O defeito real: o dono determinou 4 posts/dia em 19/07, o papel passou a dizer 4 e
+// a MÁQUINA continuou com 7 crons por 8 dias, sem nada gritar. Papel e código só
+// param de divergir quando algo LÊ os dois e falha. Isto lê os crons de verdade.
+describe("os crons dos workflows espelham a cadência (papel × máquina)", () => {
+  // "M H * * *" em UTC → hora BRT (UTC-3). Só nos interessa a hora.
+  function horasBrtDosCrons(arquivo: string): number[] {
+    const yml = readFileSync(join(process.cwd(), ".github", "workflows", arquivo), "utf8");
+    const horas: number[] = [];
+    for (const linha of yml.split("\n")) {
+      const m = linha.match(/^\s*-\s*cron:\s*"(\d+)\s+(\d+)\s+\*\s+\*\s+\*"/);
+      if (m) horas.push((Number(m[2]) - 3 + 24) % 24);
+    }
+    return horas;
+  }
+
+  it("cada vaga de RUN_HOUR_BRT tem cron nos DOIS idiomas, e nenhum cron sobra", () => {
+    const agendadas = [
+      ...horasBrtDosCrons("instagram-posts.yml"),
+      ...horasBrtDosCrons("instagram-reels.yml"),
+      ...horasBrtDosCrons("instagram-reels-classic.yml"),
+    ].sort((a, b) => a - b);
+
+    // 2 idiomas (ES em :17, PT em :22) → cada vaga aparece exatamente 2×.
+    const esperadas = ACTIVE_RUNS.flatMap((r) => [RUN_HOUR_BRT[r], RUN_HOUR_BRT[r]]).sort((a, b) => a - b);
+
+    expect(agendadas).toEqual(esperadas);
+  });
+
+  it("cada vaga sai 2× ao dia — uma por conta (ES e PT)", () => {
+    const todas = [
+      ...horasBrtDosCrons("instagram-posts.yml"),
+      ...horasBrtDosCrons("instagram-reels.yml"),
+      ...horasBrtDosCrons("instagram-reels-classic.yml"),
+    ];
+    expect(todas.length).toBe(POSTS_PER_DAY * 2);
+    for (const run of ACTIVE_RUNS) {
+      expect(todas.filter((h) => h === RUN_HOUR_BRT[run]).length).toBe(2);
+    }
   });
 });

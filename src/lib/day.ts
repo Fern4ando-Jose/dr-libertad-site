@@ -29,7 +29,27 @@ export function minOfDayBRT(date = new Date()): number {
 // runs-status) usa p/ decidir se um run "venceu" (dueMin = RUN_HOUR_BRT[run]*60 +
 // GRACE). Antes o mapa vivia COPIADO idêntico nas 3 rotas → risco de dessincronizar
 // (mexer numa e esquecer as outras). Aqui é FONTE ÚNICA (P8): mudou a cadência,
-// muda só este mapa. Espelha a tabela do CLAUDE.md / os crons dos workflows:
-//   0=12h · 1=17h · 2=21h (reels footage) · 3=19h (reel clássico) · 4=9h · 5=14h
-//   (carrosséis) · 6=7h (4º reel footage, cadência 7/dia).
-export const RUN_HOUR_BRT: Record<number, number> = { 0: 12, 1: 17, 2: 21, 3: 19, 4: 9, 5: 14, 6: 7 };
+// muda só este mapa — as rotas iteram ACTIVE_RUNS, nunca um `0..N` escrito à mão.
+//
+// CADÊNCIA 4/dia por idioma (determinação do dono 2026-07-19, aplicada 2026-07-27;
+// era 7/dia). Razão registrada: "qualidade > quantidade". Composição por idioma:
+//   4=9h  carrossel
+//   0=12h reel de vídeo
+//   3=19h reel clássico
+//   2=21h reel de vídeo
+// RETIRADOS nesta mudança: 1 (17h, reel de vídeo) · 5 (14h, 2º carrossel) ·
+// 6 (7h, 4º reel de vídeo). Os números de run NÃO foram renumerados de propósito —
+// o livro-razão (published_runs) tem histórico gravado com eles, e renumerar faria
+// post antigo casar com vaga errada. Reativar uma vaga = devolvê-la a este mapa E
+// ao cron do workflow correspondente.
+export const RUN_HOUR_BRT: Record<number, number> = { 4: 9, 0: 12, 3: 19, 2: 21 };
+
+// As vagas ativas, em ordem de horário. É o que o watchdog varre — derivado do mapa
+// acima para que tirar/pôr uma vaga seja UMA edição, não quatro.
+export const ACTIVE_RUNS: number[] = Object.keys(RUN_HOUR_BRT)
+  .map(Number)
+  .sort((a, b) => RUN_HOUR_BRT[a] - RUN_HOUR_BRT[b]);
+
+// Quantas peças cada conta publica por dia. Sai do mapa, não de um número solto:
+// era isso que deixava o papel dizer 4 e a máquina fazer 7.
+export const POSTS_PER_DAY = ACTIVE_RUNS.length;

@@ -16,16 +16,15 @@ name: Instagram Reels — Dr. Libertad / Dr. Liberdade (ES + PT)
 # EXPRESSÃO cron, não do relógio — pra atraso do cron não colidir com o run vizinho.
 on:
   schedule:
+    # Cadência 4/dia por idioma (determinação do dono 19/07, aplicada 27/07): 2 Reels de
+    # vídeo por idioma. Os runs 1 (17:17) e 6 (07:17) foram RETIRADOS — quem manda no
+    # conjunto de vagas é RUN_HOUR_BRT em src/lib/day.ts (fonte única); estes crons a espelham.
     # ES (:17)
     - cron: "17 15 * * *" # 12:17 BRT — ES run 0
-    - cron: "17 20 * * *" # 17:17 BRT — ES run 1
     - cron: "17 0 * * *"  # 21:17 BRT — ES run 2
-    - cron: "17 10 * * *" # 07:17 BRT — ES run 6 (4º Reel vídeo, cadência 7/dia)
     # PT (:22, 5 min após o ES)
     - cron: "22 15 * * *" # 12:22 BRT — PT run 0
-    - cron: "22 20 * * *" # 17:22 BRT — PT run 1
     - cron: "22 0 * * *"  # 21:22 BRT — PT run 2
-    - cron: "22 10 * * *" # 07:22 BRT — PT run 6
   workflow_dispatch:
     inputs:
       lang:
