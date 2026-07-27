@@ -110,10 +110,29 @@ writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + "\n");
 // do tema sai uma faixa diferente e a mesma só volta depois de percorrer o pool todo.
 // O manifest.json acima continua igual (faixa âncora) — é o fallback de quem não
 // conhece o pools.json, e mantém o comportamento antigo se este arquivo faltar.
+// COBERTURA — por que o tamanho do pool importa (corrigido 2026-07-27, CI vermelho):
+// o picker anda 1 casa por DIA, mas o tema só volta a cada k dias (hoje k≈26: 183 temas
+// ÷ 7 posts). Entre duas aparições o índice avança k, então o tema visita n/mdc(k,n)
+// faixas. Quando n DIVIDE k a conta desaba para UMA faixa só: foi o que aconteceu com
+// "anxiety" ao cair para 13 faixas (26 = 2×13) depois de o dono reprovar 16 na escuta.
+// Nenhum passo linear no dia salva esse caso — 26·p ≡ 0 (mod 13) para todo p. A saída é
+// o TAMANHO: cada tema usa as primeiras n' faixas de um pool GIRADO a partir de um ponto
+// só dele, com n' o maior tamanho coprimo com k. Girar é o detalhe que evita órfã: temas
+// diferentes cortam faixas diferentes, então toda faixa continua alcançável por alguém.
+const CICLO_DIAS = 26;
+const mdc = (a, b) => (b ? mdc(b, a % b) : a);
+function poolDoTema(pool, topic) {
+  let n = pool.length;
+  while (n > 1 && mdc(CICLO_DIAS, n) !== 1) n--;
+  if (n >= pool.length) return pool;
+  const off = hashStr(topic) % pool.length;
+  return [...pool.slice(off), ...pool.slice(0, off)].slice(0, n);
+}
+
 const pools = {};
 for (const { topic, cat } of themes) {
   if (overrides[topic]) { pools[topic] = [overrides[topic]]; continue; } // faixa final do dono manda
-  pools[topic] = poolForPillar(cat).map((f) => `music/${f}`);
+  pools[topic] = poolDoTema(poolForPillar(cat).map((f) => `music/${f}`), topic);
 }
 writeFileSync(POOLS, JSON.stringify(pools, null, 2) + "\n");
 const tamanhos = [...new Set(Object.values(pools).map((p) => p.length))].sort((a, b) => a - b);
