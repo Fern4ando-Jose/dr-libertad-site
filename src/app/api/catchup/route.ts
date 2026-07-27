@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dayBRT, publishedRunsToday, attemptsToday, shouldStopRetrying } from "@/lib/run-ledger";
 import { minOfDayBRT, RUN_HOUR_BRT, ACTIVE_RUNS } from "@/lib/day";
+import { workflowFor } from "@/lib/workflows";
 
 // ─── Catch-up acionável DE FORA (agendador externo) ──────────────────────────
 // Espelha o catchup.yml, mas como ENDPOINT — pra um cron EXTERNO (ex.: cron-job.org)
@@ -20,17 +21,10 @@ const GRACE_MIN = 75;
 const ACTIVE_LANGS = ["es", "pt"];
 const REPO = process.env.GH_REPO || "Fern4ando-Jose/dr-libertad-site";
 
-// run → (workflow, inputs). Espelha o mapeamento do catchup.yml.
-function workflowFor(run: number, lang: string): { file: string; inputs: Record<string, string> } | null {
-  let base: string;
-  let inputs: Record<string, string>;
-  if ((run >= 0 && run <= 2) || run === 6) { base = "instagram-reels"; inputs = { run: String(run), publish: "yes" }; }
-  else if (run === 3) { base = "instagram-reels-classic"; inputs = { run: String(run), publish: "yes" }; }
-  else if (run === 4 || run === 5) { base = "instagram-posts"; inputs = { run: String(run) }; }
-  else return null;
-  const file = lang === "pt" ? `${base}-pt.yml` : `${base}.yml`;
-  return { file, inputs };
-}
+// run → (workflow, inputs) mora em @/lib/workflows — FONTE ÚNICA, conferida contra o
+// DISCO por workflows.invariants.test.ts. Este mapa já viveu COPIADO aqui, montando
+// `${base}-pt.yml` — nome que a fusão ES+PT de 2026-07-14 apagou: toda recuperação de
+// vaga em português voltou vazia por 13 dias. Não recopiar; importar.
 
 export async function GET(req: NextRequest) {
   if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -80,6 +74,14 @@ export async function GET(req: NextRequest) {
         failed.push({ lang, run, file: wf.file, status: 0, body: e instanceof Error ? e.message : String(e) });
       }
     }
+  }
+
+  // O agendador externo só olha o HTTP 200 — uma falha aqui morria calada dentro do
+  // JSON (foi assim que 13 dias de 404 em português passaram sem ninguém ver). Agora
+  // grita no log da Vercel, que é onde se procura quando uma vaga não sai.
+  if (failed.length) {
+    console.error(`[catchup] ${failed.length} redisparo(s) falharam: ` +
+      failed.map((f) => `${f.lang}#${f.run} ${f.file} HTTP ${f.status}`).join(" · "));
   }
 
   return NextResponse.json({ ok: true, day, nowMin, published, dispatched, failed, gaveUp });

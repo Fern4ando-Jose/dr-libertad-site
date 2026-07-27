@@ -131,7 +131,9 @@ export async function GET(req: NextRequest) {
   if (notRun.length) parts.push(`não publicou: ${notRun.map((m) => `${m.lang}#${m.run}`).join(", ")}`);
   if (orphans.length) parts.push(`órfão: ${orphans.map((o) => `#${o.run} (${o.publishedLang}✓ ${o.orphanLang}✗)`).join(", ")}`);
   if (duplicates.length) parts.push(`repetição: ${duplicates.map((d) => d.topic).join(", ")}`);
-  const note = ok ? `✅ 7/7 nas duas contas (verificado no Instagram)` : `⚠️ ${parts.join(" · ")}`;
+  // O número sai de EXPECTED (= POSTS_PER_DAY). Escrito à mão dizia "7/7" mesmo depois
+  // da cadência virar 4/dia — o relatório que o dono lê mentia sobre a própria meta.
+  const note = ok ? `✅ ${EXPECTED}/${EXPECTED} nas duas contas (verificado no Instagram)` : `⚠️ ${parts.join(" · ")}`;
 
   // Persiste o veredito do dia (upsert). es_published/pt_published = verdade do IG.
   try {
