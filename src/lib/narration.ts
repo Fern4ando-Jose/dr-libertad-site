@@ -24,19 +24,41 @@
 // cenas e legenda são dimensionados por essa medida (ver src/lib/narration-sync.ts).
 
 import { type Automation, logSpend, checkBudget } from "@/lib/spend";
-import type { NarrationWord } from "@/lib/narration-sync";
+import { wordsFromElevenLabsTimestamps, type NarrationWord } from "@/lib/narration-sync";
 
 const FAL_TTS_MODEL = "fal-ai/minimax/speech-02-hd";
 const FAL_STT_MODEL = "fal-ai/elevenlabs/speech-to-text"; // Scribe: devolve words[] com start/end
-const VOICE_ID = "Deep_Voice_Man";        // aprovado pelo dono (grave/séria) — NÃO trocar sem ele
-// Velocidade NATURAL, fixa e igual nos dois idiomas. 0,85 é o valor que o dono
-// ouviu e aprovou no ES ("lento o suficiente p/ LER e ouvir"). O antigo teto de
-// 0,95 existia só pra espremer texto longo — e era ele que embolava a abertura
-// ("público" → "publi e zeco"). Sem janela pra caber, não há por que acelerar:
-// texto mais longo agora gera VÍDEO mais longo, nunca voz atropelada.
-const SPEED_NATURAL = 0.85;
-const COST_PER_1K = 0.10;                   // US$/1000 chars (MiniMax HD)
+const FAL_TTS_11LABS = "fal-ai/elevenlabs/tts/multilingual-v2"; // dá timestamps NATIVOS
+const COST_PER_1K = 0.10;                   // US$/1000 chars (idêntico nos dois provedores)
 const STT_COST_PER_MIN = 0.03;              // US$/minuto (ElevenLabs Scribe via fal)
+
+// ─── VOZ É CONFIGURAÇÃO POR IDIOMA (2026-07-27) ──────────────────────────────
+// Lição que custou um Reel reprovado: "voz aprovada" NÃO é um fato global. A
+// `Deep_Voice_Man` foi aprovada pelo dono no ESPANHOL e estava sendo usada também no
+// português — ele ouviu e reprovou na hora: "liberdeide? isso existe?" e "temos que
+// trocar essa vos do BR, fica muito puxado o (R), estaaar". Era sotaque estrangeiro
+// lendo português, não defeito de sincronia.
+//
+// ⚠️ Os parâmetros abaixo são EXATAMENTE os da amostra que ele ouviu e escolheu.
+// Mudar qualquer um muda a voz que ele aprovou — não mexa sem novo OK dele.
+type VozCfg =
+  | { provedor: "minimax"; voz: string; speed: number }
+  | { provedor: "elevenlabs"; voz: string; speed: number; stability: number; similarity: number; style: number };
+
+const VOZ_POR_IDIOMA: Record<string, VozCfg> = {
+  // ES — inalterado. Velocidade 0,85 é a que ele aprovou ("lento o suficiente p/ LER
+  // e ouvir"); o antigo teto de 0,95 embolava a abertura ("público" → "publi e zeco").
+  es: { provedor: "minimax", voz: "Deep_Voice_Man", speed: 0.85 },
+  // PT-BR — escolhido pelo dono ouvindo 6 amostras (2026-07-27): "Candidata 3 — Bill".
+  // ElevenLabs multilingual-v2 é vendido por precisão de sotaque e aceita forçar o
+  // idioma; de quebra devolve o tempo de cada palavra NATIVO, o que tira a transcrição
+  // paga do caminho (o Reel PT fica ~1/3 mais barato que o ES).
+  pt: { provedor: "elevenlabs", voz: "Bill", speed: 0.95, stability: 0.45, similarity: 0.8, style: 0.1 },
+};
+
+function vozDe(lang: string): VozCfg {
+  return VOZ_POR_IDIOMA[lang] ?? VOZ_POR_IDIOMA.es;
+}
 
 function languageBoost(lang: string): string {
   return lang === "pt" ? "Portuguese" : "Spanish";
@@ -209,20 +231,33 @@ export async function generateNarration(
   } catch {
     return { url: null, error: "orçamento indisponível — narração pulada (cost-safe)" };
   }
-  const speed = SPEED_NATURAL; // velocidade natural, igual nos 2 idiomas — o vídeo é que se ajusta
+  const cfg = vozDe(lang);
+  const modelo = cfg.provedor === "elevenlabs" ? FAL_TTS_11LABS : FAL_TTS_MODEL;
   try {
-    const res = await fetch(`https://fal.run/${FAL_TTS_MODEL}`, {
+    const corpo = cfg.provedor === "elevenlabs"
+      ? {
+          text: clean,
+          voice: cfg.voz,
+          language_code: lang,   // força o idioma — é o que mata o sotaque estrangeiro
+          timestamps: true,      // tempo de cada palavra NATIVO → dispensa a transcrição paga
+          stability: cfg.stability,
+          similarity_boost: cfg.similarity,
+          style: cfg.style,
+          speed: cfg.speed,
+        }
+      : {
+          text: clean,
+          voice_setting: { voice_id: cfg.voz, speed: cfg.speed, vol: 1, pitch: 0 },
+          language_boost: languageBoost(lang),
+          // DESLIGA a normalização "à inglesa" — com ela ligada (default) a voz lia "público"
+          // como "publisher" (anglicizado). Desligada, fala ES/PT corretamente. (S1, OK do dono.)
+          english_normalization: false,
+          audio_setting: { sample_rate: 44100, bitrate: 256000, format: "mp3" },
+        };
+    const res = await fetch(`https://fal.run/${modelo}`, {
       method: "POST",
       headers: { Authorization: `Key ${FAL_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: clean,
-        voice_setting: { voice_id: VOICE_ID, speed, vol: 1, pitch: 0 },
-        language_boost: languageBoost(lang),
-        // DESLIGA a normalização "à inglesa" — com ela ligada (default) a voz lia "público"
-        // como "publisher" (anglicizado). Desligada, fala ES/PT corretamente. (S1, OK do dono.)
-        english_normalization: false,
-        audio_setting: { sample_rate: 44100, bitrate: 256000, format: "mp3" },
-      }),
+      body: JSON.stringify(corpo),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -230,25 +265,46 @@ export async function generateNarration(
     }
     const data = await res.json();
     const falUrl: string | undefined = data?.audio?.url;
-    // Duração REAL do áudio, medida pela própria MiniMax — substitui a estimativa
-    // por fórmula de slides que causava a dessincronia.
-    const durationSec = Number(data?.duration_ms ?? 0) / 1000;
+
+    // TEMPOS: o ElevenLabs já devolve na própria resposta (grátis); a MiniMax não —
+    // ali é preciso transcrever depois. Este é o ganho de trocar a voz do PT.
+    const wordsNativas = cfg.provedor === "elevenlabs"
+      ? wordsFromElevenLabsTimestamps(data?.timestamps)
+      : [];
+    // DURAÇÃO: a MiniMax devolve `duration_ms`; no ElevenLabs ela sai do fim da última
+    // palavra. Sem nenhuma das duas, o vídeo cairia na fórmula — por isso o fallback.
+    const durationSec = cfg.provedor === "elevenlabs"
+      ? (wordsNativas.length ? wordsNativas[wordsNativas.length - 1].end : 0)
+      : Number(data?.duration_ms ?? 0) / 1000;
+
     // fal cobra na geração — loga independentemente do resto.
     await logSpend({
-      automation, platform: "fal", operation: "narration", model: FAL_TTS_MODEL,
+      automation, platform: "fal", operation: "narration", model: modelo,
       units: clean.length, costUsd: Math.max(0.005, (clean.length / 1000) * COST_PER_1K),
-      meta: { ...opts.meta, lang, topic, chars: clean.length, speed, durationSec },
+      meta: { ...opts.meta, lang, topic, chars: clean.length, voz: cfg.voz, speed: cfg.speed, durationSec },
     });
     if (!falUrl) return { url: null, error: `fal sem audio.url: ${JSON.stringify(data).slice(0, 200)}` };
 
     const finalUrl = (await rehostToBlob(falUrl, lang)) ?? falUrl;
-    // Mede ONDE cada palavra caiu (legenda travada na voz). Transcreve a URL da fal
-    // (já pronta) — não espera o re-hosting. Falhou → segue sem words.
-    const stt = await transcribeWords(falUrl, lang, durationSec, automation, { ...opts.meta, topic });
-    await writeCachedNarration(topic, day, lang, finalUrl, durationSec, stt.words);
+
+    // Só transcreve quando a voz NÃO trouxe os tempos (ES sempre; PT só se os nativos
+    // vierem vazios). Transcreve a URL da fal (já pronta), não espera o re-hosting.
+    let words = wordsNativas;
+    let erroTempos: string | undefined;
+    if (!words.length) {
+      const stt = await transcribeWords(falUrl, lang, durationSec, automation, { ...opts.meta, topic });
+      words = stt.words;
+      erroTempos = stt.error;
+    }
+    // Última linha de defesa: sem duração medida, usa o fim da última palavra.
+    const duracaoFinal = durationSec > 0
+      ? durationSec
+      : (words.length ? words[words.length - 1].end : 0);
+
+    await writeCachedNarration(topic, day, lang, finalUrl, duracaoFinal, words);
     return {
-      url: finalUrl, cached: false, durationSec, words: stt.words,
-      error: stt.error ? `voz ok; legenda sem tempos (${stt.error})` : undefined,
+      url: finalUrl, cached: false, durationSec: duracaoFinal, words,
+      error: erroTempos ? `voz ok; legenda sem tempos (${erroTempos})` : undefined,
     };
   } catch (e) {
     return { url: null, error: `exceção narração: ${e instanceof Error ? e.message : String(e)}` };
