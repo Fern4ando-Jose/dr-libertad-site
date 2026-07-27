@@ -41,7 +41,11 @@ const CONTEUDO = {
   es: {
     title: "La libertad empieza donde acaba el miedo",
     slides: [
-      "El miedo no es una emoción que esperas a controlar",
+      // "esperas a controlar" estava ERRADO (a estrategista-de-atencao pegou, 2026-07-26):
+      // em espanhol `esperar a` + infinitivo = "aguardar até". O sentido é "que esperas
+      // controlar", sem o `a`. Só afetava este roteiro de PROVA — o conteúdo de produção
+      // é gerado fresco a cada Reel, não sai daqui.
+      "El miedo no es una emoción que esperas controlar",
       "Cada día eliges entre vivir y estar seguro",
     ],
     cta: "¿Qué es lo que más te roba la atención hoy?",
