@@ -16,7 +16,7 @@
       "license": "CC BY 4.0",
       "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
       "line": "Kevin MacLeod (incompetech.com) — Licensed under Creative Commons: By Attribution 4.0 License",
-      "works": 142
+      "works": 130
     }
   ],
   "works": [
@@ -33,20 +33,8 @@
       "artist": "Kevin MacLeod",
       "year": "2008",
       "files": [
-        "bed-pilar-anxiety-01.mp3",
-        "bed-pilar-anxiety-02.mp3",
-        "bed-pilar-anxiety-03.mp3",
         "bed-pilar-dopamine-01.mp3",
-        "bed-pilar-dopamine-12.mp3",
         "bed-pilar-dopamine-14.mp3"
-      ]
-    },
-    {
-      "title": "Aggressor",
-      "artist": "Kevin MacLeod",
-      "year": "2017",
-      "files": [
-        "bed-pilar-dopamine-11.mp3"
       ]
     },
     {
@@ -63,14 +51,6 @@
       "year": "2019",
       "files": [
         "bed-pilar-self-23.mp3"
-      ]
-    },
-    {
-      "title": "Amazing Plan",
-      "artist": "Kevin MacLeod",
-      "year": "2010",
-      "files": [
-        "bed-pilar-mind-14.mp3"
       ]
     },
     {
@@ -183,14 +163,6 @@
       "year": "2020",
       "files": [
         "bed-pilar-self-19.mp3"
-      ]
-    },
-    {
-      "title": "Cipher",
-      "artist": "Kevin MacLeod",
-      "year": "2011",
-      "files": [
-        "bed-pilar-mind-08.mp3"
       ]
     },
     {
@@ -498,14 +470,6 @@
       ]
     },
     {
-      "title": "Hidden Agenda",
-      "artist": "Kevin MacLeod",
-      "year": "2012",
-      "files": [
-        "bed-pilar-anxiety-10.mp3"
-      ]
-    },
-    {
       "title": "Hiding Your Reality",
       "artist": "Kevin MacLeod",
       "year": "2017",
@@ -586,14 +550,6 @@
       ]
     },
     {
-      "title": "In a Heartbeat",
-      "artist": "Kevin MacLeod",
-      "year": "2006",
-      "files": [
-        "bed-pilar-freedom-06.mp3"
-      ]
-    },
-    {
       "title": "Infinite Perspective",
       "artist": "Kevin MacLeod",
       "year": "2015",
@@ -607,14 +563,6 @@
       "year": "2008",
       "files": [
         "bed-pilar-dopamine-02.mp3"
-      ]
-    },
-    {
-      "title": "Investigations",
-      "artist": "Kevin MacLeod",
-      "year": "2009",
-      "files": [
-        "bed-pilar-mind-02.mp3"
       ]
     },
     {
@@ -802,22 +750,6 @@
       ]
     },
     {
-      "title": "Neolith",
-      "artist": "Kevin MacLeod",
-      "year": "2007",
-      "files": [
-        "bed-pilar-mind-11.mp3"
-      ]
-    },
-    {
-      "title": "Neon Laser Horizon",
-      "artist": "Kevin MacLeod",
-      "year": "2020",
-      "files": [
-        "bed-pilar-self-18.mp3"
-      ]
-    },
-    {
       "title": "Night Cave",
       "artist": "Kevin MacLeod",
       "year": "2008",
@@ -906,27 +838,11 @@
       ]
     },
     {
-      "title": "Return of the Mummy",
-      "artist": "Kevin MacLeod",
-      "year": "2017",
-      "files": [
-        "bed-pilar-mind-28.mp3"
-      ]
-    },
-    {
       "title": "Ripples",
       "artist": "Kevin MacLeod",
       "year": "2010",
       "files": [
         "bed-pilar-self-12.mp3"
-      ]
-    },
-    {
-      "title": "Rite of Passage",
-      "artist": "Kevin MacLeod",
-      "year": "2011-06-12 01:52",
-      "files": [
-        "bed-pilar-mind-15.mp3"
       ]
     },
     {
@@ -1066,14 +982,6 @@
       ]
     },
     {
-      "title": "Take a Chance",
-      "artist": "Kevin MacLeod",
-      "year": "2013",
-      "files": [
-        "bed-pilar-self-07.mp3"
-      ]
-    },
-    {
       "title": "Thinking Music",
       "artist": "Kevin MacLeod",
       "year": "2016",
@@ -1127,14 +1035,6 @@
       "year": "2014",
       "files": [
         "bed-pilar-dopamine-04.mp3"
-      ]
-    },
-    {
-      "title": "Voxel Revolution",
-      "artist": "Kevin MacLeod",
-      "year": "2020",
-      "files": [
-        "bed-pilar-freedom-15.mp3"
       ]
     },
     {
