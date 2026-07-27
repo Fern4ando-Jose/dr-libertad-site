@@ -30,6 +30,54 @@ export interface SegmentTiming {
 // terminar no mesmo frame em que a tela corta — soa cortado).
 export const TAIL_SEC = 0.5;
 
+// ─── Tempos NATIVOS do ElevenLabs (dispensa a transcrição paga) ──────────────
+// O `multilingual-v2` devolve os tempos por CARACTERE (arrays paralelos:
+// `characters[]` + `character_start_times_seconds[]` + `character_end_times_seconds[]`),
+// não por palavra — então agrupamos por espaço. Também aceita o formato já-por-palavra,
+// caso a API mude. Vazio → o chamador cai na transcrição, como no caminho do ES.
+// Mesmo tratamento que o AnamnesisMed usa desde 2026-06-18 (`narrate.ts`).
+export function wordsFromElevenLabsTimestamps(ts: unknown): NarrationWord[] {
+  if (!ts) return [];
+  const blocos = (Array.isArray(ts) ? ts : [ts]) as Array<Record<string, unknown>>;
+  if (!blocos.length) return [];
+
+  // Formato já no nível de palavra.
+  const b0 = blocos[0];
+  if (b0 && b0.characters === undefined && (b0.word !== undefined || b0.text !== undefined)) {
+    return blocos
+      .map((w) => ({
+        text: String(w.word ?? w.text ?? "").trim(),
+        start: Number(w.start ?? 0),
+        end: Number(w.end ?? w.start ?? 0),
+      }))
+      .filter((w) => w.text && Number.isFinite(w.start) && Number.isFinite(w.end));
+  }
+
+  // Formato por caractere: junta em palavras nas fronteiras de espaço.
+  const out: NarrationWord[] = [];
+  let atual = "", ini = 0, fim = 0, aberto = false;
+  for (const b of blocos) {
+    const chars = b?.characters as unknown[];
+    const st = (b?.character_start_times_seconds ?? b?.characterStartTimesSeconds) as number[] | undefined;
+    const en = (b?.character_end_times_seconds ?? b?.characterEndTimesSeconds) as number[] | undefined;
+    if (!Array.isArray(chars)) continue;
+    for (let i = 0; i < chars.length; i++) {
+      const ch = String(chars[i] ?? "");
+      const cs = Array.isArray(st) ? Number(st[i] ?? 0) : 0;
+      const ce = Array.isArray(en) ? Number(en[i] ?? cs) : cs;
+      if (/\s/.test(ch)) {
+        if (aberto && atual) { out.push({ text: atual, start: ini, end: fim }); atual = ""; aberto = false; }
+      } else {
+        if (!aberto) { ini = cs; aberto = true; }
+        atual += ch;
+        fim = ce;
+      }
+    }
+  }
+  if (aberto && atual) out.push({ text: atual, start: ini, end: fim });
+  return out.filter((w) => Number.isFinite(w.start) && Number.isFinite(w.end));
+}
+
 // Compara palavras ignorando caixa, acento e pontuação — a transcrição devolve
 // "publico" onde o roteiro tem "público,", e são a MESMA palavra falada.
 export function normalizeWord(w: string): string {
