@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { seedForDay, cacheKey, falRequestBody, framingFor, FIXED_FRAMING, buildPrompt } from "./illustration";
+import { seedForDay, cacheKey, falRequestBody, framingFor, FIXED_FRAMING, buildPrompt, isTransientCoverFailure } from "./illustration";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INVARIANTE MULTI-IDIOMA: a ILUSTRAÇÃO (arte da IA) é ÚNICA por post/dia e
@@ -130,5 +130,62 @@ describe("cache HIT reusa e NÃO repaga a fal (anti-corrida ES/PT)", () => {
     expect(res.url).toBe(CACHED);
     // o 2º idioma NÃO pode ter chamado a fal (seria pagar de novo)
     expect(fetched.some((u) => u.includes("fal.run"))).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INVARIANTE: TRANSITÓRIA (infra/billing) × CONTEÚDO (QA reprovou). RAIZ do
+// "carrossel #4/#5 desiste o dia todo" quando a fal fica SEM SALDO (HTTP 403
+// "Exhausted balance"): esse 403 é RECUPERÁVEL (volta com o saldo) e NÃO é culpa do
+// tema → o chamador deve fazer retry no mesmo dia e NUNCA colocar o tema em quarentena
+// de 7d. Já uma imagem GERADA mas reprovada pelo juiz é falha de CONTEÚDO → desistência
+// dura + quarentena. Estes testes travam a classificação no CI.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("isTransientCoverFailure (billing/infra é recuperável; QA reprovado não)", () => {
+  it("url=null + transient=true (saldo fal/infra) → RECUPERÁVEL (true)", () => {
+    expect(isTransientCoverFailure({ url: null, transient: true, error: "fal HTTP 403: Exhausted balance" })).toBe(true);
+  });
+  it("url=null + transient=false (imagem gerada, QA reprovou) → NÃO recuperável (false)", () => {
+    expect(isTransientCoverFailure({ url: null, transient: false, error: "todas reprovadas pelo juiz" })).toBe(false);
+  });
+  it("url=null sem transient (default) → NÃO recuperável (false) — conservador", () => {
+    expect(isTransientCoverFailure({ url: null, error: "subject vazio" })).toBe(false);
+  });
+  it("sucesso (url≠null) NUNCA é falha, mesmo com transient marcado", () => {
+    expect(isTransientCoverFailure({ url: "https://blob/cover.jpg", transient: true })).toBe(false);
+  });
+});
+
+describe("generateIllustration marca a falha da fal como TRANSITÓRIA", () => {
+  beforeEach(() => {
+    process.env.FAL_KEY = "test-key";
+    vi.resetModules();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("fal HTTP 403 (saldo esgotado) → url=null e transient=true (retry + sem quarentena)", async () => {
+    // Sem cache (useCache:false) → vai direto à fal, que responde 403 "Exhausted balance".
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: false,
+      status: 403,
+      text: async () => '{"detail": "User is locked. Reason: Exhausted balance."}',
+      json: async () => ({}),
+    } as unknown as Response)));
+    const { generateIllustration, isTransientCoverFailure } = await import("./illustration");
+    const res = await generateIllustration("uma corrente que se rompe", "freedom", { useCache: false, maxTries: 1, automation: "ig-posts" });
+    expect(res.url).toBeNull();
+    expect(res.transient).toBe(true);
+    expect(isTransientCoverFailure(res)).toBe(true);
+  });
+
+  it("FAL_KEY ausente no runtime → transient=true (volta sem redeploy)", async () => {
+    delete process.env.FAL_KEY;
+    const { generateIllustration } = await import("./illustration");
+    const res = await generateIllustration("x", "freedom", { useCache: false, automation: "ig-posts" });
+    expect(res.url).toBeNull();
+    expect(res.transient).toBe(true);
   });
 });

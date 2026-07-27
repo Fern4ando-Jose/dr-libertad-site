@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateIllustration } from "@/lib/illustration";
+import { generateIllustration, isTransientCoverFailure } from "@/lib/illustration";
 import { prehostCover } from "@/lib/cover-prehost";
 import { Lang, accountFor, getLang } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
@@ -1216,13 +1216,27 @@ export async function GET(req: NextRequest) {
         // 25/06); ES e PT pulam juntos (mesmos candidatos → mesma decisão), sem órfão. Melhor
         // 1 post a menos que 1 fora do padrão. `force=1` não chega aqui sem ilustração também.
         if (!ill.url) {
+          // TRANSITÓRIA (saldo fal esgotado / provedor fora / rede) × CONTEÚDO (imagem
+          // gerada, juiz reprovou). RAIZ do "carrossel #4/#5 desiste o dia todo há ~1
+          // semana" (2026-07-27): a fal ficava SEM SALDO (HTTP 403 "Exhausted balance")
+          // e o motor tratava como desistência DURA (hard) + QUARENTENA de 7d do tema —
+          // então (a) a vaga não recuperava nem quando o saldo voltava no mesmo dia, e
+          // (b) um tema perfeitamente ilustrável sumia da rotação por uma semana por um
+          // soluço de billing. Agora: falha TRANSITÓRIA → bump SOFT (o catchup recupera
+          // no mesmo dia, teto MAX_PUBLISH_ATTEMPTS) e NÃO quarentena o tema. Só o QA
+          // reprovando de fato (conteúdo) segue hard + quarentena. A regra travada
+          // "carrossel não publica sem ilustração" fica intacta — só muda o POR QUÊ da
+          // desistência e se o tema é punido. (Sem saldo, nada sai: isso é billing/SÓ-DONO.)
+          const transient = isTransientCoverFailure(ill);
           slotLog.skipped = true;
-          slotLog.reason = `capa reprovada no QA (best-of-2) — carrossel NÃO publica sem ilustração (padrão do feed). ${ill.error ?? ""}`.trim();
-          await bumpAttempt(dayBRT(now), runIndex, lang, true);
-          // QUARENTENA: marca o tema como "sem capa possível" → getFreshTopicForRun o
-          // evita por 7d e a vaga passa a escolher um tema ilustrável AMANHÃ (em vez de
-          // bater no mesmo muro todo dia queimando orçamento). Best-effort, fail-open.
-          await recordQaFail(dayBRT(now), runIndex, lang, topic);
+          slotLog.reason = transient
+            ? `capa indisponível por falha transitória (saldo fal/infra) — carrossel NÃO publica sem ilustração; vaga será re-tentada. ${ill.error ?? ""}`.trim()
+            : `capa reprovada no QA (best-of-2) — carrossel NÃO publica sem ilustração (padrão do feed). ${ill.error ?? ""}`.trim();
+          await bumpAttempt(dayBRT(now), runIndex, lang, !transient);
+          // QUARENTENA só no caso de CONTEÚDO: marca o tema como "sem capa possível" →
+          // getFreshTopicForRun o evita por 7d (não bater no mesmo muro queimando orçamento).
+          // Falha transitória NÃO quarentena (o tema é ilustrável; a culpa é do saldo/infra).
+          if (!transient) await recordQaFail(dayBRT(now), runIndex, lang, topic);
           results.push(slotLog);
           continue;
         }
