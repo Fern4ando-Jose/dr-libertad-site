@@ -966,9 +966,20 @@ export async function GET(req: NextRequest) {
     // (gancho + insights, VERBATIM, na ordem) + cierre de seguir → a voz SEMPRE bate com a
     // tela (não é reescrita do modelo). Cache por (tópico,dia,idioma); fail-open (sem narração
     // → Reel só com música). No ReelV2 a música vira leito suave (ducking).
-    const followLine = lang === "pt"
-      ? "Me siga se você prefere a verdade incômoda ao aplauso."
-      : "Sígueme si prefieres la verdad incómoda al aplauso.";
+    // CIERRE FALADO — tem de pedir a MESMA coisa que a TELA está pedindo naquele
+    // instante (achado do head-de-crescimento + estrategista-de-atencao, 2026-07-26):
+    // com o funil LIGADO, o end-card mostra "Comenta LIBERTAD" enquanto a voz dizia
+    // "me siga" — DOIS pedidos concorrentes no segundo em que a pessoa decide, e quem
+    // recebe dois pedidos não faz nenhum. Além disso "seguir" é a ação mais CARA de
+    // quem te conhece há 15s, enquanto o comentário do funil é barato e vira lead.
+    // Sem funil, o fecho de seguir continua valendo (é o que a tela mostra ali).
+    const followLine = funnel
+      ? (lang === "pt"
+          ? `Comente ${funnel.keyword} aqui embaixo e eu mando no seu Direct.`
+          : `Comenta ${funnel.keyword} aquí abajo y te lo envío al Direct.`)
+      : (lang === "pt"
+          ? "Me siga se você prefere a verdade incômoda ao aplauso."
+          : "Sígueme si prefieres la verdad incómoda al aplauso.");
     // A voz fala EXATAMENTE os slides que a tela MOSTRA (dedupados, cap 3) — antes o
     // roteiro usava `content.slides` CRU enquanto o render usava os dedupados, então
     // num tópico com slide[0] == título a voz narrava um insight que a tela nunca
