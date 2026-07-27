@@ -37,6 +37,14 @@ import {
 import { loadFont as loadFraunces } from "@remotion/google-fonts/Fraunces";
 import { Scene, reelDefaultProps, type ReelProps, FPS } from "./Reel";
 import { normalizePhrase } from "../src/lib/slide-dedup";
+// Import RELATIVO (não `@/…`) p/ o webpack do Remotion resolver no bundle do render.
+// `narration-sync` é PURO (sem next/db), seguro no bundle — mesma regra do slide-dedup.
+import {
+  alignScriptToTranscript,
+  buildSyncPlan,
+  segmentTimings,
+  splitWords,
+} from "../src/lib/narration-sync";
 
 const { fontFamily: FRAUNCES } = loadFraunces();
 
@@ -84,6 +92,79 @@ export function reelDurationsV2(slidesCount: number, hasFunnel = false) {
   return { COVER, INSIGHT, CTA, FUNNEL, n, total: COVER + INSIGHT * n + CTA + FUNNEL };
 }
 
+const FUNNEL_SEC = 3.5; // end-card do funil (mesmo valor da fórmula acima, em segundos)
+
+// ─── PLANO DE TEMPOS — fonte única (componente + Root.calculateMetadata) ──────
+// Dois modos, na ordem de preferência:
+//   1. SINCRONIZADO (a voz veio com medida): cada cena começa NO FRAME em que a voz
+//      começa aquela frase, e cada palavra da legenda acende quando é falada. É o
+//      conserto da dessincronia — o áudio é o relógio.
+//   2. FÓRMULA (sem narração, ou medida ausente/inconsistente): capa 3,0s +
+//      insight 5,6s×n + cta 4,6s — o comportamento de sempre, byte-idêntico.
+// A degradação é silenciosa de propósito: um Reel sem voz nunca deve quebrar por
+// causa de um campo de sincronia faltando.
+export interface ReelV2Plan {
+  synced: boolean;
+  scenes: Array<{ fromFrame: number; durationInFrames: number }>; // capa, insights…, cta, [funil]
+  wordFrames: number[][];  // por cena falada: frame RELATIVO em que cada palavra da tela acende
+  usedSlides: string[];
+  n: number;
+  total: number;
+}
+
+export function reelPlanV2(props: Partial<ReelProps>, fps: number = FPS): ReelV2Plan {
+  const safeSlides = dedupeSlides(props.title ?? "", props.slides);
+  const { COVER, INSIGHT, CTA, FUNNEL, n, total } = reelDurationsV2(safeSlides.length, !!props.funnel);
+  const usedSlides = safeSlides.slice(0, n);
+
+  const fallback = (): ReelV2Plan => {
+    const scenes: Array<{ fromFrame: number; durationInFrames: number }> = [];
+    let cursor = 0;
+    const push = (d: number) => { scenes.push({ fromFrame: cursor, durationInFrames: d }); cursor += d; };
+    push(COVER);
+    for (let i = 0; i < n; i++) push(INSIGHT);
+    push(CTA);
+    if (FUNNEL > 0) push(FUNNEL);
+    return { synced: false, scenes, wordFrames: [], usedSlides, n, total };
+  };
+
+  const segments = Array.isArray(props.narrationSegments) ? props.narrationSegments.filter(Boolean) : [];
+  const durationSec = Number(props.narrationDurationSec ?? 0);
+  // Precisa de: áudio + duração medida + os blocos do roteiro na quantidade que o
+  // render mostra (capa + n insights + cierre). Qualquer divergência → fórmula.
+  if (!props.narrationUrl || !(durationSec > 0) || segments.length !== n + 2) return fallback();
+
+  const scriptWords = segments.flatMap(splitWords);
+  if (!scriptWords.length) return fallback();
+
+  const words = alignScriptToTranscript(
+    scriptWords,
+    Array.isArray(props.narrationWords) ? props.narrationWords : [],
+    durationSec,
+  );
+  const plan = buildSyncPlan(segments, words, durationSec, fps, props.funnel ? FUNNEL_SEC : 0);
+  const timings = segmentTimings(segments, words);
+
+  // Frames de cada palavra, RELATIVOS ao início da sua cena (dentro de uma Sequence
+  // o Remotion zera o frame). O texto na tela é o do slide (sem a pontuação que o
+  // roteiro adiciona), então só aplicamos quando a contagem de palavras bate — senão
+  // aquela cena usa a revelação de ritmo fixo, sem arriscar legenda torta.
+  const screenTexts = [props.title ?? "", ...usedSlides];
+  const wordFrames: number[][] = screenTexts.map((text, i) => {
+    const t = timings[i];
+    const scene = plan.scenes[i];
+    if (!t || !scene) return [];
+    const screenCount = splitWords(text).length;
+    const spokenCount = t.to - t.from + 1;
+    if (!screenCount || screenCount !== spokenCount) return [];
+    return words
+      .slice(t.from, t.to + 1)
+      .map((w) => Math.max(0, Math.round(w.start * fps) - scene.fromFrame));
+  });
+
+  return { synced: true, scenes: plan.scenes, wordFrames, usedSlides, n, total: plan.totalFrames };
+}
+
 export const reelV2DefaultProps: ReelProps = reelDefaultProps;
 
 function Handle({ color = PAPER, handle = "@dr.liberdad" }: { color?: string; handle?: string }) {
@@ -102,6 +183,7 @@ function KineticText({
   startFrame = 3,
   perWord = 3,
   fontSize = 88,
+  wordFrames,
 }: {
   text: string;
   accent: string;
@@ -109,14 +191,19 @@ function KineticText({
   startFrame?: number;
   perWord?: number;
   fontSize?: number;
+  // Frame (relativo à cena) em que CADA palavra é realmente falada. Quando vem, a
+  // legenda acende no ritmo da voz — não num compasso fixo de 3 frames que só por
+  // coincidência batia com a fala. Ausente/incompleto → ritmo fixo de sempre.
+  wordFrames?: number[];
 }) {
   const frame = useCurrentFrame();
   const words = (text || "").split(" ");
+  const timed = Array.isArray(wordFrames) && wordFrames.length === words.length;
   const clean = (w: string) => w.toLowerCase().replace(/[.,;:!?¿¡"']/g, "");
   return (
     <div style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize, lineHeight: 1.12, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}>
       {words.map((w, i) => {
-        const f0 = startFrame + i * perWord;
+        const f0 = timed ? wordFrames![i] : startFrame + i * perWord;
         const o = interpolate(frame, [f0, f0 + 7], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
         const y = interpolate(frame, [f0, f0 + 7], [18, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
         const isAccent = !!accent && clean(w).includes(accent.toLowerCase());
@@ -150,7 +237,7 @@ function pickCoverAccent(title: string, kw: string): string {
 // chega frio). Agora: kicker da marca em ACENTO no topo, gancho que entra palavra
 // a palavra com a palavra-chave na cor da marca, fundo com glow do acento. Frame 0
 // segue limpo (o texto entra no play ~0,1s) — respeita a capa-de-grid sem título.
-function CoverTextV2({ title, accent, brand, handle, kw }: { title: string; accent: string; brand: string; handle: string; kw: string }) {
+function CoverTextV2({ title, accent, brand, handle, kw, wordFrames }: { title: string; accent: string; brand: string; handle: string; kw: string; wordFrames?: number[] }) {
   const frame = useCurrentFrame();
   const coverAccent = pickCoverAccent(title, kw);
   const kickerO = interpolate(frame, [1, 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -168,7 +255,7 @@ function CoverTextV2({ title, accent, brand, handle, kw }: { title: string; acce
       </div>
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: `0 90px ${SAFE_BOTTOM_TEXT}px` }}>
         {/* Gancho cinético, maior, com a palavra-chave na cor da marca */}
-        <KineticText text={title} accent={coverAccent} accentColor={accent} startFrame={3} perWord={2} fontSize={108} />
+        <KineticText text={title} accent={coverAccent} accentColor={accent} startFrame={3} perWord={2} fontSize={108} wordFrames={wordFrames} />
       </AbsoluteFill>
       <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: 90 }}>
         <Handle color={PAPER} handle={handle} />
@@ -178,7 +265,7 @@ function CoverTextV2({ title, accent, brand, handle, kw }: { title: string; acce
 }
 
 // ─── Insight V2: legenda cinética ──────────────────────────────────────────────
-function InsightTextV2({ text, accent, accentColor, index, total, handle }: { text: string; accent: string; accentColor: string; index: number; total: number; handle: string }) {
+function InsightTextV2({ text, accent, accentColor, index, total, handle, wordFrames }: { text: string; accent: string; accentColor: string; index: number; total: number; handle: string; wordFrames?: number[] }) {
   const frame = useCurrentFrame();
   const o = interpolate(frame, [0, 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
@@ -187,7 +274,7 @@ function InsightTextV2({ text, accent, accentColor, index, total, handle }: { te
         {String(index).padStart(2, "0")} / {String(total).padStart(2, "0")}
       </div>
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: `0 90px ${SAFE_BOTTOM_TEXT}px` }}>
-        <KineticText text={text} accent={accent} accentColor={accentColor} startFrame={3} perWord={3} />
+        <KineticText text={text} accent={accent} accentColor={accentColor} startFrame={3} perWord={3} wordFrames={wordFrames} />
       </AbsoluteFill>
       <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: 90 }}>
         <Handle color={PAPER} handle={handle} />
@@ -268,13 +355,17 @@ function FunnelCardV2({ cover, keyword, action, note, handle }: { cover?: string
 }
 
 // ─── Composição V2 ─────────────────────────────────────────────────────────────
-export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, kw, img, clips, clip, music, narrationUrl, cat, funnel, handle = "@dr.liberdad", brand = "Dr. Libertad", ctaFollow = "Sigue", ctaBio = "→ Más en el link de la bio" }) => {
+export const ReelV2: React.FC<ReelProps> = (props) => {
+  const {
+    title, slides, accentWords, cta, kw, img, clips, clip, music, narrationUrl, cat, funnel,
+    handle = "@dr.liberdad", brand = "Dr. Libertad", ctaFollow = "Sigue", ctaBio = "→ Más en el link de la bio",
+  } = props;
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
-  // DE-DUP (mesmo helper do Root.calculateMetadata) → capa e insight 1 nunca repetem,
-  // e a duração da composição bate com os insights de verdade (sem cena preta no fim).
-  const safeSlides = dedupeSlides(title, slides);
-  const { COVER, INSIGHT, CTA, FUNNEL, n, total } = reelDurationsV2(safeSlides.length, !!funnel);
-  const usedSlides = safeSlides.slice(0, n);
+  // PLANO DE TEMPOS (mesma função do Root.calculateMetadata → duração da composição
+  // e cenas nunca divergem). Com voz medida, cada cena começa no frame em que a voz
+  // começa a frase; sem ela, a fórmula de sempre. O DE-DUP mora dentro do plano.
+  const plan = reelPlanV2(props);
+  const { scenes, wordFrames, usedSlides, n, total } = plan;
   const funnelCover = funnel?.cover
     ? (/^https?:\/\//.test(funnel.cover) ? funnel.cover : staticFile(funnel.cover))
     : undefined;
@@ -282,12 +373,11 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
   const pool = clips && clips.length ? clips : clip ? [clip] : [];
   const sceneClip = (i: number) => (pool.length ? pool[i % pool.length] : undefined);
 
-  let cursor = 0;
-  const next = (dur: number) => {
-    const from = cursor;
-    cursor += dur;
-    return from;
-  };
+  // Cenas na ordem: capa (0), insights (1..n), cta (n+1), funil (n+2, se houver).
+  const at = (i: number) => scenes[i] ?? { fromFrame: 0, durationInFrames: 1 };
+  const COVER_S = at(0);
+  const CTA_S = at(n + 1);
+  const FUNNEL_S = at(n + 2);
 
   const musicSrc = music ? (/^https?:\/\//.test(music) ? music : staticFile(music)) : null;
   // Narração (voz) por cima; quando há narração, a música vira LEITO SUAVE (ducking).
@@ -297,28 +387,31 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#0B0B0C" }}>
-      <Sequence from={next(COVER)} durationInFrames={COVER}>
-        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER} cat={cat}>
-          <CoverTextV2 title={title} accent={accent} brand={brand} handle={handle} kw={kw} />
+      <Sequence from={COVER_S.fromFrame} durationInFrames={COVER_S.durationInFrames}>
+        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER_S.durationInFrames} cat={cat}>
+          <CoverTextV2 title={title} accent={accent} brand={brand} handle={handle} kw={kw} wordFrames={wordFrames[0]} />
         </Scene>
       </Sequence>
 
-      {usedSlides.map((text, i) => (
-        <Sequence key={i} from={next(INSIGHT)} durationInFrames={INSIGHT}>
-          <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={INSIGHT} cat={cat}>
-            <InsightTextV2 text={text} accent={accentWords?.[i] ?? ""} accentColor={accent} index={i + 1} total={n} handle={handle} />
-          </Scene>
-        </Sequence>
-      ))}
+      {usedSlides.map((text, i) => {
+        const s = at(i + 1);
+        return (
+          <Sequence key={i} from={s.fromFrame} durationInFrames={s.durationInFrames}>
+            <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={s.durationInFrames} cat={cat}>
+              <InsightTextV2 text={text} accent={accentWords?.[i] ?? ""} accentColor={accent} index={i + 1} total={n} handle={handle} wordFrames={wordFrames[i + 1]} />
+            </Scene>
+          </Sequence>
+        );
+      })}
 
-      <Sequence from={next(CTA)} durationInFrames={CTA}>
-        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={CTA} cat={cat}>
+      <Sequence from={CTA_S.fromFrame} durationInFrames={CTA_S.durationInFrames}>
+        <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={CTA_S.durationInFrames} cat={cat}>
           <CtaTextV2 cta={cta} accent={accent} handle={handle} ctaFollow={ctaFollow} ctaBio={ctaBio} />
         </Scene>
       </Sequence>
 
       {funnel && (
-        <Sequence from={next(FUNNEL)} durationInFrames={FUNNEL}>
+        <Sequence from={FUNNEL_S.fromFrame} durationInFrames={FUNNEL_S.durationInFrames}>
           {/* end-card do funil: arte do livro (fundo 9:16 composto) + funil na zona creme */}
           <FunnelCardV2 cover={funnelCover} keyword={funnel.keyword} action={funnel.action} note={funnel.note} handle={handle} />
         </Sequence>
@@ -332,9 +425,10 @@ export const ReelV2: React.FC<ReelProps> = ({ title, slides, accentWords, cta, k
           }
         />
       )}
-      {/* Narração em volume cheio. A clareza da abertura vem do TETO de velocidade (0,95,
-          sem cold-start) — não de fade/respiro. Cabe no vídeo; a frase de seguir entra
-          sobre o end-card em narração longa. */}
+      {/* Narração em volume cheio, do frame 0 — é ela que dita o vídeo, não o contrário.
+          As cenas acima já começam nos frames em que a voz vira de frase (plano
+          sincronizado), então a tela nunca atrasa nem adianta em relação à fala.
+          A clareza da abertura vem da velocidade NATURAL fixa (0,85), não de fade. */}
       {narrationSrc && <Audio src={narrationSrc} />}
     </AbsoluteFill>
   );

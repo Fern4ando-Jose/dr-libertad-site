@@ -21,6 +21,13 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+// PISO 8s (era 4s, 2026-07-26): a cena do Reel deixou de ter duracao fixa e passou a
+// durar o tempo da FRASE FALADA (~4-7s). Clipe mais curto que a cena faz o Remotion pedir
+// um frame alem do fim do arquivo e ABORTAR o Reel inteiro (Compositor error: No frame
+// found at position N) — provado com um clipe de 4,20s. 8s da folga sobre a frase mais
+// longa. Reel que nao renderiza custa a vaga do dia; um clipe a menos no acervo, nao.
+const MIN_CLIP_SEC = 8;
+
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
 const PIXABAY_API_KEY = process.env.PIXABAY_API_KEY; // fail-open: ausente → Pixabay pulado, sem quebrar nada
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY; // QA de conteúdo do footage (incidente 07-01)
@@ -58,9 +65,10 @@ function parseFootageVerdict(text) {
   return { reject: true, reason: "veredito ilegível → rejeitado (fail-safe)" };
 }
 
-// Julga o poster. Sem chave → aceita (QA pulado). Erro/HTTP ruim → rejeita (fail-safe).
+// Julga o poster. Sem chave → aceita (QA pulado — mas o chamador NÃO pode buscar ao
+// vivo nesse estado; ver `QA_ATIVO`). Erro/HTTP ruim → rejeita (fail-safe).
 async function judgeFootagePoster(posterUrl) {
-  if (!ANTHROPIC_API_KEY) return { reject: false, reason: "sem ANTHROPIC_API_KEY — QA pulado" };
+  if (!ANTHROPIC_API_KEY) return { reject: false, reason: "sem ANTHROPIC_API_KEY — QA pulado", pulado: true };
   if (!posterUrl) return { reject: false, reason: "sem poster — QA pulado" };
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -163,7 +171,7 @@ async function searchPexelsVideo(term) {
   const data = await res.json().catch(() => ({}));
   const vids = Array.isArray(data.videos) ? data.videos : [];
   return vids
-    .filter((v) => v.height >= v.width && (v.duration || 0) >= 4)
+    .filter((v) => v.height >= v.width && (v.duration || 0) >= MIN_CLIP_SEC)
     .map((v) => { const link = pickPexelsVideoFile(v); return link ? { id: v.id, url: link, poster: v.image } : null; })
     .filter(Boolean);
 }
@@ -201,7 +209,7 @@ async function searchPixabayVideo(term) {
       return sa - sb;
     });
     const pick = pool[0];
-    if (!(pick.height >= pick.width) || (h.duration || 0) < 4) continue;
+    if (!(pick.height >= pick.width) || (h.duration || 0) < MIN_CLIP_SEC) continue;
     out.push({ id: h.id, url: pick.url, poster: h.picture_id ? `https://i.vimeocdn.com/video/${h.picture_id}_295x166.jpg` : pick.url });
   }
   return out;
@@ -247,6 +255,21 @@ async function main() {
   // lá, não buscamos de novo — isto aqui vira só o FALLBACK de CI.
   if (Array.isArray(props.clips) && props.clips.length) {
     return done(`clips já vieram da API (base compartilhada, ${props.clips.length}) — pulando busca`);
+  }
+
+  // ── TRAVA DE MARCA (2026-07-26): sem QA de imagem, NÃO se busca ao vivo ──────
+  // Este script é o FALLBACK de CI: ele varre Pexels/Pixabay ao vivo, e o único
+  // filtro entre esse acervo aberto e o feed do dono é o QA de visão. Sem a chave,
+  // o QA vira carimbo (aceita tudo) — foi assim que uma FOTO DE COSPLAY COM ARMA
+  // entrou num Reel de prova. O dono foi literal: "isso nunca, mas nunca deve sair
+  // em um reel".
+  // Então, sem chave, este caminho DESISTE: o Reel cai na ilustração estática (ou é
+  // pulado pela guarda anti-preto), em vez de publicar imagem não julgada. É uma
+  // vaga a menos, não uma imagem errada no feed — e a conta do dono é o ativo.
+  // (O caminho PRIMÁRIO, `selectFootage` na API, tem a chave na Vercel e segue
+  // julgando normalmente; esta trava só fecha o desvio de emergência.)
+  if (!ANTHROPIC_API_KEY) {
+    return done("⚠️ SEM ANTHROPIC_API_KEY — busca ao vivo BLOQUEADA (imagem não julgada não vai ao feed); Reel usa ilustração estática");
   }
 
   const sources = availableSources();
@@ -310,7 +333,12 @@ async function main() {
     }
 
     await harvest();
-    log(`QA: ${qaPassed}/${qaAttempted} candidatos aprovados`);
+    // ⚠️ LOG HONESTO (2026-07-26): antes saía "QA: 5/5 candidatos aprovados" MESMO com o
+    // QA desligado — indistinguível de uma aprovação real. Foi o que escondeu, na prova
+    // da voz, uma FOTO DE COSPLAY COM ARMA que chegou ao Reel ("isso nunca, mas nunca
+    // deve sair em um reel" — dono). Guardião que pula tem de GRITAR que pulou.
+    if (!ANTHROPIC_API_KEY) log(`⚠️ QA DE IMAGEM PULADO (sem ANTHROPIC_API_KEY) — ${qaAttempted} candidato(s) aceitos SEM julgamento`);
+    else log(`QA: ${qaPassed}/${qaAttempted} candidatos aprovados`);
 
     if (!picked.length) return done("nenhum clipe/foto encontrado — fallback ilustração estática");
 

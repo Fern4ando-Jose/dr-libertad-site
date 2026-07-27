@@ -164,7 +164,15 @@ jobs:
               funnel: p.funnel || undefined,
               // Narração (voz TTS) — só quando REEL_NARRATION_ENABLED; a API já gerou e
               // devolveu a URL. Ausente → Reel só com música (a música vira leito suave qd há voz).
-              narrationUrl: p.narrationUrl || undefined
+              narrationUrl: p.narrationUrl || undefined,
+              // A MEDIDA da voz (o áudio é o relógio): duração REAL do mp3, tempo de cada
+              // palavra e os blocos do roteiro na ordem falada. Com eles o vídeo se
+              // dimensiona pela fala e a legenda acende palavra a palavra. SEM eles o
+              // render cai na fórmula de slides — por isso precisam estar nesta lista:
+              // campo que não é copiado aqui simplesmente não chega ao render.
+              narrationDurationSec: p.narrationDurationSec || undefined,
+              narrationWords: Array.isArray(p.narrationWords) && p.narrationWords.length ? p.narrationWords : undefined,
+              narrationSegments: Array.isArray(p.narrationSegments) && p.narrationSegments.length ? p.narrationSegments : undefined
             };
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("slot.txt", p.slot || "noite");

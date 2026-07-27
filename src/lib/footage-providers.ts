@@ -1,3 +1,10 @@
+
+// PISO 8s (era 4s, 2026-07-26): a cena do Reel deixou de ter duracao fixa e passou a
+// durar o tempo da FRASE FALADA (~4-7s). Clipe mais curto que a cena faz o Remotion pedir
+// um frame alem do fim do arquivo e ABORTAR o Reel inteiro (Compositor error: No frame
+// found at position N) — provado com um clipe de 4,20s. 8s da folga sobre a frase mais
+// longa. Reel que nao renderiza custa a vaga do dia; um clipe a menos no acervo, nao.
+const MIN_CLIP_SEC = 8;
 // ─── Provedores de footage — 4 fontes normalizadas ─────────────────────────────
 // Pexels vídeo (original) + Pexels FOTO (Ken Burns) + Pixabay vídeo + Pixabay
 // FOTO (Ken Burns) — cada função devolve uma lista de `FootageCandidate` no MESMO
@@ -54,7 +61,7 @@ export async function searchPexelsVideo(term: string, key: string | undefined): 
   const vids = Array.isArray(data.videos) ? data.videos : [];
   const out: FootageCandidate[] = [];
   for (const v of vids) {
-    if (!(v.height >= v.width && (v.duration || 0) >= 4)) continue;
+    if (!(v.height >= v.width && (v.duration || 0) >= MIN_CLIP_SEC)) continue;
     const file = pickPexelsVideoFile(v);
     if (!file) continue;
     out.push({
@@ -130,7 +137,7 @@ export async function searchPixabayVideo(term: string, key: string | undefined):
     });
     const pick = pool[0];
     if (!(pick.height >= pick.width)) continue; // sem opção retrato → descarta (evita paisagem esticada)
-    if ((h.duration || 0) < 4) continue;
+    if ((h.duration || 0) < MIN_CLIP_SEC) continue;
     // 2026-07-18 (incidente "El sabio ausente"): a API da Pixabay REMOVEU `picture_id`
     // (sondado ao vivo: undefined em TODOS os hits; o campo atual é `videos.<size>.thumbnail`,
     // um jpg no cdn.pixabay.com — verificado acessível, 200 image/jpeg). O fallback antigo
