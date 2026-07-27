@@ -984,7 +984,25 @@ export async function GET(req: NextRequest) {
     // roteiro usava `content.slides` CRU enquanto o render usava os dedupados, então
     // num tópico com slide[0] == título a voz narrava um insight que a tela nunca
     // exibia (a legenda "voz = tela" quebrava logo no 1º corte).
+    // TETO DE DURAÇÃO (2026-07-27) — o Reel não pode esticar sem limite.
+    // Com o áudio virando o relógio, um roteiro comprido gera um vídeo comprido: o
+    // 1º Reel de produção saiu com **32s** (958 frames) porque título+3 slides+fecho
+    // deram ~320 caracteres. Antes isso ficava escondido — a voz era espremida pra
+    // caber numa janela fixa (e atrasava/cortava, que foi o defeito original).
+    // A correção certa é a que o brief e o head-de-crescimento apontaram: encurtar o
+    // TEXTO, NUNCA acelerar a voz de novo.
+    // Corta o ÚLTIMO insight enquanto o roteiro não couber — e corta em UM lugar só,
+    // porque esta mesma lista vira o roteiro falado E os slides que a tela mostra
+    // (se cortasse só a voz, a tela mostraria um insight que ninguém narra).
+    const CHARS_POR_SEG = 11.6;  // ritmo medido da voz a 0,85
+    const FALA_MAX_SEG = 20;     // ~21s de vídeo com o respiro — dentro do que o Reels premia
+    const TETO_CHARS = Math.round(FALA_MAX_SEG * CHARS_POR_SEG);
     const spokenSlides = dedupeSlides(content.postTitle, content.slides).slice(0, 3);
+    const tamanhoRoteiro = (ss: string[]) =>
+      [content.postTitle, ...ss, followLine].join(" ").length;
+    while (spokenSlides.length > 1 && tamanhoRoteiro(spokenSlides) > TETO_CHARS) {
+      spokenSlides.pop();
+    }
     // Blocos do roteiro NA ORDEM falada — o render usa esta MESMA lista pra saber onde
     // cada cena começa (fonte única do alinhamento voz↔tela).
     const narrationSegments = [content.postTitle, ...spokenSlides]
@@ -1006,7 +1024,10 @@ export async function GET(req: NextRequest) {
       ctaFollow: accountFor(lang).ctaFollow, // "Sigue"/"Siga" — CTA do Reel no idioma certo
       ctaBio: accountFor(lang).ctaBio, // "→ Más en el link de la bio" / "→ Mais no link da bio"
       title: content.postTitle,
-      slides: content.slides,
+      // Com voz, a TELA mostra exatamente os slides que a VOZ narra (já dedupados e
+      // já cortados pelo teto de duração acima) — é o que mantém "voz = tela" de pé.
+      // Sem voz, devolve a lista crua: o Reel mudo segue como sempre.
+      slides: narr.url ? spokenSlides : content.slides,
       accentWords: [],
       cta: content.cta,
       caption: content.instagramCaption,
