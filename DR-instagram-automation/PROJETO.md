@@ -66,25 +66,15 @@
 
 ---
 
-## Cadência diária de publicação (REGRA VIGENTE — definida 2026-06-15)
+## Cadência diária de publicação
 
-> **6 posts/dia** no @drlibertad = **4 Reels + 2 carrosséis**.
-> A regra antiga de **"6 carrosséis/dia"** foi **REVOGADA em 2026-06-15** — não vale mais.
-
-| Horário (BRT) | Formato |
-|---|---|
-| 09:00 | Carrossel |
-| 12:00 | Reel (vídeo) |
-| 14:00 | Carrossel |
-| 17:00 | Reel (vídeo) |
-| 19:00 | Reel clássico |
-| 21:00 | Reel (vídeo) |
-
-- Composição: **3 Reels vídeo** (12/17/21h) + **1 Reel clássico** (19h) + **2 carrosséis** (9/14h).
-- Decisão veio da análise de desempenho (Reel ~6× o alcance do carrossel; Reel campeão às 19h).
-- Agendamento roda no **GitHub Actions** (não Vercel); `force=1` burla a trava anti-duplicata de 24h.
-- ✅ **FEITO na `main` (PR #4, 2026-06-16):** `instagram-posts.yml` já roda **2 carrosséis** (12/17 UTC = 9/14h BRT, runs 4-5); `instagram-reels.yml` virou **3 Reels vídeo** (15/20/00 UTC); e `instagram-reels-classic.yml` (NOVO) faz **1 Reel clássico** (22 UTC = 19h BRT). Mix = 4 Reels + 2 carrosséis, exatamente o desta seção.
-- ⚠️ **Sincronizar branches:** a branch local `kiwi-weekly-publish` está ATRÁS da `main` e ainda mostra o esquema antigo — por isso o código local parece desatualizado. Precisa commitar o trabalho local e dar merge da `main` (ver abaixo).
+> ⛓️ **FONTE ÚNICA: `src/lib/day.ts`** (`RUN_HOUR_BRT` → `ACTIVE_RUNS` → `POSTS_PER_DAY`) e a seção
+> **"Automações e cadência"** do `CLAUDE.md` deste projeto. **NÃO redeclare a cadência aqui** — este
+> arquivo é referência, não o dono do número. A determinação vigente é do dono (2026-07-19, aplicada
+> em 2026-07-27 no PR #193, *"qualidade > quantidade"*) e mora naqueles dois lugares; o
+> `src/lib/day.invariants.test.ts` **lê os crons dos workflows** e reprova se divergirem do mapa.
+> (Uma cadência copiada à mão em vários docs já divergiu — 6 num lugar, 7 noutro — enquanto o dono
+> tinha determinado 4: por isso o número vive só em `day.ts`.)
 
 Teste manual — o segredo vive no cofre `.chaves/dr-libertad.env`, **NUNCA** colar o valor aqui:
 ```powershell
@@ -103,7 +93,7 @@ curl -H "Authorization: Bearer %CRON_SECRET%" "https://www.drlibertad.com/api/pu
 
 **Status: ✅ Concluída em 2026-05-30**
 
-Todos os passos concluídos. (Cadência **atual** = ver "Cadência diária de publicação" no topo: 6 posts/dia, 4 Reels + 2 carrosséis. O "3 posts/dia" foi só o estado inicial de 05/2026.)
+Todos os passos concluídos. (Cadência **atual** = ver "Cadência diária de publicação" no topo, que aponta para a fonte única `src/lib/day.ts`. O "3 posts/dia" foi só o estado inicial de 05/2026.)
 
 Primeiro post publicado: ID `18082397880445842` — "A Perfeição é Inimiga do Bem"
 
