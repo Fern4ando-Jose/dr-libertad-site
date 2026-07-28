@@ -54,7 +54,13 @@ export function normalizeContentJson(obj: unknown): NormalizedContent {
 export function missingEssentialContent(c: { postTitle: string; slides: string[]; cta: string }): string[] {
   const miss: string[] = [];
   if (!c.postTitle.trim()) miss.push("postTitle");
-  if (c.slides.length === 0) miss.push("slides");
+  // GeneratedContent.slides pede 2-3 insights (comentário do tipo). Com só 1, o slide
+  // acaba sendo quase o título reescrito (ex.: título "...duele más" + slide "...duele
+  // más que el dolor de cambiar.") — a dedup de título×slide não pega por não ser
+  // match EXATO, e o Reel/carrossel publica com 1 insight só: repete a mesma frase e
+  // fica curto (caso real 2026-07-27, reel ES "Nadie cambia..."). Regenera em vez de
+  // publicar abaixo do mínimo do spec.
+  if (c.slides.length < 2) miss.push("slides");
   if (!c.cta.trim()) miss.push("cta");
   return miss;
 }
