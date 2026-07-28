@@ -101,6 +101,25 @@ export interface IllustrationResult {
   attempts?: number;   // quantas gerações foram necessárias até aprovar (ou desistir)
   qaReason?: string;   // motivo do último veredito do QA (útil no dryrun/preview)
   cached?: boolean;    // true quando a URL veio do cache de 24h (gasto fal = 0)
+  // TRANSITÓRIA vs CONTEÚDO (2026-07-27): quando url=null, distingue POR QUE falhou.
+  // transient=true  → INFRA/BILLING: NENHUMA imagem foi gerada (saldo fal esgotado
+  //   → HTTP 403 "Exhausted balance", 429/5xx, rede caída, FAL_KEY ausente). NÃO é
+  //   culpa do TEMA — pode ilustrar assim que o saldo/provedor voltar. O chamador deve
+  //   tratar como falha RECUPERÁVEL (retry no mesmo dia; NÃO colocar o tema em quarentena).
+  // transient=false/omitido → CONTEÚDO: a imagem FOI gerada mas o juiz REPROVOU (anatomia,
+  //   texto, tom) → o tema pode ser genuinamente difícil de ilustrar; desistência dura +
+  //   quarentena são corretas (não bater no mesmo muro queimando orçamento).
+  // Isto conserta a raiz de "carrossel #4/#5 desiste o dia todo" quando a fal fica sem
+  // saldo: antes, um 403 de billing derrubava a vaga (hard) E queimava o tema por 7d.
+  transient?: boolean;
+}
+
+// Decisão PURA/testável: uma capa que FALHOU (url=null) representa uma falha
+// TRANSITÓRIA (infra/billing) e portanto RECUPERÁVEL? true → o chamador faz retry
+// suave no mesmo dia e NÃO coloca o tema em quarentena. false → falha de conteúdo
+// (QA reprovou) → desistência dura + quarentena. Sucesso (url≠null) nunca é "falha".
+export function isTransientCoverFailure(ill: IllustrationResult): boolean {
+  return ill.url === null && ill.transient === true;
 }
 
 // Opções de geração — controlam o gasto na fal por caminho de chamada.
@@ -410,8 +429,8 @@ export async function generateIllustration(subject: string, cat: string, opts: G
   // Lê no momento da chamada (igual CRON_SECRET) — evita leitura em hora errada do build.
   const FAL_KEY = process.env.FAL_KEY;
   const FAL_MODEL = process.env.FAL_MODEL || "fal-ai/gemini-3.1-flash-image-preview";
-  if (!FAL_KEY) return { url: null, error: "FAL_KEY ausente no runtime" };
-  if (!subject)  return { url: null, error: "subject vazio" };
+  if (!FAL_KEY) return { url: null, error: "FAL_KEY ausente no runtime", transient: true }; // infra: chave some do runtime, volta sem redeploy
+  if (!subject)  return { url: null, error: "subject vazio" }; // dado/config (não-transitório): retry não conserta
 
   const maxTries = Math.max(1, opts.maxTries ?? MAX_TRIES);
   const useCache = opts.useCache ?? true;
@@ -467,7 +486,10 @@ export async function generateIllustration(subject: string, cat: string, opts: G
   const valid = gens.filter((g): g is { url: string } => !!g.url);
   if (!valid.length) {
     if (useCache) await clearIllustrationClaim(key); // libera a vaga p/ não travar 24h
-    return { url: null, error: `nenhuma imagem gerada. Último: ${gens[gens.length - 1]?.error ?? "?"}`, model: FAL_MODEL, attempts: maxTries };
+    // NENHUMA imagem gerada = falha de INFRA/BILLING (fal 403 saldo esgotado, 429/5xx,
+    // rede) — não é culpa do tema. transient=true → o chamador faz retry no mesmo dia e
+    // NÃO coloca o tema em quarentena (era o bug: um 403 de billing queimava o tema 7d).
+    return { url: null, error: `nenhuma imagem gerada. Último: ${gens[gens.length - 1]?.error ?? "?"}`, model: FAL_MODEL, attempts: maxTries, transient: true };
   }
   const judged = await Promise.all(valid.map(async (g) => ({ url: g.url, v: await judgeImage(g.url, automation, meta) })));
   // Salva TODA capa reprovada (mesmo quando outra passou) → o dono revê em
@@ -483,6 +505,7 @@ export async function generateIllustration(subject: string, cat: string, opts: G
       model: FAL_MODEL,
       attempts: maxTries,
       qaReason: judged.map((j) => j.v.reason).join(" | "),
+      transient: false, // imagem FOI gerada mas reprovada = CONTEÚDO → desistência dura + quarentena (correto)
     };
   }
   const best = approved[0];
