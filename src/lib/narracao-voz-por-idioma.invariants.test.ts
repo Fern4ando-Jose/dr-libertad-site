@@ -7,6 +7,7 @@
 // Ele então escolheu, ouvindo 6 amostras, a "Candidata 3 — Bill" (ElevenLabs).
 import { describe, it, expect } from "vitest";
 import { wordsFromElevenLabsTimestamps, splitWords } from "./narration-sync";
+import { idiomaDaVozBate } from "./narration";
 
 // Espelha VOZ_POR_IDIOMA de src/lib/narration.ts — se lá mudar, aqui quebra (de propósito).
 const VOZ_POR_IDIOMA: Record<string, { provedor: string; voz: string; speed: number }> = {
@@ -82,5 +83,31 @@ describe("tempos NATIVOS do ElevenLabs (dispensam a transcrição paga)", () => 
     const duracao = w[w.length - 1].end;
     expect(duracao).toBeGreaterThan(0);
     expect(duracao).toBeCloseTo("fim da fala".length * 0.1, 5);
+  });
+});
+
+describe("guarda de idioma da voz (defeito real 2026-07-28: Reel ES saiu com voz em inglês)", () => {
+  // A causa NÃO era os parâmetros (language_boost=Spanish, english_normalization=false
+  // estavam certos) — era a MiniMax devolvendo áudio no idioma errado, e a checagem de
+  // verificação FORÇAVA "spa" no Scribe, escondendo o defeito. Agora o Scribe DETECTA.
+  it("idioma detectado bate com o esperado → não bloqueia", () => {
+    expect(idiomaDaVozBate("spa", "spa", 0.95)).toBe(true);
+  });
+
+  it("idioma detectado DIFERENTE do esperado, com confiança alta → BLOQUEIA (o caso real)", () => {
+    expect(idiomaDaVozBate("spa", "eng", 0.97)).toBe(false);
+  });
+
+  it("detecção com baixa confiança não é motivo pra descartar a voz (fail-open)", () => {
+    expect(idiomaDaVozBate("spa", "eng", 0.3)).toBe(true);
+  });
+
+  it("Scribe sem detecção nenhuma → não bloqueia (fail-open, nunca quebra o pipeline)", () => {
+    expect(idiomaDaVozBate("spa", null, 0)).toBe(true);
+    expect(idiomaDaVozBate("spa", undefined, 0)).toBe(true);
+  });
+
+  it("confiança na fronteira (0.5) ainda é levada em conta", () => {
+    expect(idiomaDaVozBate("por", "eng", 0.5)).toBe(false);
   });
 });

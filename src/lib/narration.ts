@@ -123,17 +123,36 @@ async function writeCachedNarration(
   } catch { /* cache é best-effort */ }
 }
 
-// ─── Transcrição da PRÓPRIA voz gerada (o relógio fino) ───────────────────────
+// ─── GUARDA DE IDIOMA DA VOZ (2026-07-28) ─────────────────────────────────────
+// Defeito real: um Reel ES saiu com a voz falando INGLÊS — a MiniMax devolveu áudio
+// no idioma errado (falha do provedor, não dos parâmetros: language_boost=Spanish e
+// english_normalization=false estavam corretos). Ninguém percebeu ANTES de publicar
+// porque a transcrição de verificação forçava `language_code=spa` — ou seja, pedíamos
+// pro Scribe ler como espanhol o que já era inglês, e ele obedecia sem reclamar. O
+// defeito ficava invisível até o dono OUVIR o post no ar.
+// Correção pela raiz: a transcrição de checagem para de FORÇAR o idioma e passa a
+// DETECTAR (Scribe devolve `language_code` + `language_probability`). Se o idioma
+// detectado não bate com o esperado (e a confiança é alta o bastante pra confiar no
+// detector), a narração inteira é DESCARTADA — o Reel cai pro fallback já existente
+// (sem voz, só música), nunca publica áudio no idioma errado.
+export function idiomaDaVozBate(esperado: string, detectado: string | null | undefined, prob: number): boolean {
+  if (!detectado) return true;         // Scribe não detectou nada → não bloqueia (fail-open)
+  if (!(prob >= 0.5)) return true;     // baixa confiança → não confia no detector, não bloqueia
+  return detectado === esperado;
+}
+
+// ─── Transcrição da PRÓPRIA voz gerada (o relógio fino + a guarda de idioma) ──
 // O MiniMax devolve `duration_ms` (quanto o áudio dura) mas NÃO devolve o tempo de
 // cada palavra — verificado no schema do endpoint. Então medimos com o Scribe, que
-// devolve `words: [{text,start,end}]`. É o mesmo caminho que o AnamnesisMed já usa
-// desde 2026-06-18 pra travar legenda na voz.
-// Fail-open: qualquer falha → [] e o Reel sai sincronizado pela duração real, só sem
-// a legenda palavra a palavra.
+// devolve `words: [{text,start,end}]` + `language_code`/`language_probability`. É o
+// mesmo caminho que o AnamnesisMed já usa desde 2026-06-18 pra travar legenda na voz.
+// Fail-open na SINCRONIA: qualquer falha de transcrição → [] e o Reel sai sincronizado
+// pela duração real, só sem a legenda palavra a palavra. Fail-CLOSED no IDIOMA: voz no
+// idioma errado nunca sai com `words` nem com `url` — ver languageMismatch abaixo.
 async function transcribeWords(
   audioUrl: string, lang: string, durationSec: number,
   automation: Automation, meta: Record<string, unknown>,
-): Promise<{ words: NarrationWord[]; error?: string }> {
+): Promise<{ words: NarrationWord[]; error?: string; languageMismatch?: boolean }> {
   const FAL_KEY = process.env.FAL_KEY;
   if (!FAL_KEY || !audioUrl) return { words: [], error: "sem chave/áudio p/ transcrever" };
   try {
@@ -142,7 +161,8 @@ async function transcribeWords(
       headers: { Authorization: `Key ${FAL_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         audio_url: audioUrl,
-        language_code: sttLanguageCode(lang),
+        // SEM language_code: forçar escondia o defeito (Scribe "lia" inglês como
+        // espanhol sem reclamar). Omitido, o Scribe DETECTA — é o que destrava a guarda.
         tag_audio_events: false, // sem "(laughter)" poluindo os tempos
         diarize: false,          // é uma voz só
       }),
@@ -152,6 +172,9 @@ async function transcribeWords(
       return { words: [], error: `STT HTTP ${res.status}: ${body.slice(0, 160)}` };
     }
     const data = await res.json();
+    const esperado = sttLanguageCode(lang);
+    const detectado = typeof data?.language_code === "string" ? data.language_code : null;
+    const prob = Number(data?.language_probability ?? 0);
     const raw = Array.isArray(data?.words) ? (data.words as Array<Record<string, unknown>>) : [];
     const words: NarrationWord[] = raw
       .filter((w) => String(w?.type ?? "word") === "word")
@@ -165,8 +188,14 @@ async function transcribeWords(
       automation, platform: "fal", operation: "narration-stt", model: FAL_STT_MODEL,
       units: Math.max(1, Math.round(durationSec)),
       costUsd: Math.max(0.005, (durationSec / 60) * STT_COST_PER_MIN),
-      meta: { ...meta, lang, durationSec, words: words.length },
+      meta: { ...meta, lang, durationSec, words: words.length, detectado, prob },
     });
+    if (!idiomaDaVozBate(esperado, detectado, prob)) {
+      return {
+        words: [], languageMismatch: true,
+        error: `VOZ NO IDIOMA ERRADO: esperava "${esperado}", Scribe detectou "${detectado}" (confiança ${prob.toFixed(2)}) — narração descartada`,
+      };
+    }
     if (!words.length) return { words: [], error: "STT sem palavras" };
     return { words };
   } catch (e) {
@@ -289,10 +318,18 @@ export async function generateNarration(
 
     // Só transcreve quando a voz NÃO trouxe os tempos (ES sempre; PT só se os nativos
     // vierem vazios). Transcreve a URL da fal (já pronta), não espera o re-hosting.
+    // Este é TAMBÉM o único ponto que checa o IDIOMA da voz gerada (guarda acima) — por
+    // isso ES (que sempre passa por aqui) fica protegido; PT com tempos nativos não passa
+    // por esta checagem (limite conhecido: ver comentário da guarda de idioma).
     let words = wordsNativas;
     let erroTempos: string | undefined;
     if (!words.length) {
       const stt = await transcribeWords(falUrl, lang, durationSec, automation, { ...opts.meta, topic });
+      if (stt.languageMismatch) {
+        // NÃO cacheia, NÃO devolve url: a voz saiu no idioma errado — o Reel cai no
+        // fallback já existente (sem narração, só música), nunca publica áudio errado.
+        return { url: null, error: stt.error };
+      }
       words = stt.words;
       erroTempos = stt.error;
     }
