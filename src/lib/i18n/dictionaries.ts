@@ -384,9 +384,80 @@ export const pt = {
     ],
     contactNote: "Dúvidas sobre privacidade? Fale com contato@drlibertad.com.",
   },
+  terms: {
+    eyebrow: "LEGAL",
+    title: "Termos de Serviço",
+    updated: "Última atualização: julho de 2026",
+    intro:
+      "Estes termos regem o uso deste site e do perfil @dr.liberdade.br (e sua versão em espanhol, @dr.liberdad) no Instagram. Ao acessar o site, seguir o perfil, comentar ou nos enviar mensagem, você concorda com eles.",
+    sections: [
+      {
+        h: "1. Quem somos",
+        p: [
+          "Dr. Liberdade (“nós”) é uma marca editorial que produz conteúdo sobre atenção, dopamina e comportamento, publicado neste site e no Instagram. Contato: contato@drlibertad.com.",
+        ],
+      },
+      {
+        h: "2. O que oferecemos",
+        p: [
+          "Conteúdo editorial (artigos, posts, vídeos), uma newsletter, um teste de autoavaliação e, quando disponíveis, livros e materiais para venda. O acesso ao conteúdo gratuito não exige cadastro; a newsletter e o teste pedem apenas o e-mail.",
+        ],
+      },
+      {
+        h: "3. Não é aconselhamento médico ou psicológico",
+        p: [
+          "O conteúdo é educacional e filosófico: fala sobre atenção, hábitos e dopamina de forma geral, não é diagnóstico, tratamento ou substituto de acompanhamento médico, psicológico ou psiquiátrico. Se você suspeita de um problema de saúde, procure um profissional.",
+        ],
+      },
+      {
+        h: "4. Sua conduta",
+        p: [
+          "Ao comentar ou nos escrever, você concorda em não usar o espaço para spam, discurso de ódio, assédio, conteúdo ilegal ou que viole direitos de terceiros. Podemos ocultar, apagar ou deixar de responder conteúdo que viole isso.",
+        ],
+      },
+      {
+        h: "5. Propriedade intelectual",
+        p: [
+          "Os textos, imagens, vídeos e a identidade visual da marca pertencem à Dr. Liberdade (ou aos seus licenciantes, no caso de trilhas sonoras com crédito próprio — ver /créditos) e não podem ser copiados ou redistribuídos comercialmente sem autorização.",
+        ],
+      },
+      {
+        h: "6. Links e serviços de terceiros",
+        p: [
+          "O site e o perfil podem linkar para serviços de terceiros (Instagram, provedores de e-mail, plataformas de venda). Não somos responsáveis pelo conteúdo, disponibilidade ou práticas de privacidade desses terceiros — cada um tem seus próprios termos.",
+        ],
+      },
+      {
+        h: "7. Isenção de garantias",
+        p: [
+          "O site e o conteúdo são oferecidos “como estão”, sem garantia de disponibilidade contínua, ausência de erros ou de que atendam a um propósito específico.",
+        ],
+      },
+      {
+        h: "8. Limitação de responsabilidade",
+        p: [
+          "Na medida permitida por lei, a Dr. Liberdade não se responsabiliza por danos indiretos decorrentes do uso do site ou do conteúdo, incluindo decisões tomadas com base nele.",
+        ],
+      },
+      {
+        h: "9. Alterações",
+        p: [
+          "Podemos atualizar estes termos. Mudanças relevantes serão sinalizadas aqui, com nova data de atualização no topo.",
+        ],
+      },
+      {
+        h: "10. Lei aplicável",
+        p: [
+          "Estes termos são regidos pela lei brasileira. Dúvidas ou disputas devem ser tratadas, em primeiro lugar, diretamente com a gente.",
+        ],
+      },
+    ],
+    contactNote: "Dúvidas sobre estes termos? Fale com contato@drlibertad.com.",
+  },
   footer: {
     tagline: "Filosofia aplicada à atenção e ao comportamento.",
     legal: "Privacidade",
+    terms: "Termos",
     links: [
       { label: "Manifesto", id: "manifesto" },
       { label: "Tópicos", id: "topics" },
@@ -773,9 +844,80 @@ export const es: Dict = {
     ],
     contactNote: "¿Dudas sobre privacidad? Escribe a contacto@drlibertad.com.",
   },
+  terms: {
+    eyebrow: "LEGAL",
+    title: "Términos de Servicio",
+    updated: "Última actualización: julio de 2026",
+    intro:
+      "Estos términos rigen el uso de este sitio y del perfil @dr.liberdad (y su versión en portugués, @dr.liberdade.br) en Instagram. Al acceder al sitio, seguir el perfil, comentar o escribirnos, aceptas estos términos.",
+    sections: [
+      {
+        h: "1. Quiénes somos",
+        p: [
+          "Dr. Libertad (“nosotros”) es una marca editorial que produce contenido sobre atención, dopamina y comportamiento, publicado en este sitio y en Instagram. Contacto: contacto@drlibertad.com.",
+        ],
+      },
+      {
+        h: "2. Qué ofrecemos",
+        p: [
+          "Contenido editorial (artículos, publicaciones, videos), una newsletter, un test de autoevaluación y, cuando estén disponibles, libros y materiales a la venta. El acceso al contenido gratuito no requiere registro; la newsletter y el test solo piden tu correo.",
+        ],
+      },
+      {
+        h: "3. No es consejo médico ni psicológico",
+        p: [
+          "El contenido es educativo y filosófico: habla sobre atención, hábitos y dopamina de forma general, no es diagnóstico, tratamiento ni sustituto de acompañamiento médico, psicológico o psiquiátrico. Si sospechas un problema de salud, consulta a un profesional.",
+        ],
+      },
+      {
+        h: "4. Tu conducta",
+        p: [
+          "Al comentar o escribirnos, aceptas no usar el espacio para spam, discurso de odio, acoso, contenido ilegal o que viole derechos de terceros. Podemos ocultar, borrar o dejar de responder contenido que lo viole.",
+        ],
+      },
+      {
+        h: "5. Propiedad intelectual",
+        p: [
+          "Los textos, imágenes, videos y la identidad visual de la marca pertenecen a Dr. Libertad (o a sus licenciantes, en el caso de pistas de audio con crédito propio — ver /creditos) y no pueden copiarse ni redistribuirse comercialmente sin autorización.",
+        ],
+      },
+      {
+        h: "6. Enlaces y servicios de terceros",
+        p: [
+          "El sitio y el perfil pueden enlazar a servicios de terceros (Instagram, proveedores de correo, plataformas de venta). No somos responsables del contenido, disponibilidad o prácticas de privacidad de esos terceros — cada uno tiene sus propios términos.",
+        ],
+      },
+      {
+        h: "7. Exención de garantías",
+        p: [
+          "El sitio y el contenido se ofrecen “tal cual”, sin garantía de disponibilidad continua, ausencia de errores o de que cumplan un propósito específico.",
+        ],
+      },
+      {
+        h: "8. Limitación de responsabilidad",
+        p: [
+          "En la medida permitida por la ley, Dr. Libertad no se responsabiliza por daños indirectos derivados del uso del sitio o del contenido, incluyendo decisiones tomadas con base en él.",
+        ],
+      },
+      {
+        h: "9. Cambios",
+        p: [
+          "Podemos actualizar estos términos. Los cambios relevantes se señalarán aquí, con nueva fecha de actualización en la parte superior.",
+        ],
+      },
+      {
+        h: "10. Ley aplicable",
+        p: [
+          "Estos términos se rigen por la ley brasileña. Dudas o disputas deben tratarse, en primer lugar, directamente con nosotros.",
+        ],
+      },
+    ],
+    contactNote: "¿Dudas sobre estos términos? Escribe a contacto@drlibertad.com.",
+  },
   footer: {
     tagline: "Filosofía aplicada a la atención y al comportamiento.",
     legal: "Privacidad",
+    terms: "Términos",
     links: [
       { label: "Manifiesto", id: "manifesto" },
       { label: "Temas", id: "topics" },

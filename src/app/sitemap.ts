@@ -14,6 +14,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "x-default": `${base}/pt/privacidade`,
   };
 
+  const terms = {
+    "pt-BR": `${base}/pt/termos`,
+    "es-ES": `${base}/es/termos`,
+    "x-default": `${base}/pt/termos`,
+  };
+
   const quiz = {
     "pt-BR": `${base}/pt/quiz`,
     "es-ES": `${base}/es/quiz`,
@@ -96,6 +102,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.3,
       alternates: { languages: privacy },
+    },
+    {
+      url: `${base}/pt/termos`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+      alternates: { languages: terms },
+    },
+    {
+      url: `${base}/es/termos`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+      alternates: { languages: terms },
     },
   ];
 }
