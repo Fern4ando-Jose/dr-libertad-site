@@ -1,5 +1,61 @@
 # Organograma — Automação Dr. Libertad
 
+> ⚠️ **LEIA ANTES (nota de 2026-07-27):** as seções abaixo de *"Fluxo completo de publicação"*
+> descrevem a **era antiga** desta automação — crons na Vercel, 3 slots (manhã/tarde/noite),
+> uma só conta em espanhol, só carrossel. **Hoje não é mais assim:** o agendamento vive em
+> **GitHub Actions**, são **2 contas** (@dr.liberdad ES · @dr.liberdade.br PT), **4 vagas/dia
+> por idioma** (1 carrossel + 3 Reels) e existe uma camada de **auto-cura** que não está
+> documentada ali. **Fonte única da cadência: `src/lib/day.ts`** (`RUN_HOUR_BRT` →
+> `ACTIVE_RUNS` → `POSTS_PER_DAY`) — nunca um número escrito à mão.
+>
+> Esta nota existe porque documento velho não é neutro: em 27/07 uma cópia esquecida dizendo
+> "6 posts/dia" quase foi tomada como verdade numa varredura. Reescrever o restante é trabalho
+> de uma sessão dedicada; a seção **Watchdog** logo abaixo está atualizada e é confiável.
+
+---
+
+## Watchdog — auto-cura das vagas (atualizado 2026-07-27)
+
+O agendador do GitHub **atrasa e derruba** crons. Três peças cobrem isso; todas atrás de
+`Bearer CRON_SECRET`:
+
+| Rota | Quem chama | O que faz |
+|---|---|---|
+| `src/app/api/runs-status/route.ts` | `catchup.yml` (30 em 30 min) | **Só relata**: quais vagas do dia venceram e não publicaram |
+| `src/app/api/catchup/route.ts` | agendador externo (cron-job.org, 15 em 15 min) | **Relata e redispara** direto pela API do GitHub, com `GH_DISPATCH_TOKEN` |
+| `src/app/api/guardian/route.ts` | `guardiao.yml` (23h40 BRT) | Confere o dia contra o **próprio Instagram** (Graph API), grava em `daily_report` e devolve `missing[]` para a última varredura |
+
+**Como o redisparo funciona (e o defeito que ficou 13 dias):** desde a fusão ES+PT de
+**2026-07-14** existe **um workflow por FORMATO**, não por idioma — o idioma vai por
+`inputs.lang`. `catchup.yml` e `guardiao.yml` foram atualizados na época; a rota
+`/api/catchup` **não**, e seguiu montando `` `${base}-pt.yml` ``. Todo redisparo em português
+falhava com **HTTP 422** (*"Workflow does not have 'workflow_dispatch' trigger"* — a API do
+GitHub guarda o registro do arquivo apagado com `state=deleted`, por isso o `GET` responde 200
+e só o disparo quebra). Vaga PT atrasada **se perdia**; o espanhol se curava sozinho.
+Corrigido em **2026-07-27** (PR #194, `4e7573c2`).
+
+- **Fonte única do mapa run→workflow: `src/lib/workflows.ts`.** Não recopiar em lugar nenhum.
+- `lang` vai **sempre** como input: omitir faz o job cair no default `es` — uma recuperação de
+  PT publicaria na conta errada, pior que não publicar.
+- `publish: "yes"` só nos Reels; o carrossel não declara esse input e o GitHub responde **422**.
+- **Trava contra recaída:** `src/lib/workflows.invariants.test.ts` lê `.github/workflows/` do
+  **disco** e reprova se o código citar workflow inexistente, se `workflowFor` devolver caminho
+  que não existe, se um input não declarado for enviado, ou se os `case` em bash divergirem do
+  mapa TypeScript. Provada por mutação: o defeito reintroduzido derruba **5** verificações.
+
+```
+   cron-job.org ──15min──►  /api/catchup ──┐
+                                            ├──► POST api.github.com/.../<workflow>.yml/dispatches
+   catchup.yml  ──30min──►  /api/runs-status┘         inputs: { run, lang, publish? }
+                                                                    │
+   guardiao.yml ──23h40──►  /api/guardian ──► daily_report ─────────┘  (última varredura)
+        │                        │
+        │                        └──► confere no Instagram (Graph API) — pega post-fantasma
+        └──► ⚠️ no log do Actions quando o dia não fechou
+```
+
+---
+
 ## Fluxo completo de publicação
 
 ```
