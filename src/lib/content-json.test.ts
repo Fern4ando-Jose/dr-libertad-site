@@ -63,14 +63,21 @@ describe("normalizeContentJson — coação de tipos (bug C4)", () => {
 
 describe("missingEssentialContent — regenerar em vez de publicar vazio (bug C4)", () => {
   it("conteúdo completo → nada faltando", () => {
-    expect(missingEssentialContent({ postTitle: "t", slides: ["a"], cta: "c?" })).toEqual([]);
+    expect(missingEssentialContent({ postTitle: "t", slides: ["a", "b"], cta: "c?" })).toEqual([]);
   });
 
   it("slides vazio → 'slides' faltando (senão publicaria carrossel sem insight)", () => {
     expect(missingEssentialContent({ postTitle: "t", slides: [], cta: "c?" })).toEqual(["slides"]);
   });
 
+  // Caso real 2026-07-27 (reel ES "Nadie cambia..."): o haiku devolveu só 1 slide,
+  // quase idêntico ao título — publicou repetindo a mesma frase e ficou curto. O
+  // spec pede 2-3 insights (comentário de GeneratedContent.slides); 1 é malformado.
+  it("slides com só 1 item → 'slides' faltando (spec pede 2-3 insights)", () => {
+    expect(missingEssentialContent({ postTitle: "t", slides: ["a"], cta: "c?" })).toEqual(["slides"]);
+  });
+
   it("título/cta em branco (só espaços) contam como ausentes", () => {
-    expect(missingEssentialContent({ postTitle: "  ", slides: ["a"], cta: "" })).toEqual(["postTitle", "cta"]);
+    expect(missingEssentialContent({ postTitle: "  ", slides: ["a", "b"], cta: "" })).toEqual(["postTitle", "cta"]);
   });
 });
