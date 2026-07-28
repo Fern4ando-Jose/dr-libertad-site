@@ -9,6 +9,7 @@ import type { ThemeWho } from "@/lib/footage-subject";
 import { generateNarration } from "@/lib/narration";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
 import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome, pinnedTopicsForDay, recordQaFail, recentQaFailedTopics } from "@/lib/run-ledger";
+import { buildAttentionMechanics } from "@/lib/attention-structure";
 import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun, RANDOM_POOL } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
@@ -515,6 +516,8 @@ MOTOR DE ATENCIÓN (6 principios verificados con fuente — Playbook de Atenció
 - CREDIBILIDAD (REGLA DURA — si la violas, el post se DESCARTA): PROHIBIDO inventar datos con AUTORIDAD: porcentajes ("el 67%"), estudios o investigaciones ("según un estudio", "los estudios dicen"), universidades o instituciones nombradas (Harvard, Pew, OMS…), "X de cada Y" ("1 de cada 3"), y años o fechas concretas ("en 2024"): la frase debe ser ATEMPORAL. EN ESPECIAL, JAMÁS cites multiplicadores de retención/alcance ("+85% de retención = 2,8× alcance" y similares): son FALSOS (refutados). Si no es un dato REAL y verificable con fuente, NO lo pongas — la fuerza viene de la VERDAD cruda, no de cifras falsas. SÍ puedes usar un número concreto de COMPORTAMIENTO como gancho ("revisas el móvil decenas de veces al día"), pero JAMÁS presentado como estadística citada ni atribuido a nadie.
 - BREVEDAD + COMPLETION: los slides son CORTOS de verdad — máx 80 chars, frases que se leen en 1-2 segundos, para que la pieza se vea ENTERA (completion + rewatch dominan la distribución). El PT-BR ya sale así de punzante; el ES también debe serlo (nada de slides de 110 chars).
 
+${buildAttentionMechanics()}
+
 Contexto investigado:
 ${context}
 
@@ -523,9 +526,9 @@ Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
   "postTitle": "GANCHO que clava el scroll, máx 55 chars: preferí una PREGUNTA provocadora dirigida a 'tú' que reencuadre el tema (o un giro crudo y concreto). Osado e incómodo, no cómodo. En ${L}",
   "postBody": "artículo en markdown mín 300 palabras, TODO EN ${L}",
   "slides": [
-    "insight 1 — GANCHO de MÁXIMO 80 chars: una PREGUNTA filosa o una afirmación cruda que IMPLIQUE a 'tú' y abra una brecha de curiosidad. NO repitas el postTitle: el slide 1 DESARROLLA el gancho con una IDEA NUEVA, no lo replantea con otras palabras",
-    "insight 2 — frase contundente de MÁXIMO 80 chars que profundiza",
-    "insight 3 — reencuadre o micro-método GUARDABLE de MÁXIMO 80 chars que remata"
+    "insight 1 (RANURA 1 · gancho) — GANCHO de MÁXIMO 80 chars: una PREGUNTA filosa o una afirmación cruda que IMPLIQUE a 'tú' y abra una brecha de curiosidad. NO repitas el postTitle: el slide 1 DESARROLLA el gancho con una IDEA NUEVA, no lo replantea con otras palabras",
+    "insight 2 (RANURA 2+3 · verdad desmitificadora + micro-prueba) — frase contundente de MÁXIMO 80 chars: UNA verdad que rompe un mito o reencuadra la culpa, apoyada en un MECANISMO real (por qué pasa) — 'no es X; es Y, porque…'. Sin cifra inventada. Es el insight GUARDABLE",
+    "insight 3 (RANURA 4 · frase-espejo) — MÁXIMO 80 chars en 1ª/2ª persona, tan EXACTA que la persona se reconoce y la ENVÍA a un amigo ('haces [conducta íntima] y crees que es solo cosa tuya; no lo es'). Remata dando pertenencia, no vergüenza"
   ],
   "cta": "CTA de ENVÍO (send), 60-100 chars, en ${L}: una orden BREVE e imperativa que NOMBRA al DESTINATARIO concreto definido por ESTE tema, para que la persona MANDE/ETIQUETE la pieza a quien la necesita — patrón 'Manda esto a quien…' / 'Etiqueta a la persona que…' (define al destinatario por el tema: 'a quien todavía cree que…', 'a esa persona que…', 'a alguien que sigue…' — NUNCA el 'con alguien' genérico ni una pregunta suelta para comentar). Es una llamada a COMPARTIR con destinatario nombrado",
   "instagramCaption": "leyenda IG máx 2200 chars: gancho fuerte en la 1ª línea + desarrollo + cierre con CTA de SEGUIR a ${acc.handle} (con razón provocadora de marca) + guardar (🔖) + ENVIAR (📩) diciendo A QUIÉN mandárselo (destinatario nombrado, ligado al tema — no 'compártelo con alguien' genérico)${guideCaptionRule} + 3-5 hashtags ESPECÍFICAS DEL TEMA de este post (p.ej. dopamina→#dopamina #detoxdigital; soledad→#soledad #vínculos), NUNCA la misma etiqueta de marca en todos — como MÁXIMO una de marca y solo si encaja, en ${L}",
