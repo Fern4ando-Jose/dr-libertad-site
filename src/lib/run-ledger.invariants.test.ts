@@ -4,7 +4,7 @@
 // FALTAVA — modela o cenário real (cross-formato/idioma/dia por vaga), não a rotação
 // pura. Foi o buraco que deixou "Si no pones límites" repetir reel+carrossel em 24/06.
 import { describe, it, expect } from "vitest";
-import { hasOtherVaga, publishedId, shouldStopRetrying, slotSkipGate, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS, orphanedPairs, publishFailureMode, runsForAutomation, shouldReopenOnBudgetChange, containerStatusOutcome } from "./run-ledger";
+import { hasOtherVaga, publishedId, shouldStopRetrying, slotSkipGate, previewBudgetVerdict, isHardPublishBlock, MAX_PUBLISH_ATTEMPTS, orphanedPairs, publishFailureMode, runsForAutomation, shouldReopenOnBudgetChange, containerStatusOutcome } from "./run-ledger";
 
 // Erro REAL do incidente (carrossel PT "O casal fake…", 26/06): o media_publish do IG
 // devolveu este corpo, MAS o post foi pro feed assim mesmo (action-block publica-e-erra).
@@ -114,6 +114,33 @@ describe("disjuntor de publicação (anti-martelo / anti-bloqueio de conta)", ()
     it("force=1 (backfill manual) burla as DUAS portas", () => {
       expect(slotSkipGate(true, MAX_PUBLISH_ATTEMPTS, true)).toBe(null);
       expect(slotSkipGate(false, MAX_PUBLISH_ATTEMPTS, true)).toBe(null);
+    });
+  });
+
+  // previewBudgetVerdict — o 402 do preview NÃO pode abortar o Reel CLÁSSICO. Quando o
+  // orçamento (fal) estoura, o clássico (illus=1) degrada p/ FOOTAGE (via de reserva,
+  // grátis) em vez de derrubar o slot das 19h. O Reel regular (sem fal) mantém o 402 +
+  // disjuntor. Bug de raiz: o gate estava no TOPO do preview, indiferente ao illus → a
+  // "cascata pra footage" do workflow re-batia no mesmo gate e 402ava de novo.
+  describe("previewBudgetVerdict — 402 do preview não derruba o clássico (footage assume)", () => {
+    it("orçamento OK → proceed (gera ilustração normalmente), independe de illus/flag", () => {
+      expect(previewBudgetVerdict(true, false, true, true)).toBe("proceed");
+      expect(previewBudgetVerdict(true, false, false, false)).toBe("proceed");
+    });
+    it("estourou + CLÁSSICO + flag LIGADO → degrade-footage (pula fal, footage assume, sem 402)", () => {
+      expect(previewBudgetVerdict(false, false, true, true)).toBe("degrade-footage");
+    });
+    it("FLAG DESLIGADO (default) → clássico volta a block-402 (deploy dormente, byte-idêntico)", () => {
+      expect(previewBudgetVerdict(false, false, true, false)).toBe("block-402");
+    });
+    it("estourou + Reel REGULAR (sem illus) → block-402 sempre (disjuntor; flag não muda)", () => {
+      expect(previewBudgetVerdict(false, false, false, false)).toBe("block-402");
+      expect(previewBudgetVerdict(false, false, false, true)).toBe("block-402");
+    });
+    it("irmã da MESMA vaga já publicou → proceed SEMPRE (atomicidade ES+PT, nunca órfão)", () => {
+      // vence o estouro de orçamento p/ ambos os formatos e independe do flag — completa o par
+      expect(previewBudgetVerdict(false, true, true, false)).toBe("proceed");
+      expect(previewBudgetVerdict(false, true, false, false)).toBe("proceed");
     });
   });
 });

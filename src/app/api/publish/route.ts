@@ -8,7 +8,7 @@ import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, select
 import type { ThemeWho } from "@/lib/footage-subject";
 import { generateNarration } from "@/lib/narration";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome, pinnedTopicsForDay, recordQaFail, recentQaFailedTopics } from "@/lib/run-ledger";
+import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, previewBudgetVerdict, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome, pinnedTopicsForDay, recordQaFail, recentQaFailedTopics } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun, RANDOM_POOL } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
@@ -858,23 +858,43 @@ export async function GET(req: NextRequest) {
     const topic = topicOverride ?? await getFreshTopicForRun(now, r, lang);
     const cat = TOPIC_CAT[topic] ?? "freedom";
 
-    // Teto: o preview é o pipeline do Reel diário.
+    // Teto: o preview é o pipeline do Reel diário. O gate mora AQUI (topo) e protege a
+    // ÚNICA despesa paga do preview — a ilustração da fal (só o CLÁSSICO, illus=1, a usa).
+    // Footage, pesquisa e render são GRÁTIS. Regra pura previewBudgetVerdict (invariante):
+    const wantsIllus = sp.get("illus") === "1";
     const gate = await checkBudget("ig-reels", EST_RUN_COST.preview);
+    // Marcado aqui, consumido no passo de ilustração abaixo: orçamento estourado no
+    // clássico → pula a fal e o footage (via de RESERVA) assume a capa.
+    let illustrationBudgetBlocked = false;
     if (!gate.ok) {
-      // ATOMICIDADE ES+PT (espelha o gate do carrossel): se a língua-IRMÃ desta MESMA
-      // vaga JÁ publicou, NÃO bloqueia por orçamento — senão o par vira ÓRFÃO (foi o
-      // PT do run 0 em 07/07: ES publicou 14:27, PT morreu no 402 do preview).
-      // Bounded: no máx +1 preview por vaga; footage/pesquisa vêm do cache compartilhado.
-      if (await siblingPublished(dayBRT(now), r, lang)) {
-        // segue p/ completar o par — não bloqueia
-      } else {
-        // DISJUNTOR: 402 de orçamento é motivo que NÃO muda hoje (balde DIÁRIO). Sem o
+      // ATOMICIDADE ES+PT: se a língua-IRMÃ da MESMA vaga JÁ publicou, o gate NÃO bloqueia
+      // (senão o par vira ÓRFÃO — PT run 0, 07/07: ES publicou 14:27, PT morreu no 402).
+      const sibling = await siblingPublished(dayBRT(now), r, lang);
+      // FLAG (default OFF): deploy DORMENTE. Desligado → clássico volta a "block-402"
+      // (comportamento atual byte-idêntico). O dono LIGA por env (P7), sem novo deploy.
+      const classicFootageFallback = (process.env.REEL_CLASSIC_FOOTAGE_FALLBACK ?? "").toLowerCase() === "on";
+      const verdict = previewBudgetVerdict(gate.ok, sibling, wantsIllus, classicFootageFallback);
+      if (verdict === "degrade-footage") {
+        // CLÁSSICO (illus=1): degrada p/ FOOTAGE em vez de 402. Antes o 402 derrubava o
+        // slot das 19h inteiro — e a "cascata pra footage" do workflow re-batia neste
+        // MESMO gate (indiferente ao illus) e 402ava de novo. Agora a ilustração é pulada
+        // (nenhuma despesa fal) e o footage assume. NÃO conta bumpAttempt: o slot COMPLETA
+        // com footage (a whitelist garante ≥1 clipe → o Reel de footage sempre renderiza);
+        // o disjuntor existe p/ estancar a tempestade de REDISPARO — aqui não há falha a
+        // repetir. Só o conteúdo (haiku, cacheado) + footage-QA (capado em 12/reel,
+        // cacheado permanente) gastam ~US$0,01–0,07 p/ salvar o melhor slot do dia.
+        illustrationBudgetBlocked = true;
+      } else if (verdict === "block-402") {
+        // Reel REGULAR (footage é o produto primário, sem fal): mantém o DISJUNTOR
+        // documentado. 402 de orçamento é motivo que NÃO muda hoje (balde DIÁRIO); sem o
         // hard aqui, o curl do CI falhava ANTES de qualquer bumpAttempt → o catchup
-        // redisparava o workflow de 15 em 15 min até meia-noite (tempestade de 07/07).
-        // Subir o teto reabre a vaga (reopenCircuitForAutomation em /api/spend).
+        // redisparava de 15 em 15 min até meia-noite (tempestade de 07/07). Subir o teto
+        // reabre a vaga (reopenCircuitForAutomation em /api/spend).
         await bumpAttempt(dayBRT(now), r, lang, true);
         return NextResponse.json({ blocked: true, automation: "ig-reels", reason: `Orçamento diário estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)})`, gate }, { status: 402 });
       }
+      // verdict === "proceed": orçamento OK ou irmã já publicou (completa o par; a
+      // ilustração do 2º idioma vem do cache — bounded +1 preview por vaga).
     }
 
     // Base LÍNGUA-INDEPENDENTE compartilhada entre ES e PT (= MESMO vídeo): a
@@ -939,7 +959,11 @@ export async function GET(req: NextRequest) {
     // aprovada, redisparo não re-paga) e contabiliza na automação ig-reels.
     let illustrationUrl: string | null = null;
     let illustrationError: string | null = null;
-    if (sp.get("illus") === "1") {
+    if (wantsIllus && illustrationBudgetBlocked) {
+      // Orçamento estourado (sem irmã publicada): NÃO gera a fal — nenhuma despesa. A capa
+      // fica sem ilustração e o footage (via de reserva, montado acima) assume no workflow.
+      illustrationError = `Orçamento diário ig-reels estourado (gasto US$${gate.spent.toFixed(3)} + est US$${gate.est.toFixed(3)} > teto US$${gate.budget.toFixed(2)}) — capa sem ilustração; footage (reserva) assume.`;
+    } else if (wantsIllus) {
       const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { maxTries: 3, automation: "ig-reels", meta: { topic, lang } });
       illustrationUrl = ill.url ?? null;
       illustrationError = ill.error ?? null;
