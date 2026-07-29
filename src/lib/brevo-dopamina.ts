@@ -222,3 +222,67 @@ export async function sendPreviaEmail(input: {
     return { ok: false, gated: false, error: String(err) };
   }
 }
+
+// ── Faixa: e-mail de resultado do quiz por faixa (verde/amarelo/vermelho/critico) ──
+// Aprovado pelo dono em 2026-07-29 (prova: Marketing/DECISAO-EMAILS-FAIXA-2026-07-29.html).
+// Cada faixa puxa um trecho real de capítulo (verde→Cap3, amarelo→Cap5+6, vermelho→
+// Cap8+10, critico→Cap11+8) — textos em Marketing/EMAILS-POR-FAIXA-QUIZ.md. Enviado
+// TRANSACIONALMENTE logo após o E0, só para lead com faixa (veio do quiz). Só existe em
+// BR por ora (a copy ES ainda não foi escrita) — gated:no_template cobre ES honestamente,
+// igual ao padrão do E0.
+
+/** Nome de env com o ID do template Brevo da faixa, por faixa+idioma. */
+const FAIXA_TEMPLATE_ENV: Record<Faixa, Record<"br" | "es", string>> = {
+  verde: { br: "BREVO_TEMPLATE_DOPAMINA_FAIXA_VERDE_BR", es: "BREVO_TEMPLATE_DOPAMINA_FAIXA_VERDE_ES" },
+  amarelo: { br: "BREVO_TEMPLATE_DOPAMINA_FAIXA_AMARELO_BR", es: "BREVO_TEMPLATE_DOPAMINA_FAIXA_AMARELO_ES" },
+  vermelho: { br: "BREVO_TEMPLATE_DOPAMINA_FAIXA_VERMELHO_BR", es: "BREVO_TEMPLATE_DOPAMINA_FAIXA_VERMELHO_ES" },
+  critico: { br: "BREVO_TEMPLATE_DOPAMINA_FAIXA_CRITICO_BR", es: "BREVO_TEMPLATE_DOPAMINA_FAIXA_CRITICO_ES" },
+};
+
+/** ID numérico do template da faixa no idioma, ou null se não configurado (gated). */
+export function faixaTemplateId(faixa: Faixa, lang: "br" | "es"): number | null {
+  const raw = envLegado(FAIXA_TEMPLATE_ENV[faixa][lang]);
+  if (!raw) return null;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+export type FaixaSendResult = PreviaSendResult;
+
+/** Envia o e-mail de resultado da faixa (transacional). No-op HONESTO quando gated. */
+export async function sendFaixaEmail(input: {
+  email: string;
+  lang: "br" | "es";
+  faixa: Faixa;
+}): Promise<FaixaSendResult> {
+  const key = process.env.BREVO_API_KEY;
+  if (!key) return { ok: true, gated: true, reason: "no_api_key" };
+  const templateId = faixaTemplateId(input.faixa, input.lang);
+  if (!templateId) return { ok: true, gated: true, reason: "no_template" };
+
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": key,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        to: [{ email: input.email }],
+        templateId,
+        params: { LANG: input.lang, FAIXA: input.faixa },
+        tags: ["dopamina", "faixa-resultado", input.faixa, input.lang],
+        ...(previaSender() ? { sender: previaSender() } : {}),
+      }),
+    });
+    if (res.status === 201) {
+      const j = (await res.json().catch(() => ({}))) as { messageId?: string };
+      return { ok: true, gated: false, status: 201, messageId: j?.messageId };
+    }
+    const body = await res.text().catch(() => "");
+    return { ok: false, gated: false, status: res.status, error: body.slice(0, 300) };
+  } catch (err) {
+    return { ok: false, gated: false, error: String(err) };
+  }
+}

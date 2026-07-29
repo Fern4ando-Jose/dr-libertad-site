@@ -3,6 +3,7 @@ import { isRateLimited } from "@/lib/rate-limit";
 import {
   upsertDopaminaContact,
   sendPreviaEmail,
+  sendFaixaEmail,
   isFaixa,
   type PreviaSendResult,
 } from "@/lib/brevo-dopamina";
@@ -105,6 +106,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // (2b) Faixa — e-mail de resultado do quiz (verde/amarelo/vermelho/critico), logo
+  // após o E0. Só para quem veio do quiz (tem faixa). Fail-open/honesto igual ao E0:
+  // sem template no idioma (hoje só BR) → gated, nunca erro silencioso.
+  let faixaSend: PreviaSendResult | undefined;
+  if (cleanFaixa) {
+    faixaSend = await sendFaixaEmail({ email, lang, faixa: cleanFaixa });
+    if (faixaSend.gated) {
+      console.warn(
+        `[dopamina-lead] E-mail de FAIXA NÃO enviado — ${faixaSend.reason} (faixa=${cleanFaixa} lang=${lang}).`,
+      );
+    } else if (!faixaSend.ok) {
+      console.error(`[dopamina-lead] E-mail de FAIXA FALHOU status=${faixaSend.status ?? "?"}: ${faixaSend.error}`);
+    }
+  }
+
   // (3) Rede de segurança — persiste o lead no Neon (nunca perder). Fail-open.
   const emailStatus = !previaUrl
     ? "no_previa_url"
@@ -149,6 +165,7 @@ export async function POST(req: NextRequest) {
     ok: true,
     gated: upsert.gated === true,
     emailSent: emailSend.ok === true && emailSend.gated === false,
+    faixaEmailSent: faixaSend ? faixaSend.ok === true && faixaSend.gated === false : undefined,
     saved: persisted.ok === true,
   });
 }
