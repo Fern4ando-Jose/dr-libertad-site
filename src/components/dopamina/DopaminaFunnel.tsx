@@ -67,6 +67,30 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
       if (v) utm[k] = v.slice(0, 120);
     }
     utmRef.current = utm;
+
+    // BARRA DE ENDEREÇO LIMPA (pedido do dono, 2026-07-29 — "aquele link enorme
+    // e feio"): o Instagram carimba `fbclid` em todo clique, e ainda somamos os
+    // `utm_*` do link da bio. A origem já foi guardada acima (e vai junto do
+    // lead), então os parâmetros só sobram como sujeira na tela.
+    //
+    // O atraso não é enfeite: o `fbclid` é o que o Pixel da Meta lê para gravar
+    // o cookie `_fbc` (atribuição de anúncio). Apagar na hora custaria essa
+    // medição — esperamos o Pixel iniciar e só então trocamos o endereço, sem
+    // recarregar a página.
+    const sujeira = [...UTM_KEYS, "fbclid", "igshid", "gclid", "mc_cid", "mc_eid"];
+    const limpar = window.setTimeout(() => {
+      const atual = new URLSearchParams(window.location.search);
+      let mudou = false;
+      for (const k of sujeira) if (atual.has(k)) { atual.delete(k); mudou = true; }
+      if (!mudou) return;
+      const busca = atual.toString();
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + (busca ? `?${busca}` : "") + window.location.hash
+      );
+    }, 2500);
+    return () => window.clearTimeout(limpar);
   }, []);
 
   // ── Quiz ──
