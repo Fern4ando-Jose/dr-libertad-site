@@ -9,6 +9,14 @@ const nextConfig = {
       // O idioma se chama BR (dono, 29/07/2026): link antigo /pt/* segue vivo, redirecionado.
       { source: "/pt", destination: "/br", permanent: true },
       { source: "/pt/:path*", destination: "/br/:path*", permanent: true },
+
+      // LINK DA BIO — curto de propósito (queixa do dono, 29/07: o link da bio
+      // "é enorme"). Na bio fica `drlibertad.com/ig` (ES: `/ig-es`); a marcação
+      // de origem, que é o que engordava o endereço, entra AQUI no caminho — o
+      // visitante nunca a vê. Temporário (307) para o endereço curto continuar
+      // sendo o que aparece; nada de 301, que o navegador guardaria para sempre.
+      { source: "/ig", destination: "/br/dopamina?utm_source=ig&utm_medium=bio&utm_content=link_in_bio", permanent: false },
+      { source: "/ig-es", destination: "/es/dopamina?utm_source=ig&utm_medium=bio&utm_content=link_in_bio", permanent: false },
     ];
   },
   async headers() {
