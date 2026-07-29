@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
 import { useLang } from "@/lib/i18n/LanguageProvider";
-import { BOOKS } from "@/lib/books";
+import { VISIBLE_BOOKS } from "@/lib/books";
 
 export default function LivrosIndex() {
   const { t, lang } = useLang();
@@ -44,8 +44,19 @@ export default function LivrosIndex() {
 
       <section className="pb-24">
         <StudioContainer>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {BOOKS.map((book, i) => {
+          {/* A grade acompanha quantos livros estão na vitrine: com 1 título, três
+              colunas deixariam um card solto num vazio de 2/3 da tela. */}
+          <div
+            className={
+              "grid gap-8 " +
+              (VISIBLE_BOOKS.length === 1
+                ? "max-w-sm"
+                : VISIBLE_BOOKS.length === 2
+                ? "max-w-3xl sm:grid-cols-2"
+                : "sm:grid-cols-2 lg:grid-cols-3")
+            }
+          >
+            {VISIBLE_BOOKS.map((book, i) => {
               const b = t[book.dictKey];
               const cover = book.cover[lang] ?? book.cover.pt;
               return (
