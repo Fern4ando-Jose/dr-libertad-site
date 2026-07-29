@@ -7,13 +7,12 @@
 // Ele então escolheu, ouvindo 6 amostras, a "Candidata 3 — Bill" (ElevenLabs).
 import { describe, it, expect } from "vitest";
 import { wordsFromElevenLabsTimestamps, splitWords } from "./narration-sync";
-import { idiomaDaVozBate } from "./narration";
+import { idiomaDaVozBate, VOZ_POR_IDIOMA } from "./narration";
 
-// Espelha VOZ_POR_IDIOMA de src/lib/narration.ts — se lá mudar, aqui quebra (de propósito).
-const VOZ_POR_IDIOMA: Record<string, { provedor: string; voz: string; speed: number }> = {
-  es: { provedor: "minimax", voz: "Deep_Voice_Man", speed: 0.85 },
-  br: { provedor: "elevenlabs", voz: "Bill", speed: 0.95 },
-};
+// A tabela REAL é importada (29/07 à noite): o "espelho" com cópia local dizia
+// br=Bill enquanto a PRODUÇÃO ainda tinha a chave velha pt — o teste passava e a
+// próxima voz BR fresca cairia no fallback ES (a voz que o dono reprovou). Espelho
+// que pode divergir não vigia nada; importar a produção é a régua.
 const vozDe = (lang: string) => VOZ_POR_IDIOMA[lang] ?? VOZ_POR_IDIOMA.es;
 
 describe("voz é config POR IDIOMA (nunca constante global)", () => {

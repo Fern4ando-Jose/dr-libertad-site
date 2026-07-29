@@ -16,9 +16,14 @@ import { describe, it, expect } from "vitest";
 
 type Funil = { keyword: string } | undefined;
 
-// Espelha `narrationSegments` de src/app/api/publish/route.ts — SEM fecho.
-export function roteiroFalado(titulo: string, slides: string[]): string {
-  return [titulo, ...slides]
+// Espelha `narrationSegments` de src/app/api/publish/route.ts.
+// DELTA 29/07 à noite (ordem do dono, depois de aprovar o fecho no UPM): o BR
+// GANHOU fecho falado ("Me segue pra mais verdades incômodas."); o ES segue SEM
+// — era a voz ES que embolava "Direct"/"LIBERTAD", e nela nada mudou.
+export const FECHO_BR = "Me segue pra mais verdades incômodas.";
+export function roteiroFalado(titulo: string, slides: string[], lang: "es" | "pt" = "es", cta = ""): string {
+  const fecho = lang === "pt" ? [cta, FECHO_BR].map((s) => s.trim()).filter(Boolean).join(" ") : "";
+  return [titulo, ...slides, ...(fecho ? [fecho] : [])]
     .map((s) => s.trim()).filter(Boolean)
     .map((s) => (/[.!?]$/.test(s) ? s : s + "."))
     .join(" ");
@@ -40,15 +45,25 @@ describe("cierre falado — a voz NÃO narra mais o fecho (defeito real 2026-07-
     }
   });
 
-  it("o roteiro falado nunca contém 'me siga'/'sígueme' (o fecho de seguir também saiu)", () => {
-    const r = roteiroFalado("Título de teste", ["insight único"]);
-    expect(r.toLowerCase()).not.toContain("me siga");
-    expect(r.toLowerCase()).not.toContain("sígueme");
+  it("o roteiro falado nunca contém 'me siga'/'sígueme' (o fecho antigo, que embolava)", () => {
+    for (const lang of ["es", "pt"] as const) {
+      const r = roteiroFalado("Título de teste", ["insight único"], lang, "Pergunta do dia?");
+      expect(r.toLowerCase()).not.toContain("me siga");
+      expect(r.toLowerCase()).not.toContain("sígueme");
+    }
   });
 
-  it("o roteiro falado é só título + slides — termina no ÚLTIMO slide, nada depois", () => {
+  it("ES: o roteiro é só título + slides — termina no ÚLTIMO slide, nada depois", () => {
     const slides = ["primeiro insight", "segundo insight"];
-    const r = roteiroFalado("Título", slides);
+    const r = roteiroFalado("Título", slides, "es");
     expect(r.endsWith("segundo insight.")).toBe(true);
+  });
+
+  it("BR: o roteiro TERMINA no fecho da marca (pergunta + 'Me segue…'), sem @handle nem keyword", () => {
+    const r = roteiroFalado("Título", ["insight"], "pt", "Você acha que escolhe?");
+    expect(r.endsWith(FECHO_BR)).toBe(true);
+    expect(r).toContain("Você acha que escolhe?");
+    expect(r).not.toContain("@");
+    for (const f of [FUNIL_PT, FUNIL_ES]) expect(r.toUpperCase()).not.toContain(f!.keyword);
   });
 });
