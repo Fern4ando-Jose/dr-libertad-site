@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       lang:
-        description: "Idioma (es | br). Default es. (br = Brasil; aceita o codigo tecnico legado pt)"
+        description: "Idioma (es | br). Default es."
         required: false
         default: "es"
       run:
@@ -74,8 +74,8 @@ jobs:
             case "$SCHEDULE" in
               "17 12 * * *") RUN=4; LANG=es ;;
               "17 17 * * *") RUN=5; LANG=es ;;
-              "22 12 * * *") RUN=4; LANG=pt ;;
-              "22 17 * * *") RUN=5; LANG=pt ;;
+              "22 12 * * *") RUN=4; LANG=br ;;
+              "22 17 * * *") RUN=5; LANG=br ;;
               *) RUN=4; LANG=es ;;  # fallback defensivo
             esac
             echo "run=$RUN" >> "$GITHUB_OUTPUT"
@@ -83,8 +83,8 @@ jobs:
             echo "topic=" >> "$GITHUB_OUTPUT"
             echo "force=false" >> "$GITHUB_OUTPUT"
           fi
-          [ "$LANG" = "br" ] && LANG=pt  # BR e o nome do idioma (dono, 29/07); pt e so o codigo tecnico interno
-          [ "$LANG" != "pt" ] && LANG=es  # normaliza qualquer valor inesperado p/ es
+          [ "$LANG" = "pt" ] && LANG=br  # aceita o codigo LEGADO de chamada antiga (catchup/curl velho)
+          [ "$LANG" != "br" ] && LANG=es  # normaliza qualquer valor inesperado p/ es
           echo "lang=$LANG" >> "$GITHUB_OUTPUT"
           echo "Parâmetros: run='${RUN:-$IN_RUN}' lang='$LANG'"
 
@@ -98,9 +98,9 @@ jobs:
           TOPIC: ${{ steps.params.outputs.topic }}
           FORCE: ${{ steps.params.outputs.force }}
         run: |
-          # URL base por idioma: es = sem query (default da API); pt = ?lang=pt.
+          # URL base por idioma: es = sem query (default da API); pt = ?lang=br.
           URL="$SITE/api/publish"
-          [ "$LANG" = "pt" ] && URL="$SITE/api/publish?lang=pt"
+          [ "$LANG" = "br" ] && URL="$SITE/api/publish?lang=br"
           # Monta a query com -G --data-urlencode (lida com espaços no tópico).
           ARGS=(-sS -o response.json -w "%{http_code}" -G)
           ARGS+=(-H "Authorization: Bearer $AUTH")
