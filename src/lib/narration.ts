@@ -81,8 +81,15 @@ export interface NarrationResult {
   words?: NarrationWord[];
 }
 
+// VERSÃO DO ROTEIRO no fim da chave (2026-07-29): quando a FORMA do roteiro muda
+// (ex.: o fecho falado foi retirado — PR #198), o áudio guardado da forma antiga
+// NÃO pode ser reaproveitado: ele ainda fala o fecho enquanto a tela nova não o
+// mostra — a voz sobra no fim e dessincroniza (defeito real, prévia de 29/07).
+// Mudou a forma do roteiro? Suba o número — o cache velho simplesmente nunca casa.
+const ROTEIRO_VERSAO = "v2"; // v2 = sem fecho falado
+
 function cacheKey(topic: string, day: string, lang: string): string {
-  return `${topic}|${day}|${lang}`;
+  return `${topic}|${day}|${lang}|${ROTEIRO_VERSAO}`;
 }
 
 // O cache guarda a MEDIDA junto com o áudio (duração real + tempo de cada palavra).
