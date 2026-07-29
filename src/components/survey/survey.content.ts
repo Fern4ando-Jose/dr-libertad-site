@@ -132,10 +132,10 @@ const pt: SurveyCopy = {
         },
         q2: {
           text: "Gênero",
+          // Três opções, nesta ordem — decisão do dono (2026-07-29). "Outro" saiu.
           options: {
-            feminino: "Feminino",
             masculino: "Masculino",
-            outro: "Outro",
+            feminino: "Feminino",
             prefiro_nao_dizer: "Prefiro não dizer",
           },
         },
@@ -336,10 +336,10 @@ const es: SurveyCopy = {
         },
         q2: {
           text: "Género",
+          // Mesma decisão do dono (2026-07-29): três opções, "Otro" saiu.
           options: {
-            feminino: "Femenino",
             masculino: "Masculino",
-            outro: "Otro",
+            feminino: "Femenino",
             prefiro_nao_dizer: "Prefiero no decirlo",
           },
         },
