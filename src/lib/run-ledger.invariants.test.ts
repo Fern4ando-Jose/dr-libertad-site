@@ -169,34 +169,34 @@ describe("hasOtherVaga — trava de publicação por vaga", () => {
 // publicou e a irmã DESISTIU (gaveUp) — assimetria permanente no feed. Foi o defeito que
 // o dono apontou (ES-only). A causa nº1 (balde de orçamento compartilhado) é tratada à
 // parte pelo `siblingPublished` no gate; este alarme cobre o resíduo (ex.: lang-guard).
-const LANGS = ["es", "pt"];
+const LANGS = ["es", "br"];
 describe("orphanedPairs — alarme de par ES/PT quebrado", () => {
   it("ambas publicaram → sem órfão (par íntegro)", () => {
-    expect(orphanedPairs({ es: [4], pt: [4] }, [], LANGS)).toEqual([]);
+    expect(orphanedPairs({ es: [4], br: [4] }, [], LANGS)).toEqual([]);
   });
 
   it("uma publicou e a irmã ainda está tentando (missing, não gaveUp) → ainda NÃO é órfão", () => {
     // gaveUp vazio = a irmã não desistiu; o catchup ainda pode parear
-    expect(orphanedPairs({ es: [4], pt: [] }, [], LANGS)).toEqual([]);
+    expect(orphanedPairs({ es: [4], br: [] }, [], LANGS)).toEqual([]);
   });
 
   it("ES publicou e PT DESISTIU na MESMA vaga → órfão (alarme)", () => {
-    const r = orphanedPairs({ es: [4], pt: [] }, [{ lang: "pt", run: 4 }], LANGS);
-    expect(r).toEqual([{ run: 4, publishedLang: "es", orphanLang: "pt" }]);
+    const r = orphanedPairs({ es: [4], br: [] }, [{ lang: "br", run: 4 }], LANGS);
+    expect(r).toEqual([{ run: 4, publishedLang: "es", orphanLang: "br" }]);
   });
 
   it("PT publicou e ES desistiu → órfão simétrico (não importa qual lado saiu)", () => {
-    const r = orphanedPairs({ es: [], pt: [5] }, [{ lang: "es", run: 5 }], LANGS);
-    expect(r).toEqual([{ run: 5, publishedLang: "pt", orphanLang: "es" }]);
+    const r = orphanedPairs({ es: [], br: [5] }, [{ lang: "es", run: 5 }], LANGS);
+    expect(r).toEqual([{ run: 5, publishedLang: "br", orphanLang: "es" }]);
   });
 
   it("NENHUMA publicou (as duas desistiram) → NÃO é órfão (é falha total, não assimetria)", () => {
-    expect(orphanedPairs({ es: [], pt: [] }, [{ lang: "es", run: 4 }, { lang: "pt", run: 4 }], LANGS)).toEqual([]);
+    expect(orphanedPairs({ es: [], br: [] }, [{ lang: "es", run: 4 }, { lang: "br", run: 4 }], LANGS)).toEqual([]);
   });
 
   it("desistência em run DIFERENTE do publicado → não pareia como órfão", () => {
     // ES publicou run4; PT desistiu de run5 (vaga distinta) → não é o par do run4
-    expect(orphanedPairs({ es: [4], pt: [] }, [{ lang: "pt", run: 5 }], LANGS)).toEqual([]);
+    expect(orphanedPairs({ es: [4], br: [] }, [{ lang: "br", run: 5 }], LANGS)).toEqual([]);
   });
 });
 

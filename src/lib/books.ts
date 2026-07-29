@@ -7,20 +7,20 @@ export type BookDictKey = "livro" | "dopamina";
 export type BookMeta = {
   slug: string;
   dictKey: BookDictKey;
-  cover: { pt: string; es: string };
+  cover: { br: string; es: string };
   // Checkout pago (Hotmart etc.). Opcional: um livro em modo GRÁTIS (prévia) não tem.
-  checkout?: { pt: string; es: string };
+  checkout?: { br: string; es: string };
   // Modo GRÁTIS: entrega um PDF (prévia/adelanto) por download direto, sem checkout.
   // É a página-destino do funil comment→DM (em vez de mandar o .pdf cru no Direct).
   free?: boolean;
-  leadPdf?: { pt: string; es: string };
+  leadPdf?: { br: string; es: string };
   // Imagens de "por dentro" (spreads). Ausente → a seção mostra só o texto (sem fotos
   // de outro livro). O guia de plantas declara as suas; a prévia de dopamina não tem.
   insideImages?: string[];
   // Vídeo promo vertical (9:16) por idioma. Use null enquanto a versão do idioma
   // não existir — o player só aparece quando há vídeo para o idioma atual.
-  promoVideo?: { pt: string | null; es: string | null };
-  promoPoster?: { pt: string | null; es: string | null };
+  promoVideo?: { br: string | null; es: string | null };
+  promoPoster?: { br: string | null; es: string | null };
   // FORA DA VITRINE: o livro continua com página no ar (rota, OG, checkout) e é
   // acessado por LINK DIRETO, mas não aparece na lista /livros.
   hidden?: boolean;
@@ -30,14 +30,14 @@ export const BOOKS: BookMeta[] = [
   {
     slug: "100-plantas",
     dictKey: "livro",
-    cover: { pt: "/images/livro-capa-pt.png", es: "/images/livro-capa-es.png" },
+    cover: { br: "/images/livro-capa-pt.png", es: "/images/livro-capa-es.png" },
     // PT: produto Hotmart aprovado (ID 7978640) — checkout direto.
     // ES: produto Hotmart próprio (ID 7980706) com o PDF ES, US$ 7,90, afiliados 50%.
-    checkout: { pt: "https://pay.hotmart.com/J106432769P", es: "https://pay.hotmart.com/W106437072U" },
+    checkout: { br: "https://pay.hotmart.com/J106432769P", es: "https://pay.hotmart.com/W106437072U" },
     insideImages: ["/images/livro-spread-1.jpg", "/images/livro-spread-2.jpg"],
     // ES ainda não produzido — fica null até a versão em espanhol ser renderizada.
-    promoVideo: { pt: "/videos/livro-promo-pt.mp4", es: null },
-    promoPoster: { pt: "/videos/livro-promo-pt-poster.jpg", es: null },
+    promoVideo: { br: "/videos/livro-promo-pt.mp4", es: null },
+    promoPoster: { br: "/videos/livro-promo-pt-poster.jpg", es: null },
     // Decisão do dono (2026-07-29): sai da vitrine, segue vendendo por link direto.
     hidden: true,
   },
@@ -49,9 +49,9 @@ export const BOOKS: BookMeta[] = [
     // da capa do PDF de prévia ES.
     slug: "i-love-dopamina",
     dictKey: "dopamina",
-    cover: { pt: "/images/i-love-dopamina-capa-pt.png", es: "/images/i-love-dopamina-capa-es.png" },
+    cover: { br: "/images/i-love-dopamina-capa-pt.png", es: "/images/i-love-dopamina-capa-es.png" },
     free: true,
-    leadPdf: { pt: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },
+    leadPdf: { br: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },
   },
 ];
 

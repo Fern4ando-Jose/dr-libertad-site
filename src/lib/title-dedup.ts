@@ -1,3 +1,4 @@
+import { langLegado } from "@/lib/accounts";
 // ─── Trava anti-duplicata na CAMADA DE SAÍDA (o texto gerado, não a semente) ────
 // As demais travas (topicUsedInOtherVaga, shuffle bag) comparam a SEMENTE do tema
 // (`topic`, em espanhol). Mas o modelo (haiku) pode gerar, a partir de DUAS sementes
@@ -52,7 +53,7 @@ export async function recentTitlesForLang(lang: string, days = 12): Promise<stri
     const r = await sql<{ title: string }>`
       SELECT DISTINCT content->>'postTitle' AS title
       FROM content_cache
-      WHERE lang = ${lang}
+      WHERE lang IN (${lang}, ${langLegado(lang)})
         AND content->>'postTitle' IS NOT NULL
         AND created_at > NOW() - (${days} || ' days')::interval
     `;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { accountFor } from "@/lib/accounts";
+import { accountFor, langLegado } from "@/lib/accounts";
 import { buildEssayPrompt, renderEmail, newsletterFrom } from "@/lib/newsletter";
 import { checkBudget, logSpend, anthropicCost } from "@/lib/spend";
 
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
   const url = new URL(req.url);
-  const lang = url.searchParams.get("lang") === "pt" ? "pt" : "es";
+  const lang = url.searchParams.get("lang") === "br" ? "br" : "es";
   const dry = url.searchParams.get("dry") === "1";
   const acc = accountFor(lang);
 
@@ -101,11 +101,11 @@ export async function POST(req: NextRequest) {
   // Inscritos ativos do idioma + curadoria/temas da semana (últimos 7 dias).
   const subs = await sql<{ email: string; unsub_token: string }>`
     SELECT email, unsub_token FROM subscribers
-    WHERE lang = ${lang} AND unsubscribed_at IS NULL
+    WHERE lang IN (${lang}, ${langLegado(lang)}) AND unsubscribed_at IS NULL
   `;
   const recent = await sql<{ title: string; topic: string }>`
     SELECT title, topic FROM posts
-    WHERE lang = ${lang} AND published_at >= NOW() - INTERVAL '7 days'
+    WHERE lang IN (${lang}, ${langLegado(lang)}) AND published_at >= NOW() - INTERVAL '7 days'
     ORDER BY published_at DESC LIMIT 20
   `;
   // Deduplica títulos (o mesmo tema pode ter sido republicado/duplicado em `posts`)

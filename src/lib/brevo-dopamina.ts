@@ -10,7 +10,7 @@
 // GATED (P2 / padrão da newsletter): sem BREVO_API_KEY no ambiente, NENHUMA chamada
 // externa acontece — retorna { ok:true, gated:true } para a UX seguir. A lista ainda
 // NÃO existe: quando o dono/marketing criar a lista "I Love Dopamina" no Brevo, basta
-// setar BREVO_LIST_DOPAMINA_PT / BREVO_LIST_DOPAMINA_ES na Vercel. Sem elas, o contato
+// setar BREVO_LIST_DOPAMINA_BR / BREVO_LIST_DOPAMINA_ES na Vercel. Sem elas, o contato
 // é gravado só com os atributos (FONTE/FAIXA), sem entrar em lista — NUNCA inventamos ID.
 // A chave nasce no painel do Brevo e mora no cofre; nunca em log/commit/PR (P3).
 
@@ -19,8 +19,18 @@ export type Faixa = "verde" | "amarelo" | "vermelho" | "critico";
 const FAIXAS: Faixa[] = ["verde", "amarelo", "vermelho", "critico"];
 
 /** Nome de env com o ID da lista Brevo "I Love Dopamina" por idioma. */
-const LIST_ENV: Record<"pt" | "es", string> = {
-  pt: "BREVO_LIST_DOPAMINA_PT",
+// Env nova (_BR) com reserva no nome LEGADO que ainda vive na Vercel (_PT) — o
+
+// idioma se chama BR (dono, 29/07/2026); renomear a env lá é passo à parte.
+
+function envLegado(nome: string): string | undefined {
+
+  return process.env[nome] ?? process.env[nome.replace(/_BR$/, "_PT")];
+
+}
+
+const LIST_ENV: Record<"br" | "es", string> = {
+  br: "BREVO_LIST_DOPAMINA_BR",
   es: "BREVO_LIST_DOPAMINA_ES",
 };
 
@@ -34,8 +44,8 @@ export function brevoConfigured(): boolean {
 }
 
 /** ID numérico da lista "I Love Dopamina" do idioma, ou null se não configurado. */
-export function listIdForLang(lang: "pt" | "es"): number | null {
-  const raw = process.env[LIST_ENV[lang]];
+export function listIdForLang(lang: "br" | "es"): number | null {
+  const raw = envLegado(LIST_ENV[lang]);
   if (!raw) return null;
   const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) && n > 0 ? n : null;
@@ -43,7 +53,7 @@ export function listIdForLang(lang: "pt" | "es"): number | null {
 
 export interface DopaminaLead {
   email: string;
-  lang: "pt" | "es";
+  lang: "br" | "es";
   /** "quiz" = veio do teste (tem faixa+score); "previa" = só pediu a prévia. */
   source: "quiz" | "previa";
   faixa?: Faixa;
@@ -114,7 +124,7 @@ export async function upsertDopaminaContact(lead: DopaminaLead): Promise<BrevoRe
 //
 // O CONTEÚDO do e-mail vive num TEMPLATE do Brevo (editado/aprovado pelo dono no
 // painel — P4/P7: o dono aprova a prova do e-mail LÁ, sem deploy), referenciado por
-// env BREVO_TEMPLATE_DOPAMINA_PREVIA_PT / _ES (ou o global _..._PREVIA). O código só
+// env BREVO_TEMPLATE_DOPAMINA_PREVIA_BR / _ES (ou o global _..._PREVIA). O código só
 // dispara com o parâmetro {{ params.PREVIA_URL }} para o botão "Baixar a prévia".
 // NÃO embutimos o rascunho E0 no código (seria publicar texto não aprovado).
 //
@@ -123,14 +133,14 @@ export async function upsertDopaminaContact(lead: DopaminaLead): Promise<BrevoRe
 // persiste o lead para não se perder.
 
 /** Nome de env com o ID do template Brevo do E0 (entrega da prévia) por idioma. */
-const PREVIA_TEMPLATE_ENV: Record<"pt" | "es", string> = {
-  pt: "BREVO_TEMPLATE_DOPAMINA_PREVIA_PT",
+const PREVIA_TEMPLATE_ENV: Record<"br" | "es", string> = {
+  br: "BREVO_TEMPLATE_DOPAMINA_PREVIA_BR",
   es: "BREVO_TEMPLATE_DOPAMINA_PREVIA_ES",
 };
 
 /** ID numérico do template do E0 no idioma, ou null se não configurado. */
-export function previaTemplateId(lang: "pt" | "es"): number | null {
-  const raw = process.env[PREVIA_TEMPLATE_ENV[lang]] || process.env.BREVO_TEMPLATE_DOPAMINA_PREVIA;
+export function previaTemplateId(lang: "br" | "es"): number | null {
+  const raw = envLegado(PREVIA_TEMPLATE_ENV[lang]) || process.env.BREVO_TEMPLATE_DOPAMINA_PREVIA;
   if (!raw) return null;
   const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) && n > 0 ? n : null;
@@ -146,7 +156,7 @@ export function previaSender(): { email: string; name?: string } | undefined {
 
 export interface PreviaEmail {
   email: string;
-  lang: "pt" | "es";
+  lang: "br" | "es";
   /** URL ABSOLUTA do PDF da prévia (ex.: https://.../lead/..._PT.pdf). */
   previaUrl: string;
   templateId: number;
@@ -181,7 +191,7 @@ export type PreviaSendResult =
  */
 export async function sendPreviaEmail(input: {
   email: string;
-  lang: "pt" | "es";
+  lang: "br" | "es";
   previaUrl: string;
 }): Promise<PreviaSendResult> {
   const key = process.env.BREVO_API_KEY;

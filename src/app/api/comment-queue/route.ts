@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ACCOUNTS, accountFor, type Lang, type AccountCfg } from "@/lib/accounts";
+import { ACCOUNTS, accountFor, type Lang, type AccountCfg, envToken, envAccountId } from "@/lib/accounts";
 import { COMMENT_TARGETS, DAILY_COMMENT_CAP } from "@/lib/comment-targets";
 import { rankFreshPosts, applyCapAndDedup, type DiscoveredPost } from "@/lib/comment-queue";
 
@@ -32,7 +32,7 @@ async function resolveToken(acc: AccountCfg): Promise<string> {
       if (rows.rows[0]?.value) return rows.rows[0].value;
     } catch { /* fallback */ }
   }
-  return process.env[acc.tokenEnv] ?? "";
+  return envToken(acc);
 }
 
 interface TargetResult {
@@ -72,7 +72,7 @@ async function discover(accountId: string, token: string, username: string): Pro
 
 async function probeLang(lang: Lang, nowMs: number) {
   const acc = accountFor(lang);
-  const accountId = process.env[acc.accountIdEnv] ?? "";
+  const accountId = envAccountId(acc);
   const token = await resolveToken(acc);
   if (!accountId || !token) {
     return { lang, ok: false, error: "missing account id/token", targets: [] as TargetResult[], fresh: [] as unknown[] };
@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
   }
   const nowMs = Date.now();
   const langParam = req.nextUrl.searchParams.get("lang");
-  const langs: Lang[] = langParam === "es" || langParam === "pt"
+  const langs: Lang[] = langParam === "es" || langParam === "br"
     ? [langParam]
     : (Object.keys(ACCOUNTS) as Lang[]);
 

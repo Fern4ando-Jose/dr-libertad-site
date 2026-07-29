@@ -2,13 +2,13 @@
 
 import { createContext, useContext, useCallback, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { dictionaries, pt, type Lang } from "./dictionaries";
+import { dictionaries, br, type Lang } from "./dictionaries";
 
 type Ctx = {
   lang: Lang;
   setLang: (l: Lang) => void;
   toggle: () => void;
-  t: typeof pt;
+  t: typeof br;
 };
 
 const LanguageContext = createContext<Ctx | null>(null);
@@ -52,7 +52,7 @@ export function LanguageProvider({
       if (l === lang) return;
       persist(l);
       // Substitui só o segmento de idioma, mantendo o restante do caminho
-      // (ex.: /pt/livros → /es/livros em vez de voltar à raiz /es).
+      // (ex.: /br/livros → /es/livros em vez de voltar à raiz /es).
       const newPath = pathname.replace(new RegExp(`^/${lang}`), `/${l}`);
       router.push(newPath, { scroll: false });
     },
@@ -60,7 +60,7 @@ export function LanguageProvider({
   );
 
   const toggle = useCallback(() => {
-    setLang(lang === "pt" ? "es" : "pt");
+    setLang(lang === "br" ? "es" : "br");
   }, [lang, setLang]);
 
   return (

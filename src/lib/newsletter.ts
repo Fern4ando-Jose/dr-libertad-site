@@ -14,7 +14,7 @@
 import type { AccountCfg } from "./accounts";
 import { buildVoiceDirective } from "./voice";
 
-export type Lang = "pt" | "es";
+export type Lang = "br" | "es";
 
 // Rótulos do CHROME do e-mail (não é o conteúdo — é a moldura). Bilíngue, local
 // (o e-mail roda fora do dicionário React do site).
@@ -26,7 +26,7 @@ const UI: Record<Lang, {
   unsub: string;
   preferToStop: string;
 }> = {
-  pt: {
+  br: {
     curadoria: "Essa semana no Instagram",
     curadoriaLead: "O que saiu — pra você não perder o fio.",
     seeOnIg: "Ver no Instagram",

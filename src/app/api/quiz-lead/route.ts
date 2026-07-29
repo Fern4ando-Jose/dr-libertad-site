@@ -16,13 +16,13 @@ export async function POST(req: NextRequest) {
   }
 
   let email = "";
-  let lang: "pt" | "es" = "pt";
+  let lang: "br" | "es" = "br";
   let faixa = "";
   let score = 0;
   try {
     const body = await req.json();
     email = String(body?.email ?? "").trim().toLowerCase();
-    lang = body?.lang === "es" ? "es" : "pt";
+    lang = body?.lang === "es" ? "es" : "br";
     faixa = String(body?.faixa ?? "");
     score = Number(body?.score);
   } catch {

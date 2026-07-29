@@ -17,7 +17,7 @@ import { minOfDayBRT, RUN_HOUR_BRT, ACTIVE_RUNS } from "@/lib/day";
 const GRACE_MIN = 75; // carência após o horário do cron antes de considerar "faltando"
 
 // Idiomas com publicação automática ativa (crons ligados). PT no ar desde 2026-06-18.
-const ACTIVE_LANGS = ["es", "pt"];
+const ACTIVE_LANGS = ["es", "br"];
 
 export async function GET(req: NextRequest) {
   if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {

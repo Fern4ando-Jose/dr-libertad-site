@@ -5,7 +5,7 @@ import TermoView from "@/components/survey/TermoView";
 import { surveyContent } from "@/components/survey/survey.content";
 
 const SITE_URL = "https://www.drlibertad.com";
-const c = surveyContent.pt;
+const c = surveyContent.br;
 
 export const metadata: Metadata = {
   title: c.termo.metaTitle,
@@ -22,5 +22,5 @@ export const metadata: Metadata = {
 };
 
 export default function TermoPage() {
-  return <TermoView lang="pt" />;
+  return <TermoView lang="br" />;
 }

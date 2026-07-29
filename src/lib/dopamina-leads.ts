@@ -12,7 +12,7 @@ import type { Faixa } from "./brevo-dopamina";
 
 export interface DopaminaLeadRecord {
   email: string;
-  lang: "pt" | "es";
+  lang: "br" | "es";
   source: "quiz" | "previa";
   faixa?: Faixa;
   score?: number;

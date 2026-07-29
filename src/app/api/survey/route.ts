@@ -17,7 +17,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CREATE_TABLE = `
   CREATE TABLE IF NOT EXISTS survey_responses (
     id         BIGSERIAL PRIMARY KEY,
-    lang       TEXT  NOT NULL DEFAULT 'pt',
+    lang       TEXT  NOT NULL DEFAULT 'br',
     answers    JSONB NOT NULL DEFAULT '{}',
     email      TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -35,19 +35,19 @@ export async function GET() {
     const { rows } = await sql`
       SELECT lang, COUNT(*)::int AS n FROM survey_responses GROUP BY lang
     `;
-    let pt = 0;
+    let br = 0;
     let es = 0;
     for (const r of rows as { lang: string; n: number }[]) {
       if (r.lang === "es") es = r.n;
-      else pt += r.n;
+      else br += r.n; // linhas antigas "pt" somam no br
     }
     return NextResponse.json(
-      { ok: true, pt, es, total: pt + es },
+      { ok: true, br, es, total: br + es },
       { headers: { "cache-control": "public, s-maxage=60, stale-while-revalidate=300" } }
     );
   } catch {
     // Tabela ainda não existe ou banco indisponível → zero, sem quebrar a página.
-    return NextResponse.json({ ok: true, pt: 0, es: 0, total: 0 });
+    return NextResponse.json({ ok: true, br: 0, es: 0, total: 0 });
   }
 }
 
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
   }
 
-  const lang = body?.lang === "es" ? "es" : "pt";
+  const lang = body?.lang === "es" ? "es" : "br";
 
   // Consentimento (tela 0) é condição de participação — sem ele, nada grava.
   if (body?.consent !== true) {

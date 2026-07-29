@@ -21,7 +21,7 @@ import { join } from "node:path";
 import { WORKFLOWS, WORKFLOW_FOR_RUN, workflowFor } from "./workflows";
 
 const DIR_WORKFLOWS = join(process.cwd(), ".github", "workflows");
-const LANGS = ["es", "pt"] as const;
+const LANGS = ["es", "br"] as const;
 
 /** Os workflows que EXISTEM no disco, agora. A verdade contra a qual tudo é medido. */
 const NO_DISCO = readdirSync(DIR_WORKFLOWS).filter((f) => f.endsWith(".yml"));
@@ -138,7 +138,7 @@ describe("workflowFor — o que o watchdog manda ao GitHub", () => {
 
   it("o idioma vai SEMPRE por input — omitir faria PT publicar em ES", () => {
     for (const run of runs) {
-      expect(workflowFor(run, "pt")!.inputs.lang).toBe("pt");
+      expect(workflowFor(run, "br")!.inputs.lang).toBe("br");
       expect(workflowFor(run, "es")!.inputs.lang).toBe("es");
       expect(workflowFor(run, "xx")!.inputs.lang).toBe("es"); // normaliza, igual ao job
     }
@@ -146,7 +146,7 @@ describe("workflowFor — o que o watchdog manda ao GitHub", () => {
 
   it("todo input enviado é DECLARADO no workflow (senão o GitHub devolve 422)", () => {
     for (const run of runs) {
-      const wf = workflowFor(run, "pt")!;
+      const wf = workflowFor(run, "br")!;
       const declarados = inputsDeclarados(wf.file);
       expect(declarados.length, `${wf.file} sem inputs declarados`).toBeGreaterThan(0);
       for (const input of Object.keys(wf.inputs)) {
@@ -156,7 +156,7 @@ describe("workflowFor — o que o watchdog manda ao GitHub", () => {
   });
 
   it("run desconhecido devolve null (a vaga é pulada, não vira arquivo inventado)", () => {
-    expect(workflowFor(99, "pt")).toBeNull();
+    expect(workflowFor(99, "br")).toBeNull();
   });
 });
 
@@ -168,7 +168,7 @@ describe("os scripts em bash espelham o mapa TypeScript (os 3 lugares em sincron
       const bash = mapaDoBash(arquivo);
       expect(Object.keys(bash).length, `${arquivo} sem mapa run→workflow`).toBeGreaterThan(0);
       for (const [run, { base, publish }] of Object.entries(bash)) {
-        const wf = workflowFor(Number(run), "pt")!;
+        const wf = workflowFor(Number(run), "br")!;
         expect(wf, `${arquivo}: run ${run} desconhecido no TypeScript`).not.toBeNull();
         expect(`${base}.yml`, `${arquivo}: run ${run}`).toBe(wf.file);
         expect(publish, `${arquivo}: run ${run} publish`).toBe(wf.inputs.publish === "yes");

@@ -302,8 +302,8 @@ describe("4. ES e PT geram o MESMO vídeo", () => {
     juizAprovaTudo();
     for (const seed of [1, 42, 999, 12345]) {
       const es = await selectFootage(["a", "b"], "self", seed, NUM_CLIPS, "self|2026-07-17");
-      const pt = await selectFootage(["a", "b"], "self", seed, NUM_CLIPS, "self|2026-07-17");
-      expect(pt).toEqual(es);
+      const br = await selectFootage(["a", "b"], "self", seed, NUM_CLIPS, "self|2026-07-17");
+      expect(br).toEqual(es);
     }
   });
 
@@ -444,8 +444,8 @@ describe("7. clipe no avoid (usado nos últimos 14d, cross-fonte) nunca entra pe
     expect(es.every(éAoVivo)).toBe(true);
     linhasDoBanco = [{ cache_key: "self|2026-07-17", clips: es, created_at: "2026-07-17T09:00:00.000Z" }];
     // …e o PT, lendo o banco JÁ com a vaga gravada, escolhe os MESMOS clipes (não se auto-envenena)
-    const pt = await selectFootage(["a"], "self", 12345, NUM_CLIPS, "self|2026-07-17");
-    expect(pt).toEqual(es);
+    const br = await selectFootage(["a"], "self", 12345, NUM_CLIPS, "self|2026-07-17");
+    expect(br).toEqual(es);
   });
 });
 

@@ -111,7 +111,7 @@ describe("decideDm — auto-resposta a DM do Direct (inbound)", () => {
 });
 
 describe("buildDmReplyPrompt — conversa 1:1, curta, com voz", () => {
-  const v = buildVoiceDirective(accountFor("pt"));
+  const v = buildVoiceDirective(accountFor("br"));
   it("carrega a voz, a mensagem e pede só o texto curto", () => {
     const p = buildDmReplyPrompt(v, "vi seu post, faz sentido", { langName: "português do Brasil", topic: null, title: null });
     expect(p).toContain("JAMÁS del odio");
@@ -156,7 +156,7 @@ describe("buildVoiceDirective — alma + guarda anti-ódio (INVIOLÁVEL)", () =>
   });
 
   it("PT: injeta o marketBrief nativo (regenera, não traduz) e mantém a guarda", () => {
-    const v = buildVoiceDirective(accountFor("pt"));
+    const v = buildVoiceDirective(accountFor("br"));
     expect(v).toContain("Dr. Liberdade");
     expect(v).toContain("MERCADO / VOZ NATIVA");
     expect(v).toMatch(/JAMÁS del odio/);
@@ -187,7 +187,7 @@ describe("buildReplyPrompt — resposta curta, com voz, sem virar ensaio", () =>
 // env do lead no envio, anti-repetição por miolo, e NUNCA vaza "{LINK}" cru nem outro idioma.
 describe("funil comment→DM — rotação de copy aprovada (sem custo de API)", () => {
   it("4 variações por idioma; toda variação tem {LINK} e a assinatura certa", () => {
-    for (const lang of ["es", "pt"] as const) {
+    for (const lang of ["es", "br"] as const) {
       const pool = FUNNEL_DM_VARIATIONS[lang];
       expect(pool.length).toBe(4);
       for (const v of pool) {
@@ -212,14 +212,14 @@ describe("funil comment→DM — rotação de copy aprovada (sem custo de API)",
 
   it("pickFunnelDm sorteia do pool do idioma — nunca devolve outro idioma", () => {
     expect(FUNNEL_DM_VARIATIONS.es).toContain(pickFunnelDm("es", [], { rand: () => 0 }));
-    expect(FUNNEL_DM_VARIATIONS.pt).toContain(pickFunnelDm("pt", [], { rand: () => 0.99 }));
+    expect(FUNNEL_DM_VARIATIONS.br).toContain(pickFunnelDm("br", [], { rand: () => 0.99 }));
   });
 
   it("anti-repetição: evita a variação já enviada (compara o miolo, ignora o link)", () => {
-    const pool = FUNNEL_DM_VARIATIONS.pt;
-    const jaEnviada = renderFunnelDm(pool[0], "https://www.drlibertad.com/pt/livros/i-love-dopamina");
+    const pool = FUNNEL_DM_VARIATIONS.br;
+    const jaEnviada = renderFunnelDm(pool[0], "https://www.drlibertad.com/br/livros/i-love-dopamina");
     // rand=0 escolheria o índice 0; como foi filtrado por já-enviado, cai em outra
-    const pick = pickFunnelDm("pt", [jaEnviada], { rand: () => 0 });
+    const pick = pickFunnelDm("br", [jaEnviada], { rand: () => 0 });
     expect(pick).not.toBe(pool[0]);
     expect(pool).toContain(pick);
   });

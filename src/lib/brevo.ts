@@ -14,6 +14,16 @@ export type Faixa = "verde" | "amarelo" | "vermelho" | "critico";
 export const FAIXAS: Faixa[] = ["verde", "amarelo", "vermelho", "critico"];
 
 /** Nome de env com o ID da lista Brevo de cada faixa. */
+// Env nova (_BR) com reserva no nome LEGADO que ainda vive na Vercel (_PT) — o
+
+// idioma se chama BR (dono, 29/07/2026); renomear a env lá é passo à parte.
+
+function envLegado(nome: string): string | undefined {
+
+  return process.env[nome] ?? process.env[nome.replace(/_BR$/, "_PT")];
+
+}
+
 const LIST_ENV: Record<Faixa, string> = {
   verde: "BREVO_LIST_VERDE",
   amarelo: "BREVO_LIST_AMARELO",
@@ -32,7 +42,7 @@ export function brevoConfigured(): boolean {
 
 /** ID numérico da lista da faixa, ou null se não configurado (usa só o atributo FAIXA). */
 export function listIdForFaixa(faixa: Faixa): number | null {
-  const raw = process.env[LIST_ENV[faixa]];
+  const raw = envLegado(LIST_ENV[faixa]);
   if (!raw) return null;
   const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) && n > 0 ? n : null;
@@ -42,7 +52,7 @@ export interface BrevoLead {
   email: string;
   faixa: Faixa;
   score: number;
-  lang: "pt" | "es";
+  lang: "br" | "es";
 }
 
 /** Corpo do POST /v3/contacts — puro, testável, sem efeitos de rede. */

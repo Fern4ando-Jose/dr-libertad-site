@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { ACCOUNTS, accountFor, type Lang, type AccountCfg } from "@/lib/accounts";
+import { ACCOUNTS, accountFor, type Lang, type AccountCfg, envToken, envAccountId } from "@/lib/accounts";
 import { buildVoiceDirective } from "@/lib/voice";
 import {
   decideComment,
@@ -48,7 +48,7 @@ function flagOn(name: string): boolean {
 const SITE_URL = "https://www.drlibertad.com";
 const LEAD_DEFAULTS: Record<Lang, { name: string; url: string }> = {
   es: { name: "I Love Dopamina — adelanto del libro (Dr. Libertad)", url: `${SITE_URL}/es/livros/i-love-dopamina` },
-  pt: { name: "I Love Dopamina — prévia do livro (Dr. Liberdade)", url: `${SITE_URL}/pt/livros/i-love-dopamina` },
+  br: { name: "I Love Dopamina — prévia do livro (Dr. Liberdade)", url: `${SITE_URL}/br/livros/i-love-dopamina` },
 };
 
 // Palavra-chave do funil e lead magnet (configuráveis por env — sem deploy p/ trocar).
@@ -123,7 +123,7 @@ async function accountForEntryId(entryId: string): Promise<{ lang: Lang; acc: Ac
   // 1) match direto pelo id de publicação (env)
   for (const lang of Object.keys(ACCOUNTS) as Lang[]) {
     const acc = ACCOUNTS[lang];
-    if (process.env[acc.accountIdEnv] === entryId) return { lang, acc };
+    if (envAccountId(acc) === entryId) return { lang, acc };
   }
   // 2) match pelo user_id (= entry.id real do webhook), resolvido do token
   for (const lang of Object.keys(ACCOUNTS) as Lang[]) {
@@ -144,7 +144,7 @@ async function resolveToken(acc: AccountCfg): Promise<string> {
       if (rows.rows[0]?.value) return rows.rows[0].value;
     } catch { /* fallback p/ env */ }
   }
-  return process.env[acc.tokenEnv] ?? "";
+  return envToken(acc);
 }
 
 // ── Dedup / idempotência (tabela engagement_events) ────────────────────────────

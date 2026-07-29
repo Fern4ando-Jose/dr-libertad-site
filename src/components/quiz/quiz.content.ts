@@ -62,7 +62,7 @@ const BAND_META: Record<Faixa, { min: number; max: number; emoji: string; color:
   critico: { min: 19, max: 24, emoji: "🔴", color: "#CE7266" },
 };
 
-const pt: QuizContent = {
+const br: QuizContent = {
   metaTitle: "Teste: que tamanho tem o seu inimigo?",
   kicker: "100 dias para a Liberdade",
   titlePre: "Que tamanho tem o seu",
@@ -222,7 +222,7 @@ const es: QuizContent = {
   ],
 };
 
-export const quizContent: Record<Lang, QuizContent> = { pt, es };
+export const quizContent: Record<Lang, QuizContent> = { br, es };
 
 /** Faixa a partir da pontuação total (0..24). Pura — testável. */
 export function faixaForScore(total: number, bands: Band[]): Band {
