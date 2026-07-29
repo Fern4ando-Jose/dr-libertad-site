@@ -58,7 +58,7 @@ export default function LivrosIndex() {
           >
             {VISIBLE_BOOKS.map((book, i) => {
               const b = t[book.dictKey];
-              const cover = book.cover[lang] ?? book.cover.pt;
+              const cover = book.cover[lang] ?? book.cover.br;
               return (
                 <Reveal key={book.slug} delay={i * 0.06}>
                   <motion.a

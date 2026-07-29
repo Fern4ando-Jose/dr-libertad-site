@@ -8,7 +8,7 @@ import styles from "./survey.module.css";
 
 export default function ThanksView({ lang }: { lang: Lang }) {
   const c = surveyContent[lang];
-  const siteHome = lang === "es" ? "/es" : "/pt";
+  const siteHome = lang === "es" ? "/es" : "/br";
   return (
     <div className={styles.root} lang={lang === "es" ? "es" : "pt-BR"}>
       {/* Evento de conversão da campanha (só dispara com a env do Pixel setada) */}

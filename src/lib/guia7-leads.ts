@@ -10,7 +10,7 @@
 
 export interface Guia7LeadRecord {
   email: string;
-  lang: "pt" | "es";
+  lang: "br" | "es";
   utm?: Record<string, string>;
   /** Resultado do upsert de contato no Brevo: "ok" | "gated" | "fail". */
   brevoUpsert: string;

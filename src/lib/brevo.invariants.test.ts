@@ -21,7 +21,7 @@ describe("brevo — invariantes de captura do quiz", () => {
   });
 
   it("o payload sempre carrega a FAIXA como atributo (é a tag de segmentação)", () => {
-    const p = buildContactPayload({ email: "a@b.com", faixa: "vermelho", score: 15, lang: "pt" });
+    const p = buildContactPayload({ email: "a@b.com", faixa: "vermelho", score: 15, lang: "br" });
     expect((p.attributes as Record<string, unknown>).FAIXA).toBe("vermelho");
     expect((p.attributes as Record<string, unknown>).QUIZ_SCORE).toBe(15);
     expect(p.email).toBe("a@b.com");
@@ -36,7 +36,7 @@ describe("brevo — invariantes de captura do quiz", () => {
   it("com BREVO_LIST_<FAIXA>, o contato é adicionado à lista daquela faixa", () => {
     process.env.BREVO_LIST_CRITICO = "7";
     expect(listIdForFaixa("critico")).toBe(7);
-    const p = buildContactPayload({ email: "a@b.com", faixa: "critico", score: 22, lang: "pt" });
+    const p = buildContactPayload({ email: "a@b.com", faixa: "critico", score: 22, lang: "br" });
     expect(p.listIds).toEqual([7]);
   });
 
@@ -49,7 +49,7 @@ describe("brevo — invariantes de captura do quiz", () => {
 
   it("GATED: sem chave, upsert não faz rede e devolve gated:true (no-op honesto)", async () => {
     expect(brevoConfigured()).toBe(false);
-    const r = await upsertBrevoContact({ email: "a@b.com", faixa: "amarelo", score: 9, lang: "pt" });
+    const r = await upsertBrevoContact({ email: "a@b.com", faixa: "amarelo", score: 9, lang: "br" });
     expect(r).toEqual({ ok: true, gated: true });
   });
 
@@ -61,7 +61,7 @@ describe("brevo — invariantes de captura do quiz", () => {
 });
 
 describe("faixaForScore — os cortes batem com o Quiz.md (0–5 / 6–12 / 13–18 / 19–24)", () => {
-  const bands = quizContent.pt.bands;
+  const bands = quizContent.br.bands;
   const cases: [number, string][] = [
     [0, "verde"],
     [5, "verde"],

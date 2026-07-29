@@ -12,7 +12,7 @@
 // DEIXAR PASSAR um vazamento sutil a BLOQUEAR um post legítimo (falso positivo =
 // vaga perdida). Função PURA → testável por invariante, sem rede.
 
-export type Lang = "es" | "pt";
+export type Lang = "es" | "br";
 
 // Palavras INEQUÍVOCAS de cada idioma (jamais válidas no outro). Minúsculas, com
 // acento quando o têm. Curadas à mão p/ não colidir com o idioma-alvo:
@@ -75,7 +75,7 @@ const PT_PATTERNS: RegExp[] = [
 
 function targetSets(lang: Lang): { words: Set<string>; patterns: RegExp[] } {
   // lang = idioma do conteúdo → procuramos marcadores do idioma OPOSTO.
-  return lang === "pt"
+  return lang === "br"
     ? { words: ES_WORDS, patterns: ES_PATTERNS }
     : { words: PT_WORDS, patterns: PT_PATTERNS };
 }

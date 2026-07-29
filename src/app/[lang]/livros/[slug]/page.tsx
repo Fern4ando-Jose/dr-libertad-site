@@ -24,7 +24,7 @@ export async function generateMetadata({
   const book = getBook(slug);
   if (!book) return {};
 
-  const l: Lang = lang === "es" ? "es" : "pt";
+  const l: Lang = lang === "es" ? "es" : "br";
   const brand = l === "es" ? "Dr. Libertad" : "Dr. Liberdade";
   const b = dictionaries[l][book.dictKey];
 
@@ -40,9 +40,9 @@ export async function generateMetadata({
     alternates: {
       canonical: url,
       languages: {
-        "pt-BR": `${SITE_URL}/pt/livros/${book.slug}`,
+        "pt-BR": `${SITE_URL}/br/livros/${book.slug}`,
         "es-ES": `${SITE_URL}/es/livros/${book.slug}`,
-        "x-default": `${SITE_URL}/pt/livros/${book.slug}`,
+        "x-default": `${SITE_URL}/br/livros/${book.slug}`,
       },
     },
     openGraph: {

@@ -61,9 +61,9 @@ export function workflowFor(
 ): { file: string; inputs: Record<string, string> } | null {
   const file = WORKFLOW_FOR_RUN[run];
   if (!file) return null;
-  // Mesma normalização do job (`[ "$LANG" != "pt" ] && LANG=es`): qualquer valor
+  // Mesma normalização do job (`[ "$LANG" != "br" ] && LANG=es`): qualquer valor
   // inesperado vira espanhol, nunca um idioma inventado.
-  const inputs: Record<string, string> = { run: String(run), lang: lang === "pt" ? "pt" : "es" };
+  const inputs: Record<string, string> = { run: String(run), lang: lang === "br" ? "br" : "es" };
   if (file !== WORKFLOWS.posts) inputs.publish = "yes";
   return { file, inputs };
 }

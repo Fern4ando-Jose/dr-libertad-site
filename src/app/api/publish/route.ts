@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateIllustration } from "@/lib/illustration";
 import { prehostCover } from "@/lib/cover-prehost";
-import { Lang, accountFor, getLang } from "@/lib/accounts";
+import { Lang, accountFor, getLang, envToken, envAccountId, langLegado } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
 import { parseContentJson, normalizeContentJson, missingEssentialContent } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
@@ -48,17 +48,17 @@ type Slot = "manha" | "tarde" | "noite";
 // vira invariante por construção). Linha editorial: ver CLAUDE.md "Linha editorial"
 // — 5 pilares (dopamina · redes/relações · guerra invisível do homem · verdades
 // incômodas · liberdade de expressão). Não temer a polêmica; provocar debate.
-// `literalPt`: âncora-convicção CANÔNICA em PT-BR (verbatim do §4 da LINHA-EDITORIAL
+// `literalBr`: âncora-convicção CANÔNICA em PT-BR (verbatim do §4 da LINHA-EDITORIAL
 // ou tradução consagrada da obra do cânone). Em tema `literal`, a frase é fixa POR
 // IDIOMA — o PT NUNCA é traduzido livre pelo modelo (foi o bug "cariño"→"cuidado").
-// Tema literal SEM literalPt = o dono ainda não fixou o verbatim PT → tradução FIEL
+// Tema literal SEM literalBr = o dono ainda não fixou o verbatim PT → tradução FIEL
 // obrigatória (sem eufemismo, sem quebrar a antítese), ver literal-lock.ts.
 // `who`: SUJEITO do tema — "o sujeito da imagem tem que ser o sujeito da frase"
 // (regra 2026-07-17, ed. 164: tema sobre homens saiu com Reel de mulher à janela).
 // Só é marcado onde o tema é EXPLICITAMENTE sobre homem / mulher / o casal; tema
 // neutro fica SEM `who` = fail-open (footage sorteado como sempre). O `subject`
 // (metáfora p/ a ilustração da fal) NÃO serve p/ isso — não filtra footage.
-interface Theme { topic: string; cat: string; motif: string; subject: string; who?: ThemeWho; literal?: boolean; literalPt?: string }
+interface Theme { topic: string; cat: string; motif: string; subject: string; who?: ThemeWho; literal?: boolean; literalBr?: string }
 const THEMES: Theme[] = [
   // ── Pilar 1 — Dopamina e seus seguimentos ──
   { topic: "Dopamina y recompensa inmediata", cat: "dopamine", motif: "burst", subject: "a brain with only a few glowing reward receptors lit by a single bright spark" },
@@ -87,9 +87,9 @@ const THEMES: Theme[] = [
   // ── (extensão Pilar 2) Filtros, padrão de beleza inexistente e excesso de escolha ──
   { topic: "El filtro que te vendió una belleza que no existe", cat: "network", motif: "masks", subject: "a figure admiring a flawless filtered reflection in a phone while the plain real face behind the glass sits alone in shadow" },
   { topic: "Cientos de likes en la foto, nadie en la vida real", cat: "network", motif: "isolation", subject: "a glowing portrait surrounded by hundreds of floating like-hearts while the real person sits alone in a dark room" },
-  { topic: "En la foto haces match; en la cita aparece otra persona", literal: true, literalPt: "No app você dá match com a foto; no encontro, janta com a realidade", cat: "network", motif: "masks", subject: "a polished filtered portrait on a phone beside the plain real face of the same person arriving at an empty restaurant table, mismatch, no flattery" },
-  { topic: "Te enamoras de una edición y cenas con la realidad", literal: true, literalPt: "Você não se apaixonou pela pessoa: se apaixonou por uma edição dela", cat: "network", motif: "mirror", subject: "a figure embracing a glowing edited portrait that dissolves into an ordinary plain reflection in a mirror" },
-  { topic: "La ilusión de opciones infinitas te deja solo", literal: true, literalPt: "A ilusão de escolhas infinitas é exatamente o que te deixa sozinho", cat: "network", motif: "spiral", subject: "a figure endlessly scrolling a spiral wall of identical portrait cards, unable to choose, alone in the dark" },
+  { topic: "En la foto haces match; en la cita aparece otra persona", literal: true, literalBr: "No app você dá match com a foto; no encontro, janta com a realidade", cat: "network", motif: "masks", subject: "a polished filtered portrait on a phone beside the plain real face of the same person arriving at an empty restaurant table, mismatch, no flattery" },
+  { topic: "Te enamoras de una edición y cenas con la realidad", literal: true, literalBr: "Você não se apaixonou pela pessoa: se apaixonou por uma edição dela", cat: "network", motif: "mirror", subject: "a figure embracing a glowing edited portrait that dissolves into an ordinary plain reflection in a mirror" },
+  { topic: "La ilusión de opciones infinitas te deja solo", literal: true, literalBr: "A ilusão de escolhas infinitas é exatamente o que te deixa sozinho", cat: "network", motif: "spiral", subject: "a figure endlessly scrolling a spiral wall of identical portrait cards, unable to choose, alone in the dark" },
   { topic: "Pasas más tiempo eligiendo que viviendo", cat: "anxiety", motif: "orbit", subject: "an infinite shelf of identical glowing jars receding into the dark, a clock melting on the floor before it, nothing chosen, no people" },
   // ── Pilar 3 — A guerra invisível do Homem (temas incômodos) ──
   { topic: "La guerra invisible del hombre", cat: "freedom", motif: "descent", subject: "a heavy iron yoke and tangled invisible chains resting on a worn uphill path at dusk, no people", who: "man" },
@@ -102,9 +102,9 @@ const THEMES: Theme[] = [
   { topic: "El hombre tratado como desechable", cat: "freedom", motif: "descent", subject: "a worn stepping-stone shaped like a discarded medal, muddy footprints passing it by toward the light, no people", who: "man" },
   { topic: "Reconstruir al hombre, no destruirlo", cat: "mind", motif: "synapse", subject: "a cracked male statue regrowing with golden kintsugi veins", who: "man" },
   // ── Pilar 4 — Verdades incômodas que precisam ser ditas ──
-  { topic: "El hombre no necesita ser amado: necesita cariño, respeto y admiración", literal: true, literalPt: "O homem não precisa ser amado: precisa de carinho, respeito e admiração", cat: "self", motif: "embrace", subject: "a tall sturdy oak bathed in warm respectful light, standing apart from grasping clinging ivy that recedes into shadow, no people", who: "man" },
-  { topic: "Nadie te debe nada", literal: true, literalPt: "Ninguém te deve nada", cat: "freedom", motif: "boundary", subject: "cut debt-ropes and an empty open ledger dissolving into warm light on a bare wooden table, no people" },
-  { topic: "Si no pones límites, te vuelves una opción", literal: true, literalPt: "Se você não põe limites, vira uma opção", cat: "self", motif: "boundary", subject: "one solid firmly crossed-out checkbox standing apart amid an endless grid of identical selectable boxes, no people" },
+  { topic: "El hombre no necesita ser amado: necesita cariño, respeto y admiración", literal: true, literalBr: "O homem não precisa ser amado: precisa de carinho, respeito e admiração", cat: "self", motif: "embrace", subject: "a tall sturdy oak bathed in warm respectful light, standing apart from grasping clinging ivy that recedes into shadow, no people", who: "man" },
+  { topic: "Nadie te debe nada", literal: true, literalBr: "Ninguém te deve nada", cat: "freedom", motif: "boundary", subject: "cut debt-ropes and an empty open ledger dissolving into warm light on a bare wooden table, no people" },
+  { topic: "Si no pones límites, te vuelves una opción", literal: true, literalBr: "Se você não põe limites, vira uma opção", cat: "self", motif: "boundary", subject: "one solid firmly crossed-out checkbox standing apart amid an endless grid of identical selectable boxes, no people" },
   { topic: "La comodidad te está matando lentamente", literal: true, cat: "anxiety", motif: "decay", subject: "a figure sinking comfortably into a soft chair that slowly swallows it" },
   { topic: "Te respetan por lo que toleras, no por lo que dices", literal: true, cat: "freedom", motif: "mirror", subject: "a figure whose spoken words fade while the firm line it draws glows" },
   { topic: "El victimismo es una cárcel cómoda", literal: true, cat: "anxiety", motif: "spiral", subject: "a figure locking its own cage from the inside and pocketing the key" },
@@ -123,21 +123,21 @@ const THEMES: Theme[] = [
   { topic: "Ser libre incomoda a quien quiere controlarte", literal: true, cat: "freedom", motif: "branches", subject: "a fallen marionette control-cross, its strings cut and slack, abandoned in shadow as warm light breaks in, no people" },
   // ── Cânone — convicções das obras de referência (Linha editorial) ──
   { topic: "Volar más alto no es traición: es lealtad a lo que eres", literal: true, cat: "self", motif: "branches", subject: "a lone seagull soaring high into open sky, breaking upward away from a low grey flock hugging the ground, no people" },
-  { topic: "Lo esencial es invisible a los ojos", literal: true, literalPt: "O essencial é invisível aos olhos", cat: "mind", motif: "iris", subject: "a figure with closed eyes before a dazzling empty surface, a faint warm rose of light glowing only in the dark behind the eyelids, no text" },
+  { topic: "Lo esencial es invisible a los ojos", literal: true, literalBr: "O essencial é invisível aos olhos", cat: "mind", motif: "iris", subject: "a figure with closed eyes before a dazzling empty surface, a faint warm rose of light glowing only in the dark behind the eyelids, no text" },
   { topic: "La servidumbre que más cuesta romper es la que eliges tú mismo", literal: true, cat: "freedom", motif: "boundary", subject: "a seated figure holding its own heavy chain, the open padlock resting in its palm and the cage door already ajar, no captor present" },
-  { topic: "La felicidad solo es real cuando se comparte", literal: true, literalPt: "A felicidade só é real quando compartilhada", cat: "network", motif: "ripple", subject: "two figures sharing a single small warm fire in a vast cold wilderness, the firelight rippling outward in warm rings, no screens" },
-  { topic: "Prefiero morir de pie a vivir de rodillas", literal: true, literalPt: "Prefiro morrer de pé a viver de joelhos", cat: "freedom", motif: "descent", subject: "a lone figure standing tall and unbowed at the crest of a grey hill as a vast shadow presses down, refusing to kneel, no people around" },
+  { topic: "La felicidad solo es real cuando se comparte", literal: true, literalBr: "A felicidade só é real quando compartilhada", cat: "network", motif: "ripple", subject: "two figures sharing a single small warm fire in a vast cold wilderness, the firelight rippling outward in warm rings, no screens" },
+  { topic: "Prefiero morir de pie a vivir de rodillas", literal: true, literalBr: "Prefiro morrer de pé a viver de joelhos", cat: "freedom", motif: "descent", subject: "a lone figure standing tall and unbowed at the crest of a grey hill as a vast shadow presses down, refusing to kneel, no people around" },
   // ── §4 Verdades incômodas (literais) — adições da Linha editorial ──
-  { topic: "El filtro no corrige tu piel: corrige tu expectativa", literal: true, literalPt: "O filtro não corrige a pele — corrige a sua expectativa", cat: "network", motif: "masks", subject: "a figure admiring a flawless filtered reflection in a phone while the plain real face behind the glass waits unseen, the gap between the promise and the skin" },
-  { topic: "Nunca cambies lo que eres por nadie", literal: true, literalPt: "Nunca mude o que você é por ninguém", cat: "self", motif: "mirror", subject: "a single true sculpted form keeping its shape in a mirror while a ring of identical empty molds around it crack and crumble, no people" },
-  { topic: "Solo cambias cuando tú quieres — y duele", literal: true, literalPt: "Só existe mudança quando a pessoa quer — e isso é doloroso", cat: "self", motif: "descent", subject: "a figure carving a faint path through thick dark brush by sheer will, the trail appearing only from passing again and again, effort before ease" },
-  { topic: "La mujer elige con quién acostarse; el hombre, con quién casarse", literal: true, literalPt: "A mulher escolhe com quem transar; o homem escolhe com quem casar", cat: "self", motif: "boundary", subject: "two diverging paths from a single crossroads — one a brief bright spark, the other a long steady flame — weighed in silence, symbolic, no people" },
-  { topic: "El hombre puede ser feliz con cualquier mujer, mientras no la ame", literal: true, literalPt: "O homem pode ser feliz com qualquer mulher, desde que não a ame", cat: "self", motif: "embrace", subject: "a serene figure holding a small calm flame at arm's length untroubled, while the same flame pressed to the chest scorches — detachment versus attachment, symbolic, no people", who: "man" },
-  { topic: "Cada uno muestra lo que cree que es su mayor valor; cuando es solo el cuerpo, la foto confiesa el resto", literal: true, literalPt: "Cada um mostra o que acha ser seu maior valor; quando é só o corpo, a foto confessa o resto", cat: "network", motif: "masks", subject: "a bright shop-window mannequin lit to display only a sculpted bare torso, while the shelf above where a head and books would stand sits empty and dark, the body as the only thing on show, no people" },
-  { topic: "Nadie cambia hasta que el dolor de seguir igual duele más que el dolor de cambiar", literal: true, literalPt: "Ninguém muda até que a dor de permanecer igual seja maior que a dor de mudar", cat: "self", motif: "descent", subject: "a figure clinging to a crumbling ledge that grows more painful than the leap ahead, the tipping point where staying still hurts more than moving, symbolic, no people" },
-  { topic: "Elevamos la inteligencia y dejamos la sabiduría inalcanzable", literal: true, literalPt: "Elevamos a inteligência e deixamos a sabedoria inalcançável", cat: "mind", motif: "descent", subject: "a tall bright tower of intelligence raised high while a distant higher peak of wisdom sits abandoned and dim beyond reach, chasing the climbable and forsaking the guide, no people" },
-  { topic: "El más sabio de los sabios sigue siendo tonto en alguna parte de la vida", literal: true, literalPt: "O mais sábio dos sábios continua tolo em alguma parte da vida", cat: "mind", motif: "mirror", subject: "a serene wise figure reflected in a polished mirror that still reveals one small foolish crack, no one escapes folly entirely, symbolic, no people" },
-  { topic: "Solo los tontos se dejan consumir por amores idealizados de la juventud", literal: true, literalPt: "Só os tolos se deixam consumir por amores idealizados da juventude", cat: "network", motif: "spiral", subject: "a figure endlessly circling a faded youthful portrait raised on a pedestal, consumed chasing a love that only ever existed as an idea, real warmth passing by unseen, no people" },
+  { topic: "El filtro no corrige tu piel: corrige tu expectativa", literal: true, literalBr: "O filtro não corrige a pele — corrige a sua expectativa", cat: "network", motif: "masks", subject: "a figure admiring a flawless filtered reflection in a phone while the plain real face behind the glass waits unseen, the gap between the promise and the skin" },
+  { topic: "Nunca cambies lo que eres por nadie", literal: true, literalBr: "Nunca mude o que você é por ninguém", cat: "self", motif: "mirror", subject: "a single true sculpted form keeping its shape in a mirror while a ring of identical empty molds around it crack and crumble, no people" },
+  { topic: "Solo cambias cuando tú quieres — y duele", literal: true, literalBr: "Só existe mudança quando a pessoa quer — e isso é doloroso", cat: "self", motif: "descent", subject: "a figure carving a faint path through thick dark brush by sheer will, the trail appearing only from passing again and again, effort before ease" },
+  { topic: "La mujer elige con quién acostarse; el hombre, con quién casarse", literal: true, literalBr: "A mulher escolhe com quem transar; o homem escolhe com quem casar", cat: "self", motif: "boundary", subject: "two diverging paths from a single crossroads — one a brief bright spark, the other a long steady flame — weighed in silence, symbolic, no people" },
+  { topic: "El hombre puede ser feliz con cualquier mujer, mientras no la ame", literal: true, literalBr: "O homem pode ser feliz com qualquer mulher, desde que não a ame", cat: "self", motif: "embrace", subject: "a serene figure holding a small calm flame at arm's length untroubled, while the same flame pressed to the chest scorches — detachment versus attachment, symbolic, no people", who: "man" },
+  { topic: "Cada uno muestra lo que cree que es su mayor valor; cuando es solo el cuerpo, la foto confiesa el resto", literal: true, literalBr: "Cada um mostra o que acha ser seu maior valor; quando é só o corpo, a foto confessa o resto", cat: "network", motif: "masks", subject: "a bright shop-window mannequin lit to display only a sculpted bare torso, while the shelf above where a head and books would stand sits empty and dark, the body as the only thing on show, no people" },
+  { topic: "Nadie cambia hasta que el dolor de seguir igual duele más que el dolor de cambiar", literal: true, literalBr: "Ninguém muda até que a dor de permanecer igual seja maior que a dor de mudar", cat: "self", motif: "descent", subject: "a figure clinging to a crumbling ledge that grows more painful than the leap ahead, the tipping point where staying still hurts more than moving, symbolic, no people" },
+  { topic: "Elevamos la inteligencia y dejamos la sabiduría inalcanzable", literal: true, literalBr: "Elevamos a inteligência e deixamos a sabedoria inalcançável", cat: "mind", motif: "descent", subject: "a tall bright tower of intelligence raised high while a distant higher peak of wisdom sits abandoned and dim beyond reach, chasing the climbable and forsaking the guide, no people" },
+  { topic: "El más sabio de los sabios sigue siendo tonto en alguna parte de la vida", literal: true, literalBr: "O mais sábio dos sábios continua tolo em alguma parte da vida", cat: "mind", motif: "mirror", subject: "a serene wise figure reflected in a polished mirror that still reveals one small foolish crack, no one escapes folly entirely, symbolic, no people" },
+  { topic: "Solo los tontos se dejan consumir por amores idealizados de la juventud", literal: true, literalBr: "Só os tolos se deixam consumir por amores idealizados da juventude", cat: "network", motif: "spiral", subject: "a figure endlessly circling a faded youthful portrait raised on a pedestal, consumed chasing a love that only ever existed as an idea, real warmth passing by unseen, no people" },
 
   // ─── Temas dos livros (leva 1, aprovada 2026-07-08) — fonte: src/content/temas-livros/*.md ───
 // === I love Dopamina (21 temas) ===
@@ -296,7 +296,7 @@ const TOPIC_WHO: Record<string, ThemeWho> = Object.fromEntries(THEMES.filter((t)
 const TOPIC_LITERAL: Record<string, boolean> = Object.fromEntries(THEMES.filter((t) => t.literal).map((t) => [t.topic, true]));
 // Âncora-convicção canônica em PT-BR (verbatim do dono, §4 LINHA-EDITORIAL/cânone).
 // Em tema literal, a frase é fixa POR IDIOMA — o PT com âncora NUNCA é traduzido livre.
-const TOPIC_LITERAL_PT: Record<string, string> = Object.fromEntries(THEMES.filter((t) => t.literal && t.literalPt).map((t) => [t.topic, t.literalPt!]));
+const TOPIC_LITERAL_PT: Record<string, string> = Object.fromEntries(THEMES.filter((t) => t.literal && t.literalBr).map((t) => [t.topic, t.literalBr!]));
 
 // ─── Extrai keyword curta do tópico ──────────────────────────────────────────
 
@@ -309,7 +309,7 @@ const TOPIC_LITERAL_PT: Record<string, string> = Object.fromEntries(THEMES.filte
 const STOP_ES = new Set(["y","e","o","de","del","la","el","los","las","a","en","con","por","un","una","sus","su","al","se","lo"]);
 const STOP_PT = new Set(["e","ou","o","a","os","as","de","do","da","dos","das","no","na","nos","nas","um","uma","em","com","por","para","pra","sem","que","se","ao","à","você","voce","não","nao","seu","sua","mais","te","me"]);
 function extractKeyword(text: string, lang: Lang = "es"): string {
-  const STOP = lang === "pt" ? STOP_PT : STOP_ES;
+  const STOP = lang === "br" ? STOP_PT : STOP_ES;
   const word = text.split(/\s+/).find(w => !STOP.has(w.toLowerCase())) ?? text.split(" ")[0];
   return word.toUpperCase().replace(/[^A-ZÁÉÍÓÚÜÑÃÕÂÊÔÀÇ]/g, "");
 }
@@ -459,12 +459,12 @@ async function generateContent(
   const L = acc.langName; // "español" | "português do Brasil"
   const context = searchResults.map((r, i) => `[${i + 1}] ${r.title}\n${r.content}`).join("\n\n");
   // Trava anti-amenização: em tema-convicção, o título preserva a frase-verdade (não vira
-  // "libertad"). A âncora é fixa POR IDIOMA: PT usa o verbatim canônico do dono (literalPt)
+  // "libertad"). A âncora é fixa POR IDIOMA: PT usa o verbatim canônico do dono (literalBr)
   // — nunca tradução livre (bug "cariño"→"cuidado"). ES segue usando o próprio tema.
   const isLiteral = !!TOPIC_LITERAL[topic];
-  const literalDirective = buildLiteralDirective(isLiteral, acc.freedom, { lang, anchorPt: TOPIC_LITERAL_PT[topic] });
+  const literalDirective = buildLiteralDirective(isLiteral, acc.freedom, { lang, anchorBr: TOPIC_LITERAL_PT[topic] });
   // Âncora p/ o guardião do texto GERADO (vazamentos 27/06 e 01/07: eufemismo/antítese
-  // quebrada passavam pela diretiva). null = sem verbatim p/ comparar (PT sem literalPt).
+  // quebrada passavam pela diretiva). null = sem verbatim p/ comparar (PT sem literalBr).
   const literalAnchor = isLiteral ? anchorForLang(topic, lang, TOPIC_LITERAL_PT[topic]) : null;
 
   const marketSection = acc.marketBrief
@@ -600,7 +600,7 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
     // frase que NÃO é a âncora) cai no guardião abaixo.
     const duped = !literalAnchor && titleDupedInSlides(content.postTitle, content.slides);
     //  (4) GUARDIÃO DA CONVICÇÃO (tema literal): a frase-âncora TEM de sair verbatim
-    //      no 1º slide (ES = o tema; PT = literalPt canônico). Suavizar/eufemizar/
+    //      no 1º slide (ES = o tema; PT = literalBr canônico). Suavizar/eufemizar/
     //      quebrar a antítese é o "pecado-mor" da linha editorial — vazou 2× no feed
     //      (27/06 "transar"→"deita"; 01/07 fecho estufado) → bloqueio DURO.
     const anchorBroken = anchorViolated(content.slides, literalAnchor);
@@ -658,7 +658,7 @@ async function getAccessToken(lang: Lang = "es"): Promise<string> {
       if (rows.rows[0]?.value) return rows.rows[0].value;
     } catch { /* fallback */ }
   }
-  return process.env[acc.tokenEnv] ?? "";
+  return envToken(acc);
 }
 
 // ─── Publicação como carrossel ────────────────────────────────────────────────
@@ -679,7 +679,7 @@ async function publishCarousel(
     safeCaption = (lastSpace > IG_CAPTION_MAX - 200 ? cut.slice(0, lastSpace) : cut).trimEnd();
   }
   const acc = accountFor(lang);
-  const accountId = process.env[acc.accountIdEnv] ?? "";
+  const accountId = envAccountId(acc);
   const token     = await getAccessToken(lang);
   const base      = `https://graph.instagram.com/v25.0/${accountId}`;
 
@@ -782,7 +782,7 @@ async function savePost(params: {
   try {
     const dup = await sql`
       SELECT 1 FROM posts
-      WHERE lang = ${params.lang} AND topic = ${params.topic}
+      WHERE lang IN (${params.lang}, ${langLegado(params.lang)}) AND topic = ${params.topic}
         AND published_at > NOW() - INTERVAL '20 hours'
       LIMIT 1
     `;
@@ -814,7 +814,7 @@ export async function GET(req: NextRequest) {
   const runParam = sp.get("run");
   const topicOverride = sp.get("topic");
   const force = sp.get("force") === "1"; // ignora a trava anti-duplicata de 24h (re-publicação/backfill manual)
-  const lang = getLang(sp.get("lang")); // "es" (default, conta atual) | "pt"
+  const lang = getLang(sp.get("lang")); // "es" (default, conta atual) | "br"
 
   // Quais "runs" (0..6) processar nesta chamada:
   // • ?run=N  → exatamente esse horário (caminho do cron, 1 post distinto por horário)
@@ -927,7 +927,7 @@ export async function GET(req: NextRequest) {
     }
     const ed = String(editionNum).padStart(2, "0");
     // BR usa o TÍTULO PT (não a chave ES do tema) → sem espanhol no rótulo. ES inalterado.
-    const kw = extractKeyword(lang === "pt" ? content.postTitle : topic, lang);
+    const kw = extractKeyword(lang === "br" ? content.postTitle : topic, lang);
 
     // O Reel de VÍDEO usa FOOTAGE de banco (Pexels) — NÃO gera ilustração na fal
     // aqui (economia; o preview roda várias vezes/dia). EXCEÇÃO: ?illus=1 — o Reel
@@ -951,14 +951,14 @@ export async function GET(req: NextRequest) {
     const funnelOn = (process.env.ENGAGEMENT_FUNNEL_ENABLED ?? "").toLowerCase() === "on";
     const FUNNEL_TXT: Record<string, { action: string; note: string }> = {
       es: { action: "Comenta esta palabra:", note: "y te lo enviamos al Direct — gratis." },
-      pt: { action: "Comente esta palavra:", note: "e mandamos no seu Direct — grátis." },
+      br: { action: "Comente esta palavra:", note: "e mandamos no seu Direct — grátis." },
     };
     const funnel = funnelOn
       ? {
           keyword: accountFor(lang).freedom.toUpperCase(), // LIBERTAD / LIBERDADE
           action: (FUNNEL_TXT[lang] ?? FUNNEL_TXT.es).action,
           note: (FUNNEL_TXT[lang] ?? FUNNEL_TXT.es).note,
-          cover: `images/dopamina-funnel-bg-${lang === "pt" ? "pt" : "es"}.png`,
+          cover: `images/dopamina-funnel-bg-${lang === "br" ? "br" : "es"}.png`,
         }
       : undefined;
 
@@ -1161,7 +1161,7 @@ export async function GET(req: NextRequest) {
         }
         const ed   = String(editionNum).padStart(2, "0");
         // BR usa o TÍTULO PT (não a chave ES do tema) → sem espanhol no rótulo. ES inalterado.
-        const kw   = extractKeyword(lang === "pt" ? content.postTitle : topic, lang);
+        const kw   = extractKeyword(lang === "br" ? content.postTitle : topic, lang);
         // mood alterna: red para ímpares, ink para pares (igual ao EditorialGrid do site)
         const mood = editionNum % 2 === 0 ? "ink" : "red";
 

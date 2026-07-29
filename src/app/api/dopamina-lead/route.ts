@@ -18,7 +18,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SITE_URL = process.env.SITE_URL || "https://www.drlibertad.com";
 
 /** URL absoluta do PDF da prévia do idioma (fonte única = books.ts), ou null. */
-function previaUrlFor(lang: "pt" | "es"): string | null {
+function previaUrlFor(lang: "br" | "es"): string | null {
   const path = getBook("i-love-dopamina")?.leadPdf?.[lang];
   return path ? `${SITE_URL}${path}` : null;
 }
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   }
 
   let email = "";
-  let lang: "pt" | "es" = "pt";
+  let lang: "br" | "es" = "br";
   let source: "quiz" | "previa" = "previa";
   let faixa: string | undefined;
   let score: number | undefined;
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     email = String(body?.email ?? "").trim().toLowerCase();
-    lang = body?.lang === "es" ? "es" : "pt";
+    lang = body?.lang === "es" ? "es" : "br";
     source = body?.source === "quiz" ? "quiz" : "previa";
     if (body?.faixa != null) faixa = String(body.faixa);
     if (body?.score != null) score = Number(body.score);

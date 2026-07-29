@@ -137,24 +137,24 @@ const CATS: Record<Cat, CatStyle> = {
 
 // ─── i18n do criativo (ES default / PT-BR) ───────────────────────────────────
 // Mantém o /api/og autossuficiente (edge): sem importar de @/lib/accounts.
-type OgLang = "es" | "pt";
+type OgLang = "es" | "br";
 
-const BRAND: Record<OgLang, string> = { es: "Dr. Libertad", pt: "Dr. Liberdade" };
+const BRAND: Record<OgLang, string> = { es: "Dr. Libertad", br: "Dr. Liberdade" };
 
 // @handle por idioma (para a faixa creme da capa). Espelha ACCOUNTS (accounts.ts),
 // mas o /api/og é edge-autossuficiente → constante local (não importa de @/lib).
-const HANDLE: Record<OgLang, string> = { es: "@dr.liberdad", pt: "@dr.liberdade.br" };
+const HANDLE: Record<OgLang, string> = { es: "@dr.liberdad", br: "@dr.liberdade.br" };
 
 // Rótulo da categoria por idioma (substitui CATS[cat].label, que era só ES).
 const CAT_LABEL: Record<OgLang, Record<Cat, string>> = {
   es: { freedom: "LIBERTAD",  dopamine: "RECOMPENSA", anxiety: "ANSIEDAD",  network: "CONEXIÓN", self: "EL YO", mind: "LA MENTE" },
-  pt: { freedom: "LIBERDADE", dopamine: "RECOMPENSA", anxiety: "ANSIEDADE", network: "CONEXÃO",  self: "O EU",  mind: "A MENTE"  },
+  br: { freedom: "LIBERDADE", dopamine: "RECOMPENSA", anxiety: "ANSIEDADE", network: "CONEXÃO",  self: "O EU",  mind: "A MENTE"  },
 };
 
 // Micro-copy fixa do criativo por idioma.
 const UI_TEXT: Record<OgLang, { swipe: string; question: string; answer: string }> = {
   es: { swipe: "Desliza para leer", question: "UNA PREGUNTA", answer: "Responde en los comentarios" },
-  pt: { swipe: "Deslize para ler",  question: "UMA PERGUNTA", answer: "Responda nos comentários" },
+  br: { swipe: "Deslize para ler",  question: "UMA PERGUNTA", answer: "Responda nos comentários" },
 };
 
 // Slide-final do FUNIL (comment→DM): convida a comentar a palavra-chave (= palavra de
@@ -162,7 +162,7 @@ const UI_TEXT: Record<OgLang, { swipe: string; question: string; answer: string 
 // (BR é BR, ES é ES); a palavra (kw) vem por parâmetro. O nome do livro é universal.
 const GUIDE_TEXT: Record<OgLang, { eyebrow: string; book: string; sub: string; action: string; note: string }> = {
   es: { eyebrow: "ADELANTO GRATIS", book: "I LOVE DOPAMINA", sub: "El placer, el vicio y el camino de vuelta al equilibrio.", action: "Comenta esta palabra:", note: "y te lo enviamos al Direct — gratis." },
-  pt: { eyebrow: "PRÉVIA GRÁTIS",   book: "I LOVE DOPAMINA", sub: "O prazer, o vício e o caminho de volta ao equilíbrio.",  action: "Comente esta palavra:", note: "e mandamos no seu Direct — grátis." },
+  br: { eyebrow: "PRÉVIA GRÁTIS",   book: "I LOVE DOPAMINA", sub: "O prazer, o vício e o caminho de volta ao equilíbrio.",  action: "Comente esta palavra:", note: "e mandamos no seu Direct — grátis." },
 };
 
 // Motivo padrão por categoria (fallback quando ?motif= não vem)
@@ -759,7 +759,7 @@ export async function GET(req: NextRequest) {
     const mood  = (searchParams.get("mood") ?? "red") as "red" | "ink";
     const num   = parseInt(searchParams.get("num")   ?? "2");
     const total = parseInt(searchParams.get("total") ?? "5");
-    const lang: OgLang = searchParams.get("lang") === "pt" ? "pt" : "es";
+    const lang: OgLang = ["br", "pt"].includes(searchParams.get("lang") ?? "") ? "br" : "es" /* "pt" = URL antiga */;
 
     // Categoria (direção de arte): vem de ?cat= ou é derivada do tema
     const catParam = searchParams.get("cat");
@@ -799,7 +799,7 @@ export async function GET(req: NextRequest) {
     // Slide do funil usa a ARTE FINAL DO LIVRO: busca a capa hospedada (mesma
     // origem) e embute. Fail-open: falha/timeout → GuideSlide cai no editorial dark.
     const guideCover = slide === "guide"
-      ? await fetchImageDataUri(`${req.nextUrl.origin}/images/i-love-dopamina-capa-${lang === "pt" ? "pt" : "es"}.png`, 3500)
+      ? await fetchImageDataUri(`${req.nextUrl.origin}/images/i-love-dopamina-capa-${lang === "br" ? "br" : "es"}.png`, 3500)
       : undefined;
 
     const fontBold = loadFraunces();

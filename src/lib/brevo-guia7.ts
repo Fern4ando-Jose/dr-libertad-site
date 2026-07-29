@@ -15,8 +15,18 @@
 // log/commit/PR (P3).
 
 /** Nome de env com o ID da lista Brevo "Guia de 7 dias" por idioma. */
-const LIST_ENV: Record<"pt" | "es", string> = {
-  pt: "BREVO_LIST_GUIA7_PT",
+// Env nova (_BR) com reserva no nome LEGADO que ainda vive na Vercel (_PT) — o
+
+// idioma se chama BR (dono, 29/07/2026); renomear a env lá é passo à parte.
+
+function envLegado(nome: string): string | undefined {
+
+  return process.env[nome] ?? process.env[nome.replace(/_BR$/, "_PT")];
+
+}
+
+const LIST_ENV: Record<"br" | "es", string> = {
+  br: "BREVO_LIST_GUIA7_BR",
   es: "BREVO_LIST_GUIA7_ES",
 };
 
@@ -26,8 +36,8 @@ export function brevoConfigured(): boolean {
 }
 
 /** ID numérico da lista do guia no idioma, ou null se não configurado. */
-export function listIdForLang(lang: "pt" | "es"): number | null {
-  const raw = process.env[LIST_ENV[lang]];
+export function listIdForLang(lang: "br" | "es"): number | null {
+  const raw = envLegado(LIST_ENV[lang]);
   if (!raw) return null;
   const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) && n > 0 ? n : null;
@@ -35,7 +45,7 @@ export function listIdForLang(lang: "pt" | "es"): number | null {
 
 export interface Guia7Lead {
   email: string;
-  lang: "pt" | "es";
+  lang: "br" | "es";
   /** UTM opcionais para medir origem→lead. */
   utm?: Partial<Record<"utm_source" | "utm_medium" | "utm_campaign" | "utm_content" | "utm_term", string>>;
 }

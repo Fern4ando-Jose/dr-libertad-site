@@ -8,7 +8,7 @@ import MetaPixel from "@/components/survey/MetaPixel";
 import { surveyContent } from "@/components/survey/survey.content";
 
 const SITE_URL = "https://www.drlibertad.com";
-const c = surveyContent.pt;
+const c = surveyContent.br;
 
 export const metadata: Metadata = {
   title: c.metaTitle,
@@ -36,7 +36,7 @@ export default function PesquisaPage() {
   return (
     <>
       <MetaPixel />
-      <SurveyExperience lang="pt" />
+      <SurveyExperience lang="br" />
     </>
   );
 }

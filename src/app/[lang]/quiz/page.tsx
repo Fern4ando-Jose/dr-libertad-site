@@ -7,7 +7,7 @@ import type { Lang } from "@/lib/i18n/dictionaries";
 const SITE_URL = "https://www.drlibertad.com";
 
 export function generateStaticParams() {
-  return [{ lang: "pt" }, { lang: "es" }];
+  return [{ lang: "br" }, { lang: "es" }];
 }
 
 export async function generateMetadata({
@@ -16,7 +16,7 @@ export async function generateMetadata({
   params: Promise<{ lang: string }>;
 }): Promise<Metadata> {
   const { lang } = await params;
-  const l: Lang = lang === "es" ? "es" : "pt";
+  const l: Lang = lang === "es" ? "es" : "br";
   const c = quizContent[l];
   const brand = l === "es" ? "Dr. Libertad" : "Dr. Liberdade";
 
@@ -26,9 +26,9 @@ export async function generateMetadata({
     alternates: {
       canonical: `${SITE_URL}/${l}/quiz`,
       languages: {
-        "pt-BR": `${SITE_URL}/pt/quiz`,
+        "pt-BR": `${SITE_URL}/br/quiz`,
         "es-ES": `${SITE_URL}/es/quiz`,
-        "x-default": `${SITE_URL}/pt/quiz`,
+        "x-default": `${SITE_URL}/br/quiz`,
       },
     },
     openGraph: {
@@ -49,6 +49,6 @@ export async function generateMetadata({
 
 export default async function QuizPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;
-  if (lang !== "pt" && lang !== "es") notFound();
+  if (lang !== "br" && lang !== "es") notFound();
   return <QuizExperience lang={lang} />;
 }

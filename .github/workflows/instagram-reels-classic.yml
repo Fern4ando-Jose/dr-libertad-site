@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       lang:
-        description: "Idioma (es | br). Default es. (br = Brasil; aceita o codigo tecnico legado pt)"
+        description: "Idioma (es | br). Default es."
         required: false
         default: "es"
       run:
@@ -74,17 +74,17 @@ jobs:
           else
             case "$SCHEDULE" in
               "17 22 * * *") RUN=3; LANG=es ;;
-              "22 22 * * *") RUN=3; LANG=pt ;;
+              "22 22 * * *") RUN=3; LANG=br ;;
               *) RUN=3; LANG=es ;;  # fallback defensivo
             esac
           fi
-          [ "$LANG" = "br" ] && LANG=pt  # BR e o nome do idioma (dono, 29/07); pt e so o codigo tecnico interno
-          [ "$LANG" != "pt" ] && LANG=es  # normaliza qualquer valor inesperado p/ es
+          [ "$LANG" = "pt" ] && LANG=br  # aceita o codigo LEGADO de chamada antiga (catchup/curl velho)
+          [ "$LANG" != "br" ] && LANG=es  # normaliza qualquer valor inesperado p/ es
           echo "run=$RUN" >> "$GITHUB_OUTPUT"
           echo "lang=$LANG" >> "$GITHUB_OUTPUT"
-          if [ "$LANG" = "pt" ]; then
-            echo "langqs=&lang=pt" >> "$GITHUB_OUTPUT"
-            echo "reelqs=?lang=pt" >> "$GITHUB_OUTPUT"
+          if [ "$LANG" = "br" ]; then
+            echo "langqs=&lang=br" >> "$GITHUB_OUTPUT"
+            echo "reelqs=?lang=br" >> "$GITHUB_OUTPUT"
             echo "cta_follow=Siga" >> "$GITHUB_OUTPUT"
             echo "cta_bio=→ Mais no link da bio" >> "$GITHUB_OUTPUT"
           else

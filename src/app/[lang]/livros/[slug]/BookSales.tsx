@@ -100,9 +100,9 @@ export default function BookSales({ slug }: { slug: string }) {
   const L = t[book.dictKey];
   // Modo GRÁTIS (prévia): entrega um PDF por download, sem checkout pago.
   const free = !!book.free && !!book.leadPdf;
-  const leadPdf = book.leadPdf?.[lang] ?? book.leadPdf?.pt ?? "#";
-  const checkout = book.checkout?.[lang] ?? book.checkout?.pt ?? "#";
-  const cover = book.cover[lang] ?? book.cover.pt;
+  const leadPdf = book.leadPdf?.[lang] ?? book.leadPdf?.br ?? "#";
+  const checkout = book.checkout?.[lang] ?? book.checkout?.br ?? "#";
+  const cover = book.cover[lang] ?? book.cover.br;
   const spreads = book.insideImages ?? [];
   const promoVideo = book.promoVideo?.[lang] ?? null;
   const promoPoster = book.promoPoster?.[lang] ?? null;

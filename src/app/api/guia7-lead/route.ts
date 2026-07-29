@@ -21,12 +21,12 @@ export async function POST(req: NextRequest) {
   }
 
   let email = "";
-  let lang: "pt" | "es" = "pt";
+  let lang: "br" | "es" = "br";
   let utm: Record<string, string> | undefined;
   try {
     const body = await req.json();
     email = String(body?.email ?? "").trim().toLowerCase();
-    lang = body?.lang === "es" ? "es" : "pt";
+    lang = body?.lang === "es" ? "es" : "br";
     if (body?.utm && typeof body.utm === "object") {
       utm = {};
       for (const k of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) {

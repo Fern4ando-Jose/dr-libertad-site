@@ -10,7 +10,7 @@ export async function generateMetadata({
   params: Promise<{ lang: string }>;
 }): Promise<Metadata> {
   const { lang } = await params;
-  const l: Lang = lang === "es" ? "es" : "pt";
+  const l: Lang = lang === "es" ? "es" : "br";
   const p = dictionaries[l].privacy;
   const brand = l === "es" ? "Dr. Libertad" : "Dr. Liberdade";
 
@@ -20,9 +20,9 @@ export async function generateMetadata({
     alternates: {
       canonical: `${SITE_URL}/${l}/privacidade`,
       languages: {
-        "pt-BR": `${SITE_URL}/pt/privacidade`,
+        "pt-BR": `${SITE_URL}/br/privacidade`,
         "es-ES": `${SITE_URL}/es/privacidade`,
-        "x-default": `${SITE_URL}/pt/privacidade`,
+        "x-default": `${SITE_URL}/br/privacidade`,
       },
     },
     openGraph: {

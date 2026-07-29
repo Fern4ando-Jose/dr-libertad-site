@@ -1,3 +1,4 @@
+import { langLegado } from "@/lib/accounts";
 // ─── Cache da COPY por (tópico, dia, idioma) ─────────────────────────────────
 // A copy (título/slides/cta/legenda/tags/videoQueries) é regerada pela Anthropic a
 // CADA chamada de preview/publish. Com a instabilidade do cron do GitHub, um run cai
@@ -36,9 +37,11 @@ export async function readContentCache(topic: string, day: string, lang: string)
   try {
     const { sql } = await import("@vercel/postgres");
     const key = contentCacheKey(topic, day, lang);
+    // Chave LEGADA: copy de hoje pode ter sido gravada antes do idioma se chamar "br".
+    const keyLegada = contentCacheKey(topic, day, langLegado(lang));
     const rows = await sql<{ content: unknown }>`
       SELECT content FROM content_cache
-      WHERE cache_key = ${key} AND created_at > NOW() - INTERVAL '24 hours'
+      WHERE cache_key IN (${key}, ${keyLegada}) AND created_at > NOW() - INTERVAL '24 hours'
       LIMIT 1
     `;
     const c = rows.rows[0]?.content as { postTitle?: unknown; slides?: unknown } | undefined;

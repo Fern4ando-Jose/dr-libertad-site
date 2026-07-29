@@ -79,7 +79,7 @@ export type SurveyCopy = {
   footerNote: string;
 };
 
-const pt: SurveyCopy = {
+const br: SurveyCopy = {
   metaTitle: "Pesquisa — Redes Sociais e Relacionamentos",
   metaDescription:
     "Todo mundo tem uma opinião. Quase ninguém tem dado. Estudo sério — 3 minutos, anônimo — sobre o que as redes estão fazendo com os relacionamentos. As respostas viram um livro.",

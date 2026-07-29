@@ -9,12 +9,12 @@
 
 import { useEffect, useState } from "react";
 
-type Draft = { id: number; url: string; lang: "es" | "pt"; comment: string };
+type Draft = { id: number; url: string; lang: "es" | "br"; comment: string };
 
 export default function ComentariosAdmin() {
   const [token, setToken] = useState("");
   const [savedToken, setSavedToken] = useState<string | null>(null);
-  const [lang, setLang] = useState<"es" | "pt">("es");
+  const [lang, setLang] = useState<"es" | "br">("es");
   const [url, setUrl] = useState("");
   const [caption, setCaption] = useState("");
   const [loading, setLoading] = useState(false);
@@ -123,7 +123,7 @@ export default function ComentariosAdmin() {
         {/* Formulário */}
         <div className={`mt-8 ${card}`}>
           <div className="flex gap-3">
-            {(["es", "pt"] as const).map((l) => (
+            {(["es", "br"] as const).map((l) => (
               <button
                 key={l}
                 onClick={() => setLang(l)}

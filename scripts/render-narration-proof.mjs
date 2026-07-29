@@ -14,7 +14,7 @@
 // Uso:
 //   FAL_KEY=... node scripts/render-narration-proof.mjs            → só mostra a conta
 //   FAL_KEY=... node scripts/render-narration-proof.mjs --confirmar-gasto
-//   ... --lang=pt        → só um idioma
+//   ... --lang=br        → só um idioma
 //   ... --sem-render     → gera só o áudio + os props (pula o Remotion)
 //
 // Saída: out/reel-prova-<lang>.mp4 e out/prova-props-<lang>.json
@@ -38,7 +38,7 @@ const SPEED_NATURAL = 0.85;        // ES: velocidade que o dono aprovou
 // Os parâmetros são os EXATOS da amostra que ele ouviu — não mexer sem novo OK.
 const VOZ_POR_IDIOMA = {
   es: { provedor: "minimax", voz: "Deep_Voice_Man", speed: SPEED_NATURAL },
-  pt: { provedor: "elevenlabs", voz: "Bill", speed: 0.95, stability: 0.45, similarity: 0.8, style: 0.1 },
+  br: { provedor: "elevenlabs", voz: "Bill", speed: 0.95, stability: 0.45, similarity: 0.8, style: 0.1 },
 };
 const COST_TTS_PER_1K = 0.10;
 const COST_STT_PER_MIN = 0.03;
@@ -62,7 +62,7 @@ const CONTEUDO = {
     handle: "@dr.liberdad", brand: "Dr. Libertad",
     ctaFollow: "Sigue", ctaBio: "→ Más en el link de la bio",
   },
-  pt: {
+  br: {
     title: "A liberdade começa onde acaba o medo",
     slides: [
       "O medo não é uma emoção que você espera controlar",
@@ -78,7 +78,7 @@ const CONTEUDO = {
 const arg = (name) => process.argv.find((a) => a.startsWith(`--${name}=`))?.split("=")[1];
 const has = (name) => process.argv.includes(`--${name}`);
 
-const langs = arg("lang") ? [arg("lang")] : ["es", "pt"];
+const langs = arg("lang") ? [arg("lang")] : ["es", "br"];
 const FAL_KEY = process.env.FAL_KEY;
 
 function segmentosDe(c) {
@@ -137,7 +137,7 @@ async function gerarVoz(lang, texto) {
         stability: cfg.stability, similarity_boost: cfg.similarity, style: cfg.style, speed: cfg.speed }
     : { text: texto,
         voice_setting: { voice_id: cfg.voz, speed: cfg.speed, vol: 1, pitch: 0 },
-        language_boost: lang === "pt" ? "Portuguese" : "Spanish",
+        language_boost: lang === "br" ? "Portuguese" : "Spanish",
         english_normalization: false,
         audio_setting: { sample_rate: 44100, bitrate: 256000, format: "mp3" } };
   const res = await fetch(`https://fal.run/${modelo}`, {
@@ -165,7 +165,7 @@ async function transcrever(lang, audioUrl) {
     headers: { Authorization: `Key ${FAL_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       audio_url: audioUrl,
-      language_code: lang === "pt" ? "por" : "spa",
+      language_code: lang === "br" ? "por" : "spa",
       tag_audio_events: false,
       diarize: false,
     }),
@@ -222,7 +222,7 @@ async function main() {
       slides: c.slides,
       accentWords: [],
       cta: c.cta,
-      kw: lang === "pt" ? "LIBERDADE" : "LIBERTAD",
+      kw: lang === "br" ? "LIBERDADE" : "LIBERTAD",
       ed: "PROVA",
       cat: "freedom",
       handle: c.handle,

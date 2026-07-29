@@ -6,6 +6,7 @@
 //   2) o watchdog (catchup.yml) consulta o que faltou publicar hoje e só redispara
 //      os runs ausentes — sobrevive ao atraso/derrubada de cron do GitHub.
 // Tudo best-effort/fail-open: erro de banco nunca bloqueia/derruba a publicação.
+import { getLang, langLegado } from "@/lib/accounts";
 
 // "Dia" da automação — ÂNCORA BRT (UTC-3), não UTC. Fonte única em `./day`.
 // (Ver day.ts: por que BRT corrige o reel que renderizava-e-pulava.)
@@ -33,7 +34,7 @@ export async function runAlreadyPublished(day: string, run: number, lang: string
     const { sql } = await import("@vercel/postgres");
     const rows = await sql`
       SELECT 1 FROM published_runs
-      WHERE day = ${day} AND run = ${run} AND lang = ${lang} AND instagram_post_id IS NOT NULL
+      WHERE day = ${day} AND run = ${run} AND lang IN (${lang}, ${langLegado(lang)}) AND instagram_post_id IS NOT NULL
       LIMIT 1
     `;
     return rows.rows.length > 0;
@@ -210,7 +211,7 @@ export async function attemptsToday(day: string, run: number, lang: string): Pro
   try {
     const { sql } = await import("@vercel/postgres");
     const r = await sql<{ attempts: number }>`
-      SELECT attempts FROM published_runs WHERE day = ${day} AND run = ${run} AND lang = ${lang}
+      SELECT MAX(attempts) AS attempts FROM published_runs WHERE day = ${day} AND run = ${run} AND lang IN (${lang}, ${langLegado(lang)})
     `;
     return Number(r.rows[0]?.attempts ?? 0);
   } catch { return 0; }
@@ -226,14 +227,14 @@ export async function recentTopicsForLang(lang: string, days = 7): Promise<Set<s
     const { sql } = await import("@vercel/postgres");
     const a = await sql<{ topic: string }>`
       SELECT DISTINCT topic FROM published_runs
-      WHERE lang = ${lang} AND topic IS NOT NULL
+      WHERE lang IN (${lang}, ${langLegado(lang)}) AND topic IS NOT NULL
         AND instagram_post_id IS NOT NULL
         AND ts > NOW() - (${days} || ' days')::interval
     `;
     for (const r of a.rows) if (r.topic) out.add(r.topic);
     const b = await sql<{ topic: string }>`
       SELECT DISTINCT topic FROM posts
-      WHERE lang = ${lang} AND topic IS NOT NULL
+      WHERE lang IN (${lang}, ${langLegado(lang)}) AND topic IS NOT NULL
         AND published_at > NOW() - (${days} || ' days')::interval
     `;
     for (const r of b.rows) if (r.topic) out.add(r.topic);
@@ -462,7 +463,7 @@ export async function siblingPublished(day: string, run: number, lang: string): 
     const { sql } = await import("@vercel/postgres");
     const r = await sql`
       SELECT 1 FROM published_runs
-      WHERE day = ${day} AND run = ${run} AND lang <> ${lang}
+      WHERE day = ${day} AND run = ${run} AND lang NOT IN (${lang}, ${langLegado(lang)})
         AND instagram_post_id IS NOT NULL
       LIMIT 1
     `;
@@ -497,7 +498,7 @@ export function orphanedPairs(
 }
 
 // Quais runs do dia já têm publicação, por idioma. Usado pelo watchdog (via
-// /api/runs-status) para decidir o que falta. Retorna ex.: { es: [4], pt: [] }.
+// /api/runs-status) para decidir o que falta. Retorna ex.: { es: [4], br: [] }.
 export async function publishedRunsToday(day: string): Promise<Record<string, number[]>> {
   const out: Record<string, number[]> = {};
   try {
@@ -507,7 +508,7 @@ export async function publishedRunsToday(day: string): Promise<Record<string, nu
       WHERE day = ${day} AND instagram_post_id IS NOT NULL
     `;
     for (const r of rows.rows) {
-      (out[r.lang] ??= []).push(r.run);
+      (out[getLang(r.lang)] ??= []).push(r.run); // linha antiga "pt" conta como "br"
     }
   } catch { /* fail-open: devolve o que tiver */ }
   return out;

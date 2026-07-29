@@ -27,7 +27,7 @@ export default function LiveCount({ lang, c }: { lang: Lang; c: EstudoCopy }) {
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { pt?: number; es?: number } | null) => {
         if (!alive || !d) return;
-        const n = lang === "es" ? d.es ?? 0 : d.pt ?? 0;
+        const n = lang === "es" ? d.es ?? 0 : d.br ?? 0;
         setCount(Number.isFinite(n) ? n : 0);
       })
       .catch(() => alive && setCount(0));

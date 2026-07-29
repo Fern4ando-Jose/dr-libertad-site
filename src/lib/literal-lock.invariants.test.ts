@@ -33,7 +33,7 @@ describe("buildLiteralDirective — âncora por idioma (bug cariño→cuidado)",
   const ANCHOR_PT = "O homem não precisa ser amado: precisa de carinho, respeito e admiração";
 
   it("PT com âncora canônica: injeta a frase PT verbatim e proíbe traduzir o tema ES", () => {
-    const d = buildLiteralDirective(true, "liberdade", { lang: "pt", anchorPt: ANCHOR_PT });
+    const d = buildLiteralDirective(true, "liberdade", { lang: "br", anchorBr: ANCHOR_PT });
     expect(d).toContain(ANCHOR_PT);
     expect(d).toContain("NÃO traduza");
     expect(d).toContain("INVIOLÁVEL");
@@ -42,14 +42,14 @@ describe("buildLiteralDirective — âncora por idioma (bug cariño→cuidado)",
   });
 
   it("PT SEM âncora canônica: exige tradução FIEL palavra por palavra (sem eufemismo/antítese quebrada)", () => {
-    const d = buildLiteralDirective(true, "liberdade", { lang: "pt" });
+    const d = buildLiteralDirective(true, "liberdade", { lang: "br" });
     expect(d).toContain("PALAVRA POR PALAVRA");
     expect(d.toLowerCase()).toContain("eufemismo");
     expect(d).toContain("termina no osso");
   });
 
-  it("ES fica com a diretiva clássica (frase do tema textual), mesmo com anchorPt presente", () => {
-    const d = buildLiteralDirective(true, "libertad", { lang: "es", anchorPt: ANCHOR_PT });
+  it("ES fica com a diretiva clássica (frase do tema textual), mesmo com anchorBr presente", () => {
+    const d = buildLiteralDirective(true, "libertad", { lang: "es", anchorBr: ANCHOR_PT });
     expect(d).toContain("INVIOLABLE");
     expect(d).not.toContain(ANCHOR_PT);
     // anula tb a regra geral "PROHIBIDO copiar el Tema" (senão o guardião bloquearia ES)
@@ -102,9 +102,9 @@ describe("anchorForLang — de onde vem a âncora de validação", () => {
     expect(anchorForLang("Nadie te debe nada", "es", "Ninguém te deve nada")).toBe("Nadie te debe nada");
   });
   it("PT com verbatim: usa o canônico do dono", () => {
-    expect(anchorForLang("Nadie te debe nada", "pt", "Ninguém te deve nada")).toBe("Ninguém te deve nada");
+    expect(anchorForLang("Nadie te debe nada", "br", "Ninguém te deve nada")).toBe("Ninguém te deve nada");
   });
   it("PT sem verbatim: null (sem check determinístico; vale a regra de tradução fiel)", () => {
-    expect(anchorForLang("La comodidad te está matando lentamente", "pt")).toBeNull();
+    expect(anchorForLang("La comodidad te está matando lentamente", "br")).toBeNull();
   });
 });

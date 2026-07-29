@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { type Lang, accountFor, getLang } from "@/lib/accounts";
+import { type Lang, accountFor, getLang, envToken, envAccountId } from "@/lib/accounts";
 
 // Revalida a cada hora — assim o EDITORIAL se atualiza sozinho conforme novos posts são publicados.
 export const revalidate = 3600;
@@ -95,11 +95,11 @@ async function getAccessToken(lang: Lang): Promise<string> {
       /* fallback para env var */
     }
   }
-  return process.env[acc.tokenEnv] ?? "";
+  return envToken(acc);
 }
 
 async function fetchInstagram(lang: Lang): Promise<IgMedia[]> {
-  const accountId = process.env[accountFor(lang).accountIdEnv];
+  const accountId = envAccountId(accountFor(lang));
   const token = await getAccessToken(lang);
   if (!accountId || !token) return [];
 
@@ -143,7 +143,7 @@ async function fetchTotalCount(): Promise<number> {
 }
 
 export async function GET(req: NextRequest) {
-  const lang = getLang(req.nextUrl.searchParams.get("lang")); // "es" (default) | "pt"
+  const lang = getLang(req.nextUrl.searchParams.get("lang")); // "es" (default) | "br"
   const [igMedia, dbPosts, totalCount] = await Promise.all([
     fetchInstagram(lang),
     fetchDbPosts(),
