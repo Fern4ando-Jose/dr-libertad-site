@@ -1,0 +1,23 @@
+name: Verificação do galho (disparo manual)
+
+# Bateria idêntica ao scripts/verify.sh, rodando NA NUVEM para galho criado por
+# API (o CI de pull_request não dispara nesses). Uso pontual; disparo manual.
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Typecheck (tsc --noEmit)
+        run: npx tsc --noEmit
+      - name: Testes (vitest run)
+        run: npx vitest run
+      - name: Build (next build)
+        run: npm run build
