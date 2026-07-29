@@ -139,7 +139,10 @@
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 96px 0 56px;
+  /* A margem lateral vem do .wrap (0 26px) e ESTA regra a sobrescrevia com 0 —
+     no celular o título e os dois botões encostavam na borda e os cantos
+     arredondados apareciam cortados (queixa do dono, 2026-07-29). */
+  padding: 96px 26px 56px;
 }
 /* Chip estático (não-clicável) — clone do .dl-chip do site. */
 .badge {
@@ -731,7 +734,7 @@
 
 @media (max-width: 640px) {
   .wrap { padding: 0 20px; }
-  .hero { padding: 84px 0 44px; }
+  .hero { padding: 84px 20px 44px; } /* mesma margem lateral do .wrap no celular */
   .ctaRow .btn,
   .ctaRow .btnGhost { width: 100%; }
   /* Em coluna estreita o CTA + selo "recomendado" empilham (lado a lado
