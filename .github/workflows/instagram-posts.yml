@@ -1,4 +1,4 @@
-name: Instagram — publicar posts (ES + BR)
+name: Instagram — publicar posts (ES + PT)
 
 # Agendamento gratuito via GitHub Actions (substitui os crons do Vercel).
 # 1 CARROSSEL/dia por idioma (run 4 — tópico distinto dos Reels, que usam 0 e 2 vídeo + 3 clássico).
@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       lang:
-        description: "Idioma (es | br). Default es. (br = Brasil; aceita o codigo tecnico legado pt)"
+        description: "Idioma (es | pt). Default es."
         required: false
         default: "es"
       run:
@@ -83,7 +83,6 @@ jobs:
             echo "topic=" >> "$GITHUB_OUTPUT"
             echo "force=false" >> "$GITHUB_OUTPUT"
           fi
-          [ "$LANG" = "br" ] && LANG=pt  # BR e o nome do idioma (dono, 29/07); pt e so o codigo tecnico interno
           [ "$LANG" != "pt" ] && LANG=es  # normaliza qualquer valor inesperado p/ es
           echo "lang=$LANG" >> "$GITHUB_OUTPUT"
           echo "Parâmetros: run='${RUN:-$IN_RUN}' lang='$LANG'"
