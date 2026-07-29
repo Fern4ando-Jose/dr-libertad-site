@@ -84,10 +84,11 @@ const FAL_KEY = process.env.FAL_KEY;
 function segmentosDe(c) {
   // MESMA montagem da API (src/app/api/publish/route.ts): blocos na ordem falada,
   // com ponto final. É esta lista que o render usa pra saber onde cada cena começa.
+  // SEM o fecho falado (retirado 2026-07-29, ordem do dono): a voz termina no
+  // último slide; CTA/funil são cenas de tela, sem fala.
   return [c.title, ...c.slides]
     .map((s) => s.trim())
-    .map((s) => (/[.!?]$/.test(s) ? s : s + "."))
-    .concat(c.follow);
+    .map((s) => (/[.!?]$/.test(s) ? s : s + "."));
 }
 
 function estimativa() {
