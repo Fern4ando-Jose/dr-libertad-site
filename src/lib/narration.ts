@@ -46,15 +46,19 @@ type VozCfg =
   | { provedor: "minimax"; voz: string; speed: number }
   | { provedor: "elevenlabs"; voz: string; speed: number; stability: number; similarity: number; style: number };
 
-const VOZ_POR_IDIOMA: Record<string, VozCfg> = {
+export const VOZ_POR_IDIOMA: Record<string, VozCfg> = {
   // ES — inalterado. Velocidade 0,85 é a que ele aprovou ("lento o suficiente p/ LER
   // e ouvir"); o antigo teto de 0,95 embolava a abertura ("público" → "publi e zeco").
   es: { provedor: "minimax", voz: "Deep_Voice_Man", speed: 0.85 },
-  // PT-BR — escolhido pelo dono ouvindo 6 amostras (2026-07-27): "Candidata 3 — Bill".
+  // BR — escolhido pelo dono ouvindo 6 amostras (2026-07-27): "Candidata 3 — Bill".
   // ElevenLabs multilingual-v2 é vendido por precisão de sotaque e aceita forçar o
   // idioma; de quebra devolve o tempo de cada palavra NATIVO, o que tira a transcrição
-  // paga do caminho (o Reel PT fica ~1/3 mais barato que o ES).
-  pt: { provedor: "elevenlabs", voz: "Bill", speed: 0.95, stability: 0.45, similarity: 0.8, style: 0.1 },
+  // paga do caminho (o Reel BR fica ~1/3 mais barato que o ES).
+  // ⚠️ Chave "br" (29/07 à noite): o refactor pt→br trocou o `lang` que chega aqui,
+  // mas esta tabela ficou com a chave velha "pt" → vozDe("br") caía no FALLBACK ES
+  // (Deep_Voice_Man — a voz que o dono REPROVOU lendo português). Não estourou hoje
+  // só porque a narração BR veio do cache antigo. Bug latente achado e fechado.
+  br: { provedor: "elevenlabs", voz: "Bill", speed: 0.95, stability: 0.45, similarity: 0.8, style: 0.1 },
 };
 
 function vozDe(lang: string): VozCfg {
@@ -87,24 +91,34 @@ export interface NarrationResult {
 // NÃO pode ser reaproveitado: ele ainda fala o fecho enquanto a tela nova não o
 // mostra — a voz sobra no fim e dessincroniza (defeito real, prévia de 29/07).
 // Mudou a forma do roteiro? Suba o número — o cache velho simplesmente nunca casa.
-const ROTEIRO_VERSAO = "v2"; // v2 = sem fecho falado
+const ROTEIRO_VERSAO = "v3"; // v3 = ES sem fecho falado · BR com fecho ("Me segue…", 29/07 à noite)
 
-function cacheKey(topic: string, day: string, lang: string): string {
-  return `${topic}|${day}|${lang}|${ROTEIRO_VERSAO}`;
+// HASH do TEXTO falado na chave (espelhado do UPM, 29/07 — lá o bug foi real): a
+// voz só pode ser reusada para o MESMO roteiro. Sem isto, um cache de copy que
+// falhe faz a voz de um texto tocar sobre a tela de outro (2ª metade toda
+// dessincronizada). Texto diferente NUNCA casa; no pior caso regenera (~US$0,03).
+export function hashRoteiro(text: string): string {
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+
+function cacheKey(topic: string, day: string, lang: string, roteiro: string): string {
+  return `${topic}|${day}|${lang}|${ROTEIRO_VERSAO}|${hashRoteiro(roteiro)}`;
 }
 
 // O cache guarda a MEDIDA junto com o áudio (duração real + tempo de cada palavra).
 // Sem isso o re-disparo reusaria o mp3 mas perderia a sincronia — e voltaria a
 // pagar o Scribe só pra remedir o mesmo áudio.
 async function readCachedNarration(
-  topic: string, day: string, lang: string,
+  topic: string, day: string, lang: string, roteiro: string,
 ): Promise<{ url: string; durationSec: number; words: NarrationWord[] } | null> {
   try {
     const { sql } = await import("@vercel/postgres");
-    const key = cacheKey(topic, day, lang);
+    const key = cacheKey(topic, day, lang, roteiro);
     // Chave LEGADA: áudio de hoje pode ter sido gravado (≤48h) antes de o idioma
     // passar a se chamar "br" — sem esta leitura o mesmo áudio seria REGERADO (pago).
-    const keyLegada = cacheKey(topic, day, langLegado(lang));
+    const keyLegada = cacheKey(topic, day, langLegado(lang), roteiro);
     const rows = await sql<{ url: string; duration_sec: number | null; words: unknown }>`
       SELECT url, duration_sec, words FROM narration_cache
       WHERE cache_key IN (${key}, ${keyLegada}) AND url <> 'PENDING' AND created_at > NOW() - INTERVAL '48 hours'
@@ -120,11 +134,11 @@ async function readCachedNarration(
 }
 
 async function writeCachedNarration(
-  topic: string, day: string, lang: string, url: string, durationSec: number, words: NarrationWord[],
+  topic: string, day: string, lang: string, roteiro: string, url: string, durationSec: number, words: NarrationWord[],
 ): Promise<void> {
   try {
     const { sql } = await import("@vercel/postgres");
-    const key = cacheKey(topic, day, lang);
+    const key = cacheKey(topic, day, lang, roteiro);
     const wordsJson = JSON.stringify(words ?? []);
     await sql`
       INSERT INTO narration_cache (cache_key, url, topic, lang, duration_sec, words, created_at)
@@ -253,7 +267,7 @@ export async function generateNarration(
   if (clean.length < 20) return { url: null, error: "roteiro de narração vazio/curto" };
 
   // Cache por (tópico, dia, idioma) — re-disparo reusa (gasto fal = 0).
-  const hit = await readCachedNarration(topic, day, lang);
+  const hit = await readCachedNarration(topic, day, lang, clean);
   if (hit) return { url: hit.url, cached: true, durationSec: hit.durationSec, words: hit.words };
 
   const automation: Automation = opts.automation ?? "ig-reels";
@@ -349,7 +363,7 @@ export async function generateNarration(
       ? durationSec
       : (words.length ? words[words.length - 1].end : 0);
 
-    await writeCachedNarration(topic, day, lang, finalUrl, duracaoFinal, words);
+    await writeCachedNarration(topic, day, lang, clean, finalUrl, duracaoFinal, words);
     return {
       url: finalUrl, cached: false, durationSec: duracaoFinal, words,
       error: erroTempos ? `voz ok; legenda sem tempos (${erroTempos})` : undefined,

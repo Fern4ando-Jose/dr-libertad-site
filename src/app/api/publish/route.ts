@@ -997,7 +997,16 @@ export async function GET(req: NextRequest) {
     }
     // Blocos do roteiro NA ORDEM falada — o render usa esta MESMA lista pra saber onde
     // cada cena começa (fonte única do alinhamento voz↔tela).
-    const narrationSegments = [content.postTitle, ...spokenSlides]
+    // FECHO FALADO SÓ NO BR (ordem do dono 29/07 à noite, depois de aprovar o fecho no
+    // UPM: "no Doutor Liberdade a gente tinha que fazer, mas a voz espanhola está
+    // embolando... coloca no BR"). ES segue SEM fecho — foi a voz ES embolando
+    // "Direct"/"LIBERTAD" que tirou o fecho da narração em 29/07 de manhã. A voz BR
+    // (Bill) fala a pergunta do dia + um pedido de seguir na voz da marca, SEM o
+    // @handle e SEM a palavra-chave do funil (as duas que embolavam).
+    const fechoFaladoBr = lang === "br"
+      ? [content.cta, "Me segue pra mais verdades incômodas."].map((s) => String(s || "").trim()).filter(Boolean).join(" ")
+      : "";
+    const narrationSegments = [content.postTitle, ...spokenSlides, ...(fechoFaladoBr ? [fechoFaladoBr] : [])]
       .map((s) => String(s).trim()).filter(Boolean)
       .map((s) => (/[.!?]$/.test(s) ? s : s + "."));
     const narrationText = narrationSegments.join(" ");

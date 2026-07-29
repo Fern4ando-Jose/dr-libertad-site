@@ -132,13 +132,13 @@ export function reelPlanV2(props: Partial<ReelProps>, fps: number = FPS): ReelV2
   const segments = Array.isArray(props.narrationSegments) ? props.narrationSegments.filter(Boolean) : [];
   const durationSec = Number(props.narrationDurationSec ?? 0);
   // Precisa de: áudio + duração medida + os blocos do roteiro na quantidade que a
-  // voz FALA. Desde 2026-07-29 a voz NÃO narra o fecho (retirado por ordem do dono
-  // — "Direct"/"LIBERTAD" saíam com sotaque): o roteiro falado é capa + n insights
-  // = n+1 blocos. Era `n + 2` (com cierre) — foi ESTA régua desatualizada que fez o
-  // render descartar a medida da voz e cair na fórmula (o "todo cagado" de 29/07:
-  // cenas na fórmula, voz no ritmo próprio, tudo descolado). Qualquer divergência
-  // real → fórmula, como sempre.
-  if (!props.narrationUrl || !(durationSec > 0) || segments.length !== n + 1) return fallback();
+  // voz FALA. Dois formatos válidos desde 29/07 à noite (ordem do dono):
+  //   n+1 = capa + insights, SEM fecho falado (ES — a voz MiniMax embolava
+  //         "Direct"/"LIBERTAD", por isso o fecho saiu da narração ES);
+  //   n+2 = capa + insights + FECHO falado (BR — voz Bill, fecho na voz da marca).
+  // Qualquer outra contagem → fórmula, como sempre.
+  const comFecho = segments.length === n + 2;
+  if (!props.narrationUrl || !(durationSec > 0) || (segments.length !== n + 1 && !comFecho)) return fallback();
 
   const scriptWords = segments.flatMap(splitWords);
   if (!scriptWords.length) return fallback();
@@ -148,14 +148,25 @@ export function reelPlanV2(props: Partial<ReelProps>, fps: number = FPS): ReelV2
     Array.isArray(props.narrationWords) ? props.narrationWords : [],
     durationSec,
   );
-  // A voz cobre capa + insights; o CTA (e o funil) entram DEPOIS dela, com duração
-  // fixa — são cenas de tela, sem fala (o fecho falado foi retirado).
   const plan = buildSyncPlan(segments, words, durationSec, fps, 0);
   const timings = segmentTimings(segments, words);
   const scenes = [...plan.scenes];
   let totalFrames = plan.totalFrames;
-  scenes.push({ fromFrame: totalFrames, durationInFrames: CTA });
-  totalFrames += CTA;
+  if (comFecho) {
+    // BR: a ÚLTIMA cena falada É o CTA — começa quando a voz começa o fecho e ganha
+    // um respiro de leitura DEPOIS da fala (esticar a última cena falada não empurra
+    // ninguém que fale; o funil entra depois dela, como sempre).
+    const HOLD = Math.round(fps * 2.0);
+    scenes[scenes.length - 1] = {
+      ...scenes[scenes.length - 1],
+      durationInFrames: scenes[scenes.length - 1].durationInFrames + HOLD,
+    };
+    totalFrames += HOLD;
+  } else {
+    // ES: o CTA segue como cena de tela, sem fala, depois da voz.
+    scenes.push({ fromFrame: totalFrames, durationInFrames: CTA });
+    totalFrames += CTA;
+  }
   if (FUNNEL > 0) {
     scenes.push({ fromFrame: totalFrames, durationInFrames: FUNNEL });
     totalFrames += FUNNEL;

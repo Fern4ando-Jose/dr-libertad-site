@@ -82,14 +82,25 @@ describe("reelPlanV2 — o vídeo se dimensiona pela VOZ", () => {
     }
   });
 
-  it("o roteiro falado NUNCA inclui fecho: n+1 blocos sincroniza; n+2 (forma velha) cai na fórmula", () => {
-    // A forma velha (com cierre) não pode mais ser aceita: o áudio dela fala um
-    // bloco que a tela não cronometra — foi o "todo cagado" de 29/07.
-    const velha = reelPlanV2(
-      { ...syncedProps, narrationSegments: [...SEGMENTS, "Me siga se você prefere a verdade."] },
+  it("n+2 blocos = FECHO FALADO (BR, 29/07 à noite): sincroniza e a última cena falada É o CTA", () => {
+    // Delta da noite de 29/07 (ordem do dono, depois de aprovar no UPM): o BR fala o
+    // fecho; a cena final começa quando a voz começa o fecho e ganha respiro de
+    // leitura DEPOIS da fala. O que segue proibido é contagem que não bate (n+3 →
+    // fórmula) — a régua "todo bloco falado é cronometrado" continua de pé.
+    const comFecho = reelPlanV2(
+      { ...syncedProps, narrationSegments: [...SEGMENTS, "Pergunta do dia? Me segue pra mais verdades incômodas."] },
       FPS,
     );
-    expect(velha.synced).toBe(false);
+    expect(comFecho.synced).toBe(true);
+    // cenas: capa + n insights + fecho/CTA — nenhuma cena extra de tela é anexada
+    const n = dedupeSlides(TITLE, SLIDES).length;
+    expect(comFecho.scenes.length).toBe(n + 2);
+
+    const invalida = reelPlanV2(
+      { ...syncedProps, narrationSegments: [...SEGMENTS, "fecho.", "bloco a mais."] },
+      FPS,
+    );
+    expect(invalida.synced).toBe(false);
   });
 
   it("CTA vira cena de TELA com duração fixa, DEPOIS de a voz terminar", () => {
