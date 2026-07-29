@@ -119,9 +119,9 @@ export default function StudioNav() {
           >
             {t.nav.study}
           </a>
-          <a href={`${home}/quiz`} className={`${linkCls} whitespace-nowrap`}>
-            {t.nav.quiz}
-          </a>
+          {/* O Teste (/[lang]/quiz) saiu da nav por decisão do dono (2026-07-29):
+              a página continua no ar e é acessada por LINK DIRETO (campanha/DM),
+              só não aparece mais no menu. */}
           <a href={`${home}/livros`} className={linkCls}>
             {t.nav.books}
           </a>
@@ -177,9 +177,7 @@ export default function StudioNav() {
               >
                 {t.nav.study}
               </a>
-              <a href={`${home}/quiz`} onClick={() => setOpen(false)} className={mobileItemCls}>
-                {t.nav.quiz}
-              </a>
+              {/* Teste fora do menu também no celular — ver comentário na nav desktop. */}
               <a href={`${home}/livros`} onClick={() => setOpen(false)} className={mobileItemCls}>
                 {t.nav.books}
               </a>

@@ -257,7 +257,7 @@ export const pt = {
   livrosIndex: {
     eyebrow: "Biblioteca",
     title: "Livros para reconectar saber e cuidado.",
-    lead: "Guias ilustrados que reúnem conhecimento tradicional com clareza e respeito à informação. Escolha um título para ver os detalhes.",
+    lead: "Leituras para entender o que sequestra a sua atenção — e o caminho de volta. Escolha um título para ver os detalhes.",
     viewLabel: "Ver livro",
   },
   author: {
@@ -717,7 +717,7 @@ export const es: Dict = {
   livrosIndex: {
     eyebrow: "Biblioteca",
     title: "Libros para reconectar saber y cuidado.",
-    lead: "Guías ilustradas que reúnen conocimiento tradicional con claridad y respeto a la información. Elige un título para ver los detalles.",
+    lead: "Lecturas para entender qué secuestra tu atención — y el camino de vuelta. Elige un título para ver los detalles.",
     viewLabel: "Ver libro",
   },
   author: {

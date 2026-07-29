@@ -21,6 +21,9 @@ export type BookMeta = {
   // não existir — o player só aparece quando há vídeo para o idioma atual.
   promoVideo?: { pt: string | null; es: string | null };
   promoPoster?: { pt: string | null; es: string | null };
+  // FORA DA VITRINE: o livro continua com página no ar (rota, OG, checkout) e é
+  // acessado por LINK DIRETO, mas não aparece na lista /livros.
+  hidden?: boolean;
 };
 
 export const BOOKS: BookMeta[] = [
@@ -35,6 +38,8 @@ export const BOOKS: BookMeta[] = [
     // ES ainda não produzido — fica null até a versão em espanhol ser renderizada.
     promoVideo: { pt: "/videos/livro-promo-pt.mp4", es: null },
     promoPoster: { pt: "/videos/livro-promo-pt-poster.jpg", es: null },
+    // Decisão do dono (2026-07-29): sai da vitrine, segue vendendo por link direto.
+    hidden: true,
   },
   {
     // Prévia GRÁTIS do livro "I Love Dopamina" — página-destino do funil comment→DM.
@@ -52,3 +57,7 @@ export const BOOKS: BookMeta[] = [
 
 export const getBook = (slug: string): BookMeta | undefined =>
   BOOKS.find((b) => b.slug === slug);
+
+// O que a LISTA /livros mostra. `BOOKS` segue inteiro para rota, OG e página de
+// venda — esconder da vitrine nunca tira a página do ar.
+export const VISIBLE_BOOKS: BookMeta[] = BOOKS.filter((b) => !b.hidden);
