@@ -3,27 +3,27 @@ import type { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = "https://www.drlibertad.com";
   const languages = {
-    "pt-BR": `${base}/pt`,
+    "pt-BR": `${base}/br`,
     "es-ES": `${base}/es`,
-    "x-default": `${base}/pt`,
+    "x-default": `${base}/br`,
   };
 
   const privacy = {
-    "pt-BR": `${base}/pt/privacidade`,
+    "pt-BR": `${base}/br/privacidade`,
     "es-ES": `${base}/es/privacidade`,
-    "x-default": `${base}/pt/privacidade`,
+    "x-default": `${base}/br/privacidade`,
   };
 
   const terms = {
-    "pt-BR": `${base}/pt/termos`,
+    "pt-BR": `${base}/br/termos`,
     "es-ES": `${base}/es/termos`,
-    "x-default": `${base}/pt/termos`,
+    "x-default": `${base}/br/termos`,
   };
 
   const quiz = {
-    "pt-BR": `${base}/pt/quiz`,
+    "pt-BR": `${base}/br/quiz`,
     "es-ES": `${base}/es/quiz`,
-    "x-default": `${base}/pt/quiz`,
+    "x-default": `${base}/br/quiz`,
   };
 
   // Pesquisa "Redes Sociais e Relacionamentos" — rotas fixas por idioma
@@ -68,7 +68,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages: estudo },
     },
     {
-      url: `${base}/pt`,
+      url: `${base}/br`,
       changeFrequency: "daily",
       priority: 1,
       alternates: { languages },
@@ -80,7 +80,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages },
     },
     {
-      url: `${base}/pt/quiz`,
+      url: `${base}/br/quiz`,
       changeFrequency: "monthly",
       priority: 0.8,
       alternates: { languages: quiz },
@@ -92,7 +92,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages: quiz },
     },
     {
-      url: `${base}/pt/privacidade`,
+      url: `${base}/br/privacidade`,
       changeFrequency: "yearly",
       priority: 0.3,
       alternates: { languages: privacy },
@@ -104,7 +104,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages: privacy },
     },
     {
-      url: `${base}/pt/termos`,
+      url: `${base}/br/termos`,
       changeFrequency: "yearly",
       priority: 0.3,
       alternates: { languages: terms },

@@ -7,7 +7,7 @@ import { contentCacheKey } from "./content-cache";
 describe("content-cache — chave por (tópico, dia, idioma)", () => {
   it("inclui o idioma → ES e PT têm entradas distintas", () => {
     const es = contentCacheKey("Nadie te debe nada", "2026-06-20", "es");
-    const pt = contentCacheKey("Nadie te debe nada", "2026-06-20", "pt");
+    const pt = contentCacheKey("Nadie te debe nada", "2026-06-20", "br");
     expect(es).not.toBe(pt);
     expect(es).toBe("Nadie te debe nada|2026-06-20|es|v4");
   });

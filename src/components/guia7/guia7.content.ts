@@ -7,7 +7,7 @@
 // neurociência literal — bloco de honestidade visível na página. Recalibração
 // comportamental, não pseudociência. Ver o .md do editor-chefe.
 
-export type Lang = "pt" | "es";
+export type Lang = "br" | "es";
 
 export interface Step {
   /** Rótulo do dia, ex.: "Dia 1" / "Día 1". */
@@ -54,7 +54,7 @@ export interface Guia7Content {
 }
 
 export const guia7Content: Record<Lang, Guia7Content> = {
-  pt: {
+  br: {
     metaTitle: "7 dias para retomar sua atenção — Guia grátis | Dr. Liberdade",
     metaDescription:
       "Um protocolo curto e honesto para sair do automático do feed: 7 movimentos pequenos, um por dia. Sem detox milagroso, sem fórmula mágica.",
@@ -138,7 +138,7 @@ export const guia7Content: Record<Lang, Guia7Content> = {
     finalLead:
       "Estes 7 passos são a saída. O porquê — como a sua atenção foi sequestrada e o que a ciência de fato mostra sobre a dopamina — é o tema do livro I Love Dopamina. A prévia é grátis.",
     finalCta: "Ler a prévia de I Love Dopamina",
-    finalHref: "/pt/livros/i-love-dopamina",
+    finalHref: "/br/livros/i-love-dopamina",
     disclaimer:
       "Conteúdo estritamente educativo. Não substitui acompanhamento de um profissional de saúde e não promete cura nem tratamento de transtornos.",
     footerSignature: "Dr. Liberdade",

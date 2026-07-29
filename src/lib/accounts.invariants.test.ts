@@ -12,9 +12,9 @@ describe("accounts — CTA do Reel no idioma da conta (bug C3)", () => {
     expect(accountFor("es").ctaBio).toContain("link de la bio");
   });
 
-  it("PT usa português no CTA", () => {
-    expect(accountFor("pt").ctaFollow).toBe("Siga");
-    expect(accountFor("pt").ctaBio).toContain("link da bio");
+  it("BR usa português no CTA", () => {
+    expect(accountFor("br").ctaFollow).toBe("Siga");
+    expect(accountFor("br").ctaBio).toContain("link da bio");
   });
 
   it("ES NUNCA carrega o texto do português (a mescla que o C3 causava)", () => {

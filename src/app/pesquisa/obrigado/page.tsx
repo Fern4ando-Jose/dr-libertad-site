@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import ThanksView from "@/components/survey/ThanksView";
 import { surveyContent } from "@/components/survey/survey.content";
 
-const c = surveyContent.pt;
+const c = surveyContent.br;
 
 export const metadata: Metadata = {
   title: c.thanks.metaTitle,
@@ -15,5 +15,5 @@ export const metadata: Metadata = {
 };
 
 export default function ObrigadoPage() {
-  return <ThanksView lang="pt" />;
+  return <ThanksView lang="br" />;
 }

@@ -35,7 +35,7 @@ export const COMMENT_TARGETS: Record<Lang, CommentTarget[]> = {
     { username: "culturapositiva", followersApprox: "~10M", focus: "Frases inspiracionales (ER bajo)", pillars: [4, 5], tier: "reach" },
     { username: "mundopsicologos", followersApprox: "~1M", focus: "Divulgación de psicología", pillars: [2, 4], tier: "reach" },
   ],
-  pt: [
+  br: [
     { username: "rossandroklinjey", followersApprox: "~3M", focus: "Psicólogo: comportamento/família, tom provocativo", pillars: [2, 3, 4], tier: "core" },
     { username: "anabeatriz11", followersApprox: "~7M", focus: "Psiquiatra: ansiedade, verdades duras de saúde mental", pillars: [1, 3, 4], tier: "core" },
     { username: "joeljota", followersApprox: "~6M", focus: "Disciplina, alta performance, autorresponsabilidade", pillars: [4, 5], tier: "core" },
@@ -51,4 +51,4 @@ export const COMMENT_TARGETS: Record<Lang, CommentTarget[]> = {
 
 // Cadência diária por conta (freio de segurança). ES (conta antiga) mais agressiva;
 // PT (conta nova, já bloqueada uma vez) conservadora. Sempre MUITO abaixo do teto.
-export const DAILY_COMMENT_CAP: Record<Lang, number> = { es: 10, pt: 5 };
+export const DAILY_COMMENT_CAP: Record<Lang, number> = { es: 10, br: 5 };

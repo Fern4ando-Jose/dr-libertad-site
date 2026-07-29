@@ -18,7 +18,7 @@ import { workflowFor } from "@/lib/workflows";
 // Hora BRT de cada run (cron UTC convertido). BRT p/ casar com dayBRT (run 2 = 21h BRT).
 // RUN_HOUR_BRT (run→hora BRT) mora em @/lib/day — FONTE ÚNICA compartilhada com guardian/runs-status.
 const GRACE_MIN = 75;
-const ACTIVE_LANGS = ["es", "pt"];
+const ACTIVE_LANGS = ["es", "br"];
 const REPO = process.env.GH_REPO || "Fern4ando-Jose/dr-libertad-site";
 
 // run → (workflow, inputs) mora em @/lib/workflows — FONTE ÚNICA, conferida contra o

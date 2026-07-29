@@ -201,7 +201,7 @@ export const FUNNEL_DM_VARIATIONS: Record<string, string[]> = {
     `Acá va, como pediste: el adelanto de "I Love Dopamina".\n\nNo vine a decirte que sos un adicto. El adicto no elige; vos elegís, cada vez que agarrás el teléfono. El libro es para que veas quién tiene la llave.\n\nEmpezá por acá: {LINK}\n\nCon calma. — Dr. Libertad`,
     `Lo pediste y te lo mando: adelanto de "I Love Dopamina", gratis.\n\nEl problema nunca fue el placer — fue lo fácil que se volvió. Scrolleás horas, te dormís insatisfecho, y al otro día igual. El libro explica el mecanismo, sin sermón.\n\nEstá acá: {LINK}\n\nQue lo disfrutes. — Dr. Libertad`,
   ],
-  pt: [
+  br: [
     `Você pediu, então tá aqui. 👊 "I Love Dopamina" não é manual pra "resetar o cérebro" — é entender por que você quer mil coisas e nenhuma satisfaz.\n\nDopamina não é prazer: é vontade. E vontade a tela te vende infinita.\n\nA prévia está aqui: {LINK}\n\nLê sem pressa. — Dr. Liberdade`,
     `Você comentou, e eu cumpro. Te deixo a prévia de "I Love Dopamina".\n\nA pergunta do livro incomoda: por que, com mais estímulo do que nunca, você sente cada vez menos? A culpa não é sua — o que você faz com isso, é.\n\nTá aqui: {LINK}\n\nA gente se lê. — Dr. Liberdade`,
     `Aqui está, como você pediu: a prévia de "I Love Dopamina".\n\nNão vim te chamar de viciado. Viciado não escolhe; você escolhe, toda vez que pega o celular. O livro é pra você ver quem está com a chave.\n\nComeça por aqui: {LINK}\n\nCom calma. — Dr. Liberdade`,

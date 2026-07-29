@@ -104,6 +104,18 @@ export async function GET(req: NextRequest) {
     // perderia a sincronia (ou repagaria o Scribe só pra remedir o mesmo arquivo).
     await sql`ALTER TABLE narration_cache ADD COLUMN IF NOT EXISTS duration_sec REAL`;
     await sql`ALTER TABLE narration_cache ADD COLUMN IF NOT EXISTS words JSONB`;
+    // ── IDIOMA "br" (ordem do dono 29/07/2026): dado antigo gravado como "pt" vira "br".
+    // Idempotente; a cópia do token preserva a linha antiga (append-only, nada apagado).
+    await sql`INSERT INTO config (key, value)
+      SELECT 'meta_access_token_br', value FROM config WHERE key = 'meta_access_token_pt'
+      ON CONFLICT (key) DO NOTHING`;
+    try { await sql`UPDATE published_runs SET lang = 'br' WHERE lang = 'pt'`; } catch { /* PK dupla rara: linhas novas 'br' já existem — leitura legada cobre */ }
+    try { await sql`UPDATE posts SET lang = 'br' WHERE lang = 'pt'`; } catch { /* fail-open */ }
+    try { await sql`UPDATE qa_failed_topics SET lang = 'br' WHERE lang = 'pt'`; } catch { /* fail-open */ }
+    try { await sql`UPDATE subscribers SET lang = 'br' WHERE lang = 'pt'`; } catch { /* fail-open */ }
+    try { await sql`UPDATE survey_responses SET lang = 'br' WHERE lang = 'pt'`; } catch { /* fail-open */ }
+    try { await sql`UPDATE narration_cache SET cache_key = replace(cache_key, '|pt|', '|br|'), lang = 'br' WHERE cache_key LIKE '%|pt|%'`; } catch { /* fail-open */ }
+    try { await sql`UPDATE content_cache SET cache_key = replace(cache_key, '|pt|', '|br|'), lang = 'br' WHERE cache_key LIKE '%|pt|%'`; } catch { /* fail-open */ }
     results.push("narration_cache table: ok");
   } catch (e) {
     results.push("narration_cache table: " + String(e));
@@ -193,7 +205,7 @@ export async function GET(req: NextRequest) {
       CREATE TABLE IF NOT EXISTS subscribers (
         id              SERIAL PRIMARY KEY,
         email           TEXT NOT NULL UNIQUE,
-        lang            TEXT NOT NULL DEFAULT 'pt',
+        lang            TEXT NOT NULL DEFAULT 'br',
         created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `;
@@ -214,7 +226,7 @@ export async function GET(req: NextRequest) {
         id         SERIAL PRIMARY KEY,
         email      TEXT NOT NULL,
         book_slug  TEXT NOT NULL,
-        lang       TEXT NOT NULL DEFAULT 'pt',
+        lang       TEXT NOT NULL DEFAULT 'br',
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE (email, book_slug)
       )
@@ -351,7 +363,7 @@ export async function GET(req: NextRequest) {
     await sql`
       CREATE TABLE IF NOT EXISTS survey_responses (
         id         BIGSERIAL PRIMARY KEY,
-        lang       TEXT  NOT NULL DEFAULT 'pt',
+        lang       TEXT  NOT NULL DEFAULT 'br',
         answers    JSONB NOT NULL DEFAULT '{}',
         email      TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -373,7 +385,7 @@ export async function GET(req: NextRequest) {
       CREATE TABLE IF NOT EXISTS dopamina_leads (
         id           BIGSERIAL PRIMARY KEY,
         email        TEXT NOT NULL,
-        lang         TEXT NOT NULL DEFAULT 'pt',
+        lang         TEXT NOT NULL DEFAULT 'br',
         source       TEXT NOT NULL DEFAULT 'previa',
         faixa        TEXT,
         score        INTEGER,

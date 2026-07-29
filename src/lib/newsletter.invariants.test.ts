@@ -3,7 +3,7 @@ import { renderEmail, buildEssayPrompt, newsletterFrom, type RenderInput } from 
 import { ACCOUNTS } from "./accounts";
 
 const base: RenderInput = {
-  lang: "pt",
+  lang: "br",
   brand: "Dr. Liberdade",
   handle: "@dr.liberdade.br",
   instagramUrl: "https://instagram.com/dr.liberdade.br",
@@ -22,7 +22,7 @@ describe("newsletter — invariantes", () => {
   });
 
   it("o descadastro aparece nas duas línguas com o rótulo certo", () => {
-    const pt = renderEmail({ ...base, lang: "pt" });
+    const pt = renderEmail({ ...base, lang: "br" });
     expect(pt.html).toContain("Cancelar inscrição");
     const es = renderEmail({ ...base, lang: "es" });
     expect(es.html).toContain("Cancelar suscripción");
@@ -56,8 +56,8 @@ describe("newsletter — invariantes", () => {
   });
 
   it("o remetente usa o nome da marca do idioma", () => {
-    expect(newsletterFrom(ACCOUNTS.pt)).toContain("Dr. Liberdade");
+    expect(newsletterFrom(ACCOUNTS.br)).toContain("Dr. Liberdade");
     expect(newsletterFrom(ACCOUNTS.es)).toContain("Dr. Libertad");
-    expect(newsletterFrom(ACCOUNTS.pt)).toContain("@drlibertad.com");
+    expect(newsletterFrom(ACCOUNTS.br)).toContain("@drlibertad.com");
   });
 });

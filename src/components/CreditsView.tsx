@@ -19,7 +19,7 @@ import { useLang } from "@/lib/i18n/LanguageProvider";
 import credits from "@/content/music-credits.json";
 
 const COPY = {
-  pt: {
+  br: {
     eyebrow: "Créditos",
     title: "A música dos vídeos",
     intro:
@@ -49,7 +49,7 @@ const COPY = {
 
 export default function CreditsView() {
   const { lang } = useLang();
-  const c = COPY[lang === "es" ? "es" : "pt"];
+  const c = COPY[lang === "es" ? "es" : "br"];
 
   return (
     <motion.main

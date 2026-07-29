@@ -10,7 +10,7 @@ export async function generateMetadata({
   params: Promise<{ lang: string }>;
 }): Promise<Metadata> {
   const { lang } = await params;
-  const l: Lang = lang === "es" ? "es" : "pt";
+  const l: Lang = lang === "es" ? "es" : "br";
   const p = dictionaries[l].terms;
   const brand = l === "es" ? "Dr. Libertad" : "Dr. Liberdade";
 
@@ -20,9 +20,9 @@ export async function generateMetadata({
     alternates: {
       canonical: `${SITE_URL}/${l}/termos`,
       languages: {
-        "pt-BR": `${SITE_URL}/pt/termos`,
+        "pt-BR": `${SITE_URL}/br/termos`,
         "es-ES": `${SITE_URL}/es/termos`,
-        "x-default": `${SITE_URL}/pt/termos`,
+        "x-default": `${SITE_URL}/br/termos`,
       },
     },
     openGraph: {

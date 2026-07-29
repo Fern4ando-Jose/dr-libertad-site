@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ACCOUNTS, AccountCfg } from "@/lib/accounts";
+import { ACCOUNTS, AccountCfg, envToken } from "@/lib/accounts";
 
 /**
  * GET /api/refresh-token
@@ -47,7 +47,7 @@ async function refreshAccount(
 
   // 1. Token atual: DB → fallback env
   const rows = await sql`SELECT value FROM config WHERE key = ${key}`;
-  const currentToken = rows.rows[0]?.value ?? process.env[acc.tokenEnv];
+  const currentToken = rows.rows[0]?.value ?? envToken(acc);
 
   if (!currentToken) {
     return { lang: acc.lang, key, ok: false, error: "Sem token no banco nem na env var" };

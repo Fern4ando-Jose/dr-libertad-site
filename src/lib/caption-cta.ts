@@ -18,8 +18,8 @@
 /** Limite de legenda do IG (erro 36004 "Caption Too Long" acima disso). */
 export const IG_CAPTION_MAX = 2200;
 
-export const SURVEY_CTA: Record<"pt" | "es", string> = {
-  pt: "— Participe da pesquisa: as redes estão destruindo os relacionamentos? 3 min, anônima. Link na bio.",
+export const SURVEY_CTA: Record<"br" | "es", string> = {
+  br: "— Participe da pesquisa: as redes estão destruindo os relacionamentos? 3 min, anônima. Link na bio.",
   es: "— Participa de la investigación: ¿las redes están destruyendo las relaciones? 3 min, anónima. Link en la bio.",
 };
 
@@ -31,7 +31,7 @@ export function appendSurveyCta(caption: string | null | undefined, lang: string
   const base = (caption ?? "").trimEnd();
   if (!base) return caption ?? ""; // sem legenda → não inventa (fail-open)
 
-  const cta = lang === "pt" ? SURVEY_CTA.pt : SURVEY_CTA.es;
+  const cta = lang === "br" ? SURVEY_CTA.br : SURVEY_CTA.es;
   if (base.includes(cta)) return base; // idempotente (retry não duplica)
 
   const withCta = `${base}\n\n${cta}`;

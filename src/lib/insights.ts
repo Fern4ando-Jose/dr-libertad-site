@@ -8,7 +8,7 @@
 //
 // Usado tanto pela rota /api/insights (JSON) quanto pela página /insights (UI).
 
-import { accountFor, type Lang } from "@/lib/accounts";
+import { accountFor, type Lang, envToken, envAccountId } from "@/lib/accounts";
 
 const GRAPH = "https://graph.instagram.com/v25.0";
 
@@ -161,8 +161,8 @@ function avg(nums: number[]): number {
 // onde o refresh-token guarda o valor fresco). ENV primeiro → ES idêntico a hoje.
 async function resolveAccount(lang: Lang): Promise<{ accountId?: string; token?: string }> {
   const acc = accountFor(lang);
-  const accountId = process.env[acc.accountIdEnv];
-  let token = process.env[acc.tokenEnv];
+  const accountId = envAccountId(acc);
+  let token = envToken(acc);
   if (!token && acc.dbTokenKey) {
     try {
       const { sql } = await import("@vercel/postgres");
@@ -347,7 +347,7 @@ export type SnapshotResult = {
 // visível. Fail-open por conta: PT sem token não derruba o ES.
 export async function snapshotInsights(): Promise<SnapshotResult> {
   const generatedAt = new Date().toISOString();
-  const langs: Lang[] = ["es", "pt"];
+  const langs: Lang[] = ["es", "br"];
   const byLang: SnapshotLang[] = [];
   let persisted = 0;
 

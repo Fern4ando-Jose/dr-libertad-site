@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dayBRT, publishedRunsToday, recentDuplicateTopics, attemptsToday, shouldStopRetrying, orphanedPairs } from "@/lib/run-ledger";
 import { minOfDayBRT, RUN_HOUR_BRT, ACTIVE_RUNS, POSTS_PER_DAY } from "@/lib/day";
-import { accountFor, type Lang } from "@/lib/accounts";
+import { accountFor, type Lang, envToken, envAccountId } from "@/lib/accounts";
 
 // GUARDIÃO diário: verifica se as 6 vagas do dia publicaram em CADA conta (ES + PT).
 // VERIFICA DUAS FONTES: (1) nosso livro-razão (published_runs) e (2) o PRÓPRIO
@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 // RUN_HOUR_BRT (run→hora BRT) mora em @/lib/day — FONTE ÚNICA compartilhada com catchup/runs-status.
 const GRACE_MIN = 75;
-const ACTIVE_LANGS: Lang[] = ["es", "pt"];
+const ACTIVE_LANGS: Lang[] = ["es", "br"];
 // Vagas esperadas por conta/dia. NÃO é número solto: sai da cadência em @/lib/day
 // (hoje 4 = 1 carrossel + 2 reels vídeo + 1 clássico). Escrever "7" aqui à mão foi o
 // que fez o vigia cobrar 7 enquanto os crons entregavam outra coisa.
@@ -43,7 +43,7 @@ async function getAccessToken(lang: Lang): Promise<string> {
       if (rows.rows[0]?.value) return String(rows.rows[0].value);
     } catch { /* fallback env */ }
   }
-  return process.env[acc.tokenEnv] ?? "";
+  return envToken(acc);
 }
 
 // Timestamp da Graph API → DATA em BRT (UTC-3), "YYYY-MM-DD".
@@ -55,7 +55,7 @@ function brtDateOf(ts: string): string {
 // Erro (token/Graph) NÃO derruba o guardião → count = null (cai no livro-razão).
 async function countMediaOnIG(lang: Lang, day: string): Promise<{ count: number | null; error?: string }> {
   const acc = accountFor(lang);
-  const accountId = process.env[acc.accountIdEnv] ?? "";
+  const accountId = envAccountId(acc);
   const token = await getAccessToken(lang);
   if (!accountId || !token) return { count: null, error: "sem accountId/token" };
   try {
@@ -112,20 +112,20 @@ export async function GET(req: NextRequest) {
   const duplicates = await recentDuplicateTopics(7);
   const orphans = orphanedPairs(published, gaveUp, ACTIVE_LANGS);
   const ledgerEs = (published.es ?? []).length;
-  const ledgerPt = (published.pt ?? []).length;
+  const ledgerBr = (published.br ?? []).length;
 
   // Verdade do Instagram (o que o dono pediu).
-  const [igEs, igPt] = await Promise.all([countMediaOnIG("es", targetDay), countMediaOnIG("pt", targetDay)]);
+  const [igEs, igBr] = await Promise.all([countMediaOnIG("es", targetDay), countMediaOnIG("br", targetDay)]);
   const esCount = igEs.count ?? ledgerEs; // usa o IG quando disponível
-  const ptCount = igPt.count ?? ledgerPt;
+  const brCount = igBr.count ?? ledgerBr;
 
-  const ok = esCount >= EXPECTED && ptCount >= EXPECTED && missing.length === 0 && gaveUp.length === 0 && notRun.length === 0 && orphans.length === 0;
+  const ok = esCount >= EXPECTED && brCount >= EXPECTED && missing.length === 0 && gaveUp.length === 0 && notRun.length === 0 && orphans.length === 0;
 
-  const parts: string[] = [`ES ${esCount}/${EXPECTED}, PT ${ptCount}/${EXPECTED}`];
+  const parts: string[] = [`ES ${esCount}/${EXPECTED}, PT ${brCount}/${EXPECTED}`];
   // Discrepância livro-razão × Instagram = post-fantasma (gravamos publicado, IG não tem).
   if (igEs.count !== null && igEs.count !== ledgerEs) parts.push(`⚠ ES livro=${ledgerEs} mas IG=${igEs.count} (fantasma?)`);
-  if (igPt.count !== null && igPt.count !== ledgerPt) parts.push(`⚠ PT livro=${ledgerPt} mas IG=${igPt.count} (fantasma?)`);
-  if (igEs.error || igPt.error) parts.push(`IG não verificado: ${[igEs.error && "ES " + igEs.error, igPt.error && "PT " + igPt.error].filter(Boolean).join(", ")}`);
+  if (igBr.count !== null && igBr.count !== ledgerBr) parts.push(`⚠ PT livro=${ledgerBr} mas IG=${igBr.count} (fantasma?)`);
+  if (igEs.error || igBr.error) parts.push(`IG não verificado: ${[igEs.error && "ES " + igEs.error, igBr.error && "PT " + igBr.error].filter(Boolean).join(", ")}`);
   if (gaveUp.length) parts.push(`desistiu: ${gaveUp.map((g) => `${g.lang}#${g.run}`).join(", ")}`);
   if (missing.length) parts.push(`faltando: ${missing.map((m) => `${m.lang}#${m.run}`).join(", ")}`);
   if (notRun.length) parts.push(`não publicou: ${notRun.map((m) => `${m.lang}#${m.run}`).join(", ")}`);
@@ -140,9 +140,9 @@ export async function GET(req: NextRequest) {
     const { sql } = await import("@vercel/postgres");
     await sql`
       INSERT INTO daily_report (day, es_published, pt_published, expected, ok, missing, gave_up, orphans, duplicates, note, updated_at)
-      VALUES (${targetDay}, ${esCount}, ${ptCount}, ${EXPECTED}, ${ok}, ${JSON.stringify(missing)}::jsonb, ${JSON.stringify(gaveUp)}::jsonb, ${JSON.stringify(orphans)}::jsonb, ${JSON.stringify(duplicates)}::jsonb, ${note}, NOW())
+      VALUES (${targetDay}, ${esCount}, ${brCount}, ${EXPECTED}, ${ok}, ${JSON.stringify(missing)}::jsonb, ${JSON.stringify(gaveUp)}::jsonb, ${JSON.stringify(orphans)}::jsonb, ${JSON.stringify(duplicates)}::jsonb, ${note}, NOW())
       ON CONFLICT (day) DO UPDATE SET
-        es_published = ${esCount}, pt_published = ${ptCount}, ok = ${ok},
+        es_published = ${esCount}, pt_published = ${brCount}, ok = ${ok},
         missing = ${JSON.stringify(missing)}::jsonb, gave_up = ${JSON.stringify(gaveUp)}::jsonb,
         orphans = ${JSON.stringify(orphans)}::jsonb, duplicates = ${JSON.stringify(duplicates)}::jsonb,
         note = ${note}, updated_at = NOW()
@@ -151,8 +151,8 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok, day: targetDay, checkedAt: `${nowHourBRT}h BRT`,
-    es: esCount, pt: ptCount, expected: EXPECTED,
-    ledger: { es: ledgerEs, pt: ledgerPt }, instagram: { es: igEs.count, pt: igPt.count, esError: igEs.error, ptError: igPt.error },
+    es: esCount, br: brCount, expected: EXPECTED,
+    ledger: { es: ledgerEs, br: ledgerBr }, instagram: { es: igEs.count, br: igBr.count, esError: igEs.error, ptError: igBr.error },
     missing, gaveUp, notRun, orphans, duplicates, note,
   });
 }

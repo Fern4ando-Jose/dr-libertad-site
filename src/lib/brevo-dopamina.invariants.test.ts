@@ -19,15 +19,15 @@ afterEach(() => {
 
 describe("captura do funil I Love Dopamina — isolamento", () => {
   it("FONTE é sempre 'i-love-dopamina' (nunca cai no funil 100 dias)", () => {
-    const p = buildContactPayload({ email: "a@b.com", lang: "pt", source: "quiz", faixa: "vermelho", score: 15 });
+    const p = buildContactPayload({ email: "a@b.com", lang: "br", source: "quiz", faixa: "vermelho", score: 15 });
     const attrs = p.attributes as Record<string, unknown>;
     expect(attrs.FONTE).toBe("i-love-dopamina");
     expect(attrs.FONTE).not.toBe("quiz-100-dias");
   });
 
   it("sem BREVO_LIST_DOPAMINA_* → NÃO inventa listIds", () => {
-    delete process.env.BREVO_LIST_DOPAMINA_PT;
-    const p = buildContactPayload({ email: "a@b.com", lang: "pt", source: "previa" });
+    delete process.env.BREVO_LIST_DOPAMINA_BR;
+    const p = buildContactPayload({ email: "a@b.com", lang: "br", source: "previa" });
     expect(p.listIds).toBeUndefined();
   });
 
@@ -38,13 +38,13 @@ describe("captura do funil I Love Dopamina — isolamento", () => {
   });
 
   it("quiz grava FAIXA + score; prévia entra sem faixa", () => {
-    const quiz = buildContactPayload({ email: "a@b.com", lang: "pt", source: "quiz", faixa: "critico", score: 22 });
+    const quiz = buildContactPayload({ email: "a@b.com", lang: "br", source: "quiz", faixa: "critico", score: 22 });
     const qa = quiz.attributes as Record<string, unknown>;
     expect(qa.FAIXA).toBe("critico");
     expect(qa.QUIZ_SCORE).toBe(22);
     expect(qa.ORIGEM_FUNIL).toBe("quiz");
 
-    const previa = buildContactPayload({ email: "a@b.com", lang: "pt", source: "previa" });
+    const previa = buildContactPayload({ email: "a@b.com", lang: "br", source: "previa" });
     const pa = previa.attributes as Record<string, unknown>;
     expect(pa.FAIXA).toBeUndefined();
     expect(pa.QUIZ_SCORE).toBeUndefined();
@@ -61,9 +61,9 @@ describe("captura do funil I Love Dopamina — isolamento", () => {
 
 describe("E0 — entrega da prévia (e-mail transacional)", () => {
   it("sem env de template → previaTemplateId é null (envio fica gated, não inventa ID)", () => {
-    delete process.env.BREVO_TEMPLATE_DOPAMINA_PREVIA_PT;
+    delete process.env.BREVO_TEMPLATE_DOPAMINA_PREVIA_BR;
     delete process.env.BREVO_TEMPLATE_DOPAMINA_PREVIA;
-    expect(previaTemplateId("pt")).toBeNull();
+    expect(previaTemplateId("br")).toBeNull();
   });
 
   it("env por idioma tem precedência; global é fallback", () => {
@@ -71,13 +71,13 @@ describe("E0 — entrega da prévia (e-mail transacional)", () => {
     expect(previaTemplateId("es")).toBe(9); // usa o global
     process.env.BREVO_TEMPLATE_DOPAMINA_PREVIA_ES = "42";
     expect(previaTemplateId("es")).toBe(42); // idioma vence
-    expect(previaTemplateId("pt")).toBe(9); // PT ainda no global
+    expect(previaTemplateId("br")).toBe(9); // PT ainda no global
   });
 
   it("payload leva o destinatário, o templateId e a PREVIA_URL no params (botão de download)", () => {
     const p = buildPreviaEmailPayload({
       email: "lead@exemplo.com",
-      lang: "pt",
+      lang: "br",
       previaUrl: "https://www.drlibertad.com/lead/I-Love-Dopamina_Previa_PT.pdf",
       templateId: 42,
     });
@@ -103,7 +103,7 @@ describe("E0 — entrega da prévia (e-mail transacional)", () => {
 });
 
 describe("cálculo de faixa (0-24)", () => {
-  const bands = dopaminaContent.pt.bands;
+  const bands = dopaminaContent.br.bands;
   it("respeita os limites das 4 faixas", () => {
     expect(faixaForScore(0, bands).key).toBe("verde");
     expect(faixaForScore(5, bands).key).toBe("verde");
@@ -121,7 +121,7 @@ describe("cálculo de faixa (0-24)", () => {
 });
 
 describe("conteúdo bem-formado (8 perguntas × 4 opções, PT e ES)", () => {
-  for (const lang of ["pt", "es"] as const) {
+  for (const lang of ["br", "es"] as const) {
     it(`${lang}: 8 perguntas, cada uma com 4 alternativas`, () => {
       const qs = dopaminaContent[lang].quiz.questions;
       expect(qs).toHaveLength(8);

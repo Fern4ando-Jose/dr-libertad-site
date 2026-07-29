@@ -1,9 +1,9 @@
 // Dicionários PT/ES — fonte única de todos os textos do site.
 // O EDITORIAL (posts) é sempre exibido em espanhol, pois vem do Instagram real.
 
-export type Lang = "pt" | "es";
+export type Lang = "br" | "es";
 
-export const LANGS: Lang[] = ["pt", "es"];
+export const LANGS: Lang[] = ["br", "es"];
 
 type Dict = typeof pt;
 

@@ -198,14 +198,14 @@ export default function StudioNav() {
   );
 }
 
-function LangToggle({ lang, setLang }: { lang: "pt" | "es"; setLang: (l: "pt" | "es") => void }) {
+function LangToggle({ lang, setLang }: { lang: "br" | "es"; setLang: (l: "br" | "es") => void }) {
   return (
     <div
       role="group"
       aria-label="Idioma / Idioma"
       className="relative flex items-center rounded-full border border-warm-gray/20 bg-white/5 p-0.5 text-[11px] tracking-[0.18em] uppercase"
     >
-      {(["pt", "es"] as const).map((code) => {
+      {(["br", "es"] as const).map((code) => {
         const activeOn = lang === code;
         return (
           <button

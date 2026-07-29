@@ -12,14 +12,14 @@ import { idiomaDaVozBate } from "./narration";
 // Espelha VOZ_POR_IDIOMA de src/lib/narration.ts — se lá mudar, aqui quebra (de propósito).
 const VOZ_POR_IDIOMA: Record<string, { provedor: string; voz: string; speed: number }> = {
   es: { provedor: "minimax", voz: "Deep_Voice_Man", speed: 0.85 },
-  pt: { provedor: "elevenlabs", voz: "Bill", speed: 0.95 },
+  br: { provedor: "elevenlabs", voz: "Bill", speed: 0.95 },
 };
 const vozDe = (lang: string) => VOZ_POR_IDIOMA[lang] ?? VOZ_POR_IDIOMA.es;
 
 describe("voz é config POR IDIOMA (nunca constante global)", () => {
   it("PT-BR usa a voz que o dono escolheu ouvindo (Bill/ElevenLabs)", () => {
-    expect(vozDe("pt").voz).toBe("Bill");
-    expect(vozDe("pt").provedor).toBe("elevenlabs");
+    expect(vozDe("br").voz).toBe("Bill");
+    expect(vozDe("br").provedor).toBe("elevenlabs");
   });
 
   it("ES mantém INTACTA a voz que ele já tinha aprovado (Deep_Voice_Man/MiniMax)", () => {
@@ -29,7 +29,7 @@ describe("voz é config POR IDIOMA (nunca constante global)", () => {
   });
 
   it("os dois idiomas NÃO compartilham voz — foi esse o defeito", () => {
-    expect(vozDe("pt").voz).not.toBe(vozDe("es").voz);
+    expect(vozDe("br").voz).not.toBe(vozDe("es").voz);
   });
 
   it("idioma desconhecido cai no ES (fail-safe), nunca em voz vazia", () => {

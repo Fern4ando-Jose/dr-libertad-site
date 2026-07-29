@@ -206,10 +206,10 @@ describe("ES e PT (mesmo tópico+dia → mesmo seed) geram o MESMO vídeo", () =
     const cat = "self";
     const m0 = mapaSaturado(cat);
     const es = pickFromWhitelist(cat, 12345, NUM_CLIPS, m0);
-    const ptSemExcluir = pickFromWhitelist(cat, 12345, NUM_CLIPS, apósPublicar(m0, es)); // o que NÃO acontece
+    const brSemExcluir = pickFromWhitelist(cat, 12345, NUM_CLIPS, apósPublicar(m0, es)); // o que NÃO acontece
     const ptComExcluir = pickFromWhitelist(cat, 12345, NUM_CLIPS, m0); // o real (excludeKey)
     expect(ptComExcluir).toEqual(es);
-    expect(ptSemExcluir).not.toEqual(es); // prova que o excludeKey é o que segura o par
+    expect(brSemExcluir).not.toEqual(es); // prova que o excludeKey é o que segura o par
   });
 });
 

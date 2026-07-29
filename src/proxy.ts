@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const LOCALES = ["pt", "es"] as const;
-const DEFAULT_LOCALE = "pt";
+const LOCALES = ["br", "es"] as const;
+const DEFAULT_LOCALE = "br";
 const COOKIE = "dl-lang";
 
 // Escolhe o idioma: preferência salva (cookie) > Accept-Language > padrão.
 function pickLocale(req: NextRequest): string {
   const cookie = req.cookies.get(COOKIE)?.value;
-  if (cookie === "pt" || cookie === "es") return cookie;
+  if (cookie === "br" || cookie === "es") return cookie;
 
   const accept = (req.headers.get("accept-language") ?? "").toLowerCase();
   if (accept.startsWith("es") || accept.includes(",es") || accept.includes(" es")) {
@@ -34,7 +34,7 @@ export function proxy(req: NextRequest) {
 // Exclui API, os painéis utilitários (/insights, /admin), assets do Next e qualquer
 // arquivo com extensão (sitemap.xml, robots.txt, *.svg, og images etc. têm ponto → não
 // redirecionam). /insights e /admin ficam fora do i18n (páginas únicas, gate por chave/
-// token) — sem isso o /admin caía em /pt/admin (404).
+// token) — sem isso o /admin caía em /br/admin (404).
 // /pesquisa (PT) e /investigacion (ES) também ficam fora: são as rotas fixas da
 // pesquisa "Redes Sociais e Relacionamentos" (1 idioma por rota, link da bio do IG).
 // /o-estudo (PT) e /el-estudio (ES): as páginas institucionais que explicam o

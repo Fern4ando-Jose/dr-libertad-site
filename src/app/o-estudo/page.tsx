@@ -7,7 +7,7 @@ import EstudoPage from "@/components/estudo/EstudoPage";
 import { estudoContent } from "@/components/estudo/estudo.content";
 
 const SITE_URL = "https://www.drlibertad.com";
-const c = estudoContent.pt;
+const c = estudoContent.br;
 
 export const metadata: Metadata = {
   title: c.metaTitle,
@@ -32,5 +32,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <EstudoPage lang="pt" />;
+  return <EstudoPage lang="br" />;
 }

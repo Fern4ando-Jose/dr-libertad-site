@@ -52,7 +52,7 @@ export function LanguageProvider({
       if (l === lang) return;
       persist(l);
       // Substitui só o segmento de idioma, mantendo o restante do caminho
-      // (ex.: /pt/livros → /es/livros em vez de voltar à raiz /es).
+      // (ex.: /br/livros → /es/livros em vez de voltar à raiz /es).
       const newPath = pathname.replace(new RegExp(`^/${lang}`), `/${l}`);
       router.push(newPath, { scroll: false });
     },
@@ -60,7 +60,7 @@ export function LanguageProvider({
   );
 
   const toggle = useCallback(() => {
-    setLang(lang === "pt" ? "es" : "pt");
+    setLang(lang === "br" ? "es" : "br");
   }, [lang, setLang]);
 
   return (
