@@ -398,6 +398,9 @@ export async function GET(req: NextRequest) {
       )
     `;
     await sql`CREATE INDEX IF NOT EXISTS dopamina_leads_created_idx ON dopamina_leads (created_at)`;
+    // Controle do gotejamento E1→E5 (só ES por ora — BR usa automação nativa do Brevo,
+    // não mexe). Guarda os passos JÁ enviados ("e1".."e5") — idempotente, nunca reenvia.
+    await sql`ALTER TABLE dopamina_leads ADD COLUMN IF NOT EXISTS drip_sent TEXT[] NOT NULL DEFAULT '{}'`;
     results.push("dopamina_leads table: ok");
   } catch (e) {
     results.push("dopamina_leads table: " + String(e));

@@ -25,6 +25,42 @@ export interface DopaminaLeadRecord {
 
 export type PersistResult = { ok: true } | { ok: false; error: string };
 
+export interface DripCandidate {
+  email: string;
+  createdAt: Date;
+  dripSent: string[];
+}
+
+/** Leads ES ainda não completos no gotejamento (E1→E5) — para o cron diário processar. */
+export async function getDripCandidatesEs(): Promise<DripCandidate[]> {
+  const { sql } = await import("@vercel/postgres");
+  const res = await sql<{ email: string; created_at: string; drip_sent: string[] | null }>`
+    SELECT email, created_at, drip_sent
+    FROM dopamina_leads
+    WHERE lang = 'es' AND (drip_sent IS NULL OR cardinality(drip_sent) < 5)
+  `;
+  return res.rows.map((r) => ({
+    email: r.email,
+    createdAt: new Date(r.created_at),
+    dripSent: r.drip_sent ?? [],
+  }));
+}
+
+/** Marca um passo do gotejamento como enviado (idempotente — não duplica no array). */
+export async function markDripSent(email: string, lang: "br" | "es", step: string): Promise<PersistResult> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    await sql`
+      UPDATE dopamina_leads
+      SET drip_sent = array_append(drip_sent, ${step}), updated_at = NOW()
+      WHERE email = ${email} AND lang = ${lang} AND NOT (${step} = ANY(drip_sent))
+    `;
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
 /**
  * Grava/atualiza o lead no Neon. Idempotente por (email, lang): recadastro do mesmo
  * e-mail atualiza a segmentação e o status de entrega, não duplica. Fail-open.

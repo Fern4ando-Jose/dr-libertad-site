@@ -1,0 +1,28 @@
+name: Dopamina — gotejamento E1→E5 (ES)
+
+# Verifica diariamente os leads ES do funil "I Love Dopamina" e dispara o e-mail
+# de nutrição (E1..E5) cujo prazo (D+2/D+4/D+7/D+10/D+14) já venceu. BR não passa
+# por aqui — já roda via automação nativa do painel Brevo. Idempotente (drip_sent).
+on:
+  schedule:
+    - cron: "0 13 * * *" # 10h BRT
+  workflow_dispatch:
+
+jobs:
+  drip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Chamar endpoint do gotejamento
+        run: |
+          HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.SITE_URL }}/api/dopamina-drip")
+          echo "HTTP $HTTP_CODE"
+          echo "--- resposta ---"
+          cat response.json
+          echo ""
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            echo "::error::Falha no gotejamento (HTTP $HTTP_CODE)"
+            exit 1
+          fi

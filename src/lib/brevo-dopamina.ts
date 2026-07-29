@@ -249,6 +249,75 @@ export function faixaTemplateId(faixa: Faixa, lang: "br" | "es"): number | null 
 
 export type FaixaSendResult = PreviaSendResult;
 
+// ── Gotejamento E1→E5 (nutrição geral) — SÓ ES por ora ──────────────────────────
+// Aprovado pelo dono em 2026-07-29 (prova: Marketing/DECISAO-EMAILS-ES-2026-07-29.html).
+// BR já roda essa mesma sequência via automação NATIVA do painel Brevo (cenário "Nutrição
+// I Love Dopamina — PT", ligado 2026-07-17) — não mexemos nisso. Para ES não há automação
+// no painel (nunca foi montada); em vez de replicar a automação, o gotejamento roda por
+// CRON diário (`/api/dopamina-drip`, GitHub Actions) que verifica há quantos dias cada lead
+// ES entrou e dispara o passo devido, marcando em `dopamina_leads.drip_sent` (idempotente).
+
+export type DripStep = "e1" | "e2" | "e3" | "e4" | "e5";
+export const DRIP_STEPS: { step: DripStep; days: number }[] = [
+  { step: "e1", days: 2 },
+  { step: "e2", days: 4 },
+  { step: "e3", days: 7 },
+  { step: "e4", days: 10 },
+  { step: "e5", days: 14 },
+];
+
+const DRIP_TEMPLATE_ENV: Record<DripStep, string> = {
+  e1: "BREVO_TEMPLATE_DOPAMINA_E1_ES",
+  e2: "BREVO_TEMPLATE_DOPAMINA_E2_ES",
+  e3: "BREVO_TEMPLATE_DOPAMINA_E3_ES",
+  e4: "BREVO_TEMPLATE_DOPAMINA_E4_ES",
+  e5: "BREVO_TEMPLATE_DOPAMINA_E5_ES",
+};
+
+/** ID numérico do template do passo do gotejamento (ES), ou null se não configurado. */
+export function dripTemplateId(step: DripStep): number | null {
+  const raw = process.env[DRIP_TEMPLATE_ENV[step]];
+  if (!raw) return null;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+export type DripSendResult = PreviaSendResult;
+
+/** Envia o e-mail do passo do gotejamento (transacional). No-op HONESTO quando gated. */
+export async function sendDripEmail(input: { email: string; step: DripStep }): Promise<DripSendResult> {
+  const key = process.env.BREVO_API_KEY;
+  if (!key) return { ok: true, gated: true, reason: "no_api_key" };
+  const templateId = dripTemplateId(input.step);
+  if (!templateId) return { ok: true, gated: true, reason: "no_template" };
+
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": key,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        to: [{ email: input.email }],
+        templateId,
+        params: { LANG: "es", STEP: input.step },
+        tags: ["dopamina", "drip", input.step, "es"],
+        ...(previaSender() ? { sender: previaSender() } : {}),
+      }),
+    });
+    if (res.status === 201) {
+      const j = (await res.json().catch(() => ({}))) as { messageId?: string };
+      return { ok: true, gated: false, status: 201, messageId: j?.messageId };
+    }
+    const body = await res.text().catch(() => "");
+    return { ok: false, gated: false, status: res.status, error: body.slice(0, 300) };
+  } catch (err) {
+    return { ok: false, gated: false, error: String(err) };
+  }
+}
+
 /** Envia o e-mail de resultado da faixa (transacional). No-op HONESTO quando gated. */
 export async function sendFaixaEmail(input: {
   email: string;
