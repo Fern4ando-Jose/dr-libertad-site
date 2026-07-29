@@ -1,4 +1,4 @@
-name: Instagram Reel CLÁSSICO — Dr. Libertad / Dr. Liberdade (ES + PT)
+name: Instagram Reel CLÁSSICO — Dr. Libertad / Dr. Liberdade (ES + BR)
 
 # Reel no estilo ANTIGO (slide animado sobre a ilustração da fal) — mantido como
 # estava, rodando em paralelo ao motor de vídeo (footage). Foi o formato que gerou
@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       lang:
-        description: "Idioma (es | pt). Default es."
+        description: "Idioma (es | br). Default es. (br = Brasil; aceita o codigo tecnico legado pt)"
         required: false
         default: "es"
       run:
@@ -78,6 +78,7 @@ jobs:
               *) RUN=3; LANG=es ;;  # fallback defensivo
             esac
           fi
+          [ "$LANG" = "br" ] && LANG=pt  # BR e o nome do idioma (dono, 29/07); pt e so o codigo tecnico interno
           [ "$LANG" != "pt" ] && LANG=es  # normaliza qualquer valor inesperado p/ es
           echo "run=$RUN" >> "$GITHUB_OUTPUT"
           echo "lang=$LANG" >> "$GITHUB_OUTPUT"
