@@ -368,11 +368,25 @@
   transition: border-color 0.16s, background 0.16s, color 0.16s, transform 0.16s;
   cursor: pointer;
 }
-.opt:hover {
-  border-color: var(--line2);
-  background: var(--card-hi);
+/* Hover SÓ onde existe ponteiro de verdade. No celular o toque deixa o :hover
+   PRESO no botão, e como `.opt:hover` tem especificidade maior que `.optSel`,
+   o cinza do hover cobria o vermelho de selecionado — a pessoa tocava e a
+   resposta parecia não marcar (queixa do dono, 2026-07-29). Mesmo remédio que
+   quiz.module.css e dopamina.module.css já usavam. */
+@media (hover: hover) and (pointer: fine) {
+  .opt:hover {
+    border-color: var(--line2);
+    background: var(--card-hi);
+  }
 }
 .optSel {
+  border-color: var(--red);
+  background: var(--red-soft);
+  color: var(--paper);
+}
+/* Cinto de segurança para aparelho híbrido (touch + mouse): selecionado manda,
+   mesmo com o ponteiro em cima. */
+.optSel:hover {
   border-color: var(--red);
   background: var(--red-soft);
   color: var(--paper);
@@ -415,11 +429,19 @@
   transition: border-color 0.16s, background 0.16s, transform 0.16s;
   cursor: pointer;
 }
-.scaleBtn:hover {
-  border-color: var(--line2);
-  background: var(--card-hi);
+/* Mesma história da escala 1–5: hover só com ponteiro, e o selecionado manda. */
+@media (hover: hover) and (pointer: fine) {
+  .scaleBtn:hover {
+    border-color: var(--line2);
+    background: var(--card-hi);
+  }
 }
 .scaleSel {
+  border-color: var(--red);
+  background: var(--red-soft);
+  color: var(--paper);
+}
+.scaleSel:hover {
   border-color: var(--red);
   background: var(--red-soft);
   color: var(--paper);
