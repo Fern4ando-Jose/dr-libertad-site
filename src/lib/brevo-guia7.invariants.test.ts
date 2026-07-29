@@ -14,20 +14,20 @@ afterEach(() => {
 
 describe("captura do funil Guia de 7 dias — isolamento", () => {
   it("FONTE é sempre 'guia-7-dias' (nunca cruza com dopamina/100 dias)", () => {
-    const p = buildContactPayload({ email: "a@b.com", lang: "pt" });
+    const p = buildContactPayload({ email: "a@b.com", lang: "br" });
     const attrs = p.attributes as Record<string, unknown>;
     expect(attrs.FONTE).toBe("guia-7-dias");
     expect(attrs.FONTE).not.toBe("i-love-dopamina");
     expect(attrs.ORIGEM_FUNIL).toBe("reel-c");
-    expect(attrs.LANG).toBe("pt");
+    expect(attrs.LANG).toBe("br");
   });
 
   it("sem BREVO_LIST_GUIA7_* → NÃO inventa listIds", () => {
-    delete process.env.BREVO_LIST_GUIA7_PT;
+    delete process.env.BREVO_LIST_GUIA7_BR;
     delete process.env.BREVO_LIST_GUIA7_ES;
-    const p = buildContactPayload({ email: "a@b.com", lang: "pt" });
+    const p = buildContactPayload({ email: "a@b.com", lang: "br" });
     expect(p.listIds).toBeUndefined();
-    expect(listIdForLang("pt")).toBeNull();
+    expect(listIdForLang("br")).toBeNull();
   });
 
   it("com env de lista válida → adiciona o contato àquela lista", () => {
@@ -38,16 +38,16 @@ describe("captura do funil Guia de 7 dias — isolamento", () => {
   });
 
   it("env de lista inválida (0 / não-número) → null, não quebra", () => {
-    process.env.BREVO_LIST_GUIA7_PT = "abc";
-    expect(listIdForLang("pt")).toBeNull();
-    process.env.BREVO_LIST_GUIA7_PT = "0";
-    expect(listIdForLang("pt")).toBeNull();
+    process.env.BREVO_LIST_GUIA7_BR = "abc";
+    expect(listIdForLang("br")).toBeNull();
+    process.env.BREVO_LIST_GUIA7_BR = "0";
+    expect(listIdForLang("br")).toBeNull();
   });
 
   it("UTM opcionais viram atributos quando presentes", () => {
     const p = buildContactPayload({
       email: "a@b.com",
-      lang: "pt",
+      lang: "br",
       utm: { utm_source: "ig", utm_campaign: "reel-c" },
     });
     const attrs = p.attributes as Record<string, unknown>;
@@ -58,7 +58,7 @@ describe("captura do funil Guia de 7 dias — isolamento", () => {
 });
 
 describe("conteúdo do guia — 7 passos, PT e ES", () => {
-  for (const lang of ["pt", "es"] as const) {
+  for (const lang of ["br", "es"] as const) {
     it(`${lang}: exatamente 7 passos, todos com ação e porquê`, () => {
       const steps = guia7Content[lang].steps;
       expect(steps).toHaveLength(7);

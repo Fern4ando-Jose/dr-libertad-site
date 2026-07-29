@@ -9,7 +9,7 @@ const SITE_URL = "https://www.drlibertad.com";
 // Textos de SEO por idioma — servidos no HTML conforme a rota (/pt ou /es),
 // para que cada versão seja indexada no seu próprio idioma.
 const SEO: Record<Lang, { title: string; description: string; ogLocale: string }> = {
-  pt: {
+  br: {
     title: "Dr. Liberdade — Estúdio editorial de psicologia, atenção e liberdade mental",
     description:
       "Estúdio editorial sobre desintoxicação digital, ansiedade moderna e inteligência emocional. Filosofia aplicada à atenção e ao comportamento.",
@@ -37,7 +37,7 @@ export async function generateMetadata({
   params: Promise<{ lang: string }>;
 }): Promise<Metadata> {
   const { lang } = await params;
-  const l: Lang = lang === "es" ? "es" : "pt";
+  const l: Lang = lang === "es" ? "es" : "br";
   const seo = SEO[l];
   // Nome da marca por idioma: PT-BR usa "Dr. Liberdade"; ES usa "Dr. Libertad".
   const brand = l === "es" ? "Dr. Libertad" : "Dr. Liberdade";
@@ -51,9 +51,9 @@ export async function generateMetadata({
     alternates: {
       canonical: `${SITE_URL}/${l}`,
       languages: {
-        "pt-BR": `${SITE_URL}/pt`,
+        "pt-BR": `${SITE_URL}/br`,
         "es-ES": `${SITE_URL}/es`,
-        "x-default": `${SITE_URL}/pt`,
+        "x-default": `${SITE_URL}/br`,
       },
     },
     openGraph: {
@@ -87,7 +87,7 @@ export default async function LangLayout({
   params: Promise<{ lang: string }>;
 }>) {
   const { lang } = await params;
-  if (lang !== "pt" && lang !== "es") notFound();
+  if (lang !== "br" && lang !== "es") notFound();
 
   return (
     <LanguageProvider lang={lang}>

@@ -14,12 +14,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }
   let email = "";
-  let lang = "pt";
+  let lang = "br";
   let slug = "";
   try {
     const body = await req.json();
     email = String(body?.email ?? "").trim().toLowerCase();
-    lang = body?.lang === "es" ? "es" : "pt";
+    lang = body?.lang === "es" ? "es" : "br";
     slug = String(body?.slug ?? "").trim().slice(0, 80);
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });

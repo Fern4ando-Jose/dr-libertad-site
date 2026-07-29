@@ -118,7 +118,7 @@ const BAND_META: Record<Faixa, { min: number; max: number; emoji: string; color:
 // ─────────────────────────────────────────────────────────────────────
 // PT-BR — verbatim da copy aprovada da frente de marketing.
 // ─────────────────────────────────────────────────────────────────────
-const pt: DopaminaContent = {
+const br: DopaminaContent = {
   metaTitle: "I Love Dopamina — você não é fraco, está sendo farmado",
   metaDescription:
     "O teste de 1 minuto: quão sequestrado está o seu sistema de recompensa? Faça o teste e receba a prévia grátis de I Love Dopamina.",
@@ -541,7 +541,7 @@ const es: DopaminaContent = {
   ],
 };
 
-export const dopaminaContent: Record<Lang, DopaminaContent> = { pt, es };
+export const dopaminaContent: Record<Lang, DopaminaContent> = { br, es };
 
 /** Faixa a partir da pontuação total (0..24). Pura — testável. */
 export function faixaForScore(total: number, bands: Band[]): Band {

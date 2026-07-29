@@ -89,7 +89,7 @@ export type EstudoCopy = {
   footer: { note: string; respond: string; termo: string; instagram: string };
 };
 
-const pt: EstudoCopy = {
+const br: EstudoCopy = {
   metaTitle: "O Estudo — Redes Sociais e Relacionamentos",
   metaDescription:
     "Todo mundo tem uma opinião. Quase ninguém tem dado. Um estudo editorial — anônimo, com método — sobre o que as redes estão fazendo com os relacionamentos. As respostas viram um livro.",
@@ -218,7 +218,7 @@ const es: EstudoCopy = {
   brand: "Dr. Libertad",
   surveyPath: "/investigacion",
   termoPath: "/investigacion/termino",
-  otherLang: { code: "pt", path: "/o-estudo", label: "PT" },
+  otherLang: { code: "br", path: "/o-estudo", label: "PT" },
   instagramHandle: "@dr.libertad",
   instagramUrl: "https://www.instagram.com/dr.libertad",
   nav: { respond: "Responder", respondLong: " la investigación" },
@@ -333,4 +333,4 @@ const es: EstudoCopy = {
   },
 };
 
-export const estudoContent: Record<Lang, EstudoCopy> = { pt, es };
+export const estudoContent: Record<Lang, EstudoCopy> = { br, es };

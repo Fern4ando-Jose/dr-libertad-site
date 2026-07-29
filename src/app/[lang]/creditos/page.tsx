@@ -5,7 +5,7 @@ import { type Lang } from "@/lib/i18n/dictionaries";
 const SITE_URL = "https://www.drlibertad.com";
 
 const COPY = {
-  pt: {
+  br: {
     title: "Créditos da música",
     intro:
       "Crédito das trilhas instrumentais usadas nos vídeos publicados nas nossas contas, conforme exigem as licenças das faixas.",
@@ -23,7 +23,7 @@ export async function generateMetadata({
   params: Promise<{ lang: string }>;
 }): Promise<Metadata> {
   const { lang } = await params;
-  const l: Lang = lang === "es" ? "es" : "pt";
+  const l: Lang = lang === "es" ? "es" : "br";
   const c = COPY[l];
   const brand = l === "es" ? "Dr. Libertad" : "Dr. Liberdade";
 
@@ -33,9 +33,9 @@ export async function generateMetadata({
     alternates: {
       canonical: `${SITE_URL}/${l}/creditos`,
       languages: {
-        "pt-BR": `${SITE_URL}/pt/creditos`,
+        "pt-BR": `${SITE_URL}/br/creditos`,
         "es-ES": `${SITE_URL}/es/creditos`,
-        "x-default": `${SITE_URL}/pt/creditos`,
+        "x-default": `${SITE_URL}/br/creditos`,
       },
     },
     openGraph: {

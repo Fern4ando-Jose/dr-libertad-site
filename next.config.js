@@ -4,8 +4,11 @@ const nextConfig = {
   async redirects() {
     return [
       // URL sem idioma -> versão PT (padrão). Ex.: /livros/100-plantas -> /pt/livros/100-plantas
-      { source: "/livros", destination: "/pt/livros", permanent: false },
-      { source: "/livros/:slug", destination: "/pt/livros/:slug", permanent: false },
+      { source: "/livros", destination: "/br/livros", permanent: false },
+      { source: "/livros/:slug", destination: "/br/livros/:slug", permanent: false },
+      // O idioma se chama BR (dono, 29/07/2026): link antigo /pt/* segue vivo, redirecionado.
+      { source: "/pt", destination: "/br", permanent: true },
+      { source: "/pt/:path*", destination: "/br/:path*", permanent: true },
     ];
   },
   async headers() {

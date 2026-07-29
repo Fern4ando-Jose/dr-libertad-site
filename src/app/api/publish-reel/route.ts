@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Lang, accountFor, getLang } from "@/lib/accounts";
+import { Lang, accountFor, getLang, envToken, envAccountId } from "@/lib/accounts";
 import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, clearRunTopic, siblingPublished, publishedId, bumpAttempt, isHardPublishBlock, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome } from "@/lib/run-ledger";
 import { appendSurveyCta } from "@/lib/caption-cta";
 
@@ -23,7 +23,7 @@ async function getAccessToken(lang: Lang = "es"): Promise<string> {
       /* fallback para env var */
     }
   }
-  return process.env[acc.tokenEnv] ?? "";
+  return envToken(acc);
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -31,7 +31,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // ─── Publicação como REEL ─────────────────────────────────────────────────────
 async function publishReel(videoUrl: string, caption: string, lang: Lang = "es"): Promise<string> {
   const acc = accountFor(lang);
-  const accountId = process.env[acc.accountIdEnv] ?? "";
+  const accountId = envAccountId(acc);
   const token = await getAccessToken(lang);
   const graphRoot = "https://graph.instagram.com/v25.0";
   const base = `${graphRoot}/${accountId}`;
@@ -136,7 +136,7 @@ async function handle(req: NextRequest) {
   let video = params.get("video") ?? "";
   let caption = params.get("caption") ?? "";
   const slot = params.get("slot") ?? ""; // opcional — só para log
-  const lang = getLang(params.get("lang")); // "es" (default) | "pt"
+  const lang = getLang(params.get("lang")); // "es" (default) | "br"
   const runParam = params.get("run");      // 0..3 — p/ o livro-razão/dedup do watchdog
   const run = runParam !== null && runParam !== "" ? parseInt(runParam, 10) : null;
   let topic = params.get("topic") ?? "";   // tópico do Reel → livro-razão (anti-dup cross-formato)

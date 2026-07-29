@@ -24,6 +24,7 @@
 // cenas e legenda são dimensionados por essa medida (ver src/lib/narration-sync.ts).
 
 import { type Automation, logSpend, checkBudget } from "@/lib/spend";
+import { isoDe, iso3De, langLegado } from "@/lib/accounts";
 import { wordsFromElevenLabsTimestamps, type NarrationWord } from "@/lib/narration-sync";
 
 const FAL_TTS_MODEL = "fal-ai/minimax/speech-02-hd";
@@ -61,12 +62,12 @@ function vozDe(lang: string): VozCfg {
 }
 
 function languageBoost(lang: string): string {
-  return lang === "pt" ? "Portuguese" : "Spanish";
+  return lang === "br" ? "Portuguese" : "Spanish";
 }
 
 // Scribe usa ISO 639-3 ("por"/"spa"), não o código de 2 letras do resto do projeto.
 function sttLanguageCode(lang: string): string {
-  return lang === "pt" ? "por" : "spa";
+  return iso3De(lang); // ISO 639-3 — código de padrão externo (Scribe)
 }
 
 export interface NarrationResult {
@@ -101,9 +102,12 @@ async function readCachedNarration(
   try {
     const { sql } = await import("@vercel/postgres");
     const key = cacheKey(topic, day, lang);
+    // Chave LEGADA: áudio de hoje pode ter sido gravado (≤48h) antes de o idioma
+    // passar a se chamar "br" — sem esta leitura o mesmo áudio seria REGERADO (pago).
+    const keyLegada = cacheKey(topic, day, langLegado(lang));
     const rows = await sql<{ url: string; duration_sec: number | null; words: unknown }>`
       SELECT url, duration_sec, words FROM narration_cache
-      WHERE cache_key = ${key} AND url <> 'PENDING' AND created_at > NOW() - INTERVAL '48 hours'
+      WHERE cache_key IN (${key}, ${keyLegada}) AND url <> 'PENDING' AND created_at > NOW() - INTERVAL '48 hours'
       LIMIT 1`;
     const row = rows.rows[0];
     if (!row?.url) return null;
@@ -274,7 +278,7 @@ export async function generateNarration(
       ? {
           text: clean,
           voice: cfg.voz,
-          language_code: lang,   // força o idioma — é o que mata o sotaque estrangeiro
+          language_code: isoDe(lang), // código ISO exigido pelo provedor — força o idioma (mata o sotaque estrangeiro)
           timestamps: true,      // tempo de cada palavra NATIVO → dispensa a transcrição paga
           stability: cfg.stability,
           similarity_boost: cfg.similarity,

@@ -8,7 +8,7 @@ import { foreignTokens, scanContentForeign } from "./lang-guard";
 describe("foreignTokens — espanhol vazando em conteúdo PT", () => {
   it("pega o vazamento real do Reel BR (slide copiado do tema ES)", () => {
     const leak = "Voar más alto no es traición: es lealtad a lo que eres";
-    const hits = foreignTokens(leak, "pt");
+    const hits = foreignTokens(leak, "br");
     expect(hits).toContain("más");
     expect(hits).toContain("es");
     expect(hits).toContain("traición");
@@ -17,29 +17,29 @@ describe("foreignTokens — espanhol vazando em conteúdo PT", () => {
   });
 
   it("pega 'cita' (encontro) do Reel clássico BR", () => {
-    expect(foreignTokens("na cita aparece outra pessoa", "pt")).toContain("cita");
+    expect(foreignTokens("na cita aparece outra pessoa", "br")).toContain("cita");
   });
 
   it("pega a hashtag #MenteLibre (camelCase separado → 'libre')", () => {
-    expect(foreignTokens("#MenteLibre", "pt")).toContain("libre");
+    expect(foreignTokens("#MenteLibre", "br")).toContain("libre");
   });
 
   it("pega 'adelanto' vazado na legenda do funil (ED 04 PT)", () => {
     const leak = "comenta LIBERDADE e te mando o adelanto do livro na DM";
-    expect(foreignTokens(leak, "pt")).toContain("adelanto");
+    expect(foreignTokens(leak, "br")).toContain("adelanto");
   });
 
   it("pega 'libro'/'mensaje' (família do funil)", () => {
-    expect(foreignTokens("recebe o libro por mensaje privado", "pt")).toEqual(
+    expect(foreignTokens("recebe o libro por mensaje privado", "br")).toEqual(
       expect.arrayContaining(["libro", "mensaje"]),
     );
   });
 
   it("pega outros espanholismos do marketBrief", () => {
-    expect(foreignTokens("revisa el móvil", "pt")).toEqual(
+    expect(foreignTokens("revisa el móvil", "br")).toEqual(
       expect.arrayContaining(["el", "móvil"]),
     );
-    expect(foreignTokens("disfrutar la pantalla ahora", "pt")).toEqual(
+    expect(foreignTokens("disfrutar la pantalla ahora", "br")).toEqual(
       expect.arrayContaining(["disfrutar", "pantalla", "ahora"]),
     );
   });
@@ -62,7 +62,7 @@ describe("foreignTokens — PT legítimo NÃO é marcado (falso positivo)", () =
   ];
   for (const t of limpos) {
     it(`limpo: "${t.slice(0, 38)}"`, () => {
-      expect(foreignTokens(t, "pt")).toEqual([]);
+      expect(foreignTokens(t, "br")).toEqual([]);
     });
   }
 });
@@ -94,7 +94,7 @@ describe("scanContentForeign — varre só os campos que vão pro feed/Reel", ()
       instagramCaption: "Tem uma culpa que ninguém fala: a de crescer.",
       tags: ["#LealdadeAVoceMesmo", "#CrexerSemCulpa", "#LiberdadeMental", "#MenteLibre"],
     };
-    const hits = scanContentForeign(content, "pt");
+    const hits = scanContentForeign(content, "br");
     const fields = hits.map((h) => h.field);
     expect(fields).toContain("slides[0]");
     expect(fields).toContain("tags");
@@ -116,7 +116,7 @@ describe("scanContentForeign — varre só os campos que vão pro feed/Reel", ()
       instagramCaption: "Você já reparou que o medo nunca grita? Siga @dr.liberdade.br.",
       tags: ["#LiberdadeMental", "#Medo", "#Autonomia", "#PsicologiaBrasil"],
     };
-    expect(scanContentForeign(content, "pt")).toEqual([]);
+    expect(scanContentForeign(content, "br")).toEqual([]);
   });
 });
 
@@ -125,20 +125,20 @@ describe("scanContentForeign — varre só os campos que vão pro feed/Reel", ()
 // → FORA). Estes casos aproximam a copy PT contaminada real que passava antes.
 describe("foreignTokens — A4: espanhol de alta frequência vazando no PT", () => {
   it("pega verbos ES-exclusivos (necesitas/tienes/hace/quiere/cambia)", () => {
-    expect(foreignTokens("no necesitas ser amado", "pt")).toContain("necesitas");
-    expect(foreignTokens("tienes que hacer algo", "pt")).toEqual(expect.arrayContaining(["tienes", "hacer"]));
-    expect(foreignTokens("solo cambias cuando quieres", "pt")).toEqual(expect.arrayContaining(["cambias", "quieres"]));
-    expect(foreignTokens("y duele mucho", "pt")).toContain("duele");
+    expect(foreignTokens("no necesitas ser amado", "br")).toContain("necesitas");
+    expect(foreignTokens("tienes que hacer algo", "br")).toEqual(expect.arrayContaining(["tienes", "hacer"]));
+    expect(foreignTokens("solo cambias cuando quieres", "br")).toEqual(expect.arrayContaining(["cambias", "quieres"]));
+    expect(foreignTokens("y duele mucho", "br")).toContain("duele");
   });
 
   it("pega 'hombre' e o comparativo ES (peor/mejor)", () => {
-    expect(foreignTokens("el hombre no llora", "pt")).toContain("hombre");
-    expect(foreignTokens("es peor de lo que crees", "pt")).toContain("peor");
+    expect(foreignTokens("el hombre no llora", "br")).toContain("hombre");
+    expect(foreignTokens("es peor de lo que crees", "br")).toContain("peor");
   });
 
   it("NÃO marca PT legítimo com as raízes compartilhadas (querer/sentir/melhor)", () => {
-    expect(foreignTokens("você precisa querer mudar e sentir de novo", "pt")).toEqual([]);
-    expect(foreignTokens("é melhor viver do que fingir", "pt")).toEqual([]);
+    expect(foreignTokens("você precisa querer mudar e sentir de novo", "br")).toEqual([]);
+    expect(foreignTokens("é melhor viver do que fingir", "br")).toEqual([]);
   });
 
   it("PT vazando no ES: 'porém/também/têm/melhor/pior' são pegos", () => {

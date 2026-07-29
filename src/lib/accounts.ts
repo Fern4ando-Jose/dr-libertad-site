@@ -4,10 +4,17 @@
 // account-id) da conta de destino.
 //
 // ES é a conta atual (@dr.liberdad) — usa as envs históricas, comportamento
-// inalterado. PT-BR (@dr.liberdade.br) usa envs próprias `*_PT` (a preencher quando
-// o token chegar). lang default = "es" em todos os pontos → ES nunca muda.
+// inalterado. BR (@dr.liberdade.br) usa envs próprias. lang default = "es" em
+// todos os pontos → ES nunca muda.
+//
+// ⛔ O IDIOMA SE CHAMA "br" (ordem do dono, 29/07/2026 — "não existe o idioma PT").
+// O código antigo "pt" sobrevive SÓ como LEGADO DE FRONTEIRA, isolado nas funções
+// DESTE arquivo: entrada antiga (getLang), linha antiga de banco (langLegado),
+// nome antigo de variável na Vercel (campos *Legado + envToken/envAccountId) e o
+// código ISO que provedores externos exigem (isoDe/iso3De). Nenhum outro arquivo
+// escreve "pt".
 
-export type Lang = "es" | "pt";
+export type Lang = "es" | "br";
 
 export interface AccountCfg {
   lang: Lang;
@@ -19,7 +26,7 @@ export interface AccountCfg {
   freedom: string;
   /** @handle exibido no criativo (rodapé/CTA do Reel). */
   handle: string;
-  /** Verbo "seguir" do CTA do Reel, no idioma da conta (ES "Sigue" / PT "Siga"). */
+  /** Verbo "seguir" do CTA do Reel, no idioma da conta (ES "Sigue" / BR "Siga"). */
   ctaFollow: string;
   /** Linha "link da bio" do CTA do Reel, no idioma da conta. */
   ctaBio: string;
@@ -27,9 +34,13 @@ export interface AccountCfg {
   baseHashtags: string[];
   /** Nome da env var com o access token da conta. */
   tokenEnv: string;
+  /** Nome LEGADO da env na Vercel (era do rótulo antigo) — lido só como reserva. */
+  tokenEnvLegado?: string;
   /** Nome da env var com o IG account-id da conta. */
   accountIdEnv: string;
-  /** Chave no config (DB) do token — só ES tem (refresh automático). */
+  /** Nome LEGADO da env na Vercel — lido só como reserva. */
+  accountIdEnvLegado?: string;
+  /** Chave no config (DB) do token — contas com refresh automático. */
   dbTokenKey?: string;
   /**
    * Brief de MERCADO: instrução de criação NATIVA por país, injetada no topo do
@@ -54,8 +65,8 @@ export const ACCOUNTS: Record<Lang, AccountCfg> = {
     accountIdEnv: "META_INSTAGRAM_ACCOUNT_ID",
     dbTokenKey: "meta_access_token",
   },
-  pt: {
-    lang: "pt",
+  br: {
+    lang: "br",
     langName: "português do Brasil",
     brand: "Dr. Liberdade",
     freedom: "liberdade",
@@ -63,11 +74,13 @@ export const ACCOUNTS: Record<Lang, AccountCfg> = {
     ctaFollow: "Siga",
     ctaBio: "→ Mais no link da bio",
     baseHashtags: ["#DrLiberdade", "#LiberdadeMental"],
-    tokenEnv: "META_ACCESS_TOKEN_PT",
-    accountIdEnv: "META_INSTAGRAM_ACCOUNT_ID_PT",
-    // Refresh automático: 1ª rodada do cron lê a env META_ACCESS_TOKEN_PT,
-    // renova e semeia esta chave no DB; daí em diante o DB é a fonte.
-    dbTokenKey: "meta_access_token_pt",
+    tokenEnv: "META_ACCESS_TOKEN_BR",
+    tokenEnvLegado: "META_ACCESS_TOKEN_PT",
+    accountIdEnv: "META_INSTAGRAM_ACCOUNT_ID_BR",
+    accountIdEnvLegado: "META_INSTAGRAM_ACCOUNT_ID_PT",
+    // Refresh automático: o DB é a fonte (chave nova; /api/migrate copia a linha
+    // antiga meta_access_token_pt para cá uma única vez, sem apagar nada).
+    dbTokenKey: "meta_access_token_br",
     marketBrief: `Você está criando conteúdo ORIGINAL para o público BRASILEIRO — NÃO está traduzindo nem adaptando material de outro idioma ou mercado. Pense, escreva e provoque como um editor brasileiro nativo de Instagram. O mesmo TEMA deve virar um post DIFERENTE do espanhol: outro gancho, outras referências, outro jeito de falar. Regenere, não traduza.
 - VOZ: português do Brasil coloquial e direto, como se fala no Instagram BR — caloroso, pessoal, tratando por "você". Zero espanholismos, zero estrutura traduzida, zero tom acadêmico ou de Portugal. Se soar "importado", está errado: refaça.
 - GANCHO no estilo BR: identificação imediata e cotidiana ("Você faz isso e nem percebe…"), provocação leve ou virada inesperada, número concreto do dia a dia brasileiro. Nada de frase genérica de autoajuda.
@@ -78,11 +91,41 @@ export const ACCOUNTS: Record<Lang, AccountCfg> = {
   },
 };
 
-/** Resolve o idioma a partir de ?lang= (default "es" — nunca quebra a conta ES). */
+/**
+ * Resolve o idioma a partir de ?lang= (default "es" — nunca quebra a conta ES).
+ * Aceita o código LEGADO "pt"/"pt-BR" (cron antigo, URL antiga, linha antiga de
+ * banco) e o converte para "br" — chamada antiga nunca quebra.
+ */
 export function getLang(value: string | null | undefined): Lang {
-  return value === "pt" ? "pt" : "es";
+  const v = String(value ?? "").toLowerCase();
+  return v === "br" || v === "pt" || v === "pt-br" ? "br" : "es";
 }
 
 export function accountFor(lang: Lang): AccountCfg {
   return ACCOUNTS[lang] ?? ACCOUNTS.es;
+}
+
+/** Valor que linhas ANTIGAS do banco usam para este idioma (gravadas antes de 29/07/2026). */
+export function langLegado(lang: string): string {
+  return lang === "br" ? "pt" : lang;
+}
+
+/** Código ISO 639-1 exigido por provedores externos (TTS): a língua do Brasil é "pt" no padrão ISO. */
+export function isoDe(lang: string): "pt" | "es" {
+  return getLang(lang) === "br" ? "pt" : "es";
+}
+
+/** Código ISO 639-3 (Scribe). */
+export function iso3De(lang: string): "por" | "spa" {
+  return getLang(lang) === "br" ? "por" : "spa";
+}
+
+/** Token da conta via env — tenta o nome novo e cai no nome legado da Vercel. */
+export function envToken(acc: AccountCfg): string {
+  return process.env[acc.tokenEnv] ?? (acc.tokenEnvLegado ? process.env[acc.tokenEnvLegado] : undefined) ?? "";
+}
+
+/** IG account-id via env — nome novo com reserva no legado. */
+export function envAccountId(acc: AccountCfg): string {
+  return process.env[acc.accountIdEnv] ?? (acc.accountIdEnvLegado ? process.env[acc.accountIdEnvLegado] : undefined) ?? "";
 }
