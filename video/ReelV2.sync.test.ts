@@ -7,6 +7,11 @@
 //   1. com medida da voz → cada cena começa NO FRAME em que a voz começa aquela frase;
 //   2. sem medida (ou medida inconsistente) → volta EXATAMENTE ao comportamento antigo,
 //      sem regressão em nenhum Reel que sai hoje sem áudio.
+//
+// 2026-07-29: a voz NÃO narra mais o fecho (ordem do dono — "Direct"/"LIBERTAD" com
+// sotaque). O roteiro falado agora é capa + insights (n+1 blocos); CTA e funil viraram
+// cenas de TELA, com duração fixa, sempre DEPOIS de a voz terminar. Foi a régua antiga
+// (exigia n+2 blocos) que derrubou o plano pra fórmula e descolou voz da tela.
 import { describe, it, expect } from "vitest";
 import { reelPlanV2, reelDurationsV2, dedupeSlides } from "./ReelV2";
 import { splitWords, TAIL_SEC } from "../src/lib/narration-sync";
@@ -14,10 +19,9 @@ import { FPS } from "./Reel";
 
 const TITLE = "A liberdade assusta";
 const SLIDES = ["O medo cobra um preço", "Você paga sem perceber"];
-const FOLLOW = "Me siga se você prefere a verdade incômoda ao aplauso.";
 
-// Roteiro como a API monta: blocos na ordem falada, com pontuação final.
-const SEGMENTS = [TITLE + ".", SLIDES[0] + ".", SLIDES[1] + ".", FOLLOW];
+// Roteiro como a API monta DESDE 29/07: título + slides, SEM fecho falado.
+const SEGMENTS = [TITLE + ".", SLIDES[0] + ".", SLIDES[1] + "."];
 
 // Voz sintética com PAUSAS entre as frases — é justamente a respiração que a
 // fórmula de caracteres/segundo não sabia prever.
@@ -62,7 +66,7 @@ describe("reelPlanV2 — o vídeo se dimensiona pela VOZ", () => {
     expect(plan.scenes).toHaveLength(n + 2); // capa + insights + cta
   });
 
-  it("com voz medida: cada cena começa no frame em que a voz vira de frase", () => {
+  it("com voz medida: cada cena FALADA começa no frame em que a voz vira de frase", () => {
     const plan = reelPlanV2(syncedProps, FPS);
     expect(plan.synced).toBe(true);
     expect(plan.scenes[0].fromFrame).toBe(0);
@@ -78,7 +82,28 @@ describe("reelPlanV2 — o vídeo se dimensiona pela VOZ", () => {
     }
   });
 
-  it("a voz nunca é cortada: o vídeo dura a fala inteira + respiro", () => {
+  it("o roteiro falado NUNCA inclui fecho: n+1 blocos sincroniza; n+2 (forma velha) cai na fórmula", () => {
+    // A forma velha (com cierre) não pode mais ser aceita: o áudio dela fala um
+    // bloco que a tela não cronometra — foi o "todo cagado" de 29/07.
+    const velha = reelPlanV2(
+      { ...syncedProps, narrationSegments: [...SEGMENTS, "Me siga se você prefere a verdade."] },
+      FPS,
+    );
+    expect(velha.synced).toBe(false);
+  });
+
+  it("CTA vira cena de TELA com duração fixa, DEPOIS de a voz terminar", () => {
+    const plan = reelPlanV2(syncedProps, FPS);
+    const n = dedupeSlides(TITLE, SLIDES).length;
+    const { CTA } = reelDurationsV2(n);
+    // cenas: capa + n insights (faladas) + cta (fixa)
+    expect(plan.scenes).toHaveLength(n + 2);
+    const cta = plan.scenes[plan.scenes.length - 1];
+    expect(cta.durationInFrames).toBe(CTA);
+    expect(cta.fromFrame / FPS).toBeGreaterThanOrEqual(voice.durationSec + TAIL_SEC - 0.05);
+  });
+
+  it("a voz nunca é cortada: o vídeo dura a fala inteira + respiro + CTA", () => {
     const plan = reelPlanV2(syncedProps, FPS);
     expect(plan.total / FPS).toBeGreaterThanOrEqual(voice.durationSec + TAIL_SEC - 0.05);
   });
@@ -94,7 +119,7 @@ describe("reelPlanV2 — o vídeo se dimensiona pela VOZ", () => {
     expect(plan.total).toBe(expected);
   });
 
-  it("o end-card do funil entra DEPOIS de a voz terminar", () => {
+  it("o end-card do funil entra DEPOIS do CTA, que entra depois da voz", () => {
     const semFunil = reelPlanV2(syncedProps, FPS);
     const comFunil = reelPlanV2({ ...syncedProps, funnel: { keyword: "LIBERTAD", action: "a", note: "b" } }, FPS);
     expect(comFunil.scenes).toHaveLength(semFunil.scenes.length + 1);
@@ -114,7 +139,7 @@ describe("reelPlanV2 — o vídeo se dimensiona pela VOZ", () => {
   });
 
   it("roteiro com nº de blocos diferente do que a tela mostra → cai na fórmula (nunca legenda torta)", () => {
-    const plan = reelPlanV2({ ...syncedProps, narrationSegments: [TITLE + ".", FOLLOW] }, FPS);
+    const plan = reelPlanV2({ ...syncedProps, narrationSegments: [TITLE + "."] }, FPS);
     expect(plan.synced).toBe(false);
     expect(plan.total).toBe(reelDurationsV2(dedupeSlides(TITLE, SLIDES).length).total);
   });
@@ -131,12 +156,11 @@ describe("reelPlanV2 — o vídeo se dimensiona pela VOZ", () => {
   });
 
   it("PT (mais verboso) gera vídeo MAIS LONGO que ES — não voz acelerada", () => {
-    const es = ["La libertad asusta.", "El miedo cobra.", "Pagas sin verlo.", "Sígueme."];
+    const es = ["La libertad asusta.", "El miedo cobra.", "Pagas sin verlo."];
     const pt = [
       "A liberdade assusta muito mais do que a gente admite.",
       "O medo cobra um preço alto todos os dias.",
       "E você paga sem nem perceber que está pagando.",
-      "Me siga se você prefere a verdade incômoda ao aplauso.",
     ];
     const mk = (segs: string[]) => {
       const v = fakeVoice(segs);

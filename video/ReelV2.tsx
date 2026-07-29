@@ -92,7 +92,8 @@ export function reelDurationsV2(slidesCount: number, hasFunnel = false) {
   return { COVER, INSIGHT, CTA, FUNNEL, n, total: COVER + INSIGHT * n + CTA + FUNNEL };
 }
 
-const FUNNEL_SEC = 3.5; // end-card do funil (mesmo valor da fórmula acima, em segundos)
+// (FUNNEL_SEC removido 2026-07-29: o funil agora entra em FRAMES via reelDurationsV2,
+// junto do CTA, sempre DEPOIS da voz — a voz não narra mais o fecho.)
 
 // ─── PLANO DE TEMPOS — fonte única (componente + Root.calculateMetadata) ──────
 // Dois modos, na ordem de preferência:
@@ -130,9 +131,14 @@ export function reelPlanV2(props: Partial<ReelProps>, fps: number = FPS): ReelV2
 
   const segments = Array.isArray(props.narrationSegments) ? props.narrationSegments.filter(Boolean) : [];
   const durationSec = Number(props.narrationDurationSec ?? 0);
-  // Precisa de: áudio + duração medida + os blocos do roteiro na quantidade que o
-  // render mostra (capa + n insights + cierre). Qualquer divergência → fórmula.
-  if (!props.narrationUrl || !(durationSec > 0) || segments.length !== n + 2) return fallback();
+  // Precisa de: áudio + duração medida + os blocos do roteiro na quantidade que a
+  // voz FALA. Desde 2026-07-29 a voz NÃO narra o fecho (retirado por ordem do dono
+  // — "Direct"/"LIBERTAD" saíam com sotaque): o roteiro falado é capa + n insights
+  // = n+1 blocos. Era `n + 2` (com cierre) — foi ESTA régua desatualizada que fez o
+  // render descartar a medida da voz e cair na fórmula (o "todo cagado" de 29/07:
+  // cenas na fórmula, voz no ritmo próprio, tudo descolado). Qualquer divergência
+  // real → fórmula, como sempre.
+  if (!props.narrationUrl || !(durationSec > 0) || segments.length !== n + 1) return fallback();
 
   const scriptWords = segments.flatMap(splitWords);
   if (!scriptWords.length) return fallback();
@@ -142,8 +148,18 @@ export function reelPlanV2(props: Partial<ReelProps>, fps: number = FPS): ReelV2
     Array.isArray(props.narrationWords) ? props.narrationWords : [],
     durationSec,
   );
-  const plan = buildSyncPlan(segments, words, durationSec, fps, props.funnel ? FUNNEL_SEC : 0);
+  // A voz cobre capa + insights; o CTA (e o funil) entram DEPOIS dela, com duração
+  // fixa — são cenas de tela, sem fala (o fecho falado foi retirado).
+  const plan = buildSyncPlan(segments, words, durationSec, fps, 0);
   const timings = segmentTimings(segments, words);
+  const scenes = [...plan.scenes];
+  let totalFrames = plan.totalFrames;
+  scenes.push({ fromFrame: totalFrames, durationInFrames: CTA });
+  totalFrames += CTA;
+  if (FUNNEL > 0) {
+    scenes.push({ fromFrame: totalFrames, durationInFrames: FUNNEL });
+    totalFrames += FUNNEL;
+  }
 
   // Frames de cada palavra, RELATIVOS ao início da sua cena (dentro de uma Sequence
   // o Remotion zera o frame). O texto na tela é o do slide (sem a pontuação que o
@@ -152,7 +168,7 @@ export function reelPlanV2(props: Partial<ReelProps>, fps: number = FPS): ReelV2
   const screenTexts = [props.title ?? "", ...usedSlides];
   const wordFrames: number[][] = screenTexts.map((text, i) => {
     const t = timings[i];
-    const scene = plan.scenes[i];
+    const scene = scenes[i];
     if (!t || !scene) return [];
     const screenCount = splitWords(text).length;
     const spokenCount = t.to - t.from + 1;
@@ -162,7 +178,7 @@ export function reelPlanV2(props: Partial<ReelProps>, fps: number = FPS): ReelV2
       .map((w) => Math.max(0, Math.round(w.start * fps) - scene.fromFrame));
   });
 
-  return { synced: true, scenes: plan.scenes, wordFrames, usedSlides, n, total: plan.totalFrames };
+  return { synced: true, scenes, wordFrames, usedSlides, n, total: totalFrames };
 }
 
 export const reelV2DefaultProps: ReelProps = reelDefaultProps;
