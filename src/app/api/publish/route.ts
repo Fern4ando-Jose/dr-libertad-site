@@ -963,23 +963,15 @@ export async function GET(req: NextRequest) {
       : undefined;
 
     // Narração (voz TTS) — GATED por REEL_NARRATION_ENABLED. O roteiro é o TEXTO DA TELA
-    // (gancho + insights, VERBATIM, na ordem) + cierre de seguir → a voz SEMPRE bate com a
-    // tela (não é reescrita do modelo). Cache por (tópico,dia,idioma); fail-open (sem narração
-    // → Reel só com música). No ReelV2 a música vira leito suave (ducking).
-    // CIERRE FALADO — tem de pedir a MESMA coisa que a TELA está pedindo naquele
-    // instante (achado do head-de-crescimento + estrategista-de-atencao, 2026-07-26):
-    // com o funil LIGADO, o end-card mostra "Comenta LIBERTAD" enquanto a voz dizia
-    // "me siga" — DOIS pedidos concorrentes no segundo em que a pessoa decide, e quem
-    // recebe dois pedidos não faz nenhum. Além disso "seguir" é a ação mais CARA de
-    // quem te conhece há 15s, enquanto o comentário do funil é barato e vira lead.
-    // Sem funil, o fecho de seguir continua valendo (é o que a tela mostra ali).
-    const followLine = funnel
-      ? (lang === "pt"
-          ? `Comente ${funnel.keyword} aqui embaixo e eu mando no seu Direct.`
-          : `Comenta ${funnel.keyword} aquí abajo y te lo envío al Direct.`)
-      : (lang === "pt"
-          ? "Me siga se você prefere a verdade incômoda ao aplauso."
-          : "Sígueme si prefieres la verdad incómoda al aplauso.");
+    // (gancho + insights, VERBATIM, na ordem). Cache por (tópico,dia,idioma); fail-open
+    // (sem narração → Reel só com música). No ReelV2 a música vira leito suave (ducking).
+    // SEM CIERRE FALADO (2026-07-29, ordem do dono) — a voz PAROU de narrar o fecho
+    // ("Comenta LIBERTAD... al Direct" / "Sígueme..."). Causa: no Reel ES de 29/07 o
+    // dono ouviu "Direct" (palavra emprestada do inglês) E a própria palavra-chave
+    // "LIBERTAD" saindo com sotaque estrangeiro na voz MiniMax — mandou tirar esse
+    // trecho da voz, sem quebrar a publicação em andamento. O end-card visual do funil
+    // (quando ligado) continua mostrando o CTA normalmente; só a VOZ ficou muda ali —
+    // silêncio no fecho é aceito, o defeito era a pronúncia, não o silêncio.
     // A voz fala EXATAMENTE os slides que a tela MOSTRA (dedupados, cap 3) — antes o
     // roteiro usava `content.slides` CRU enquanto o render usava os dedupados, então
     // num tópico com slide[0] == título a voz narrava um insight que a tela nunca
@@ -999,7 +991,7 @@ export async function GET(req: NextRequest) {
     const TETO_CHARS = Math.round(FALA_MAX_SEG * CHARS_POR_SEG);
     const spokenSlides = dedupeSlides(content.postTitle, content.slides).slice(0, 3);
     const tamanhoRoteiro = (ss: string[]) =>
-      [content.postTitle, ...ss, followLine].join(" ").length;
+      [content.postTitle, ...ss].join(" ").length;
     while (spokenSlides.length > 1 && tamanhoRoteiro(spokenSlides) > TETO_CHARS) {
       spokenSlides.pop();
     }
@@ -1007,8 +999,7 @@ export async function GET(req: NextRequest) {
     // cada cena começa (fonte única do alinhamento voz↔tela).
     const narrationSegments = [content.postTitle, ...spokenSlides]
       .map((s) => String(s).trim()).filter(Boolean)
-      .map((s) => (/[.!?]$/.test(s) ? s : s + "."))
-      .concat(followLine);
+      .map((s) => (/[.!?]$/.test(s) ? s : s + "."));
     const narrationText = narrationSegments.join(" ");
     // SEM janela-alvo: a voz sai em velocidade natural e o VÍDEO é que se ajusta a ela
     // (o áudio é o relógio). A antiga `voiceWindowSec` — 3,0 + 5,6·n + 4,6 − 0,6 — era a
