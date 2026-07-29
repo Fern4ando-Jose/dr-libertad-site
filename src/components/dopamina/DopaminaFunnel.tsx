@@ -14,6 +14,38 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
 type Utm = Partial<Record<(typeof UTM_KEYS)[number], string>>;
 
+// Altura do cabeçalho fixo — o alvo nunca pode nascer debaixo dele.
+const TOPO_FIXO = 84;
+
+/**
+ * Rola até um elemento SEM saltos gratuitos.
+ *
+ * Por que existe (queixa do dono, 2026-07-29 — "no celular, quando vai preencher,
+ * fica sempre voltando a tela no título"): o quiz reenquadrava a SEÇÃO INTEIRA a
+ * cada resposta (`quizRef.scrollIntoView({block:'start'})`). No celular isso
+ * colocava o cabeçalho do teste no topo e empurrava a pergunta seguinte para a
+ * beirada de baixo — medido no ar: a tela voltava 3880 → 3664 e a 1ª opção caía em
+ * y=774 numa tela de 844. Agora só rolamos quando o alvo NÃO está visível, e
+ * miramos o card da pergunta, não o título.
+ *
+ * Usa o Lenis (rolagem suave do site) quando ele existe: `scrollIntoView` nativo
+ * briga com ele e o resultado fica imprevisível.
+ */
+function rolarAte(el: HTMLElement | null, { sempre = false, margem = TOPO_FIXO } = {}) {
+  if (!el || typeof window === "undefined") return;
+  const r = el.getBoundingClientRect();
+  // Com o teclado do celular aberto, a área que a pessoa realmente vê é a
+  // visualViewport — usar innerHeight aqui diria "está visível" para um campo
+  // escondido atrás do teclado.
+  const alturaVisivel = window.visualViewport?.height ?? window.innerHeight;
+  const visivel = r.top >= margem && r.bottom <= alturaVisivel - 8;
+  if (visivel && !sempre) return;
+  const destino = Math.max(0, window.scrollY + r.top - margem - 12);
+  const lenis = (window as unknown as { __lenis?: { scrollTo: (y: number) => void } }).__lenis;
+  if (lenis?.scrollTo) lenis.scrollTo(destino);
+  else window.scrollTo({ top: destino, behavior: "smooth" });
+}
+
 // Dispara evento no Meta Pixel só se ele estiver carregado (env NEXT_PUBLIC_META_PIXEL_ID
 // setada). Sem Pixel, é no-op silencioso — não quebra a UX.
 function fbTrack(event: string, custom = false, data?: Record<string, unknown>) {
@@ -44,6 +76,9 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
   const [submitting, setSubmitting] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
   const quizRef = useRef<HTMLElement>(null);
+  // Card do passo atual (pergunta ou gate de e-mail): é ELE que precisa estar à
+  // vista, não o cabeçalho do teste.
+  const passoRef = useRef<HTMLDivElement>(null);
 
   const allAnswered = answers.every((a) => a !== null);
   const emailValid = EMAIL_RE.test(email.trim());
@@ -63,8 +98,12 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
   const goStep = useCallback(
     (s: number) => {
       setStep(Math.max(0, Math.min(s, qCount)));
-      // mantém o quiz enquadrado ao trocar de passo (o card muda de altura)
-      requestAnimationFrame(() => quizRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      // Enquadra a PERGUNTA (não o título da seção) e só quando ela não está à
+      // vista — ver `rolarAte`. Dois quadros de espera: o primeiro pinta o passo
+      // novo, o segundo já mede a altura real do card.
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => rolarAte(passoRef.current ?? quizRef.current))
+      );
     },
     [qCount]
   );
@@ -107,7 +146,7 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
       // silencioso — o veredito já está na tela
     } finally {
       setSubmitting(false);
-      requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      requestAnimationFrame(() => rolarAte(resultRef.current, { sempre: true }));
     }
   }
 
@@ -141,11 +180,15 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
 
   function goToQuiz() {
     fbTrack("dopamina_quiz_start", true);
-    quizRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Aqui o alvo é a PERGUNTA em si: cair no cabeçalho do teste faria a pessoa
+    // rolar de novo para começar a responder.
+    rolarAte(passoRef.current ?? quizRef.current, { sempre: true });
   }
   function goToPrevia() {
-    previaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    requestAnimationFrame(() => previaInputRef.current?.focus());
+    rolarAte(previaRef.current, { sempre: true });
+    // Foco só depois da rolagem: focar antes faz o navegador rolar por conta
+    // própria e brigar com a rolagem suave.
+    window.setTimeout(() => previaInputRef.current?.focus(), 420);
   }
 
   const q = c.quiz;
@@ -229,6 +272,10 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
                         setPreviaEmail(ev.target.value);
                         if (previaState === "error") setPreviaState("idle");
                       }}
+                      onFocus={(ev) => {
+                        const alvo = ev.currentTarget;
+                        window.setTimeout(() => rolarAte(alvo, { margem: TOPO_FIXO + 12 }), 380);
+                      }}
                     />
                     <button
                       type="button"
@@ -296,7 +343,7 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
                 <i style={{ width: `${(step / qCount) * 100}%` }} />
               </div>
 
-              <div className={styles.stepCard} key={step} aria-live="polite">
+              <div className={styles.stepCard} key={step} ref={passoRef} aria-live="polite">
                 <div className={styles.qtext}>{q.questions[step].text}</div>
                 <div className={styles.opts} role="group" aria-label={q.questions[step].axis}>
                   {q.questions[step].options.map((label, value) => {
@@ -338,7 +385,7 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
           )}
 
           {!result && step >= qCount && (
-            <div className={styles.gate}>
+            <div className={styles.gate} ref={passoRef}>
               <div className={styles.stepTrack} aria-hidden="true" style={{ marginBottom: 22 }}>
                 <i style={{ width: "100%" }} />
               </div>
@@ -351,6 +398,12 @@ export default function DopaminaFunnel({ lang }: { lang: Lang }) {
                 placeholder={q.gate.placeholder}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                // Teclado aberto: espera a tela encolher e, SE o campo tiver ficado
+                // escondido atrás do teclado, traz de volta — uma vez, sem laço.
+                onFocus={(e) => {
+                  const alvo = e.currentTarget;
+                  window.setTimeout(() => rolarAte(alvo, { margem: TOPO_FIXO + 12 }), 380);
+                }}
                 aria-label="email"
               />
               <br />
