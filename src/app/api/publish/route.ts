@@ -958,7 +958,10 @@ export async function GET(req: NextRequest) {
           keyword: accountFor(lang).freedom.toUpperCase(), // LIBERTAD / LIBERDADE
           action: (FUNNEL_TXT[lang] ?? FUNNEL_TXT.es).action,
           note: (FUNNEL_TXT[lang] ?? FUNNEL_TXT.es).note,
-          cover: `images/dopamina-funnel-bg-${lang === "br" ? "br" : "es"}.png`,
+          // ⚠️ O ARQUIVO público segue "-pt.png" (resíduo declarado do refactor br:
+          // nome de arquivo público não foi renomeado). Apontar para "-br.png" era
+          // 404 → EncodingError → render BR inteiro caía (pego na prova de 29/07).
+          cover: `images/dopamina-funnel-bg-${lang === "br" ? "pt" : "es"}.png`,
         }
       : undefined;
 
