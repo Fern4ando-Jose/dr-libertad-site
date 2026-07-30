@@ -1,0 +1,132 @@
+/* Livro "de verdade" em CSS 3D: a MESMA arte da capa vira a face frontal e o
+   componente gera lombada, miolo de páginas e contracapa — nenhuma imagem nova
+   é produzida. As faces laterais têm largura = --depth e são giradas 90° para
+   os lados; o ângulo do conjunto (.book) dá o volume.
+
+   ⚠️ Não aplicar filter/opacity/overflow em .book: qualquer um deles achata o
+   preserve-3d e o livro volta a ser um cartão plano. */
+
+.scene {
+  perspective: 1800px;
+  --depth: 30px;
+}
+
+.book {
+  position: relative;
+  transform-style: preserve-3d;
+  /* Giro para a direita: lombada à esquerda fica visível, capa segue legível. */
+  transform: rotateY(26deg);
+  transition: transform 0.7s cubic-bezier(0.2, 0.65, 0.3, 1);
+}
+
+/* Só onde hover existe de verdade — no toque, hover fica PRESO e o livro
+   pararia torto para sempre. */
+@media (hover: hover) {
+  .scene:hover .book {
+    transform: rotateY(15deg);
+  }
+}
+
+.cover {
+  position: relative;
+  display: block;
+  width: 100%;
+  /* Canto vivo do lado da lombada (esquerda), arredondado na borda de abertura. */
+  border-radius: 3px 12px 12px 3px;
+  transform: translateZ(calc(var(--depth) / 2));
+  box-shadow:
+    inset 4px 0 12px rgba(0, 0, 0, 0.22),
+    inset -1px 0 2px rgba(255, 255, 255, 0.25);
+}
+
+/* Vinco da capa dura junto à lombada — a linha que livro impresso tem. */
+.hinge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 7px;
+  width: 3px;
+  transform: translateZ(calc(var(--depth) / 2 + 1px));
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.22),
+    rgba(0, 0, 0, 0.05) 60%,
+    rgba(255, 255, 255, 0.18)
+  );
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--depth);
+  transform: translateX(calc(var(--depth) / -2)) rotateY(-90deg);
+  background: linear-gradient(
+    90deg,
+    #d9d0ba 0%,
+    #f3edda 18%,
+    #efe8d4 82%,
+    #cfc5ac 100%
+  );
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.spineText {
+  writing-mode: vertical-rl;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #3a352c;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+/* Miolo: as folhas aparecem como linhas finas na borda de abertura. */
+.pages {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  right: 0;
+  width: calc(var(--depth) - 4px);
+  transform: translateX(calc((var(--depth) - 4px) / 2)) rotateY(90deg);
+  background: repeating-linear-gradient(
+    90deg,
+    #f6f0dd 0 2px,
+    #e4dbc2 2px 3px
+  );
+  border-radius: 1px;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.22);
+}
+
+.back {
+  position: absolute;
+  inset: 0;
+  transform: translateZ(calc(var(--depth) / -2)) rotateY(180deg);
+  background: linear-gradient(105deg, #efe8d6, #ddd3bc);
+  border-radius: 3px 12px 12px 3px;
+}
+
+/* Sombra no chão: ancora o livro no cenário (a página é escura — sem ela o
+   livro parece flutuar). Fica FORA de .book para não achatar o 3D. */
+.floor {
+  position: absolute;
+  left: 10%;
+  right: 4%;
+  bottom: -6%;
+  height: 12%;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(0, 0, 0, 0.55),
+    transparent 70%
+  );
+  filter: blur(10px);
+  pointer-events: none;
+}

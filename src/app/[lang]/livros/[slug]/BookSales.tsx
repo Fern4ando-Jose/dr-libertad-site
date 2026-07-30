@@ -5,6 +5,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
+import Book3D from "@/components/ui/Book3D";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 import { getBook } from "@/lib/books";
 
@@ -191,11 +192,10 @@ export default function BookSales({ slug }: { slug: string }) {
                   aria-hidden="true"
                   className="absolute -inset-6 -z-10 rounded-[40px] bg-[radial-gradient(circle_at_50%_30%,rgba(45,90,61,0.35),transparent_70%)] blur-2xl"
                 />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Book3D
                   src={cover}
                   alt={L.coverAlt}
-                  className="w-full rounded-[18px] border border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.55)]"
+                  spineText={`${L.title} ${L.titleAccent} · ${L.authorTitle}`}
                 />
               </motion.div>
             </div>

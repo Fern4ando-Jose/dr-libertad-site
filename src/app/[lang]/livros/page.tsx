@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
+import Book3D from "@/components/ui/Book3D";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 import { VISIBLE_BOOKS } from "@/lib/books";
 
@@ -64,18 +65,19 @@ export default function LivrosIndex() {
                   <motion.a
                     href={`/${lang}/livros/${book.slug}`}
                     whileHover={{ y: -6 }}
-                    className="group block overflow-hidden rounded-3xl border border-warm-gray/15 bg-white/3 p-4 backdrop-blur transition-colors hover:border-warm-gray/35"
+                    className="group block rounded-3xl border border-warm-gray/15 bg-white/3 p-4 backdrop-blur transition-colors hover:border-warm-gray/35"
                   >
-                    <div className="relative overflow-hidden rounded-2xl">
+                    {/* Sem overflow-hidden aqui: o livro 3D gira e "sai" do
+                        retângulo da capa — recortar achataria o efeito. */}
+                    <div className="relative px-5 pt-6 pb-3">
                       <div
                         aria-hidden="true"
-                        className="absolute -inset-6 -z-10 rounded-[40px] bg-[radial-gradient(circle_at_50%_30%,rgba(45,90,61,0.3),transparent_70%)] blur-2xl"
+                        className="absolute -inset-2 -z-10 rounded-[40px] bg-[radial-gradient(circle_at_50%_30%,rgba(45,90,61,0.3),transparent_70%)] blur-2xl"
                       />
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <Book3D
                         src={cover}
                         alt={b.coverAlt}
-                        className="w-full transition duration-500 group-hover:scale-[1.02]"
+                        spineText={`${b.title} ${b.titleAccent} · ${b.authorTitle}`}
                       />
                     </div>
                     <div className="px-2 pb-1 pt-5">
