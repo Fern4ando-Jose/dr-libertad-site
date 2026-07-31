@@ -8,6 +8,7 @@
 // é só o preparo — o 95%). Protegido por ADMIN_TOKEN (guardado no navegador).
 
 import { useEffect, useState } from "react";
+import AdminTabs from "../AdminTabs";
 
 type Draft = { id: number; url: string; lang: "es" | "br"; comment: string };
 
@@ -113,6 +114,10 @@ export default function ComentariosAdmin() {
             <h1 className="mt-2 font-serif text-3xl leading-tight">Comente nas contas grandes — na sua voz</h1>
           </div>
           <button onClick={forgetToken} className="text-xs text-warm-gray/60 underline hover:text-warm-gray">sair</button>
+        </div>
+
+        <div className="mt-6">
+          <AdminTabs />
         </div>
 
         <p className="mt-4 text-sm leading-[1.7] text-warm-gray/80">

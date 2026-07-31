@@ -7,10 +7,11 @@
 // opcional). Botões narrativos de progresso por tela (embalagem v2).
 // Estrutura das perguntas: src/lib/survey-schema.ts · textos: survey.content.ts.
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Lang } from "@/lib/i18n/dictionaries";
 import { PNR, SCREENS, type QuestionSpec, type Answers } from "@/lib/survey-schema";
+import { readSourceFromQuery, type SurveySource } from "@/lib/survey-source";
 import { surveyContent } from "./survey.content";
 import styles from "./survey.module.css";
 
@@ -48,6 +49,15 @@ export default function SurveyExperience({ lang }: { lang: Lang }) {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
+
+  // Etiqueta de campanha (utm_*), lida UMA vez na chegada e guardada em ref: quem
+  // responde leva 3 minutos e pode trocar de aba/voltar — se a URL perder a marcação
+  // no meio do caminho, a resposta ainda sai com a origem certa. Só rótulo de
+  // anúncio; nada aqui identifica quem respondeu.
+  const sourceRef = useRef<SurveySource | null>(null);
+  if (sourceRef.current === null) {
+    sourceRef.current = typeof window === "undefined" ? {} : readSourceFromQuery(window.location.search);
+  }
 
   const screenSpec = step >= 1 ? SCREENS[step - 1] : null;
   const screenCopy = step >= 1 ? c.screens[step - 1] : null;
@@ -97,6 +107,7 @@ export default function SurveyExperience({ lang }: { lang: Lang }) {
           consent: true,
           answers,
           email: emailTrimmed || null,
+          source: sourceRef.current ?? {},
         }),
       });
       const data = (await res.json().catch(() => null)) as { ok?: boolean } | null;

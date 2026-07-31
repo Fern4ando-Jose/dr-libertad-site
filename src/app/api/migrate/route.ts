@@ -366,10 +366,15 @@ export async function GET(req: NextRequest) {
         lang       TEXT  NOT NULL DEFAULT 'br',
         answers    JSONB NOT NULL DEFAULT '{}',
         email      TEXT,
+        source     JSONB NOT NULL DEFAULT '{}',
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `;
     await sql`CREATE INDEX IF NOT EXISTS survey_responses_created_idx ON survey_responses (created_at)`;
+    // Tabela criada antes da marcação de campanha (2026-07-31): ganha a coluna
+    // `source` (utm_* — só etiqueta de anúncio, nada que identifique alguém), que
+    // é como o painel separa "veio do anúncio pago" de "veio da bio".
+    await sql`ALTER TABLE survey_responses ADD COLUMN IF NOT EXISTS source JSONB NOT NULL DEFAULT '{}'`;
     results.push("survey_responses table: ok");
   } catch (e) {
     results.push("survey_responses table: " + String(e));
