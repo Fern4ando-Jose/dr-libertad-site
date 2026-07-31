@@ -37,6 +37,7 @@ function row(over: Partial<SurveyRow> = {}): SurveyRow {
     answers: fullAnswers(),
     email: null,
     source: {},
+    country: "BR",
     created_at: "2026-07-30T10:00:00.000Z",
     ...over,
   };
@@ -74,6 +75,18 @@ describe("survey-aggregate — o que o painel mostra", () => {
     ]);
     expect(agg.byDay.map((d) => d.day)).toEqual(["2026-07-28", "2026-07-30"]);
     expect(agg.byDay[1]).toMatchObject({ br: 2, es: 0, total: 2 });
+  });
+
+  it("quebra por país, do maior para o menor, e sem país vira '??'", () => {
+    const agg = aggregate([
+      row({ id: 1, country: "MX", lang: "es" }),
+      row({ id: 2, country: "ES", lang: "es" }),
+      row({ id: 3, country: "mx", lang: "es" }), // minúsculo é o MESMO país
+      row({ id: 4, country: null }),
+    ]);
+    expect(agg.byCountry[0]).toMatchObject({ code: "MX", total: 2, es: 2, br: 0 });
+    expect(agg.byCountry.map((c) => c.code)).toContain("ES");
+    expect(agg.byCountry.find((c) => c.code === "??")).toMatchObject({ total: 1, br: 1 });
   });
 
   it("quebra por campanha, do maior para o menor, com 'direto' para quem chegou sem utm", () => {
@@ -133,7 +146,7 @@ describe("survey-aggregate — CSV", () => {
       row({ id: 7, source: { s: "ig" }, email: "a@b.com", answers: fullAnswers({ q23: 'ele disse "oi", eu não' }) }),
     ]);
     const [header, line] = csv.split("\n");
-    expect(header.startsWith("id,created_at,lang,utm_source,utm_medium,utm_campaign,utm_content,email,q1")).toBe(true);
+    expect(header.startsWith("id,created_at,lang,country,utm_source,utm_medium,utm_campaign,utm_content,email,q1")).toBe(true);
     expect(line).toContain("instagram|tiktok");
     expect(line).toContain('"ele disse ""oi"", eu não"');
   });

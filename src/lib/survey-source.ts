@@ -83,6 +83,32 @@ export function readSourceFromQuery(search: string): SurveySource {
   });
 }
 
+// ─── País da resposta ────────────────────────────────────────────────────────
+// Código ISO-3166-1 alfa-2 (BR, PT, MX, AR…), lido do cabeçalho de geolocalização
+// que a Vercel põe na requisição. O IP **não** é lido nem gravado em lugar nenhum:
+// guarda-se só o país, que é grosso demais para identificar alguém — e é o corte
+// que a análise precisa (o mesmo espanhol responde diferente no México e na
+// Espanha; sem país, ES vira um bloco só).
+
+/** Rótulo de quando a plataforma não informou o país (dev local, proxy sem geo). */
+export const COUNTRY_UNKNOWN = "??";
+
+/** Normaliza para AA maiúsculo; qualquer outra coisa → null (grava NULL). */
+export function normalizeCountry(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const code = value.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : null;
+}
+
+/** Lê o país dos cabeçalhos da requisição (Vercel; Cloudflare como reserva). */
+export function countryFromHeaders(headers: Headers): string | null {
+  return (
+    normalizeCountry(headers.get("x-vercel-ip-country")) ??
+    normalizeCountry(headers.get("cf-ipcountry")) ??
+    null
+  );
+}
+
 /** Chave estável de agrupamento no painel — "ig / cpc / pesquisa-br-01". */
 export function sourceKey(src: SurveySource | null | undefined): string {
   if (!src) return SOURCE_DIRECT_LABEL;

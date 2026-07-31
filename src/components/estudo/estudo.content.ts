@@ -35,7 +35,9 @@ export type EstudoCopy = {
     firstFraming: string; // enquadramento quando a contagem é baixa (honesto)
     goalNote: string;
     goalMetaLeft: string;
-    goalMetaRight: (pct: number) => string;
+    /** Recebe a fração JÁ formatada no idioma ("0,4" / "12") — meta de 10 mil
+     *  passa muito tempo em casa decimal, e "0.4" com ponto é inglês. */
+    goalMetaRight: (pct: string) => string;
     cta: string;
   };
   proposito: {
@@ -112,11 +114,11 @@ const br: EstudoCopy = {
   },
   live: {
     eyebrow: "A pesquisa está aberta",
-    counterOf: "/ ~400 por idioma",
+    counterOf: "/ ~10.000 por idioma",
     counterLabel: "respostas até agora",
     firstFraming: "Você pode estar entre os primeiros a responder. Cada resposta aproxima o livro.",
     goalNote:
-      "Não há data de lançamento — há um **marco**: o livro sai quando o campo fechar, por volta de 400 respostas em cada idioma. O contador é a barra de progresso. Cada resposta aproxima o livro.",
+      "Não há data de lançamento — há um **marco**: o livro sai quando o campo fechar, por volta de **10 mil respostas** em cada idioma. O contador é a barra de progresso. Cada resposta aproxima o livro.",
     goalMetaLeft: "Coleta em andamento",
     goalMetaRight: (pct) => `${pct}% da meta`,
     cta: "Somar a minha resposta",
@@ -234,11 +236,11 @@ const es: EstudoCopy = {
   },
   live: {
     eyebrow: "La investigación está abierta",
-    counterOf: "/ ~400 por idioma",
+    counterOf: "/ ~10.000 por idioma",
     counterLabel: "respuestas hasta ahora",
     firstFraming: "Puedes estar entre los primeros en responder. Cada respuesta acerca el libro.",
     goalNote:
-      "No hay fecha de lanzamiento — hay un **hito**: el libro sale cuando el campo cierre, alrededor de 400 respuestas en cada idioma. El contador es la barra de progreso. Cada respuesta acerca el libro.",
+      "No hay fecha de lanzamiento — hay un **hito**: el libro sale cuando el campo cierre, alrededor de **10 mil respuestas** en cada idioma. El contador es la barra de progreso. Cada respuesta acerca el libro.",
     goalMetaLeft: "Recolección en curso",
     goalMetaRight: (pct) => `${pct}% de la meta`,
     cta: "Sumar mi respuesta",

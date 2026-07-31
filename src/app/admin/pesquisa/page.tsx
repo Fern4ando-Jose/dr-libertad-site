@@ -12,6 +12,7 @@ import AdminTabs from "../AdminTabs";
 import { PNR } from "@/lib/survey-schema";
 import { optionLabel, orderedValues, questionSpec, questionText, screenTitle } from "@/lib/survey-labels";
 import { sourceKey } from "@/lib/survey-source";
+import { countryFlag, countryName } from "@/lib/country-names";
 import type { SurveyAggregate } from "@/lib/survey-aggregate";
 
 type Latest = {
@@ -19,6 +20,7 @@ type Latest = {
   lang: "br" | "es";
   created_at: string;
   source: Record<string, string> | null;
+  country: string | null;
   email: string | null;
   answers: Record<string, string | number | string[]>;
 };
@@ -69,6 +71,9 @@ export default function PesquisaAdmin() {
   const [savedToken, setSavedToken] = useState<string | null>(null);
   const [days, setDays] = useState<string>("30");
   const [lang, setLang] = useState<string>("");
+  // Filtro de país: clicar numa linha da tabela de países recorta TODO o painel
+  // (item a item incluído) — é assim que se compara México × Espanha no mesmo ES.
+  const [country, setCountry] = useState<string>("");
   const [data, setData] = useState<Results | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +92,7 @@ export default function PesquisaAdmin() {
     try {
       const qs = new URLSearchParams({ days });
       if (lang) qs.set("lang", lang);
+      if (country) qs.set("country", country);
       const res = await fetch(`/api/survey/results?${qs.toString()}`, {
         headers: { Authorization: `Bearer ${savedToken}` },
         cache: "no-store",
@@ -103,7 +109,7 @@ export default function PesquisaAdmin() {
     } finally {
       setLoading(false);
     }
-  }, [savedToken, days, lang]);
+  }, [savedToken, days, lang, country]);
 
   useEffect(() => {
     void load();
@@ -113,6 +119,7 @@ export default function PesquisaAdmin() {
     if (!savedToken) return;
     const qs = new URLSearchParams({ days, format: "csv" });
     if (lang) qs.set("lang", lang);
+    if (country) qs.set("country", country);
     if (!withEmail) qs.set("email", "0");
     try {
       const res = await fetch(`/api/survey/results?${qs.toString()}`, {
@@ -127,7 +134,7 @@ export default function PesquisaAdmin() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `pesquisa-${lang || "todos"}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `pesquisa-${lang || "todos"}${country ? `-${country}` : ""}-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -254,6 +261,18 @@ export default function PesquisaAdmin() {
               {o.label}
             </button>
           ))}
+          {country && (
+            <>
+              <span className="mx-2 h-5 w-px bg-warm-gray/20" aria-hidden="true" />
+              <button
+                onClick={() => setCountry("")}
+                className="rounded-lg bg-muted-red px-3 py-2 text-xs uppercase tracking-[0.14em] text-offwhite"
+                title="Voltar a ver todos os países"
+              >
+                {countryFlag(country)} {countryName(country)} ✕
+              </button>
+            </>
+          )}
           <span className="mx-2 h-5 w-px bg-warm-gray/20" aria-hidden="true" />
           <button
             onClick={() => void downloadCsv(true)}
@@ -308,6 +327,54 @@ export default function PesquisaAdmin() {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* De que país — o corte que permite comparar dentro do mesmo idioma */}
+        {data && data.byCountry.length > 0 && (
+          <section className={`mt-8 ${card}`}>
+            <div className={label}>De que país</div>
+            <p className="mt-2 text-xs text-warm-gray/60">
+              País informado pela plataforma na hora do envio (nenhum IP é lido ou guardado). Clique numa
+              linha para recortar TODO o painel naquele país — é assim que se compara México × Espanha
+              dentro do mesmo espanhol, ou Brasil × Portugal dentro do BR.
+            </p>
+            <table className="mt-4 w-full text-sm">
+              <thead>
+                <tr className="text-left text-[0.62rem] uppercase tracking-[0.18em] text-warm-gray/60">
+                  <th className="pb-2">País</th>
+                  <th className="pb-2 text-right">BR</th>
+                  <th className="pb-2 text-right">ES</th>
+                  <th className="pb-2 text-right">Total</th>
+                  <th className="pb-2 text-right">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.byCountry.map((c) => {
+                  const known = /^[A-Z]{2}$/.test(c.code);
+                  const active = country === c.code;
+                  return (
+                    <tr
+                      key={c.code}
+                      onClick={() => known && setCountry(active ? "" : c.code)}
+                      className={`border-t border-warm-gray/10 ${known ? "cursor-pointer hover:bg-white/[0.03]" : ""} ${
+                        active ? "bg-muted-red/10" : ""
+                      }`}
+                    >
+                      <td className="py-2 pr-4">
+                        <span aria-hidden="true">{countryFlag(c.code)}</span>{" "}
+                        <span className={active ? "text-offwhite" : "text-warm-gray/90"}>{countryName(c.code)}</span>{" "}
+                        {known && <span className="font-mono text-[0.62rem] text-warm-gray/45">{c.code}</span>}
+                      </td>
+                      <td className="py-2 text-right text-warm-gray/80">{c.br}</td>
+                      <td className="py-2 text-right text-warm-gray/80">{c.es}</td>
+                      <td className="py-2 text-right">{c.total}</td>
+                      <td className="py-2 text-right text-warm-gray/60">{pct(c.total, data.totals.total)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </section>
         )}
 
@@ -463,6 +530,9 @@ export default function PesquisaAdmin() {
                         </span>
                         <span className="text-warm-gray/85">#{r.id}</span>
                         <span className="text-warm-gray/60">{fmtDateTime(r.created_at)}</span>
+                        <span className="text-warm-gray/70" title={countryName(r.country)}>
+                          {countryFlag(r.country)} {r.country ?? "??"}
+                        </span>
                         <span className="font-mono text-[0.65rem] text-warm-gray/50">{sourceKey(r.source ?? {})}</span>
                         {r.email && <span className="text-[0.65rem] text-warm-gray/70">✉ {r.email}</span>}
                       </span>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aggregate, toCsv, type SurveyRow } from "@/lib/survey-aggregate";
-import { normalizeSource } from "@/lib/survey-source";
+import { normalizeCountry, normalizeSource } from "@/lib/survey-source";
 
 // ─── GET /api/survey/results — leitura do painel (/admin/pesquisa) ───────────
 // Devolve TUDO que o dono precisa para acompanhar a pesquisa: totais, série por
@@ -11,6 +11,7 @@ import { normalizeSource } from "@/lib/survey-source";
 //   GET /api/survey/results?days=7         → janela menor
 //   GET /api/survey/results?days=all       → tudo
 //   GET /api/survey/results?lang=es        → só um idioma
+//   GET /api/survey/results?country=MX     → só um país (ISO alfa-2)
 //   GET /api/survey/results?format=csv     → planilha (uma linha por resposta)
 //   …&email=0                              → CSV sem a coluna de e-mail (p/ compartilhar)
 //
@@ -43,6 +44,7 @@ type DbRow = {
   answers: unknown;
   email: string | null;
   source?: unknown;
+  country?: unknown;
   created_at: string | Date;
 };
 
@@ -53,6 +55,7 @@ function toSurveyRow(r: DbRow): SurveyRow {
     answers: (typeof r.answers === "object" && r.answers !== null ? r.answers : {}) as SurveyRow["answers"],
     email: r.email ?? null,
     source: normalizeSource(r.source),
+    country: normalizeCountry(r.country),
     created_at: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
   };
 }
@@ -65,6 +68,7 @@ export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
   const days = parseDays(params.get("days"));
   const langFilter = params.get("lang") === "es" ? "es" : params.get("lang") === "br" ? "br" : null;
+  const countryFilter = normalizeCountry(params.get("country"));
   const format = params.get("format");
 
   let rows: SurveyRow[];
@@ -76,7 +80,7 @@ export async function GET(req: NextRequest) {
     let result;
     try {
       result = await sql`
-        SELECT id, lang, answers, email, source, created_at
+        SELECT id, lang, answers, email, source, country, created_at
         FROM survey_responses
         WHERE created_at >= ${since}
         ORDER BY created_at DESC
@@ -85,9 +89,11 @@ export async function GET(req: NextRequest) {
     } catch (e) {
       const undefinedColumn =
         (typeof e === "object" && e !== null && (e as { code?: string }).code === "42703") ||
-        String(e).includes("source");
+        String(e).includes("source") ||
+        String(e).includes("country");
       if (!undefinedColumn) throw e;
-      // Banco ainda sem a coluna de campanha: lê o resto e trata origem como vazia.
+      // Banco ainda sem as colunas de campanha/país: lê o resto e trata as duas
+      // como vazias (painel mostra "direto" e "não informado", nunca quebra).
       result = await sql`
         SELECT id, lang, answers, email, created_at
         FROM survey_responses
@@ -112,9 +118,10 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const filtered = langFilter
+  let filtered = langFilter
     ? rows.filter((r) => (r.lang === "es" ? "es" : "br") === langFilter)
     : rows;
+  if (countryFilter) filtered = filtered.filter((r) => r.country === countryFilter);
 
   if (format === "csv") {
     const includeEmail = params.get("email") !== "0";
@@ -123,7 +130,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(csv, {
       headers: {
         "content-type": "text/csv; charset=utf-8",
-        "content-disposition": `attachment; filename="pesquisa-${langFilter ?? "todos"}-${stamp}.csv"`,
+        "content-disposition": `attachment; filename="pesquisa-${langFilter ?? "todos"}${countryFilter ? `-${countryFilter}` : ""}-${stamp}.csv"`,
         "cache-control": "no-store",
       },
     });
@@ -136,12 +143,13 @@ export async function GET(req: NextRequest) {
     lang: r.lang === "es" ? "es" : "br",
     created_at: r.created_at,
     source: r.source,
+    country: r.country,
     email: r.email,
     answers: r.answers,
   }));
 
   return NextResponse.json(
-    { ok: true, ready: true, window: { days }, lang: langFilter, ...agg, latest },
+    { ok: true, ready: true, window: { days }, lang: langFilter, country: countryFilter, ...agg, latest },
     { headers: { "cache-control": "no-store" } }
   );
 }

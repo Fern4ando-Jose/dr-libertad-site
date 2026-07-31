@@ -49,7 +49,8 @@ Trocou o criativo? Troca só o `utm_content` (`card-feed-b`, `gancho-ciume`, …
 É assim que se compara arte contra arte dentro da mesma campanha.
 
 O que é gravado da marcação: **só** `utm_source / utm_medium / utm_campaign /
-utm_content`, em coluna separada das respostas. Nenhum IP, nenhum user-agent,
+utm_content`, em coluna separada das respostas — mais o **código do país** (BR, MX, AR…),
+que a plataforma informa no cabeçalho da requisição. Nenhum IP, nenhum user-agent,
 nenhum identificador — o termo de participação continua verdadeiro ao pé da letra.
 
 ---
@@ -64,6 +65,9 @@ Mostra, na janela escolhida (7 / 30 / 90 dias / tudo) e por idioma:
 - total, BR, ES, quantos deixaram e-mail para a entrevista, quantos escreveram história;
 - respostas **por dia** (a curva que sobe quando o anúncio liga);
 - **de onde vieram** — a tabela por campanha, que é onde o dinheiro pago aparece;
+- **de que país** — clicar numa linha recorta o painel inteiro naquele país (México × Espanha
+  dentro do mesmo ES, Brasil × Portugal dentro do BR). O país vem do cabeçalho de geo da
+  plataforma; nenhum IP é lido ou guardado, e o CSV traz a coluna `country`;
 - item a item, com "prefiro não responder" contado à parte (é ausência, não resposta);
 - as histórias (respostas abertas) e as últimas respostas **inteiras**;
 - CSV para analisar fora — com ou sem a coluna de e-mail.

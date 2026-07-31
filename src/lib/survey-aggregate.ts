@@ -18,7 +18,7 @@ import {
   type QuestionKind,
   type QuestionSpec,
 } from "./survey-schema";
-import { sourceKey, type SurveySource } from "./survey-source";
+import { COUNTRY_UNKNOWN, sourceKey, type SurveySource } from "./survey-source";
 
 export type SurveyRow = {
   id: number;
@@ -26,6 +26,8 @@ export type SurveyRow = {
   answers: Answers;
   email: string | null;
   source: SurveySource | null;
+  /** ISO alfa-2 (BR, MX, AR…) ou null quando a plataforma não informou. */
+  country: string | null;
   created_at: string;
 };
 
@@ -63,6 +65,8 @@ export type SurveyAggregate = {
   };
   byDay: { day: string; br: number; es: number; total: number }[];
   bySource: { key: string; br: number; es: number; total: number }[];
+  /** Uma linha por país — o corte que permite comparar dentro do mesmo idioma. */
+  byCountry: { code: string; br: number; es: number; total: number }[];
   questions: QuestionStat[];
 };
 
@@ -92,6 +96,7 @@ export function aggregate(rows: SurveyRow[]): SurveyAggregate {
   const totals = { total: 0, br: 0, es: 0, withEmail: 0, withOpen: 0, first: null as string | null, last: null as string | null };
   const dayMap = new Map<string, { br: number; es: number }>();
   const sourceMap = new Map<string, { br: number; es: number }>();
+  const countryMap = new Map<string, { br: number; es: number }>();
 
   const stats = new Map<string, QuestionStat>();
   const scaleSum: Record<string, { sum: number; n: number }> = {};
@@ -130,6 +135,11 @@ export function aggregate(rows: SurveyRow[]): SurveyAggregate {
     const srcEntry = sourceMap.get(key) ?? { br: 0, es: 0 };
     srcEntry[lang] += 1;
     sourceMap.set(key, srcEntry);
+
+    const code = row.country ? row.country.toUpperCase() : COUNTRY_UNKNOWN;
+    const countryEntry = countryMap.get(code) ?? { br: 0, es: 0 };
+    countryEntry[lang] += 1;
+    countryMap.set(code, countryEntry);
 
     const answers = (row.answers ?? {}) as Answers;
     let hasOpen = false;
@@ -195,6 +205,9 @@ export function aggregate(rows: SurveyRow[]): SurveyAggregate {
     bySource: [...sourceMap.entries()]
       .map(([key, v]) => ({ key, br: v.br, es: v.es, total: v.br + v.es }))
       .sort((a, b) => b.total - a.total),
+    byCountry: [...countryMap.entries()]
+      .map(([code, v]) => ({ code, br: v.br, es: v.es, total: v.br + v.es }))
+      .sort((a, b) => b.total - a.total),
     questions: [...stats.values()],
   };
 }
@@ -215,6 +228,7 @@ export function toCsv(rows: SurveyRow[], includeEmail = true): string {
     "id",
     "created_at",
     "lang",
+    "country",
     "utm_source",
     "utm_medium",
     "utm_campaign",
@@ -231,6 +245,7 @@ export function toCsv(rows: SurveyRow[], includeEmail = true): string {
       row.id,
       row.created_at,
       langOf(row),
+      row.country ?? "",
       src.s ?? "",
       src.m ?? "",
       src.c ?? "",

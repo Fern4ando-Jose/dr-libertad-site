@@ -375,6 +375,10 @@ export async function GET(req: NextRequest) {
     // `source` (utm_* — só etiqueta de anúncio, nada que identifique alguém), que
     // é como o painel separa "veio do anúncio pago" de "veio da bio".
     await sql`ALTER TABLE survey_responses ADD COLUMN IF NOT EXISTS source JSONB NOT NULL DEFAULT '{}'`;
+    // País da resposta (ISO alfa-2, do cabeçalho de geo da Vercel) — permite
+    // comparar México × Espanha dentro do mesmo ES, e Brasil × Portugal no BR.
+    // Só o código; nenhum IP é lido ou guardado. Linha antiga fica NULL.
+    await sql`ALTER TABLE survey_responses ADD COLUMN IF NOT EXISTS country TEXT`;
     results.push("survey_responses table: ok");
   } catch (e) {
     results.push("survey_responses table: " + String(e));

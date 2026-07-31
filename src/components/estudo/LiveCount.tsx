@@ -2,7 +2,7 @@
 
 // Contador de respostas da pesquisa — prova social HONESTA (P4):
 // lê a contagem REAL do banco via GET /api/survey. Nunca fabrica número.
-// - Contagem >= LIMIAR → mostra o número + barra de meta (real / ~400).
+// - Contagem >= LIMIAR → mostra o número + barra de meta (real / GOAL).
 // - Contagem baixa ou erro de rede → esconde o número e mostra o
 //   enquadramento "seja um dos primeiros" (verdadeiro na janela de lançamento).
 // Respeita prefers-reduced-motion (sem count-up).
@@ -11,7 +11,11 @@ import { useEffect, useRef, useState } from "react";
 import type { EstudoCopy } from "./estudo.content";
 import type { Lang } from "@/lib/i18n/dictionaries";
 
-const GOAL = 400; // meta por idioma (marco de fechamento do campo)
+// Meta por idioma — marco de fechamento do campo (ordem do dono 31/07/2026:
+// era 400, virou 10 mil). Com meta grande, a fração fica em casas decimais por
+// um bom tempo: por isso o rótulo mostra 1 decimal enquanto estiver abaixo de
+// 10% — "0,4% da meta" é verdade; "0% da meta" parece contador quebrado.
+const GOAL = 10000;
 const THRESHOLD = 25; // abaixo disso não vira "número de prova", vira "seja um dos primeiros"
 
 export default function LiveCount({ lang, c }: { lang: Lang; c: EstudoCopy }) {
@@ -82,7 +86,11 @@ export default function LiveCount({ lang, c }: { lang: Lang; c: EstudoCopy }) {
   }, [visible, count]);
 
   const hasNumber = count !== null && count >= THRESHOLD;
-  const pct = count !== null ? Math.min(100, Math.round((count / GOAL) * 100)) : 0;
+  const rawPct = count !== null ? Math.min(100, (count / GOAL) * 100) : 0;
+  const pct = Math.round(rawPct); // largura da barra
+  const pctLabel = (rawPct < 10 ? Math.round(rawPct * 10) / 10 : Math.round(rawPct)).toLocaleString(
+    lang === "es" ? "es-ES" : "pt-BR"
+  );
 
   return (
     <div
@@ -123,7 +131,7 @@ export default function LiveCount({ lang, c }: { lang: Lang; c: EstudoCopy }) {
             </div>
             <div className="mt-3 flex justify-between text-xs text-warm-gray/70">
               <span>{c.live.goalMetaLeft}</span>
-              <span>{c.live.goalMetaRight(pct)}</span>
+              <span>{c.live.goalMetaRight(pctLabel)}</span>
             </div>
           </>
         )}
