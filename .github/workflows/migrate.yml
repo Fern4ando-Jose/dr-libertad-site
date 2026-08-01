@@ -1,0 +1,48 @@
+name: Migrate — cria/atualiza as colunas do banco (manual)
+
+# O /api/migrate é ALTERAÇÃO DE ESQUEMA idempotente (CREATE TABLE IF NOT EXISTS /
+# ADD COLUMN IF NOT EXISTS): toda vez que um recurso novo precisa de coluna nova,
+# alguém tinha que abrir um terminal e mandar um curl com o CRON_SECRET na mão.
+# Isso significa que o passo mais fácil de esquecer do deploy dependia de quem
+# tivesse o segredo por perto — e o site ficava com a coluna faltando em silêncio
+# (o código tem queda para o formato antigo, então nada quebra: só para de gravar
+# a informação nova, que é pior de perceber).
+#
+# Aqui o passo vira um botão: Actions → este workflow → "Run workflow". O segredo
+# nunca sai do cofre do GitHub e a saída do endpoint fica no log do run.
+#
+# NÃO tem `schedule` de propósito: migração roda quando alguém decide que rodou
+# um deploy que precisa dela, não de hora em hora.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rodar /api/migrate em produção
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error title=Migrate::CRON_SECRET não está configurado nos segredos do repositório."
+            exit 1
+          fi
+          RESP=$(curl -fsS --max-time 60 -H "Authorization: Bearer $CRON_SECRET" \
+            "https://www.drlibertad.com/api/migrate")
+          echo "$RESP" | jq . || echo "$RESP"
+          # O endpoint responde 200 com uma lista de resultados por tabela/coluna;
+          # linha que contenha "error" vira aviso visível em vez de sumir no log.
+          if echo "$RESP" | grep -qi "error"; then
+            echo "::warning title=Migrate::alguma etapa reportou erro — leia a saída acima."
+          fi
+          echo "Migrate concluído."

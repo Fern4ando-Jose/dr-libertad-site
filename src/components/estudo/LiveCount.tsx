@@ -1,10 +1,11 @@
 "use client";
 
 // Contador de respostas da pesquisa — prova social HONESTA (P4):
-// lê a contagem REAL do banco via GET /api/survey e soma a COLETA ANTERIOR
-// (respostas que existem fora do site — src/lib/survey-prior.ts). Nunca fabrica
-// número: quando há coleta anterior na soma, o rótulo abaixo do contador diz
-// quantas são e de onde vêm.
+// lê a contagem REAL do banco via GET /api/survey e soma a PRIMEIRA RODADA do
+// estudo (formulário anterior — src/lib/survey-prior.ts). Nunca fabrica número:
+// tudo que o contador mostra são respostas que existem. A composição da soma
+// NÃO aparece na tela (decisão do dono 01/08: a página é convite, não ficha
+// técnica) — ela fica registrada no survey-prior.ts e vai na metodologia do livro.
 // - Contagem >= LIMIAR → mostra o número + barra de meta (real / GOAL).
 // - Contagem baixa ou erro de rede → esconde o número e mostra o
 //   enquadramento "seja um dos primeiros" (verdadeiro na janela de lançamento).
@@ -118,12 +119,6 @@ export default function LiveCount({ lang, c }: { lang: Lang; c: EstudoCopy }) {
             <div className="mt-4 text-xs uppercase tracking-[0.2em] text-warm-gray/80">
               {c.live.counterLabel}
             </div>
-            {prior > 0 && (
-              // A soma é dita em voz alta — quem lê sabe exatamente o que está vendo.
-              <p className="mt-2 text-xs leading-relaxed text-warm-gray/60">
-                {c.live.priorNote(prior.toLocaleString(lang === "es" ? "es-ES" : "pt-BR"))}
-              </p>
-            )}
           </>
         ) : (
           <p className="mt-4 max-w-sm text-[1.05rem] leading-[1.6] text-offwhite/90">
