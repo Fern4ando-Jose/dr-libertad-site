@@ -10,16 +10,23 @@ Legenda: 🔴 alta · 🟡 média · ⚪ futuro · ✅ feito
 
 ## FASE 2 — Finalizar o site 🟡
 
+> 📄 **Estado detalhado do SEO e do blog: [`docs/SEO-ESTADO.md`](docs/SEO-ESTADO.md).**
+> Lá está o que já foi feito, o que falta na Vercel, e um erro em aberto no @ do
+> Instagram espanhol que precisa de decisão do dono.
+
 ### 1. Blog com posts automáticos
-- Exibir na home os posts salvos no banco (Neon).
-- Página `/blog/[slug]` para cada post.
+- ✅ Exibir na home os posts salvos no banco (Neon).
+- 🟡 Página `/[lang]/blog/[slug]` para cada post — **feito no PR #218, aguardando merge.**
+  Ainda não conferido contra os artigos reais (ver `docs/SEO-ESTADO.md`).
 
 ### 2. Revisão visual e de conteúdo
 - Ajustar layout, tipografia, cores.
 - Revisar os textos fixos do site.
 
 ### 3. SEO básico
-- Meta tags, sitemap.xml, robots.txt.
+- ✅ Meta tags, sitemap.xml, robots.txt — **PR #217, aguardando merge.**
+- 🔴 Falta na Vercel: `GOOGLE_SITE_VERIFICATION` e `NEXT_PUBLIC_INSTAGRAM_URL`,
+  mais submeter o sitemap no Search Console. Só o dono pode fazer (exige login).
 
 ---
 
