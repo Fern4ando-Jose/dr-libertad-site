@@ -35,9 +35,12 @@ export const baseMetadata: Metadata = {
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/icon.svg", type: "image/svg+xml" },
+      // PNG como alternativa: leitores de feed, agregadores e alguns
+      // rastreadores não desenham favicon em SVG e ficariam sem ícone.
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
     ],
-    apple: [{ url: "/apple-icon.svg" }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
   },
   category: "psychology",
 };

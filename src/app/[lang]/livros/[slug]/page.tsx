@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BOOKS, getBook } from "@/lib/books";
 import { dictionaries, type Lang } from "@/lib/i18n/dictionaries";
+import { SITE_URL, abs, toLang } from "@/lib/seo";
 import BookSales from "./BookSales";
-
-const SITE_URL = "https://www.drlibertad.com";
 
 // Pré-renderiza uma página por livro (combina com /pt e /es do segmento pai).
 export function generateStaticParams() {
@@ -72,7 +71,72 @@ export default async function BookPage({
 }: {
   params: Promise<{ lang: string; slug: string }>;
 }) {
-  const { slug } = await params;
-  if (!getBook(slug)) notFound();
-  return <BookSales slug={slug} />;
+  const { lang, slug } = await params;
+  const book = getBook(slug);
+  if (!book) notFound();
+
+  const l = toLang(lang);
+  const b = dictionaries[l][book.dictKey];
+  const bookTitle = `${b.title} ${b.titleAccent}`.trim();
+  const url = abs(`/${l}/livros/${book.slug}`);
+  const price = book.price[l];
+
+  // Book + Offer: é o que permite o livro aparecer com preço e disponibilidade
+  // no resultado de busca, em vez de como um link solto. `author` aponta para a
+  // Person declarada no JSON-LD global (components/JsonLd.tsx).
+  const bookLd = {
+    "@type": "Book",
+    "@id": `${url}#book`,
+    name: bookTitle,
+    description: b.subtitle,
+    url,
+    image: abs(book.cover[l]),
+    bookFormat: "https://schema.org/EBook",
+    inLanguage: l === "es" ? "es-ES" : "pt-BR",
+    author: { "@id": abs("/#author") },
+    publisher: { "@id": abs("/#organization") },
+    offers: {
+      "@type": "Offer",
+      price: price.amount,
+      priceCurrency: price.currency,
+      availability: "https://schema.org/InStock",
+      url: book.free ? url : (book.checkout?.[l] ?? url),
+    },
+  };
+
+  // Trilha: diz ao Google onde a página mora. É o que troca a URL crua por
+  // "drlibertad.com › livros › I Love Dopamina" no resultado.
+  const breadcrumb = {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: l === "es" ? "Inicio" : "Início",
+        item: abs(`/${l}`),
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: l === "es" ? "Libros" : "Livros",
+        item: abs(`/${l}/livros`),
+      },
+      { "@type": "ListItem", position: 3, name: bookTitle, item: url },
+    ],
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [bookLd, breadcrumb],
+          }),
+        }}
+      />
+      <BookSales slug={slug} />
+    </>
+  );
 }

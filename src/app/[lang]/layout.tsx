@@ -65,9 +65,16 @@ export async function generateMetadata({
       title: seo.ogTitle,
       description: seo.description,
     },
+    // `icons` SUBSTITUI o do baseMetadata em vez de somar — por isso os PNG
+    // vêm repetidos aqui. Sem eles, as rotas de idioma (que são o site inteiro)
+    // ficariam só com o SVG, que parte dos agregadores não desenha.
     icons: {
-      icon: [{ url: `/icon-${l}.svg`, type: "image/svg+xml" }],
-      apple: [{ url: `/icon-${l}.svg` }],
+      icon: [
+        { url: `/icon-${l}.svg`, type: "image/svg+xml" },
+        { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+        { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+      ],
+      apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
     },
   };
 }

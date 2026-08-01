@@ -45,7 +45,6 @@ export default async function LivrosPage({
   // endereço de cada um. É o que permite a vitrine aparecer com os livros
   // listados em vez de como uma página solta.
   const itemList = {
-    "@context": "https://schema.org",
     "@type": "ItemList",
     name: t.livrosIndex.title,
     itemListElement: VISIBLE_BOOKS.map((book, i) => {
@@ -59,11 +58,35 @@ export default async function LivrosPage({
     }),
   };
 
+  // Trilha: troca a URL crua por "drlibertad.com › Livros" no resultado.
+  const breadcrumb = {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: l === "es" ? "Inicio" : "Início",
+        item: abs(`/${l}`),
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: l === "es" ? "Libros" : "Livros",
+        item: abs(`/${l}/livros`),
+      },
+    ],
+  };
+
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemList) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [itemList, breadcrumb],
+          }),
+        }}
       />
       <LivrosIndexView />
     </>
