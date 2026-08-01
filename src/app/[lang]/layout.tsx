@@ -68,6 +68,9 @@ export async function generateMetadata({
     // `icons` SUBSTITUI o do baseMetadata em vez de somar — por isso os PNG
     // vêm repetidos aqui. Sem eles, as rotas de idioma (que são o site inteiro)
     // ficariam só com o SVG, que parte dos agregadores não desenha.
+    //
+    // O SVG do idioma vem PRIMEIRO e é o que o navegador usa: os PNG existem
+    // como alternativa para quem não desenha SVG. Todos são a mesma marca (DL).
     icons: {
       icon: [
         { url: `/icon-${l}.svg`, type: "image/svg+xml" },
