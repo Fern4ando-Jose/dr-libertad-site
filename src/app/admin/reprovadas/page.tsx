@@ -7,6 +7,7 @@
 // ele está reprovando"). Só leitura. Protegido por ADMIN_TOKEN (guardado no browser).
 
 import { useEffect, useState } from "react";
+import AdminTabs from "../AdminTabs";
 
 type Rejected = {
   id: number;
@@ -94,6 +95,7 @@ export default function ReprovadasAdmin() {
 
   return (
     <main style={wrap}>
+      <AdminTabs variant="light" />
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 22, margin: 0 }}>Capas reprovadas pelo juiz</h1>
         <div style={{ display: "flex", gap: 10 }}>

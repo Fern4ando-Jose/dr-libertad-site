@@ -17,6 +17,14 @@ const nextConfig = {
       // sendo o que aparece; nada de 301, que o navegador guardaria para sempre.
       { source: "/ig", destination: "/br/dopamina?utm_source=ig&utm_medium=bio&utm_content=link_in_bio", permanent: false },
       { source: "/ig-es", destination: "/es/dopamina?utm_source=ig&utm_medium=bio&utm_content=link_in_bio", permanent: false },
+
+      // QR CODE da pesquisa — mesma ideia do link da bio: o endereço impresso é
+      // curto (`drlibertad.com/qr`), a marcação de campanha entra AQUI. QR curto
+      // = menos módulos = leitura mais fácil de longe, com celular ruim e em
+      // papel pequeno. Temporário (307) de propósito: se a pesquisa mudar de
+      // endereço, o cartaz já impresso continua funcionando.
+      { source: "/qr", destination: "/pesquisa?utm_source=qr&utm_medium=offline&utm_campaign=pesquisa-br&utm_content=cartao", permanent: false },
+      { source: "/qr-es", destination: "/investigacion?utm_source=qr&utm_medium=offline&utm_campaign=investigacion-es&utm_content=cartao", permanent: false },
     ];
   },
   async headers() {

@@ -35,7 +35,11 @@ export type EstudoCopy = {
     firstFraming: string; // enquadramento quando a contagem é baixa (honesto)
     goalNote: string;
     goalMetaLeft: string;
-    goalMetaRight: (pct: number) => string;
+    /** Recebe a fração JÁ formatada no idioma ("0,4" / "12") — meta de 10 mil
+     *  passa muito tempo em casa decimal, e "0.4" com ponto é inglês. */
+    goalMetaRight: (pct: string) => string;
+    /** Rótulo da coleta anterior somada ao contador (só aparece se houver). */
+    priorNote: (n: string) => string;
     cta: string;
   };
   proposito: {
@@ -112,13 +116,14 @@ const br: EstudoCopy = {
   },
   live: {
     eyebrow: "A pesquisa está aberta",
-    counterOf: "/ ~400 por idioma",
+    counterOf: "/ ~10.000 por idioma",
     counterLabel: "respostas até agora",
     firstFraming: "Você pode estar entre os primeiros a responder. Cada resposta aproxima o livro.",
     goalNote:
-      "Não há data de lançamento — há um **marco**: o livro sai quando o campo fechar, por volta de 400 respostas em cada idioma. O contador é a barra de progresso. Cada resposta aproxima o livro.",
+      "Não há data de lançamento — há um **marco**: o livro sai quando o campo fechar, por volta de **10 mil respostas** em cada idioma. O contador é a barra de progresso. Cada resposta aproxima o livro.",
     goalMetaLeft: "Coleta em andamento",
     goalMetaRight: (pct) => `${pct}% da meta`,
+    priorNote: (n) => `Inclui ${n} respostas do formulário anterior — a primeira rodada do estudo.`,
     cta: "Somar a minha resposta",
   },
   proposito: {
@@ -193,7 +198,7 @@ const br: EstudoCopy = {
     bioSafe:
       "Autor por trás do projeto Dr. Liberdade, um estúdio editorial que fala, sem rodeios, sobre atenção, vínculos e liberdade mental. Aqui a provocação vem da ideia — e a ideia, neste projeto, se submete ao dado.",
     para2:
-      "A primeira entrevista do estudo já foi gravada. As próximas saem das respostas que chegam por aqui — e os resultados aparecem primeiro no Instagram, antes do livro.",
+      "As entrevistas do estudo já começaram. As próximas saem das respostas que chegam por aqui — e os resultados aparecem primeiro no Instagram, antes do livro.",
     follow: "Seguir @dr.liberdade.br",
   },
   cta: {
@@ -234,13 +239,14 @@ const es: EstudoCopy = {
   },
   live: {
     eyebrow: "La investigación está abierta",
-    counterOf: "/ ~400 por idioma",
+    counterOf: "/ ~10.000 por idioma",
     counterLabel: "respuestas hasta ahora",
     firstFraming: "Puedes estar entre los primeros en responder. Cada respuesta acerca el libro.",
     goalNote:
-      "No hay fecha de lanzamiento — hay un **hito**: el libro sale cuando el campo cierre, alrededor de 400 respuestas en cada idioma. El contador es la barra de progreso. Cada respuesta acerca el libro.",
+      "No hay fecha de lanzamiento — hay un **hito**: el libro sale cuando el campo cierre, alrededor de **10 mil respuestas** en cada idioma. El contador es la barra de progreso. Cada respuesta acerca el libro.",
     goalMetaLeft: "Recolección en curso",
     goalMetaRight: (pct) => `${pct}% de la meta`,
+    priorNote: (n) => `Incluye ${n} respuestas del formulario anterior — la primera ronda del estudio.`,
     cta: "Sumar mi respuesta",
   },
   proposito: {
@@ -315,7 +321,7 @@ const es: EstudoCopy = {
     bioSafe:
       "Autor detrás del proyecto Dr. Libertad, un estudio editorial que habla, sin rodeos, sobre atención, vínculos y libertad mental. Aquí la provocación viene de la idea — y la idea, en este proyecto, se somete al dato.",
     para2:
-      "La primera entrevista del estudio ya fue grabada. Las próximas salen de las respuestas que llegan por aquí — y los resultados aparecen primero en Instagram, antes del libro.",
+      "Las entrevistas del estudio ya empezaron. Las próximas salen de las respuestas que llegan por aquí — y los resultados aparecen primero en Instagram, antes del libro.",
     follow: "Seguir a @dr.libertad",
   },
   cta: {
