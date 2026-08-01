@@ -21,6 +21,23 @@ import { normalizeCountry, normalizeSource } from "@/lib/survey-source";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// ─── CORS ────────────────────────────────────────────────────────────────────
+// O painel local do dono (arquivo HTML aberto direto do disco, em D:\...) precisa
+// ler esta rota, e página de arquivo tem origem "null" — sem CORS o navegador
+// bloqueia antes de a requisição sair. Liberar `*` aqui NÃO afrouxa nada: a rota
+// não usa cookie nem sessão, a única chave é o Bearer ADMIN_TOKEN, que o
+// navegador jamais anexa sozinho. Sem o token, qualquer origem leva 401.
+const CORS: Record<string, string> = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, OPTIONS",
+  "access-control-allow-headers": "authorization, content-type",
+  "access-control-max-age": "86400",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS });
+}
+
 const DEFAULT_DAYS = 90;
 const MAX_ROWS = 5000; // teto de segurança: a agregação é em memória
 const LATEST_LIMIT = 60;
@@ -62,7 +79,7 @@ function toSurveyRow(r: DbRow): SurveyRow {
 
 export async function GET(req: NextRequest) {
   if (!authorized(req)) {
-    return NextResponse.json({ ok: false, error: "Não autorizado" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: "Não autorizado" }, { status: 401, headers: CORS });
   }
 
   const params = req.nextUrl.searchParams;
@@ -110,11 +127,14 @@ export async function GET(req: NextRequest) {
     if (missingTable) {
       // Tabela ainda não criada (nenhuma resposta jamais gravada) — não é erro:
       // o painel mostra "nenhuma resposta ainda" em vez de tela vermelha.
-      return NextResponse.json({ ok: true, ready: false, ...aggregate([]), latest: [], window: { days } });
+      return NextResponse.json(
+        { ok: true, ready: false, ...aggregate([]), latest: [], window: { days } },
+        { headers: CORS }
+      );
     }
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : String(e) },
-      { status: 500 }
+      { status: 500, headers: CORS }
     );
   }
 
@@ -129,6 +149,7 @@ export async function GET(req: NextRequest) {
     const stamp = new Date().toISOString().slice(0, 10);
     return new NextResponse(csv, {
       headers: {
+        ...CORS,
         "content-type": "text/csv; charset=utf-8",
         "content-disposition": `attachment; filename="pesquisa-${langFilter ?? "todos"}${countryFilter ? `-${countryFilter}` : ""}-${stamp}.csv"`,
         "cache-control": "no-store",
@@ -150,6 +171,6 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(
     { ok: true, ready: true, window: { days }, lang: langFilter, country: countryFilter, ...agg, latest },
-    { headers: { "cache-control": "no-store" } }
+    { headers: { ...CORS, "cache-control": "no-store" } }
   );
 }

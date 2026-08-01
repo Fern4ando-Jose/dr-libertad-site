@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pesquisa — Dr. Liberdade · Painel</title>
+<!--
+  ─── Página do PAINEL LOCAL (fora do site) ─────────────────────────────────────
+  Um arquivo só, sem dependência nenhuma: dá para abrir com duplo clique de dentro
+  de   …\automações\Dr-liberdade-site\   e funciona.
+
+  Lê a MESMA fonte do painel do site (GET /api/survey/results, Bearer ADMIN_TOKEN)
+  — não existe segundo número em lugar nenhum. O token fica só neste navegador
+  (localStorage), nunca dentro do arquivo: assim o HTML pode ser copiado, versionado
+  e mandado por e-mail sem carregar segredo junto.
+
+  Se quiser apontar para o preview em vez da produção, troque BASE abaixo.
+-->
+<style>
+  :root {
+    --ink: #0B0B0C; --offwhite: #F4F0E8; --warm: #B9B0A2; --red: #A45A5A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--ink); color: var(--offwhite); min-height: 100vh; padding: 40px 24px 72px;
+    font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+  .kicker { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: rgba(185,176,162,.8); }
+  h1 { font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: 30px; font-weight: 600; margin-top: 8px; letter-spacing: -.01em; }
+  a { color: var(--offwhite); }
+  .card { border: 1px solid rgba(185,176,162,.15); background: rgba(255,255,255,.03); border-radius: 22px; padding: 22px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .mt { margin-top: 24px; }
+  button, .btn {
+    border: 1px solid rgba(185,176,162,.2); background: transparent; color: rgba(185,176,162,.85);
+    border-radius: 10px; padding: 9px 14px; font-size: 11px; letter-spacing: .14em;
+    text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-block;
+  }
+  button:hover, .btn:hover { color: var(--offwhite); border-color: rgba(185,176,162,.45); }
+  button.on { background: var(--red); border-color: var(--red); color: var(--offwhite); }
+  input {
+    background: rgba(255,255,255,.05); border: 1px solid rgba(185,176,162,.2); color: var(--offwhite);
+    border-radius: 10px; padding: 11px 14px; font-size: 14px; width: 100%; outline: none;
+  }
+  input:focus { border-color: var(--red); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .kpi { border: 1px solid rgba(185,176,162,.15); background: rgba(255,255,255,.03); border-radius: 16px; padding: 14px 16px; }
+  .kpi .k { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: rgba(185,176,162,.7); }
+  .kpi .v { font-family: ui-serif, Georgia, serif; font-size: 30px; margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 14px; }
+  th { text-align: left; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: rgba(185,176,162,.6); padding-bottom: 8px; font-weight: 400; }
+  td { padding: 8px 0; border-top: 1px solid rgba(185,176,162,.1); }
+  td.num, th.num { text-align: right; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: rgba(185,176,162,.75); }
+  .bars { display: flex; align-items: flex-end; gap: 4px; overflow-x: auto; padding-bottom: 6px; margin-top: 16px; }
+  .bar { min-width: 26px; flex: 1; text-align: center; }
+  .bar .n { font-size: 10px; color: rgba(185,176,162,.6); }
+  .bar .col { height: 92px; display: flex; align-items: flex-end; justify-content: center; }
+  .bar .col i { display: block; width: 100%; max-width: 20px; background: rgba(164,90,90,.85); border-radius: 3px 3px 0 0; }
+  .bar .d { font-size: 9px; color: rgba(185,176,162,.5); }
+  .resp { border: 1px solid rgba(185,176,162,.15); background: rgba(255,255,255,.03); border-radius: 14px; padding: 12px 14px; margin-top: 8px; }
+  .resp .head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 13px; }
+  .tag { background: rgba(164,90,90,.2); color: var(--red); border-radius: 5px; padding: 3px 7px; font-size: 10px; letter-spacing: .14em; }
+  .muted { color: rgba(185,176,162,.65); }
+  .small { font-size: 12px; }
+  .err { color: var(--red); font-size: 14px; margin-top: 14px; }
+  .ok { border-color: rgba(52,211,153,.28); }
+  .foot { margin-top: 34px; font-size: 11px; line-height: 1.7; color: rgba(185,176,162,.45); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">● Painel local · automações / Dr-liberdade-site</div>
+  <h1>Pesquisa — Redes Sociais e Relacionamentos</h1>
+
+  <!-- Porta de entrada: o token mora no navegador, não no arquivo. -->
+  <div id="gate" class="card mt" style="display:none; max-width:420px">
+    <p class="small muted">Cole o <b>ADMIN_TOKEN</b> (Vercel → Settings → Environment Variables).
+      Fica guardado só neste navegador.</p>
+    <input id="token" type="password" placeholder="ADMIN_TOKEN" style="margin-top:12px">
+    <div class="row mt"><button id="enter" class="on">Entrar</button></div>
+  </div>
+
+  <div id="app" style="display:none">
+    <div id="status" class="card mt"></div>
+
+    <div class="row mt" id="filters">
+      <button data-days="7">7 dias</button>
+      <button data-days="30" class="on">30 dias</button>
+      <button data-days="90">90 dias</button>
+      <button data-days="all">Tudo</button>
+      <span style="width:10px"></span>
+      <button data-lang="" class="on">BR + ES</button>
+      <button data-lang="br">BR</button>
+      <button data-lang="es">ES</button>
+      <span style="width:10px"></span>
+      <button id="reload">Atualizar</button>
+      <a class="btn" id="full" target="_blank" rel="noopener">Painel completo ↗</a>
+      <a class="btn" id="csv" href="#">Baixar CSV</a>
+      <button id="logout">Sair</button>
+    </div>
+
+    <div id="err" class="err"></div>
+
+    <div class="kpis mt" id="kpis"></div>
+
+    <div class="card mt" id="dayCard">
+      <div class="kicker">Respostas por dia</div>
+      <div class="bars" id="days"></div>
+    </div>
+
+    <div class="card mt" id="countryCard">
+      <div class="kicker">De que país</div>
+      <table id="countries"></table>
+    </div>
+
+    <div class="card mt" id="sourceCard">
+      <div class="kicker">De onde vieram (campanha)</div>
+      <table id="sources"></table>
+    </div>
+
+    <div class="mt">
+      <div class="kicker">Últimas respostas</div>
+      <div id="latest"></div>
+    </div>
+
+    <p class="foot">
+      Mesma fonte do painel do site — nenhum número é calculado aqui.
+      A pesquisa é anônima por construção: sem IP, sem user-agent, sem nome.
+      O e-mail só existe quando a pessoa o deixou para a entrevista.
+    </p>
+  </div>
+</div>
+
+<script>
+// Produção. Para apontar ao preview, troque por a URL do deploy de preview.
+const BASE = "https://www.drlibertad.com";
+const KEY  = "dl_admin_token";
+
+const $ = (id) => document.getElementById(id);
+let token = localStorage.getItem(KEY) || "";
+let days = "30", lang = "";
+
+const fmtInt = (n) => (n ?? 0).toLocaleString("pt-BR");
+const fmtDT = (iso) => { const d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }); };
+function ago(iso) {
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (!isFinite(min)) return "";
+  if (min < 1) return "agora mesmo";
+  if (min < 60) return "há " + min + " min";
+  const h = Math.floor(min / 60);
+  if (h < 24) return "há " + h + "h";
+  const d = Math.floor(h / 24);
+  return "há " + d + (d > 1 ? " dias" : " dia");
+}
+function flag(cc) {
+  if (!/^[A-Za-z]{2}$/.test(cc || "")) return "🏳️";
+  return String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const srcKey = (s) => { const p = [s?.s, s?.m, s?.c, s?.n].filter(Boolean); return p.length ? p.join(" / ") : "direto"; };
+
+function show() {
+  $("gate").style.display = token ? "none" : "block";
+  $("app").style.display = token ? "block" : "none";
+  $("full").href = BASE + "/admin/pesquisa";
+}
+
+$("enter").onclick = () => {
+  const t = $("token").value.trim();
+  if (!t) return;
+  token = t; localStorage.setItem(KEY, t); $("token").value = "";
+  show(); load();
+};
+$("logout").onclick = () => { localStorage.removeItem(KEY); token = ""; show(); };
+$("reload").onclick = () => load();
+
+$("filters").querySelectorAll("button[data-days]").forEach((b) => b.onclick = () => {
+  days = b.dataset.days;
+  $("filters").querySelectorAll("button[data-days]").forEach((x) => x.classList.toggle("on", x === b));
+  load();
+});
+$("filters").querySelectorAll("button[data-lang]").forEach((b) => b.onclick = () => {
+  lang = b.dataset.lang;
+  $("filters").querySelectorAll("button[data-lang]").forEach((x) => x.classList.toggle("on", x === b));
+  load();
+});
+
+// CSV: o link precisa do cabeçalho de autorização, então baixa por fetch e salva o blob.
+$("csv").onclick = async (e) => {
+  e.preventDefault();
+  const qs = new URLSearchParams({ days, format: "csv" });
+  if (lang) qs.set("lang", lang);
+  const r = await fetch(BASE + "/api/survey/results?" + qs, { headers: { Authorization: "Bearer " + token } });
+  if (!r.ok) { $("err").textContent = "Falha ao baixar o CSV."; return; }
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "pesquisa-" + (lang || "todos") + "-" + new Date().toISOString().slice(0, 10) + ".csv";
+  a.click(); URL.revokeObjectURL(url);
+};
+
+async function load() {
+  if (!token) return;
+  $("err").textContent = "";
+  const qs = new URLSearchParams({ days });
+  if (lang) qs.set("lang", lang);
+  let d;
+  try {
+    const r = await fetch(BASE + "/api/survey/results?" + qs, { headers: { Authorization: "Bearer " + token }, cache: "no-store" });
+    d = await r.json();
+    if (!r.ok || !d.ok) {
+      $("err").textContent = r.status === 401 ? "Token inválido — confira o ADMIN_TOKEN na Vercel." : (d.error || "Falha ao ler.");
+      return;
+    }
+  } catch (_) {
+    $("err").textContent = "Sem resposta do site. Confira a conexão (e se o endereço em BASE está certo).";
+    return;
+  }
+  render(d);
+}
+
+function render(d) {
+  const t = d.totals;
+  const on = t.total > 0;
+  $("status").className = "card" + (on ? " ok" : "");
+  $("status").innerHTML =
+    '<div class="kicker">' + (on ? "Coletando" : "Sem resposta nesta janela") + "</div>" +
+    '<p class="small muted" style="margin-top:8px">' +
+    (on && t.last
+      ? "Última resposta <b style='color:var(--offwhite)'>" + ago(t.last) + "</b> (" + fmtDT(t.last) + ")."
+        + (t.first ? " Primeira: " + fmtDT(t.first) + "." : "")
+      : d.ready === false
+        ? "A tabela ainda não existe no banco — rode o Migrate."
+        : "Aumente a janela para “Tudo”.") +
+    "</p>";
+
+  $("kpis").innerHTML = [
+    ["Respostas", t.total], ["BR", t.br], ["ES", t.es],
+    ["E-mail p/ entrevista", t.withEmail], ["Escreveram história", t.withOpen],
+  ].map(([k, v]) => '<div class="kpi"><div class="k">' + k + '</div><div class="v">' + fmtInt(v) + "</div></div>").join("");
+
+  const max = Math.max(1, ...d.byDay.map((x) => x.total));
+  $("dayCard").style.display = d.byDay.length ? "block" : "none";
+  $("days").innerHTML = d.byDay.map((x) =>
+    '<div class="bar" title="' + x.day + " · BR " + x.br + " / ES " + x.es + '">' +
+      '<div class="n">' + x.total + "</div>" +
+      '<div class="col"><i style="height:' + Math.max(4, (x.total / max) * 100) + '%"></i></div>' +
+      '<div class="d">' + x.day.slice(5) + "</div>" +
+    "</div>").join("");
+
+  const head = '<tr><th>%s</th><th class="num">BR</th><th class="num">ES</th><th class="num">Total</th></tr>';
+  $("countryCard").style.display = d.byCountry?.length ? "block" : "none";
+  $("countries").innerHTML = head.replace("%s", "País") + d.byCountry.map((c) =>
+    "<tr><td>" + flag(c.code) + " <span class='mono'>" + esc(c.code) + "</span></td>" +
+    '<td class="num muted">' + c.br + '</td><td class="num muted">' + c.es + '</td><td class="num">' + c.total + "</td></tr>").join("");
+
+  $("sourceCard").style.display = d.bySource?.length ? "block" : "none";
+  $("sources").innerHTML = head.replace("%s", "Origem") + d.bySource.map((s) =>
+    "<tr><td class='mono'>" + esc(s.key) + "</td>" +
+    '<td class="num muted">' + s.br + '</td><td class="num muted">' + s.es + '</td><td class="num">' + s.total + "</td></tr>").join("");
+
+  $("latest").innerHTML = d.latest.map((r) =>
+    '<div class="resp"><div class="head">' +
+      '<span class="tag">' + r.lang.toUpperCase() + "</span>" +
+      "<span class='muted'>#" + r.id + "</span>" +
+      "<span class='muted'>" + fmtDT(r.created_at) + "</span>" +
+      "<span class='muted'>" + flag(r.country) + " " + esc(r.country || "??") + "</span>" +
+      "<span class='mono'>" + esc(srcKey(r.source)) + "</span>" +
+      (r.email ? "<span class='muted small'>✉ " + esc(r.email) + "</span>" : "") +
+    "</div></div>").join("") || '<p class="small muted" style="margin-top:10px">Nada nesta janela.</p>';
+}
+
+show();
+if (token) load();
+</script>
+</body>
+</html>
