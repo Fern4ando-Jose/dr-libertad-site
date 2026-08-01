@@ -1,30 +1,32 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import RootShell from "@/components/RootShell";
 import StudioNav from "@/components/StudioNav";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 import { LANGS, type Lang } from "@/lib/i18n/dictionaries";
+import { baseMetadata } from "@/lib/metadata-base";
+import { abs, alternatesPrefixed, brandFor, htmlLangFor, ogLocaleFor, toLang } from "@/lib/seo";
 
-const SITE_URL = "https://www.drlibertad.com";
-
-// Textos de SEO por idioma — servidos no HTML conforme a rota (/pt ou /es),
+// Textos de SEO por idioma — servidos no HTML conforme a rota (/br ou /es),
 // para que cada versão seja indexada no seu próprio idioma.
-const SEO: Record<Lang, { title: string; description: string; ogLocale: string }> = {
+//
+// `title` é curto de propósito: o Google corta o resultado em torno de 60
+// caracteres, e o título antigo (74) tinha a palavra-chave justamente na parte
+// que sumia. O texto longo continua vivo em `ogTitle`, onde não há corte.
+const SEO: Record<Lang, { title: string; ogTitle: string; description: string }> = {
   br: {
-    title: "Dr. Liberdade — Estúdio editorial de psicologia, atenção e liberdade mental",
+    title: "Dr. Liberdade — Atenção, dopamina e desintoxicação digital",
+    ogTitle: "Dr. Liberdade — Estúdio editorial de psicologia, atenção e liberdade mental",
     description:
       "Estúdio editorial sobre desintoxicação digital, ansiedade moderna e inteligência emocional. Filosofia aplicada à atenção e ao comportamento.",
-    ogLocale: "pt_BR",
   },
   es: {
-    title: "Dr. Libertad — Estudio editorial de psicología, atención y libertad mental",
+    title: "Dr. Libertad — Atención, dopamina y desintoxicación digital",
+    ogTitle: "Dr. Libertad — Estudio editorial de psicología, atención y libertad mental",
     description:
-      "Estudio editorial sobre psicología, atención y libertad mental: desintoxicación digital, ansiedad moderna e inteligencia emocional. Filosofía aplicada a la atención y al comportamiento.",
-    ogLocale: "es_ES",
+      "Estudio editorial sobre desintoxicación digital, ansiedad moderna e inteligencia emocional. Filosofía aplicada a la atención y al comportamiento.",
   },
 };
-
-const OG_IMAGE =
-  "/api/og?slide=cover&slot=manha&title=Dr.%20Libertad&kw=LIBERTAD&ed=00&mood=red&tag=psicolog%C3%ADa";
 
 // Pré-renderiza as duas rotas de idioma como estáticas.
 export function generateStaticParams() {
@@ -36,41 +38,32 @@ export async function generateMetadata({
 }: {
   params: Promise<{ lang: string }>;
 }): Promise<Metadata> {
-  const { lang } = await params;
-  const l: Lang = lang === "es" ? "es" : "br";
+  const l = toLang((await params).lang);
   const seo = SEO[l];
-  // Nome da marca por idioma: PT-BR usa "Dr. Liberdade"; ES usa "Dr. Libertad".
-  const brand = l === "es" ? "Dr. Libertad" : "Dr. Liberdade";
+  const brand = brandFor(l);
 
   return {
+    ...baseMetadata,
     title: {
       default: seo.title,
       template: `%s · ${brand}`,
     },
     description: seo.description,
-    alternates: {
-      canonical: `${SITE_URL}/${l}`,
-      languages: {
-        "pt-BR": `${SITE_URL}/br`,
-        "es-ES": `${SITE_URL}/es`,
-        "x-default": `${SITE_URL}/br`,
-      },
-    },
+    alternates: alternatesPrefixed(l),
     openGraph: {
       type: "website",
       siteName: brand,
-      title: seo.title,
+      title: seo.ogTitle,
       description: seo.description,
-      url: `${SITE_URL}/${l}`,
-      locale: seo.ogLocale,
+      url: abs(`/${l}`),
+      locale: ogLocaleFor(l),
       alternateLocale: l === "es" ? ["pt_BR"] : ["es_ES"],
-      images: [{ url: OG_IMAGE, width: 1080, height: 1080, alt: "Dr. Libertad" }],
+      // A imagem vem do arquivo opengraph-image.tsx deste segmento (1200x630).
     },
     twitter: {
       card: "summary_large_image",
-      title: seo.title,
+      title: seo.ogTitle,
       description: seo.description,
-      images: [OG_IMAGE],
     },
     icons: {
       icon: [{ url: `/icon-${l}.svg`, type: "image/svg+xml" }],
@@ -79,6 +72,8 @@ export async function generateMetadata({
   };
 }
 
+// Este é um ROOT LAYOUT: renderiza <html>/<body> via RootShell, com o lang do
+// idioma da rota. Ver components/RootShell.tsx para o porquê de haver mais de um.
 export default async function LangLayout({
   children,
   params,
@@ -90,9 +85,11 @@ export default async function LangLayout({
   if (lang !== "br" && lang !== "es") notFound();
 
   return (
-    <LanguageProvider lang={lang}>
-      <StudioNav />
-      {children}
-    </LanguageProvider>
+    <RootShell lang={htmlLangFor(lang)}>
+      <LanguageProvider lang={lang}>
+        <StudioNav />
+        {children}
+      </LanguageProvider>
+    </RootShell>
   );
 }
