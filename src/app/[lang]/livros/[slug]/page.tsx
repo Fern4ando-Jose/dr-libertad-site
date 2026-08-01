@@ -52,7 +52,11 @@ export async function generateMetadata({
       description,
       url,
       locale: l === "es" ? "es_ES" : "pt_BR",
-      images: [{ url: cover, width: 1024, height: 1536, alt: bookTitle }],
+      // Medida vinda do registro do livro: estava fixa em 1024x1536 e o guia de
+      // plantas é 1024x1638 — o scraper reservava o espaço errado.
+      images: [
+        { url: cover, width: book.coverSize.width, height: book.coverSize.height, alt: bookTitle },
+      ],
     },
     twitter: {
       card: "summary_large_image",

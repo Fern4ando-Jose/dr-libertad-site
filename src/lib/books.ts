@@ -8,6 +8,11 @@ export type BookMeta = {
   slug: string;
   dictKey: BookDictKey;
   cover: { br: string; es: string };
+  // Medida real do arquivo da capa. O next/image precisa dela para reservar o
+  // espaço antes de a imagem chegar (sem isso a página "pula" — CLS) e o
+  // og:image precisa dela para o scraper não ter de baixar tudo para descobrir.
+  // As duas versões de idioma de um livro têm sempre a mesma medida.
+  coverSize: { width: number; height: number };
   // Checkout pago (Hotmart etc.). Opcional: um livro em modo GRÁTIS (prévia) não tem.
   checkout?: { br: string; es: string };
   // Modo GRÁTIS: entrega um PDF (prévia/adelanto) por download direto, sem checkout.
@@ -31,6 +36,7 @@ export const BOOKS: BookMeta[] = [
     slug: "100-plantas",
     dictKey: "livro",
     cover: { br: "/images/livro-capa-pt.png", es: "/images/livro-capa-es.png" },
+    coverSize: { width: 1024, height: 1638 },
     // PT: produto Hotmart aprovado (ID 7978640) — checkout direto.
     // ES: produto Hotmart próprio (ID 7980706) com o PDF ES, US$ 7,90, afiliados 50%.
     checkout: { br: "https://pay.hotmart.com/J106432769P", es: "https://pay.hotmart.com/W106437072U" },
@@ -50,6 +56,7 @@ export const BOOKS: BookMeta[] = [
     slug: "i-love-dopamina",
     dictKey: "dopamina",
     cover: { br: "/images/i-love-dopamina-capa-pt.png", es: "/images/i-love-dopamina-capa-es.png" },
+    coverSize: { width: 1024, height: 1536 },
     free: true,
     leadPdf: { br: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },
   },
