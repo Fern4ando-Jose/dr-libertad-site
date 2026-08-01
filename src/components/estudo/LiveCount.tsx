@@ -1,7 +1,10 @@
 "use client";
 
 // Contador de respostas da pesquisa — prova social HONESTA (P4):
-// lê a contagem REAL do banco via GET /api/survey. Nunca fabrica número.
+// lê a contagem REAL do banco via GET /api/survey e soma a COLETA ANTERIOR
+// (respostas que existem fora do site — src/lib/survey-prior.ts). Nunca fabrica
+// número: quando há coleta anterior na soma, o rótulo abaixo do contador diz
+// quantas são e de onde vêm.
 // - Contagem >= LIMIAR → mostra o número + barra de meta (real / GOAL).
 // - Contagem baixa ou erro de rede → esconde o número e mostra o
 //   enquadramento "seja um dos primeiros" (verdadeiro na janela de lançamento).
@@ -10,6 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { EstudoCopy } from "./estudo.content";
 import type { Lang } from "@/lib/i18n/dictionaries";
+import { priorFor } from "@/lib/survey-prior";
 
 // Meta por idioma — marco de fechamento do campo (ordem do dono 31/07/2026:
 // era 400, virou 10 mil). Com meta grande, a fração fica em casas decimais por
@@ -66,9 +70,10 @@ export default function LiveCount({ lang, c }: { lang: Lang; c: EstudoCopy }) {
   // Count-up até o valor real, quando visível.
   useEffect(() => {
     if (!visible || count === null) return;
+    const target = count + priorFor(lang === "es" ? "es" : "br");
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reduce || count < THRESHOLD) {
-      setShown(count);
+    if (reduce || target < THRESHOLD) {
+      setShown(target);
       return;
     }
     let raf = 0;
@@ -78,15 +83,18 @@ export default function LiveCount({ lang, c }: { lang: Lang; c: EstudoCopy }) {
       if (start === null) start = ts;
       const t = Math.min((ts - start) / dur, 1);
       const eased = 1 - Math.pow(1 - t, 3);
-      setShown(Math.round(eased * count));
+      setShown(Math.round(eased * target));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [visible, count]);
+  }, [visible, count, lang]);
 
-  const hasNumber = count !== null && count >= THRESHOLD;
-  const rawPct = count !== null ? Math.min(100, (count / GOAL) * 100) : 0;
+  // O que a página mostra = banco + coleta anterior (declarada logo abaixo).
+  const prior = priorFor(lang === "es" ? "es" : "br");
+  const shownTotal = count === null ? null : count + prior;
+  const hasNumber = shownTotal !== null && shownTotal >= THRESHOLD;
+  const rawPct = shownTotal !== null ? Math.min(100, (shownTotal / GOAL) * 100) : 0;
   const pct = Math.round(rawPct); // largura da barra
   const pctLabel = (rawPct < 10 ? Math.round(rawPct * 10) / 10 : Math.round(rawPct)).toLocaleString(
     lang === "es" ? "es-ES" : "pt-BR"
@@ -103,13 +111,19 @@ export default function LiveCount({ lang, c }: { lang: Lang; c: EstudoCopy }) {
           <>
             <div className="mt-4 flex items-baseline gap-3">
               <span className="font-serif text-[clamp(3.5rem,12vw,6.5rem)] leading-[0.9] tracking-[-0.03em] tabular-nums text-offwhite">
-                {shown}
+                {shown.toLocaleString(lang === "es" ? "es-ES" : "pt-BR")}
               </span>
               <span className="text-warm-gray/70">{c.live.counterOf}</span>
             </div>
             <div className="mt-4 text-xs uppercase tracking-[0.2em] text-warm-gray/80">
               {c.live.counterLabel}
             </div>
+            {prior > 0 && (
+              // A soma é dita em voz alta — quem lê sabe exatamente o que está vendo.
+              <p className="mt-2 text-xs leading-relaxed text-warm-gray/60">
+                {c.live.priorNote(prior.toLocaleString(lang === "es" ? "es-ES" : "pt-BR"))}
+              </p>
+            )}
           </>
         ) : (
           <p className="mt-4 max-w-sm text-[1.05rem] leading-[1.6] text-offwhite/90">

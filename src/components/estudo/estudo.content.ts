@@ -38,6 +38,8 @@ export type EstudoCopy = {
     /** Recebe a fração JÁ formatada no idioma ("0,4" / "12") — meta de 10 mil
      *  passa muito tempo em casa decimal, e "0.4" com ponto é inglês. */
     goalMetaRight: (pct: string) => string;
+    /** Rótulo da coleta anterior somada ao contador (só aparece se houver). */
+    priorNote: (n: string) => string;
     cta: string;
   };
   proposito: {
@@ -121,6 +123,7 @@ const br: EstudoCopy = {
       "Não há data de lançamento — há um **marco**: o livro sai quando o campo fechar, por volta de **10 mil respostas** em cada idioma. O contador é a barra de progresso. Cada resposta aproxima o livro.",
     goalMetaLeft: "Coleta em andamento",
     goalMetaRight: (pct) => `${pct}% da meta`,
+    priorNote: (n) => `Inclui ${n} respostas já coletadas fora do site, na primeira rodada do estudo.`,
     cta: "Somar a minha resposta",
   },
   proposito: {
@@ -195,7 +198,7 @@ const br: EstudoCopy = {
     bioSafe:
       "Autor por trás do projeto Dr. Liberdade, um estúdio editorial que fala, sem rodeios, sobre atenção, vínculos e liberdade mental. Aqui a provocação vem da ideia — e a ideia, neste projeto, se submete ao dado.",
     para2:
-      "A primeira entrevista do estudo já foi gravada. As próximas saem das respostas que chegam por aqui — e os resultados aparecem primeiro no Instagram, antes do livro.",
+      "As entrevistas do estudo já começaram. As próximas saem das respostas que chegam por aqui — e os resultados aparecem primeiro no Instagram, antes do livro.",
     follow: "Seguir @dr.liberdade.br",
   },
   cta: {
@@ -243,6 +246,7 @@ const es: EstudoCopy = {
       "No hay fecha de lanzamiento — hay un **hito**: el libro sale cuando el campo cierre, alrededor de **10 mil respuestas** en cada idioma. El contador es la barra de progreso. Cada respuesta acerca el libro.",
     goalMetaLeft: "Recolección en curso",
     goalMetaRight: (pct) => `${pct}% de la meta`,
+    priorNote: (n) => `Incluye ${n} respuestas ya recogidas fuera del sitio, en la primera ronda del estudio.`,
     cta: "Sumar mi respuesta",
   },
   proposito: {
@@ -317,7 +321,7 @@ const es: EstudoCopy = {
     bioSafe:
       "Autor detrás del proyecto Dr. Libertad, un estudio editorial que habla, sin rodeos, sobre atención, vínculos y libertad mental. Aquí la provocación viene de la idea — y la idea, en este proyecto, se somete al dato.",
     para2:
-      "La primera entrevista del estudio ya fue grabada. Las próximas salen de las respuestas que llegan por aquí — y los resultados aparecen primero en Instagram, antes del libro.",
+      "Las entrevistas del estudio ya empezaron. Las próximas salen de las respuestas que llegan por aquí — y los resultados aparecen primero en Instagram, antes del libro.",
     follow: "Seguir a @dr.libertad",
   },
   cta: {

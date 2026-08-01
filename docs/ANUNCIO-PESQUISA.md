@@ -26,6 +26,26 @@ vaza não vira PNG em silêncio.
 
 ---
 
+## 1b. O QR (para compartilhar fora da internet)
+
+`npm run render:qr` gera em `public/qr/`:
+
+| Arquivo | O que é |
+|---|---|
+| `pesquisa-br-qr.png` / `pesquisa-es-qr.png` | QR puro, 1600×1600 — colar em qualquer arte, imprimir, projetar |
+| `pesquisa-br-card-1080x1350.png` / `pesquisa-es-card-…` | cartão da marca pronto para mandar no story, no grupo, no WhatsApp |
+
+O QR aponta para **`drlibertad.com/qr`** (ES: `/qr-es`), que o `next.config.js` redireciona
+para a pesquisa **já com a marcação de campanha** (`utm_source=qr&utm_medium=offline`). Ou
+seja: no painel dá para separar quem veio do QR de quem veio do anúncio pago — e o endereço
+impresso continua curto, que é o que faz o código ser lido de longe.
+
+Correção de erro **H (30%)**: o código continua abrindo sujo, dobrado ou com um canto tapado.
+O script **decodifica os PNGs que ele mesmo gerou** e falha se algum não apontar para a URL
+certa — QR bonito que não abre é lixo caro.
+
+---
+
 ## 2. Os links (é isto que faz o painel enxergar o anúncio)
 
 Cada criativo entra no Gerenciador com um link **marcado**. Sem a marcação, a

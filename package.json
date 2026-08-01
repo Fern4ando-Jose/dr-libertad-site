@@ -10,6 +10,7 @@
     "test": "vitest run",
     "render:reel": "node scripts/render-reel.mjs",
     "render:ads": "node scripts/render-ad-cards.mjs",
+    "render:qr": "node scripts/render-qr.mjs",
     "upload:blob": "node scripts/upload-blob.mjs",
     "vet:footage": "node scripts/vet-footage-library.mjs"
   },
@@ -46,7 +47,10 @@
     "autoprefixer": "10.5.0",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.12",
+    "jsqr": "^1.4.0",
+    "pngjs": "^7.0.0",
     "postcss": "8.5.23",
+    "qrcode": "^1.5.4",
     "tailwindcss": "^4.3.0",
     "typescript": "6.0.3",
     "vitest": "^3.2.4"
