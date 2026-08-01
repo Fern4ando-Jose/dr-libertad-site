@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  chaveDeConteudo,
   excerptFrom,
   readingMinutes,
   shortHash,
@@ -117,5 +118,55 @@ describe("corpo do artigo", () => {
   it("o tempo de leitura é pelo menos um minuto", () => {
     expect(readingMinutes("curto")).toBe(1);
     expect(readingMinutes("palavra ".repeat(600))).toBe(3);
+  });
+});
+
+// Achado no banco de produção em 01/08/2026: dos 186 artigos reais, um par era
+// o MESMO texto gravado duas vezes — "O amor que morre de tédio", 24/06 e
+// 25/06, corpo idêntico ao caractere. O filtro de repetição do listArticles
+// não pegava, porque comparava SLUGS, e o slug carrega o hash da data: datas
+// diferentes, endereços diferentes, as duas cópias passavam. Iam virar duas
+// páginas iguais competindo entre si — exatamente o que o filtro existia para
+// impedir.
+describe("mesma matéria republicada não vira duas páginas", () => {
+  const artigo = (title: string, body: string) => ({ title, body });
+
+  it("reconhece o mesmo texto em publicações de datas diferentes", () => {
+    const corpo = "O tédio não mata o amor. O que mata é fugir dele.";
+    expect(chaveDeConteudo(artigo("O amor que morre de tédio", corpo))).toBe(
+      chaveDeConteudo(artigo("O amor que morre de tédio", corpo))
+    );
+  });
+
+  it("ignora diferença de espaço e de caixa — é formatação, não conteúdo", () => {
+    expect(chaveDeConteudo(artigo("Dopamina", "O  texto\n\ncom  espaços."))).toBe(
+      chaveDeConteudo(artigo("DOPAMINA", "o texto com espaços."))
+    );
+  });
+
+  it("textos diferentes sob o mesmo título continuam sendo dois artigos", () => {
+    // O caso real: "Ninguém te deve nada" saiu duas vezes com textos distintos
+    // (24/06 e 08/07). São duas matérias, e as duas devem ter página.
+    expect(chaveDeConteudo(artigo("Ninguém te deve nada", "Primeira versão."))).not.toBe(
+      chaveDeConteudo(artigo("Ninguém te deve nada", "Segunda versão, reescrita."))
+    );
+  });
+
+  it("o mesmo corpo sob títulos diferentes também são artigos distintos", () => {
+    const corpo = "Mesmo texto, chamadas diferentes.";
+    expect(chaveDeConteudo(artigo("Título A", corpo))).not.toBe(
+      chaveDeConteudo(artigo("Título B", corpo))
+    );
+  });
+
+  it("a chave NÃO depende da data — era esse o furo do filtro por slug", () => {
+    const post = { title: "O amor que morre de tédio", lang: "br" };
+    const slugA = slugFor({ ...post, publishedAt: "2026-06-24T10:00:00.000Z" });
+    const slugB = slugFor({ ...post, publishedAt: "2026-06-25T10:00:00.000Z" });
+    expect(slugA).not.toBe(slugB); // dois endereços — por isso o slug não servia
+    const corpo = "Mesmo corpo nas duas linhas do banco.";
+    expect(chaveDeConteudo(artigo(post.title, corpo))).toBe(
+      chaveDeConteudo(artigo(post.title, corpo))
+    ); // uma chave só — é o que o filtro passa a usar
   });
 });
