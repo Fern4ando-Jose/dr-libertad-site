@@ -112,65 +112,48 @@ olhar.
 
 ---
 
-## 🔴 ERRO EM ABERTO — precisa de decisão sua
+## ✅ RESOLVIDO — o @ do Instagram espanhol (01/08/2026)
 
-**O código escreve o @ do Instagram espanhol de duas formas diferentes. Uma está
-errada, e alguém está sendo mandado para o lugar errado agora.**
+Ficou aberto por algumas horas e foi fechado pela sessão que roda no PC do dono,
+que pôde abrir o navegador — coisa que a sessão da nuvem não conseguia.
 
-| grafia | onde está | o que faz |
-| --- | --- | --- |
-| `dr.libe`**`rd`**`ad` (com **D**) | `src/lib/accounts.ts`, `docs/APP-REVIEW-SUBMISSION.md`, `docs/ENGAJAMENTO.md` | entra no **texto das legendas** publicadas todo dia ("segue @…") e no rodapé dos Reels |
-| `dr.libe`**`rt`**`ad` (com **T**) | `src/components/estudo/estudo.content.ts`, `src/components/survey/survey.content.ts` | é o **link clicável** em `/el-estudio` (2 botões) e `/investigacion/gracias` |
+**O que era:** o código escrevia o handle espanhol de duas formas.
+`@dr.liberdad` (com **D**) em `src/lib/accounts.ts` e nos documentos;
+`@dr.libertad` (com **T**, contaminado pelo domínio `drliber`**`t`**`ad.com`) em
+`estudo.content.ts` e `survey.content.ts`.
 
-*(O handle não é usado para autenticar — a publicação usa token e ID de variáveis
-de ambiente. O motor funciona de qualquer jeito; o que pode estar errado é o @
-escrito.)*
+**O problema:** a grafia com T era justamente a que virava **link clicável** em
+`/el-estudio` e `/investigacion/gracias`. Verificado no navegador:
 
-### A evidência aponta para o **D**
+```
+instagram.com/dr.liberdad  → 323 posts, 460 seguidores, é a nossa
+instagram.com/dr.libertad  →   0 posts,   0 seguidores, é de outra pessoa
+```
 
-`docs/APP-REVIEW-SUBMISSION.md` — o documento enviado à Meta, onde nomear a conta
-errada faria a submissão ser rejeitada:
+Quem respondia a pesquisa em espanhol e clicava em "Seguir a @dr.libertad" caía
+numa conta vazia de terceiro — perdendo o seguidor no ponto do funil onde ele
+custa mais caro. **Estava assim em produção.**
 
-> *"Dr. Libertad is the official content studio that manages the Instagram Business
-> account `@dr.liberdad` (and its Portuguese counterpart `@dr.liberdade.br`)."*
+**Como foi corrigido:** não trocando a string, mas tirando a possibilidade de
+haver duas. O @ é escrito UMA vez, em `ACCOUNTS[lang].handle`, e todo endereço é
+derivado dele por `instagramUrlDe`. `src/lib/instagram-handle.invariants.test.ts`
+trava as duas pontas — a grafia e a derivação.
 
-Três lugares independentes dizem **D**; nenhum documento diz **T**. As duas
-ocorrências com T estão só em arquivos de texto de página — cara de erro de
-digitação posterior, provavelmente contaminado pelo domínio (`drlibertad.com`,
-que é com T).
+De carona, o `sameAs` do JSON-LD passou a ser montado no código a partir dessa
+mesma fonte. **A variável `NEXT_PUBLIC_INSTAGRAM_URL` deixou de ser necessária**
+— ela nunca chegou a ser preenchida, e por isso o `sameAs` saía vazio em
+produção.
 
-### Se o **D** estiver certo, isto está quebrado hoje
-
-Os links de `/el-estudio` e da tela de agradecimento da pesquisa levam para um
-perfil que não é seu. Quem responde a pesquisa em espanhol, clica em
-"Seguir a @dr.libertad" e não acha ninguém — **perda de seguidor no ponto mais
-valioso do funil**.
-
-### Como resolver
-
-Abra os dois e veja qual é o seu:
-
-- https://www.instagram.com/dr.liberdad
-- https://www.instagram.com/dr.libertad
-
-Depois, numa sessão nova, diga qual é o correto. O que precisa ser feito:
-
-1. Corrigir a grafia errada em `estudo.content.ts` e `survey.content.ts`
-   (ou em `accounts.ts`, se o T for o certo)
-2. Ligar o `sameAs` do JSON-LD direto no código, em `src/components/JsonLd.tsx`
-   — isso **elimina** a necessidade da variável `NEXT_PUBLIC_INSTAGRAM_URL`
-3. Um teste de invariante travando a grafia num lugar só, para não divergir de novo
-
-Nenhum dos dois PRs depende disso. Hoje o `sameAs` sai vazio, que é o
-comportamento que o próprio código já escolhia ("vazio é melhor que errado").
+Commit: `d4164ae2`.
 
 ---
 
 ## Pendências na Vercel / Google — só você pode fazer
 
-Nenhuma das duas é código. As duas exigem o seu login.
+Sobrou **uma** — a outra (`NEXT_PUBLIC_INSTAGRAM_URL`) deixou de existir quando o
+`sameAs` passou a ser montado no código. Não é código; exige o seu login.
 
-### 1. `GOOGLE_SITE_VERIFICATION` + Search Console
+### `GOOGLE_SITE_VERIFICATION` + Search Console
 
 Sem isso você está cego: não vê impressões, posição média nem erros de indexação.
 O código já lê a variável (`src/lib/metadata-base.ts`).
@@ -184,14 +167,9 @@ O código já lê a variável (`src/lib/metadata-base.ts`).
 5. Voltar ao Search Console e clicar em **Verificar**
 6. Depois: *Sitemaps* → adicionar `sitemap.xml`
 
-### 2. `NEXT_PUBLIC_INSTAGRAM_URL`
-
-Sem ela o `sameAs` sai vazio e o Google não liga o site ao seu Instagram.
-
-Vercel → *Environment Variables* → Production:
-`NEXT_PUBLIC_INSTAGRAM_URL` = `https://www.instagram.com/<a conta certa>`
-
-**Ou** resolva o erro do handle acima e essa variável deixa de ser necessária.
+> ~~`NEXT_PUBLIC_INSTAGRAM_URL`~~ — não é mais necessária. O `sameAs` sai do
+> registro de contas (`ACCOUNTS[lang].handle`) desde `d4164ae2`. Se a variável
+> ainda existir na Vercel, pode apagar: ela é ignorada.
 
 ---
 
@@ -213,14 +191,18 @@ em dopamina"). Daí em diante é volume de texto e tempo.
 
 ## Contexto do ambiente (por que algumas coisas não foram feitas)
 
-As sessões que fizeram este trabalho rodaram numa VM efêmera na nuvem, não no
-computador do dono. A política de rede do ambiente bloqueia `vercel.com`,
+Boa parte deste trabalho saiu de uma sessão rodando numa VM efêmera na nuvem, não
+no computador do dono. A política de rede do ambiente bloqueia `vercel.com`,
 `api.vercel.com`, `google.com`, `search.google.com` e `instagram.com`; não há
 credencial da Vercel nem CLI instalada. Por isso:
 
-- as duas pendências acima ficaram para o dono
-- o handle do Instagram não pôde ser conferido direto na fonte
-- o blog não pôde ser testado contra o banco real
+- a pendência do Search Console ficou para o dono
+- ~~o handle do Instagram não pôde ser conferido direto na fonte~~ — resolvido
+  pela sessão local em 01/08, que abriu as duas contas no navegador
+- **o blog nunca foi testado contra o banco real** — esta continua de pé
+
+A divisão que funcionou: a sessão da nuvem faz o código e os testes; a sessão
+local verifica o que só existe fora do repositório (navegador, banco, Vercel).
 
 Se quiser que uma sessão futura faça a parte da Vercel, é preciso liberar a rede
 nas configurações do ambiente e guardar um `VERCEL_TOKEN` lá nas variáveis —

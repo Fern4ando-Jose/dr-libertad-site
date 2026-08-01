@@ -105,6 +105,25 @@ export function accountFor(lang: Lang): AccountCfg {
   return ACCOUNTS[lang] ?? ACCOUNTS.es;
 }
 
+/**
+ * Endereço do perfil no Instagram, DERIVADO do handle acima.
+ *
+ * Existe para que URL e @ não possam divergir. Até 01/08/2026 divergiam: as
+ * páginas em espanhol (`/el-estudio`, `/investigacion/gracias`) mandavam o
+ * leitor para `instagram.com/dr.libertad` — com T, contaminado pelo domínio
+ * drliber**t**ad.com — enquanto a conta real, a que publica todo dia, é
+ * `@dr.libe`**`rd`**`ad`. O perfil com T existe, é de outra pessoa e estava
+ * vazio: quem respondia a pesquisa em espanhol e clicava em "Seguir" caía numa
+ * conta que não é a nossa, no ponto do funil onde o seguidor custa mais caro.
+ *
+ * Escrever o endereço à mão foi o que permitiu o erro. Agora só há um lugar
+ * onde o @ é escrito (`ACCOUNTS[lang].handle`) e tudo mais é calculado a partir
+ * dele — divergir deixou de ser possível, não apenas de ser proibido.
+ */
+export function instagramUrlDe(lang: Lang): string {
+  return `https://www.instagram.com/${accountFor(lang).handle.replace(/^@/, "")}`;
+}
+
 /** Valor que linhas ANTIGAS do banco usam para este idioma (gravadas antes de 29/07/2026). */
 export function langLegado(lang: string): string {
   return lang === "br" ? "pt" : lang;

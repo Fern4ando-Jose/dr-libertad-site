@@ -1,5 +1,5 @@
 // /investigacion — investigación "Redes Sociales y Relaciones" (ES).
-// Ruta fija fuera del prefijo de idioma — el link de la bio del @dr.libertad
+// Ruta fija fuera del prefijo de idioma — el link de la bio del @dr.liberdad
 // apunta directo aquí. Espelho PT: /pesquisa.
 
 import type { Metadata } from "next";
