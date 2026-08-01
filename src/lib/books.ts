@@ -8,8 +8,18 @@ export type BookMeta = {
   slug: string;
   dictKey: BookDictKey;
   cover: { br: string; es: string };
+  // Medida real do arquivo da capa. O next/image precisa dela para reservar o
+  // espaço antes de a imagem chegar (sem isso a página "pula" — CLS) e o
+  // og:image precisa dela para o scraper não ter de baixar tudo para descobrir.
+  // As duas versões de idioma de um livro têm sempre a mesma medida.
+  coverSize: { width: number; height: number };
   // Checkout pago (Hotmart etc.). Opcional: um livro em modo GRÁTIS (prévia) não tem.
   checkout?: { br: string; es: string };
+  // Preço em número, para os dados estruturados (schema.org/Offer) — o Google
+  // não sabe ler "R$ 37". O texto que o LEITOR vê continua no dicionário; estes
+  // dois têm de contar a mesma história, e há um teste de invariante garantindo
+  // isso (books.invariants.test.ts).
+  price: { br: { amount: number; currency: string }; es: { amount: number; currency: string } };
   // Modo GRÁTIS: entrega um PDF (prévia/adelanto) por download direto, sem checkout.
   // É a página-destino do funil comment→DM (em vez de mandar o .pdf cru no Direct).
   free?: boolean;
@@ -31,9 +41,11 @@ export const BOOKS: BookMeta[] = [
     slug: "100-plantas",
     dictKey: "livro",
     cover: { br: "/images/livro-capa-pt.png", es: "/images/livro-capa-es.png" },
+    coverSize: { width: 1024, height: 1638 },
     // PT: produto Hotmart aprovado (ID 7978640) — checkout direto.
     // ES: produto Hotmart próprio (ID 7980706) com o PDF ES, US$ 7,90, afiliados 50%.
     checkout: { br: "https://pay.hotmart.com/J106432769P", es: "https://pay.hotmart.com/W106437072U" },
+    price: { br: { amount: 37, currency: "BRL" }, es: { amount: 9, currency: "USD" } },
     insideImages: ["/images/livro-spread-1.jpg", "/images/livro-spread-2.jpg"],
     // ES ainda não produzido — fica null até a versão em espanhol ser renderizada.
     promoVideo: { br: "/videos/livro-promo-pt.mp4", es: null },
@@ -50,7 +62,9 @@ export const BOOKS: BookMeta[] = [
     slug: "i-love-dopamina",
     dictKey: "dopamina",
     cover: { br: "/images/i-love-dopamina-capa-pt.png", es: "/images/i-love-dopamina-capa-es.png" },
+    coverSize: { width: 1024, height: 1536 },
     free: true,
+    price: { br: { amount: 0, currency: "BRL" }, es: { amount: 0, currency: "USD" } },
     leadPdf: { br: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },
   },
 ];

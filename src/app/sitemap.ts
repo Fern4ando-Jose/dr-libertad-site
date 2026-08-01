@@ -1,119 +1,38 @@
 import type { MetadataRoute } from "next";
+import { BOOKS } from "@/lib/books";
+import { ROUTES, SEO_LANGS, abs, hreflang, type IndexableRoute } from "@/lib/seo";
+
+// O sitemap NÃO repete a lista de páginas: ele deriva de src/lib/seo.ts (ROUTES)
+// e do registro de livros. A lista escrita à mão que existia aqui tinha ficado
+// para trás — faltavam /livros, /autor, /dopamina, /guia-7-dias e /creditos nos
+// dois idiomas, ou seja, metade do site nunca era oferecida ao Google.
+
+// Data de referência do conteúdo. `lastModified` sem valor real é ruído: o Google
+// desconta sitemaps que carimbam "hoje" em tudo a cada deploy. Aqui vale a data do
+// build, que é quando o conteúdo estático de fato pode ter mudado.
+const BUILD_DATE = new Date();
+
+function entriesFor(route: IndexableRoute): MetadataRoute.Sitemap {
+  const languages = hreflang(route.paths);
+  // Uma entrada por idioma, cada uma declarando todas as alternativas: é assim
+  // que o Google casa as duas versões em vez de tratá-las como duplicatas.
+  return SEO_LANGS.map((l) => ({
+    url: abs(route.paths[l]),
+    lastModified: BUILD_DATE,
+    changeFrequency: route.changeFrequency,
+    priority: route.priority,
+    alternates: { languages },
+  }));
+}
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = "https://www.drlibertad.com";
-  const languages = {
-    "pt-BR": `${base}/br`,
-    "es-ES": `${base}/es`,
-    "x-default": `${base}/br`,
-  };
+  // Uma página por livro, em cada idioma — inclusive os que saíram da vitrine
+  // (hidden), que seguem com página no ar e vendendo por link direto.
+  const bookRoutes: IndexableRoute[] = BOOKS.map((book) => ({
+    paths: { br: `/br/livros/${book.slug}`, es: `/es/livros/${book.slug}` },
+    priority: 0.9,
+    changeFrequency: "weekly",
+  }));
 
-  const privacy = {
-    "pt-BR": `${base}/br/privacidade`,
-    "es-ES": `${base}/es/privacidade`,
-    "x-default": `${base}/br/privacidade`,
-  };
-
-  const terms = {
-    "pt-BR": `${base}/br/termos`,
-    "es-ES": `${base}/es/termos`,
-    "x-default": `${base}/br/termos`,
-  };
-
-  const quiz = {
-    "pt-BR": `${base}/br/quiz`,
-    "es-ES": `${base}/es/quiz`,
-    "x-default": `${base}/br/quiz`,
-  };
-
-  // Pesquisa "Redes Sociais e Relacionamentos" — rotas fixas por idioma
-  // (fora do prefixo /pt|/es; ver src/proxy.ts).
-  const survey = {
-    "pt-BR": `${base}/pesquisa`,
-    "es-ES": `${base}/investigacion`,
-    "x-default": `${base}/pesquisa`,
-  };
-
-  // Página institucional do estudo — rotas fixas por idioma.
-  const estudo = {
-    "pt-BR": `${base}/o-estudo`,
-    "es-ES": `${base}/el-estudio`,
-    "x-default": `${base}/o-estudo`,
-  };
-
-  // Uma entrada por idioma, cada uma declarando as alternativas (hreflang).
-  return [
-    {
-      url: `${base}/pesquisa`,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-      alternates: { languages: survey },
-    },
-    {
-      url: `${base}/investigacion`,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-      alternates: { languages: survey },
-    },
-    {
-      url: `${base}/o-estudo`,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-      alternates: { languages: estudo },
-    },
-    {
-      url: `${base}/el-estudio`,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-      alternates: { languages: estudo },
-    },
-    {
-      url: `${base}/br`,
-      changeFrequency: "daily",
-      priority: 1,
-      alternates: { languages },
-    },
-    {
-      url: `${base}/es`,
-      changeFrequency: "daily",
-      priority: 1,
-      alternates: { languages },
-    },
-    {
-      url: `${base}/br/quiz`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-      alternates: { languages: quiz },
-    },
-    {
-      url: `${base}/es/quiz`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-      alternates: { languages: quiz },
-    },
-    {
-      url: `${base}/br/privacidade`,
-      changeFrequency: "yearly",
-      priority: 0.3,
-      alternates: { languages: privacy },
-    },
-    {
-      url: `${base}/es/privacidade`,
-      changeFrequency: "yearly",
-      priority: 0.3,
-      alternates: { languages: privacy },
-    },
-    {
-      url: `${base}/br/termos`,
-      changeFrequency: "yearly",
-      priority: 0.3,
-      alternates: { languages: terms },
-    },
-    {
-      url: `${base}/es/termos`,
-      changeFrequency: "yearly",
-      priority: 0.3,
-      alternates: { languages: terms },
-    },
-  ];
+  return [...ROUTES, ...bookRoutes].flatMap(entriesFor);
 }

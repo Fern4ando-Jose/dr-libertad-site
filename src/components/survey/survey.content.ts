@@ -6,6 +6,7 @@
 // Micro-copy "entre os primeiros": condicionada à env NEXT_PUBLIC_SURVEY_LAUNCH_WINDOW
 // (ver SurveyExperience — default LIGADA; "0" desliga quando deixar de ser verdade).
 
+import { ACCOUNTS, instagramUrlDe } from "@/lib/accounts";
 import type { Lang } from "@/lib/i18n/dictionaries";
 
 type OptionLabels = Record<string, string>;
@@ -84,8 +85,8 @@ const br: SurveyCopy = {
   metaDescription:
     "Todo mundo tem uma opinião. Quase ninguém tem dado. Estudo sério — 3 minutos, anônimo — sobre o que as redes estão fazendo com os relacionamentos. As respostas viram um livro.",
   brand: "Dr. Liberdade",
-  handle: "@dr.liberdade.br",
-  instagramUrl: "https://www.instagram.com/dr.liberdade.br",
+  handle: ACCOUNTS.br.handle,
+  instagramUrl: instagramUrlDe("br"),
   basePath: "/pesquisa",
   termoPath: "/pesquisa/termo",
   thanksPath: "/pesquisa/obrigado",
@@ -250,8 +251,8 @@ const br: SurveyCopy = {
   thanks: {
     metaTitle: "Obrigado — Pesquisa Redes Sociais e Relacionamentos",
     title: "Obrigado.",
-    body: "Suas respostas entram na conta. Os resultados saem primeiro em @dr.liberdade.br — siga para ver o que os números vão dizer. Inclusive se disserem que a tese está errada.",
-    cta: "Seguir @dr.liberdade.br",
+    body: `Suas respostas entram na conta. Os resultados saem primeiro em ${ACCOUNTS.br.handle} — siga para ver o que os números vão dizer. Inclusive se disserem que a tese está errada.`,
+    cta: `Seguir ${ACCOUNTS.br.handle}`,
     backToSite: "Conhecer o Dr. Liberdade",
   },
   termo: {
@@ -288,8 +289,8 @@ const es: SurveyCopy = {
   metaDescription:
     "Todo el mundo tiene una opinión. Casi nadie tiene datos. Estudio en serio — 3 minutos, anónimo — sobre lo que las redes están haciendo con las relaciones. Las respuestas se convierten en un libro.",
   brand: "Dr. Libertad",
-  handle: "@dr.libertad",
-  instagramUrl: "https://www.instagram.com/dr.libertad",
+  handle: ACCOUNTS.es.handle,
+  instagramUrl: instagramUrlDe("es"),
   basePath: "/investigacion",
   termoPath: "/investigacion/termino",
   thanksPath: "/investigacion/gracias",
@@ -454,8 +455,8 @@ const es: SurveyCopy = {
   thanks: {
     metaTitle: "Gracias — Investigación Redes Sociales y Relaciones",
     title: "Gracias.",
-    body: "Tus respuestas entran en la cuenta. Los resultados salen primero en @dr.libertad — síguenos para ver qué van a decir los números. Incluso si dicen que la tesis está equivocada.",
-    cta: "Seguir a @dr.libertad",
+    body: `Tus respuestas entran en la cuenta. Los resultados salen primero en ${ACCOUNTS.es.handle} — síguenos para ver qué van a decir los números. Incluso si dicen que la tesis está equivocada.`,
+    cta: `Seguir a ${ACCOUNTS.es.handle}`,
     backToSite: "Conocer a Dr. Libertad",
   },
   termo: {

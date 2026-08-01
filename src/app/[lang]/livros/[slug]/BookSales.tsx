@@ -3,11 +3,17 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
 import Book3D from "@/components/ui/Book3D";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 import { getBook } from "@/lib/books";
+
+// Medida das fotos de "por dentro" (public/images/livro-spread-*.jpg). Todas
+// saem do mesmo gabarito, então uma constante basta — e o next/image precisa
+// dela para reservar o espaço e não empurrar o texto quando a foto carrega.
+const SPREAD = { width: 1400, height: 990 };
 
 function Eyebrow({ children }: { children: ReactNode }) {
   return (
@@ -195,6 +201,12 @@ export default function BookSales({ slug }: { slug: string }) {
                 <Book3D
                   src={cover}
                   alt={L.coverAlt}
+                  width={book.coverSize.width}
+                  height={book.coverSize.height}
+                  // Coluna da capa: largura quase toda no celular, ~5/12 no desktop.
+                  sizes="(max-width: 1024px) 80vw, 40vw"
+                  // É o maior elemento acima da dobra — ou seja, o LCP da página.
+                  priority
                   spineText={`${L.title} ${L.titleAccent} · ${L.authorTitle}`}
                 />
               </motion.div>
@@ -292,8 +304,14 @@ export default function BookSales({ slug }: { slug: string }) {
                 transition={{ duration: 0.6, delay: i * 0.05 }}
                 className="overflow-hidden rounded-3xl border border-warm-gray/15 bg-white/3 p-3 backdrop-blur"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={s.src} alt={s.cap} className="w-full rounded-2xl" />
+                <Image
+                  src={s.src}
+                  alt={s.cap}
+                  width={SPREAD.width}
+                  height={SPREAD.height}
+                  sizes="(max-width: 768px) 92vw, 720px"
+                  className="h-auto w-full rounded-2xl"
+                />
                 <figcaption className="px-3 py-3 text-xs tracking-[0.06em] text-warm-gray/75">
                   {s.cap}
                 </figcaption>
