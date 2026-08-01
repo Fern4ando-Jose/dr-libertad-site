@@ -1,10 +1,17 @@
+import { instagramUrlDe } from "@/lib/accounts";
 import { SITE_URL, abs } from "@/lib/seo";
 
-// Perfis sociais oficiais — usados pelo Google para conectar o site à entidade.
-// Preencha NEXT_PUBLIC_INSTAGRAM_URL no ambiente. Vazio é melhor que errado.
-const SAME_AS: string[] = [process.env.NEXT_PUBLIC_INSTAGRAM_URL].filter(
-  (u): u is string => Boolean(u)
-);
+// Perfis sociais oficiais — é por aqui que o Google liga o site às contas e
+// entende que são a mesma entidade.
+//
+// Antes isto vinha de NEXT_PUBLIC_INSTAGRAM_URL, uma variável de ambiente que
+// nunca chegou a ser preenchida: o `sameAs` saía vazio em produção e o site
+// seguia, para o Google, sem nenhuma conta associada. E uma variável só
+// comportava UM endereço, quando são duas contas.
+//
+// Agora vem do registro de contas (`ACCOUNTS`), a mesma fonte que a automação
+// usa para publicar. Não há env a preencher e não há como divergir do @ real.
+const SAME_AS: string[] = [instagramUrlDe("br"), instagramUrlDe("es")];
 
 const KNOWS_ABOUT = [
   "Psicología",
@@ -30,7 +37,7 @@ const organization = {
     "Estúdio editorial sobre desintoxicação digital, ansiedade moderna e inteligência emocional. Filosofia aplicada à atenção e ao comportamento.",
   knowsAbout: KNOWS_ABOUT,
   founder: { "@id": abs("/#author") },
-  ...(SAME_AS.length > 0 ? { sameAs: SAME_AS } : {}),
+  sameAs: SAME_AS,
 };
 
 // A voz que assina os textos. Existe como entidade separada porque em assunto de
@@ -49,7 +56,7 @@ const author = {
     "Persona editorial sob a qual são publicados os textos do estúdio sobre atenção, dopamina e liberdade mental. O nome é o personagem; as ideias são do autor por trás dele.",
   knowsAbout: KNOWS_ABOUT,
   worksFor: { "@id": abs("/#organization") },
-  ...(SAME_AS.length > 0 ? { sameAs: SAME_AS } : {}),
+  sameAs: SAME_AS,
 };
 
 // O site em si: bilíngue PT/ES, publicado pela organização acima.

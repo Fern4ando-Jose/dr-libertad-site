@@ -6,6 +6,7 @@
 // (bio/credenciais/referências) vem marcado com `placeholder: true` para o dono
 // preencher — NUNCA inventado (P4).
 
+import { ACCOUNTS, instagramUrlDe } from "@/lib/accounts";
 import type { Lang } from "@/lib/i18n/dictionaries";
 
 export type EstudoCopy = {
@@ -101,8 +102,8 @@ const br: EstudoCopy = {
   surveyPath: "/pesquisa",
   termoPath: "/pesquisa/termo",
   otherLang: { code: "es", path: "/el-estudio", label: "ES" },
-  instagramHandle: "@dr.liberdade.br",
-  instagramUrl: "https://www.instagram.com/dr.liberdade.br",
+  instagramHandle: ACCOUNTS.br.handle,
+  instagramUrl: instagramUrlDe("br"),
   nav: { respond: "Responder", respondLong: " a pesquisa" },
   hero: {
     kicker: "Estudo editorial · Dr. Liberdade",
@@ -199,7 +200,7 @@ const br: EstudoCopy = {
       "Autor por trás do projeto Dr. Liberdade, um estúdio editorial que fala, sem rodeios, sobre atenção, vínculos e liberdade mental. Aqui a provocação vem da ideia — e a ideia, neste projeto, se submete ao dado.",
     para2:
       "As entrevistas do estudo já começaram. As próximas saem das respostas que chegam por aqui — e os resultados aparecem primeiro no Instagram, antes do livro.",
-    follow: "Seguir @dr.liberdade.br",
+    follow: `Seguir ${ACCOUNTS.br.handle}`,
   },
   cta: {
     eyebrow: "Sua vez",
@@ -224,8 +225,8 @@ const es: EstudoCopy = {
   surveyPath: "/investigacion",
   termoPath: "/investigacion/termino",
   otherLang: { code: "br", path: "/o-estudo", label: "PT" },
-  instagramHandle: "@dr.libertad",
-  instagramUrl: "https://www.instagram.com/dr.libertad",
+  instagramHandle: ACCOUNTS.es.handle,
+  instagramUrl: instagramUrlDe("es"),
   nav: { respond: "Responder", respondLong: " la investigación" },
   hero: {
     kicker: "Estudio editorial · Dr. Libertad",
@@ -322,7 +323,7 @@ const es: EstudoCopy = {
       "Autor detrás del proyecto Dr. Libertad, un estudio editorial que habla, sin rodeos, sobre atención, vínculos y libertad mental. Aquí la provocación viene de la idea — y la idea, en este proyecto, se somete al dato.",
     para2:
       "Las entrevistas del estudio ya empezaron. Las próximas salen de las respuestas que llegan por aquí — y los resultados aparecen primero en Instagram, antes del libro.",
-    follow: "Seguir a @dr.libertad",
+    follow: `Seguir a ${ACCOUNTS.es.handle}`,
   },
   cta: {
     eyebrow: "Tu turno",

@@ -1,4 +1,4 @@
-// /investigacion/gracias — agradecimiento ES + CTA seguir a @dr.libertad.
+// /investigacion/gracias — agradecimiento ES + CTA seguir a @dr.liberdad.
 // Dispara el evento "pesquisa_enviada" en el Meta Pixel CUANDO exista la env
 // NEXT_PUBLIC_META_PIXEL_ID (ver components/survey/MetaPixel.tsx).
 
