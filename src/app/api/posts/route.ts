@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { type Lang, accountFor, getLang, envToken, envAccountId } from "@/lib/accounts";
+import { ARTICLE_MIN_BODY, slugFor } from "@/lib/blog";
 
 // Revalida a cada hora — assim o EDITORIAL se atualiza sozinho conforme novos posts são publicados.
 export const revalidate = 3600;
@@ -17,6 +18,9 @@ export type EditorialPost = {
   permalink: string | null;
   body: string | null;  // artigo completo (do banco) para o modal
   publishedAt: string | null;
+  // Endereço da página do artigo no site (/br/blog/...). Null quando o post não
+  // tem artigo publicável — aí o card só abre o modal, sem link.
+  href: string | null;
 };
 
 type IgMedia = {
@@ -36,7 +40,26 @@ type DbPost = {
   tags: unknown;
   instagram_post_id: string | null;
   published_at: string;
+  lang: string | null;
 };
+
+/**
+ * Endereço do artigo no site, quando ele existe como página.
+ *
+ * Repete de propósito as duas condições de src/lib/blog.ts (idioma da linha e
+ * corpo com tamanho mínimo): um card que aponte para um artigo que a listagem
+ * descarta viraria um link para 404. `posts-slug.invariants.test.ts` tranca as
+ * duas regras juntas.
+ */
+function articleHref(db: DbPost | undefined, lang: Lang): string | null {
+  if (!db) return null;
+  const rowLang = getLang(db.lang);
+  if (rowLang !== lang) return null;
+  if (!db.title?.trim() || (db.body ?? "").trim().length < ARTICLE_MIN_BODY) return null;
+
+  const publishedAt = db.published_at ? new Date(db.published_at).toISOString() : null;
+  return `/${lang}/blog/${slugFor({ title: db.title.trim(), publishedAt, lang })}`;
+}
 
 const STOP = new Set([
   "y", "e", "o", "de", "del", "la", "el", "los", "las", "a", "en", "con",
@@ -119,7 +142,7 @@ async function fetchDbPosts(): Promise<DbPost[]> {
   try {
     const { sql } = await import("@vercel/postgres");
     const rows = await sql<DbPost>`
-      SELECT title, body, instagram_caption, tags, instagram_post_id, published_at
+      SELECT title, body, instagram_caption, tags, instagram_post_id, published_at, lang
       FROM posts
       ORDER BY published_at DESC
       LIMIT 60
@@ -185,6 +208,7 @@ export async function GET(req: NextRequest) {
         permalink: m.permalink ?? null,
         body: db?.body ?? caption ?? null,
         publishedAt: m.timestamp ?? db?.published_at ?? null,
+        href: articleHref(db, lang),
       } satisfies EditorialPost;
     });
   } else if (dbPosts.length > 0) {
@@ -206,6 +230,7 @@ export async function GET(req: NextRequest) {
         permalink: null,
         body: p.body,
         publishedAt: p.published_at,
+        href: articleHref(p, lang),
       } satisfies EditorialPost;
     });
   }

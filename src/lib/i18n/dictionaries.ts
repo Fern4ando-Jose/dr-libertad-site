@@ -115,6 +115,20 @@ export const br = {
     close: "Fechar",
     issue: "edição",
   },
+  blog: {
+    navLabel: "ARTIGOS",
+    eyebrow: "ARQUIVO",
+    title: "Tudo o que já foi escrito aqui.",
+    lead: "Cada publicação do estúdio vira um texto completo — sobre atenção, dopamina, hábito e o que as telas fizeram com a forma de viver.",
+    metaTitle: "Artigos sobre atenção, dopamina e hábito",
+    metaDescription:
+      "O arquivo do estúdio: textos sobre desintoxicação digital, ansiedade moderna, dopamina e o que as telas fizeram com a atenção.",
+    empty: "Em breve: os artigos aparecem aqui conforme são publicados.",
+    readingTime: "min de leitura",
+    backToIndex: "Todos os artigos",
+    publishedOn: "Publicado em",
+    relatedTitle: "Continue lendo",
+  },
   quotes: {
     eyebrow: "CITAÇÕES",
     title: "Ideias curtas. Impacto longo.",
@@ -574,6 +588,20 @@ export const es: Dict = {
     viewInstagram: "Ver en Instagram",
     close: "Cerrar",
     issue: "edición",
+  },
+  blog: {
+    navLabel: "ARTÍCULOS",
+    eyebrow: "ARCHIVO",
+    title: "Todo lo que ya se escribió aquí.",
+    lead: "Cada publicación del estudio se vuelve un texto completo — sobre atención, dopamina, hábito y lo que las pantallas le hicieron a la forma de vivir.",
+    metaTitle: "Artículos sobre atención, dopamina y hábito",
+    metaDescription:
+      "El archivo del estudio: textos sobre desintoxicación digital, ansiedad moderna, dopamina y lo que las pantallas le hicieron a la atención.",
+    empty: "Muy pronto: los artículos aparecen aquí conforme se publican.",
+    readingTime: "min de lectura",
+    backToIndex: "Todos los artículos",
+    publishedOn: "Publicado el",
+    relatedTitle: "Sigue leyendo",
   },
   quotes: {
     eyebrow: "CITAS",

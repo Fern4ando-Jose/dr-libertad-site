@@ -223,3 +223,50 @@ Se quiser que uma sessão futura faça a parte da Vercel, é preciso liberar a r
 nas configurações do ambiente e guardar um `VERCEL_TOKEN` lá nas variáveis —
 **nunca colar token no chat**. O Search Console continua sendo manual de todo
 jeito: verificar propriedade de domínio exige uma conta Google logada.
+
+---
+
+## Dois pontos que a verificação local deixou anotados (01/08/2026)
+
+Não bloqueiam nenhum dos dois PRs. Ficam registrados aqui para não se perderem.
+
+### 1. Um artigo em português está dentro do blog espanhol
+
+*"Você não conhece você mesmo (e isso te controla)"*, publicado em 17/06/2026,
+está gravado na tabela `posts` com `lang = 'es'`. Ele aparece em `/es/blog`, em
+português, dentro de uma página que se declara `<html lang="es-ES">`.
+
+É **1 artigo entre 186** — e o erro está no dado que a automação gravou, não no
+código do blog. Corrigir significa escrever na tabela da automação do Instagram,
+que é de outra frente. Uma heurística de idioma no `blog.ts` foi considerada e
+**descartada**: errar para o lado errado apagaria artigos legítimos do índice, o
+que é pior que uma página no idioma trocado.
+
+Quem for mexer: a linha é identificável por `title = 'Você não conhece você mesmo
+(e isso te controla)' AND lang = 'es'`.
+
+### 2. `npm run lint` estava mudo — voltou a rodar
+
+Estava quebrado por dois motivos somados: o script chamava `next lint` (comando
+removido no Next 16, que passava a ler "lint" como nome de pasta) e a
+configuração estava no formato antigo (`.eslintrc.json`), que o ESLint 9 não abre
+mais. O efeito era o pior: **não acusava problema nenhum porque nunca olhava o
+código**.
+
+Agora chama o `eslint` direto, com `eslint.config.mjs` no formato flat. Não
+precisou de dependência nova — o `eslint-config-next` 16 já publica as regras
+nesse formato.
+
+Ele volta acusando **19 problemas (11 erros, 8 avisos), todos anteriores a este
+trabalho e em outras frentes**: `react-hooks` nas páginas de `/admin` e nos
+componentes de vídeo (`Reel`/`ReelClassic`), e `no-img-element` no gerador de
+imagem de compartilhamento. Nenhum foi corrigido — são de outro escopo, e os de
+vídeo ficam dentro da automação do Instagram, que não se toca. Ficam à vista, que
+é o ponto de ligar o lint de volta.
+
+Nenhum workflow de CI chama `npm run lint`, então isto não altera o resultado das
+verificações automáticas.
+
+**Sobra:** o `.eslintrc.json` ficou órfão (o ESLint 9 não o lê mais). Não foi
+apagado — apagar arquivo pede autorização em duas etapas. Pode sair quando
+alguém confirmar.

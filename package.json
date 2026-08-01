@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
     "render:reel": "node scripts/render-reel.mjs",
     "render:ads": "node scripts/render-ad-cards.mjs",
