@@ -1,5 +1,25 @@
 # Handoff — o que só a máquina local termina
 
+> ## ✅ CONCLUÍDO em 2026-08-01 — este arquivo vira histórico
+>
+> As três tarefas foram executadas na máquina do dono. O que a sessão da nuvem não podia saber:
+>
+> 1. **A pasta do painel local não existia.** Foi criada em
+>    `D:\Claude\Meus Projetos\Automações\Dr-liberdade-site\` e o `pesquisa.html` está lá.
+>    **Não há índice** para acrescentar item — e nenhum foi criado de propósito: em 27/07/2026 o
+>    dono determinou que *só existe UM painel*, o painel-adm online, e o painel local de
+>    automações foi apagado por isso. Uma página avulsa de acompanhamento não recria aquele
+>    painel; um índice novo, sim.
+> 2. **O Pixel já estava no ar.** `NEXT_PUBLIC_META_PIXEL_ID` existia em Production; a prova é o
+>    navegador carregando `connect.facebook.net/en_US/fbevents.js` e o `signals/config/<id>` em
+>    `/pesquisa`. Nada foi criado.
+> 3. **A chave do painel (`ADMIN_TOKEN`) NÃO existia em nenhum ambiente da Vercel** — este era o
+>    bloqueio real: `/api/survey/results` devolvia 401 para qualquer token, então nem o painel do
+>    site nem o local mostravam número. A chave foi criada em Production (valor só no cofre local,
+>    nunca em arquivo do repositório) e o site foi reimplantado com o mesmo código já no ar.
+>
+> O `PENDENCIAS.inbox.md` está vazio de novo.
+
 > Para uma sessão do Claude Code rodando **no PC** (`D:\Claude\dr-libertad-site`).
 > A sessão da nuvem fez tudo que dependia do repositório e do site; sobraram duas
 > coisas que exigem disco local e conta da Vercel. Este arquivo é o escopo inteiro
