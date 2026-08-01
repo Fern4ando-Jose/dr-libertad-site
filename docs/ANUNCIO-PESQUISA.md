@@ -96,6 +96,22 @@ Mostra, na janela escolhida (7 / 30 / 90 dias / tudo) e por idioma:
 `pesquisa_enviada` — desde que `NEXT_PUBLIC_META_PIXEL_ID` esteja setada na Vercel.
 Sem a env, nenhum byte do Pixel carrega. É esse evento que o Gerenciador usa para
 otimizar por conversão, então **confira a env antes de subir a campanha**.
+✅ Conferido no ar em 2026-08-01: a env existe em Production e o navegador carrega
+`connect.facebook.net/en_US/fbevents.js` + `signals/config/<id>` em `/pesquisa`.
+
+**Página local (fora do site):** `Meus Projetos\Automações\Dr-liberdade-site\pesquisa.html`
+— arquivo único, abre com duplo clique, lê a MESMA rota (`/api/survey/results`) e guarda o
+token só no navegador (`localStorage`, chave `dl_admin_token`). Instalada em 2026-08-01; a
+cópia-fonte versionada fica em `painel-local/pesquisa.html`. **Não existe índice nessa pasta
+e não se deve criar um** — em 27/07/2026 o dono determinou que só existe um painel, o
+painel-adm online.
+
+> ⚠️ **`ADMIN_TOKEN` só passou a existir na Vercel em 2026-08-01.** Antes disso a rota
+> `/api/survey/results` devolvia 401 para qualquer token e nenhum painel mostrava número
+> (o mesmo valia para `/admin/reprovadas`, `/api/guardian` e `/api/comment-draft`). A chave
+> está em **Production** e o valor mora só no cofre local `.claude/chaves/dr-libertad.env` —
+> nunca em arquivo deste repositório, que é público. Trocar a chave exige **reimplantar**: o
+> deployment que já está no ar carrega as envs do momento em que foi criado.
 
 ---
 
