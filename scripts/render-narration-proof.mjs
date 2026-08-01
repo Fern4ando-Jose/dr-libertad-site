@@ -133,7 +133,10 @@ async function gerarVoz(lang, texto) {
   const cfg = VOZ_POR_IDIOMA[lang] ?? VOZ_POR_IDIOMA.es;
   const modelo = cfg.provedor === "elevenlabs" ? TTS_11LABS : TTS_MODEL;
   const corpo = cfg.provedor === "elevenlabs"
-    ? { text: texto, voice: cfg.voz, language_code: lang, timestamps: true,
+    // `language_code` é ISO ("pt"/"es"), NÃO o nosso rótulo interno ("br"): passar
+    // "br" manda um idioma que não existe pro provedor — e o forçar-idioma, que é
+    // justamente o remédio contra o sotaque, deixa de valer. Espelha isoDe() do motor.
+    ? { text: texto, voice: cfg.voz, language_code: lang === "br" ? "pt" : "es", timestamps: true,
         stability: cfg.stability, similarity_boost: cfg.similarity, style: cfg.style, speed: cfg.speed }
     : { text: texto,
         voice_setting: { voice_id: cfg.voz, speed: cfg.speed, vol: 1, pitch: 0 },
