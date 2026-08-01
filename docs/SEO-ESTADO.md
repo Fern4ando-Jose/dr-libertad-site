@@ -1,9 +1,11 @@
-# SEO do site — estado, pendências e um erro em aberto
+# SEO do site — estado e pendências
 
-> Documento de passagem de bastão. Escrito em 01/08/2026, no fim da rodada de SEO.
-> Se você abriu uma sessão nova (aqui ou no seu computador), **leia isto primeiro**:
-> ele diz o que já foi feito, o que falta, e o único ponto que precisa de uma
-> decisão sua.
+> Documento de passagem de bastão. Escrito em 01/08/2026, atualizado no mesmo dia
+> depois que a sessão local fechou os dois pontos que dependiam de acesso externo.
+> Se você abriu uma sessão nova (aqui ou no seu computador), **leia isto primeiro**.
+>
+> **Em uma linha:** dois PRs prontos e verdes (#217 e #218), aguardando merge
+> nessa ordem. Sobrou uma pendência, e ela é do dono: ligar o Search Console.
 
 ---
 
@@ -96,19 +98,30 @@ Decisões que valem saber:
   verdade quando o post tem artigo — é isso que faz o rastreador achar o texto a
   partir da home. Para o leitor nada mudou: o clique simples segue abrindo o modal.
 
-### Não verificado contra dados reais
+### ✅ Verificado contra o banco real (01/08/2026)
 
-A sessão que escreveu o blog **não tinha acesso ao Neon** nem à preview da Vercel
-(política de rede do ambiente). Foi tudo testado com dados de mentira num servidor
-de produção local. O que ninguém conferiu ainda:
+A sessão que escreveu o blog não alcançava o Neon (política de rede) e testou tudo
+com dados de mentira. A sessão local rodou contra o banco de produção:
 
-- quantos dos artigos reais passam do corte de 200 caracteres
-- se o texto sustenta uma página
-- se PT e ES estão duplicados
+```
+/br/blog → 60 linhas no banco → 59 artigos publicados
+/es/blog → 127 linhas         → 127 artigos
+```
 
-**Antes de mergear o #218, abra `/br/blog` na preview da Vercel.** Se vier vazio
-ou raso, o corte (`ARTICLE_MIN_BODY`) ou o filtro de idioma é o primeiro lugar a
-olhar.
+**186 artigos reais entram no índice.** É esse o salto: o site sai de ~12 páginas
+indexáveis para quase 200.
+
+E a verificação achou um bug meu: `listArticles` deduplicava por **slug**, e o
+slug carrega o hash da data de publicação — então a mesma matéria republicada em
+dias diferentes gerava endereços diferentes e passava inteira pelo filtro. Duas
+páginas idênticas competindo entre si, exatamente o que o filtro existia para
+impedir. (Caso real: *"O amor que morre de tédio"*, 24/06 e 25/06, corpo idêntico
+ao caractere.)
+
+Corrigido em `15525b91`: a chave passou a ser o **texto** (título + corpo,
+ignorando espaço e caixa), não o endereço. Textos diferentes sob o mesmo título
+continuam sendo dois artigos — é o caso de *"Ninguém te deve nada"*, que saiu
+reescrito em 24/06 e 08/07 e merece as duas páginas.
 
 ---
 
@@ -196,10 +209,12 @@ no computador do dono. A política de rede do ambiente bloqueia `vercel.com`,
 `api.vercel.com`, `google.com`, `search.google.com` e `instagram.com`; não há
 credencial da Vercel nem CLI instalada. Por isso:
 
-- a pendência do Search Console ficou para o dono
+- a pendência do Search Console ficou para o dono — **é a única que sobrou**
 - ~~o handle do Instagram não pôde ser conferido direto na fonte~~ — resolvido
   pela sessão local em 01/08, que abriu as duas contas no navegador
-- **o blog nunca foi testado contra o banco real** — esta continua de pé
+- ~~o blog nunca foi testado contra o banco real~~ — resolvido em 01/08, contra
+  o Neon de produção; achou um bug de duplicata que os dados de mentira não
+  revelavam
 
 A divisão que funcionou: a sessão da nuvem faz o código e os testes; a sessão
 local verifica o que só existe fora do repositório (navegador, banco, Vercel).
