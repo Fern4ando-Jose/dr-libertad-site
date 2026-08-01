@@ -123,7 +123,7 @@ const br: EstudoCopy = {
       "Não há data de lançamento — há um **marco**: o livro sai quando o campo fechar, por volta de **10 mil respostas** em cada idioma. O contador é a barra de progresso. Cada resposta aproxima o livro.",
     goalMetaLeft: "Coleta em andamento",
     goalMetaRight: (pct) => `${pct}% da meta`,
-    priorNote: (n) => `Inclui ${n} respostas já coletadas fora do site, na primeira rodada do estudo.`,
+    priorNote: (n) => `Inclui ${n} respostas do formulário anterior — a primeira rodada do estudo.`,
     cta: "Somar a minha resposta",
   },
   proposito: {
@@ -246,7 +246,7 @@ const es: EstudoCopy = {
       "No hay fecha de lanzamiento — hay un **hito**: el libro sale cuando el campo cierre, alrededor de **10 mil respuestas** en cada idioma. El contador es la barra de progreso. Cada respuesta acerca el libro.",
     goalMetaLeft: "Recolección en curso",
     goalMetaRight: (pct) => `${pct}% de la meta`,
-    priorNote: (n) => `Incluye ${n} respuestas ya recogidas fuera del sitio, en la primera ronda del estudio.`,
+    priorNote: (n) => `Incluye ${n} respuestas del formulario anterior — la primera ronda del estudio.`,
     cta: "Sumar mi respuesta",
   },
   proposito: {
