@@ -18,6 +18,8 @@ type EditorialPost = {
   permalink: string | null;
   body: string | null;
   publishedAt: string | null;
+  /** Página do artigo no site. Null quando o post não virou artigo publicável. */
+  href: string | null;
 };
 
 // Fallback estático — só aparece se a API e o banco estiverem indisponíveis.
@@ -26,19 +28,19 @@ const FALLBACK: EditorialPost[] = [
     id: "f1", issue: "ED. 01", kicker: "DOPAMINA",
     title: "VOCÊ NÃO ESTÁ CANSADO.", subtitle: "Você está saturado de estímulo.",
     tags: ["dopamine detox", "attention"], mood: "red",
-    image: null, video: null, permalink: null, body: null, publishedAt: null,
+    image: null, video: null, permalink: null, body: null, publishedAt: null, href: null,
   },
   {
     id: "f2", issue: "ED. 02", kicker: "ANSIEDADE",
     title: "O MEDO NÃO SOME.", subtitle: "Ele muda de forma quando você aprende a observar.",
     tags: ["modern anxiety", "self-awareness"], mood: "ink",
-    image: null, video: null, permalink: null, body: null, publishedAt: null,
+    image: null, video: null, permalink: null, body: null, publishedAt: null, href: null,
   },
   {
     id: "f3", issue: "ED. 03", kicker: "HÁBITO",
     title: "IMPULSO NÃO É ORDEM.", subtitle: "É informação. Você escolhe a resposta.",
     tags: ["psychology", "habits"], mood: "red",
-    image: null, video: null, permalink: null, body: null, publishedAt: null,
+    image: null, video: null, permalink: null, body: null, publishedAt: null, href: null,
   },
 ];
 
@@ -241,12 +243,27 @@ export default function EditorialGrid() {
                     {active.title}
                   </h3>
 
+                  {/* Página do artigo: além de ser um endereço que dá para
+                      compartilhar, é o que o Google indexa — o modal em si não
+                      existe para quem rastreia. */}
+                  {active.href && (
+                    <a
+                      href={active.href}
+                      className="mt-5 mr-3 inline-flex items-center gap-2 rounded-full bg-muted-red px-5 py-2.5 text-sm font-medium text-offwhite transition hover:bg-muted-red/85"
+                    >
+                      {t.gallery.readMore}
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14M13 6l6 6-6 6" />
+                      </svg>
+                    </a>
+                  )}
+
                   {active.permalink && (
                     <a
                       href={active.permalink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-5 inline-flex items-center gap-2 rounded-full bg-muted-red px-5 py-2.5 text-sm font-medium text-offwhite transition hover:bg-muted-red/85"
+                      className="mt-5 inline-flex items-center gap-2 rounded-full border border-warm-gray/25 px-5 py-2.5 text-sm font-medium text-warm-gray/90 transition hover:border-warm-gray/50 hover:text-offwhite"
                     >
                       {t.gallery.viewInstagram}
                       <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -334,11 +351,26 @@ function CoverCard({
   openLabel: string;
   brand: string;
 }) {
+  // Link de verdade quando o post virou artigo: e o que faz o rastreador
+  // encontrar o texto a partir da home. Para o LEITOR nada muda — o clique
+  // simples e interceptado e abre o modal, como antes. Ctrl/Cmd/clique do meio
+  // seguem sendo do navegador, entao "abrir em nova aba" continua funcionando.
+  const Wrapper = (card.href ? motion.a : motion.button) as typeof motion.button;
+  const wrapperProps = card.href
+    ? {
+        href: card.href,
+        onClick: (e: React.MouseEvent<HTMLElement>) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+          e.preventDefault();
+          onOpen();
+        },
+      }
+    : { type: "button" as const, onClick: onOpen };
+
   return (
-    <motion.button
-      type="button"
+    <Wrapper
+      {...wrapperProps}
       aria-label={`${openLabel} ${card.title}`}
-      onClick={onOpen}
       initial={{ opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.25 }}
@@ -391,7 +423,7 @@ function CoverCard({
           </div>
         </div>
       )}
-    </motion.button>
+    </Wrapper>
   );
 }
 

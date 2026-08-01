@@ -76,6 +76,7 @@ export type IndexableRoute = {
 export const ROUTES: IndexableRoute[] = [
   // Prefixadas por idioma
   { paths: { br: "/br", es: "/es" }, priority: 1, changeFrequency: "daily" },
+  { paths: { br: "/br/blog", es: "/es/blog" }, priority: 0.9, changeFrequency: "daily" },
   { paths: { br: "/br/livros", es: "/es/livros" }, priority: 0.9, changeFrequency: "weekly" },
   { paths: { br: "/br/dopamina", es: "/es/dopamina" }, priority: 0.9, changeFrequency: "weekly" },
   { paths: { br: "/br/autor", es: "/es/autor" }, priority: 0.8, changeFrequency: "monthly" },

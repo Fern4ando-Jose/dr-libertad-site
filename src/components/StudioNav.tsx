@@ -122,6 +122,12 @@ export default function StudioNav() {
           {/* O Teste (/[lang]/quiz) saiu da nav por decisão do dono (2026-07-29):
               a página continua no ar e é acessada por LINK DIRETO (campanha/DM),
               só não aparece mais no menu. */}
+          {/* O arquivo de artigos. Além de ser a porta de entrada do leitor, é
+              por este link que o rastreador chega aos textos: a grade da home
+              carrega os posts no navegador, então nada dela existe no HTML. */}
+          <a href={`${home}/blog`} className={linkCls}>
+            {t.blog.navLabel}
+          </a>
           <a href={`${home}/livros`} className={linkCls}>
             {t.nav.books}
           </a>
@@ -178,6 +184,9 @@ export default function StudioNav() {
                 {t.nav.study}
               </a>
               {/* Teste fora do menu também no celular — ver comentário na nav desktop. */}
+              <a href={`${home}/blog`} onClick={() => setOpen(false)} className={mobileItemCls}>
+                {t.blog.navLabel}
+              </a>
               <a href={`${home}/livros`} onClick={() => setOpen(false)} className={mobileItemCls}>
                 {t.nav.books}
               </a>
