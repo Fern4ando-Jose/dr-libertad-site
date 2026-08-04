@@ -16,8 +16,19 @@ describe("foreignTokens — espanhol vazando em conteúdo PT", () => {
     expect(hits).toContain("eres");
   });
 
-  it("pega 'cita' (encontro) do Reel clássico BR", () => {
-    expect(foreignTokens("na cita aparece outra pessoa", "br")).toContain("cita");
+  // "cita" SAIU da lista em 04/08/2026: em português é o verbo citar ("ele cita o
+  // autor") e aparecia 14× nos manuscritos — marcá-la bloquearia post legítimo. O
+  // vazamento REAL que este teste guardava é a frase inteira do tema espanhol, e
+  // ela continua sendo pega por "la", "haces" e "otra".
+  it("pega a frase do tema ES sobre encontros (sem depender de 'cita')", () => {
+    const leak = "En la foto haces match; en la cita aparece otra persona";
+    expect(foreignTokens(leak, "br")).toEqual(
+      expect.arrayContaining(["la", "haces", "otra"]),
+    );
+  });
+
+  it("NÃO marca 'cita' quando é o verbo citar em português", () => {
+    expect(foreignTokens("ele cita o estudo e some", "br")).toEqual([]);
   });
 
   it("pega a hashtag #MenteLibre (camelCase separado → 'libre')", () => {
@@ -148,5 +159,57 @@ describe("foreignTokens — A4: espanhol de alta frequência vazando no PT", () 
 
   it("NÃO marca ES legítimo com 'mejor/peor' (formas ES, não PT)", () => {
     expect(foreignTokens("es mejor que ayer, y menos peor", "es")).toEqual([]);
+  });
+});
+
+// ─── A5 (04/08/2026): o erro que o dono viu no feed ──────────────────────────
+// «Influência não absuelve:» foi ao ar em @dr.liberdade.br. A lista da época não
+// conhecia o verbo. Estas provas guardam o buraco fechado.
+describe("A5 — a mescla que chegou ao feed do Instagram", () => {
+  it("pega «Influência não absuelve:» exatamente como saiu no Reel", () => {
+    expect(foreignTokens("Influência não absuelve:", "br")).toContain("absuelve");
+  });
+
+  it("pega a família da ditongação espanhola (vuelve/resuelto/absuelva)", () => {
+    expect(foreignTokens("ele vuelve sempre", "br")).toContain("vuelve");
+    expect(foreignTokens("nada está resuelto", "br")).toContain("resuelto");
+    expect(foreignTokens("que ela absuelva você", "br")).toContain("absuelva");
+  });
+
+  it("pega palavra que ninguém listou, pela forma (-ble, -iendo, -arse, -aron, -tud)", () => {
+    expect(foreignTokens("isso é imposible", "br")).toContain("imposible");
+    expect(foreignTokens("continua viviendo a mentira", "br")).toContain("viviendo");
+    expect(foreignTokens("é hora de rendirse", "br")).toContain("rendirse");
+    expect(foreignTokens("eles hablaron demais", "br")).toContain("hablaron");
+    expect(foreignTokens("a juventud não volta", "br")).toContain("juventud");
+  });
+
+  it("título em CAIXA ALTA ainda é varrido — é onde o erro apareceu", () => {
+    expect(foreignTokens("INFLUÊNCIA NÃO ABSUELVE", "br")).toContain("absuelve");
+  });
+
+  it("nome próprio no meio da frase não é vazamento (Schüll, María)", () => {
+    expect(foreignTokens("a pesquisa de Natasha Schüll mostra o mesmo", "br")).toEqual([]);
+    expect(foreignTokens("foi o que María contou depois", "br")).toEqual([]);
+  });
+
+  it("termo de internet da marca não é vazamento (doomscrolling, stories, feed)", () => {
+    expect(foreignTokens("o doomscrolling rouba sua noite; saia do feed", "br")).toEqual([]);
+    expect(foreignTokens("pare de scroll infinito nos stories", "br")).toEqual([]);
+  });
+
+  it("português legítimo que a v1 marcava: houve, saía, papéis, silenciosa", () => {
+    expect(foreignTokens("houve um tempo em que os papéis bastavam", "br")).toEqual([]);
+    expect(foreignTokens("ele saía cedo e construía a própria jaula", "br")).toEqual([]);
+    expect(foreignTokens("a saída silenciosa é a mais cara", "br")).toEqual([]);
+    expect(foreignTokens("redirecione a atenção antes que ela funcione contra você", "br")).toEqual([]);
+  });
+
+  it("a NARRAÇÃO do Reel entra na varredura — é o áudio que todo mundo ouve", () => {
+    const hits = scanContentForeign(
+      { postTitle: "Influência não absolve", narration: "o ambiente te influye, mas não absuelve" },
+      "br",
+    );
+    expect(hits.map((h) => h.field)).toContain("narration");
   });
 });

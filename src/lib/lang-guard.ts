@@ -7,77 +7,60 @@
 // o CI, publica "com sucesso" — então nenhuma revisão de código o pegava. Esta trava
 // é o detector determinístico que faltava (regenera/bloqueia antes de ir pro feed).
 //
-// Projeto: ALTA PRECISÃO > recall. Só marca o que é INEQUÍVOCO do outro idioma
-// (palavra-função que não existe no idioma-alvo + morfologia exclusiva). Preferimos
-// DEIXAR PASSAR um vazamento sutil a BLOQUEAR um post legítimo (falso positivo =
-// vaga perdida). Função PURA → testável por invariante, sem rede.
+// ⛔ 04/08/2026 — ELA DEIXOU PASSAR "absuelve". O Reel BR foi ao ar com
+// «Influência não absuelve:» (o tema em espanhol é "El ambiente te influye, no te
+// absuelve"). A lista tinha ~150 palavras escolhidas caso a caso e não conhecia o
+// verbo. O dono viu no feed: *"como que passa um erro grotesco desse?"*.
+//
+// O conserto NÃO foi acrescentar uma palavra. Três mudanças de fundo:
+//  (1) as listas e os padrões saíram do código e viraram um ARQUIVO DE DADOS,
+//      `lang-dict.json` — o MESMO que todos os outros motores da casa usam (X,
+//      Threads, TikTok, LinkedIn, Pinterest, Facebook, YouTube, Um País de Merda,
+//      Guerra Invisível, esteiras de comentário). Nenhum deles tinha conferência
+//      de idioma até aquele dia: o defeito estava fechado em UM motor só.
+//  (2) o dicionário passou a ser medido contra o corpus REAL — 706 mil palavras
+//      dos manuscritos em português e 60 mil em espanhol — antes de entrar. Essa
+//      passada mostrou a trava marcando "houve", "saía", "papéis", "silenciosa",
+//      "doomscrolling" e o sobrenome "Schüll": nenhum é vazamento, e cada um teria
+//      custado uma vaga de publicação.
+//  (3) a varredura passou a incluir a NARRAÇÃO — o áudio do Reel. Uma palavra
+//      espanhola ali é ouvida por todo mundo e ninguém a conferia.
+//
+// FONTE ÚNICA e por que existe um espelho: o dono do arquivo é
+// `.claude/lib/idioma/dicionario-pureza.json`. O deploy da Vercel não enxerga
+// `.claude/`, então este projeto carrega uma cópia byte a byte em
+// `src/lib/lang-dict.json`. Quem garante que as duas são iguais é
+// `node .claude/lib/idioma/verificar-espelho.mjs`, que reprova se divergirem.
+// **Editar a lista aqui não adianta — edite a fonte única e espelhe.**
+//
+// Projeto: ALTA PRECISÃO > recall. Só marca o que é INEQUÍVOCO do outro idioma.
+// Preferimos DEIXAR PASSAR um vazamento sutil a BLOQUEAR um post legítimo.
+// Função PURA → testável por invariante, sem rede.
+
+import dict from "./lang-dict.json";
 
 export type Lang = "es" | "br";
 
-// Palavras INEQUÍVOCAS de cada idioma (jamais válidas no outro). Minúsculas, com
-// acento quando o têm. Curadas à mão p/ não colidir com o idioma-alvo:
-//  - excluídas de propósito por serem válidas em PT *e* ES: "no", "como", "para",
-//    "por", "que", "se", "esta", "este", "está", "nunca", "nada", "vez", "cada",
-//    "porque", "desde", "hasta"…
-const ES_WORDS = new Set([
-  "más", "muy", "pero", "también", "aunque", "entonces", "ahora", "hoy", "ayer",
-  "luego", "siempre", "eres", "soy", "estás", "hay", "hacia", "donde", "cuando",
-  "cuándo", "quién", "quien", "mismo", "misma", "mismos", "mismas", "mucho",
-  "muchos", "mucha", "muchas", "tiempo", "mujer", "mujeres", "ella", "ellos",
-  "ellas", "nosotros", "ustedes", "usted", "tú", "así", "aquí", "allí", "ahí",
-  "algún", "ningún", "alguien", "nadie", "cosa", "cosas", "puede", "puedes",
-  "libre", "móvil", "pantalla", "disfrutar", "disfruta", "disfrutas", "cita",
-  "sin", "con", "una", "uno", "unos", "unas", "los", "las", "del", "esto", "eso",
-  "esa", "ese", "es", "lo", "le", "les", "el", "la", "al",
-  // Família do funil comment→DM (vazou "el adelanto del libro" na legenda PT, ED 04):
-  // inequívocas em ES, inexistentes em PT (prévia/adiantamento, livro, mensagem).
-  "adelanto", "libro", "mensaje",
-  // A4 (auditoria 30/06): verbos/palavras ES de ALTA FREQUÊNCIA que vazavam no PT e
-  // NÃO existem em PT (BR usa outra raiz). Curadas p/ não colidir com PT (ex.: "querer"
-  // e "sentir" existem nos dois → FORA; só as formas ES-exclusivas entram).
-  "necesitas", "necesita", "necesito", "necesitamos",
-  "tienes", "tiene", "tengo", "tener", "tienen",
-  "hacer", "hace", "haces", "hago", "hacen",
-  "quieres", "quiere", "quiero", "quieren",
-  "dejar", "deja", "dejas", "dejó", "dejan",
-  "hablar", "habla", "hablas", "hablan",
-  "cambiar", "cambia", "cambias", "cambió", "cambian",
-  "duele", "duelen", "peor", "mejor", "mejores",
-  "otro", "otra", "otros", "otras",
-  "hombre", "hombres", "sólo", "sí",
-]);
+const ES_WORDS = new Set<string>(dict.es);
+const PT_WORDS = new Set<string>(dict.pt);
+const ES_PATTERNS: RegExp[] = dict.morfologia_es.map((re: string) => new RegExp(re, "u"));
+const PT_PATTERNS: RegExp[] = dict.morfologia_pt.map((re: string) => new RegExp(re, "u"));
 
-const PT_WORDS = new Set([
-  "você", "vocês", "não", "então", "agora", "hoje", "mais", "muito", "muitos",
-  "muita", "muitas", "aqui", "ali", "quem", "onde", "quando", "mulher", "ela",
-  "eles", "elas", "nós", "ter", "fazer", "dizer", "livre", "celular", "tela",
-  "aproveitar", "encontro", "sem", "com", "uma", "uns", "umas", "isso", "isto",
-  "essa", "esse", "é", "são",
-  // A4 (auditoria 30/06): PT-exclusivas (não válidas em ES) p/ pegar PT vazando no ES.
-  "porém", "também", "têm", "melhor", "pior",
-]);
+// Palavra SEM idioma — termo de internet que a marca usa ("doomscrolling",
+// "stories", "feed") e inglês corrente. O padrão do dígrafo "ll" marcava
+// scroll/skill/full como espanhol até a caça ao falso positivo pegar isso.
+const NEUTRAL = new Set<string>((dict as { neutras?: string[] }).neutras ?? []);
+// O espanhol escreve "inhibición"/"desinhibida" com n+h de prefixo — não é o
+// dígrafo português de "caminho". Só estas escapam do padrão (lh|nh).
+const PT_ESCAPES: RegExp[] = ((dict as { excecoes_pt?: string[] }).excecoes_pt ?? []).map(
+  (re: string) => new RegExp(re, "u"),
+);
 
-// Morfologia EXCLUSIVA (sufixos/grafias que só existem num idioma). Aplicada por
-// PALAVRA inteira (já tokenizada), case-insensitive.
-const ES_PATTERNS: RegExp[] = [
-  /^.+ciones?$/, // traición, validación, opciones
-  /^.+(dad|tad)$/, // libertad, verdad, lealtad, realidad  (PT termina em -dade)
-  /^.+miento$/, // aburrimiento, pensamiento  (PT -mento)
-  /^.+ón$/, // corazón, razón, opción  (PT -ão)
-  /ñ/, // mañana, niño
-];
-const PT_PATTERNS: RegExp[] = [
-  /^.+ç(ão|ões)$/, // coração, opções
-  /^.+dade$/, // liberdade, verdade  (ES termina em -dad/-tad)
-  /[ãõ]/, // não, então, opções
-  /(lh|nh)/, // trabalho, caminho  (ES usa ll/ñ)
-];
-
-function targetSets(lang: Lang): { words: Set<string>; patterns: RegExp[] } {
+function targetSets(lang: Lang): { words: Set<string>; patterns: RegExp[]; escapes: RegExp[] } {
   // lang = idioma do conteúdo → procuramos marcadores do idioma OPOSTO.
   return lang === "br"
-    ? { words: ES_WORDS, patterns: ES_PATTERNS }
-    : { words: PT_WORDS, patterns: PT_PATTERNS };
+    ? { words: ES_WORDS, patterns: ES_PATTERNS, escapes: [] }
+    : { words: PT_WORDS, patterns: PT_PATTERNS, escapes: PT_ESCAPES };
 }
 
 // Quebra um texto em palavras preservando acento (Unicode). Hashtags em camelCase
@@ -90,12 +73,39 @@ function tokenize(text: string): string[] {
   return split.match(/[\p{L}]+/gu) ?? [];
 }
 
+/**
+ * NOME PRÓPRIO NÃO TEM IDIOMA. "María", "Sofía", "León" e o sobrenome "Schüll"
+ * (a autora citada em *I Love Dopamina*) eram marcados como espanhol vazando.
+ * A assinatura de nome próprio é a maiúscula NO MEIO da frase.
+ *
+ * Salvaguarda: título de capa costuma vir TODO EM MAIÚSCULAS — ali a pista não
+ * distingue nada (tudo pareceria nome próprio) e a regra se desliga, senão a
+ * trava ficaria cega justo na capa, que é onde o erro de 04/08 apareceu.
+ */
+function properNouns(text: string): Set<string> {
+  const letters = text.match(/\p{L}/gu) ?? [];
+  const uppers = text.match(/\p{Lu}/gu) ?? [];
+  if (letters.length && uppers.length / letters.length > 0.6) return new Set();
+
+  const names = new Set<string>();
+  for (const sentence of text.split(/[.!?:;\n–—]+/)) {
+    const words = sentence.trim().match(/[\p{L}]+/gu) ?? [];
+    for (let i = 1; i < words.length; i++) {
+      if (/^\p{Lu}[\p{Ll}]+$/u.test(words[i])) names.add(words[i].toLowerCase());
+    }
+  }
+  return names;
+}
+
 /** Palavras do idioma OPOSTO encontradas no texto (vazio = limpo). */
 export function foreignTokens(text: string, lang: Lang): string[] {
   if (!text) return [];
-  const { words, patterns } = targetSets(lang);
+  const { words, patterns, escapes } = targetSets(lang);
+  const names = properNouns(text);
   const hits: string[] = [];
   for (const tok of tokenize(text)) {
+    if (NEUTRAL.has(tok) || names.has(tok)) continue;
+    if (escapes.some((re) => re.test(tok))) continue;
     if (words.has(tok) || patterns.some((re) => re.test(tok))) hits.push(tok);
   }
   return [...new Set(hits)];
@@ -107,6 +117,7 @@ export interface ForeignContent {
   cta?: string;
   instagramCaption?: string;
   tags?: string[];
+  narration?: string;
   // postBody (artigo do site, não vai pro IG/Reel) é DE PROPÓSITO ignorado:
   // texto longo = mais risco de falso positivo, e não renderiza no feed/vídeo.
 }
@@ -118,8 +129,8 @@ export interface ForeignHit {
 
 /**
  * Varre os campos que REALMENTE renderizam no IG + Reel (título, slides, cta,
- * legenda, hashtags) procurando vazamento do outro idioma. Retorna a lista de
- * ocorrências (vazia = conteúdo puro no idioma-alvo).
+ * legenda, hashtags e a NARRAÇÃO falada) procurando vazamento do outro idioma.
+ * Retorna a lista de ocorrências (vazia = conteúdo puro no idioma-alvo).
  */
 export function scanContentForeign(content: ForeignContent, lang: Lang): ForeignHit[] {
   const hits: ForeignHit[] = [];
@@ -132,6 +143,7 @@ export function scanContentForeign(content: ForeignContent, lang: Lang): Foreign
   add("cta", content.cta);
   add("instagramCaption", content.instagramCaption);
   add("tags", (content.tags ?? []).join(" "));
+  add("narration", content.narration);
   return hits;
 }
 

@@ -35,7 +35,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { loadFont as loadFraunces } from "@remotion/google-fonts/Fraunces";
-import { Scene, reelDefaultProps, type ReelProps, FPS } from "./Reel";
+import { Scene, reelDefaultProps, type ReelProps, FPS, CAT_ACCENT } from "./Reel";
 import { normalizePhrase } from "../src/lib/slide-dedup";
 // Import RELATIVO (não `@/…`) p/ o webpack do Remotion resolver no bundle do render.
 // `narration-sync` é PURO (sem next/db), seguro no bundle — mesma regra do slide-dedup.
@@ -53,18 +53,24 @@ const { fontFamily: FRAUNCES } = loadFraunces();
 const PAPER = "#F4F0E8";
 const WHITE = "#ffffff";
 const RED = "#A45A5A";
-// Acento ÚNICO travado pelo dono 2026-07-14 (DIRECAO-CAPAS): "grafite editorial
-// quente sobre creme, um único acento vinho #A45A5A". Os 6 acentos por categoria
-// MORRERAM — mono torna a divergência de marca tecnicamente impossível. Mapa
-// mantido (mesma forma/tipo) mas todas as entradas apontam para o acento único.
-const CAT_ACCENT: Record<string, string> = {
-  freedom: "#A45A5A",
-  dopamine: "#A45A5A",
-  anxiety: "#A45A5A",
-  network: "#A45A5A",
-  self: "#A45A5A",
-  mind: "#A45A5A",
-};
+// ⛔ 04/08/2026 — ESTE MAPA ESTAVA PRESO NA FASE QUE O DONO REPROVOU.
+//
+// Em 14/07 travou-se um acento ÚNICO vinho, junto com a direção "grafite editorial
+// sobre creme". Em **15/07 o dono REPROVOU essa direção inteira** e mandou restaurar
+// a cinematográfica — e com ela **os 6 acentos por categoria**, porque a variação de
+// cor nunca foi o problema (a Nº 228 que ele ama é dourada). A reversão chegou à
+// ilustração, ao carrossel e ao `Reel.tsx` clássico; **não chegou aqui** — e o
+// `ReelV2` é o motor de PRODUÇÃO dos Reels. Ou seja: por vinte dias todo Reel saiu
+// com a cor da fase reprovada. É parte do que ele viu no feed em 04/08 ao dizer
+// *"as capas estão horríveis, eu já havia determinado as capas"*.
+//
+// Agora o mapa não é mais copiado: vem de `Reel.tsx`, que já tinha a separação certa
+// (achado do designer-criativos, 16/07) — **wash sobre footage** continua sempre
+// vinho (os 6 matizes sobre pele real davam tom doentio) e **UI plana** (régua,
+// kicker, palavra em destaque) usa o acento do pilar. Cópia de regra diverge; esta
+// divergiu por vinte dias sem ninguém ver.
+// Fonte da direção: .claude/marca/dr-libertad/DIRECAO-CAPAS.md
+// (o mapa vem do import de `./Reel` no topo deste arquivo)
 const SAFE_TOP = 340;
 const SAFE_BOTTOM_TEXT = 420;
 const SAFE_BOTTOM_HANDLE = 300;
@@ -260,24 +266,40 @@ function pickCoverAccent(title: string, kw: string): string {
 }
 
 // ─── Capa V2: gancho cinético + IDENTIDADE DE MARCA (cor, kicker, movimento) ───
-// Antes a capa era "morta": título branco embaixo + "Nº" no topo (ruído p/ quem
-// chega frio). Agora: kicker da marca em ACENTO no topo, gancho que entra palavra
-// a palavra com a palavra-chave na cor da marca, fundo com glow do acento. Frame 0
-// segue limpo (o texto entra no play ~0,1s) — respeita a capa-de-grid sem título.
-function CoverTextV2({ title, accent, brand, handle, kw, wordFrames }: { title: string; accent: string; brand: string; handle: string; kw: string; wordFrames?: number[] }) {
+// A capa "morta" (título branco embaixo, sem vida) foi substituída por: kicker da
+// marca em ACENTO no topo, gancho que entra palavra a palavra com a palavra-chave
+// na cor da marca, fundo com glow do acento.
+//
+// ⛔ 04/08/2026 — O QUE MUDOU, E POR QUÊ. Até aqui o frame 0 ficava LIMPO de
+// propósito ("respeita a capa-de-grid sem título") e o "Nº" tinha sido tirado do
+// topo por ser "ruído p/ quem chega frio". As duas decisões juntas produziram, no
+// perfil, exatamente o que o dono chamou de horrível: como o Instagram usa o frame
+// 0 como capa do grid, cada Reel aparecia no perfil como uma FOTO DE BANCO crua —
+// sem marca, sem número, sem nada. É contra a direção que ele mesmo travou:
+// `DIRECAO-CAPAS.md` manda "DR. LIBERDADE · Nº XXX no topo + @handle na base" e
+// põe "footage do Pexels na capa" na lista do que MORRE.
+//
+// Conserto, sem perder a retenção que o gancho cinético trouxe:
+//   • o kicker agora traz o **Nº da edição** (âncora de coleção da direção) e nasce
+//     JÁ VISÍVEL no frame 0 — quem cai no vídeo vê a marca de cara;
+//   • o gancho continua entrando palavra a palavra (nada de "vão" parado);
+//   • a capa do GRID deixa de ser o frame 0 cru: `publish-reel` passa a mandar
+//     `thumb_offset` no fim da capa, quando o título já está inteiro.
+function CoverTextV2({ title, accent, brand, handle, kw, ed, wordFrames }: { title: string; accent: string; brand: string; handle: string; kw: string; ed?: string; wordFrames?: number[] }) {
   const frame = useCurrentFrame();
   const coverAccent = pickCoverAccent(title, kw);
-  const kickerO = interpolate(frame, [1, 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const barW = interpolate(frame, [2, 14], [0, 96], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // Nasce em 1 (não em 0): a identidade tem de estar no primeiro quadro.
+  const kickerO = 1;
+  const barW = interpolate(frame, [0, 12], [42, 96], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <AbsoluteFill>
       {/* Glow do acento atrás do texto → tira o "morto", dá profundidade de marca */}
       <AbsoluteFill style={{ background: `radial-gradient(60% 38% at 26% 78%, ${accent}38 0%, rgba(0,0,0,0) 70%)` }} />
-      {/* Kicker da marca no topo, EM COR DE ACENTO (identidade sem o "Nº") */}
+      {/* Kicker da marca no topo, EM COR DE ACENTO, com o Nº da edição (DIRECAO-CAPAS) */}
       <div style={{ position: "absolute", top: SAFE_TOP, left: 90, display: "flex", alignItems: "center", gap: 22, opacity: kickerO }}>
         <div style={{ width: barW, height: 7, backgroundColor: accent, borderRadius: 4 }} />
         <div style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 700, letterSpacing: 5, color: accent }}>
-          {brand.toUpperCase()}
+          {ed ? `${brand.toUpperCase()} · Nº ${ed}` : brand.toUpperCase()}
         </div>
       </div>
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: `0 90px ${SAFE_BOTTOM_TEXT}px` }}>
@@ -384,7 +406,7 @@ function FunnelCardV2({ cover, keyword, action, note, handle }: { cover?: string
 // ─── Composição V2 ─────────────────────────────────────────────────────────────
 export const ReelV2: React.FC<ReelProps> = (props) => {
   const {
-    title, slides, accentWords, cta, kw, img, clips, clip, music, narrationUrl, cat, funnel,
+    title, slides, accentWords, cta, kw, ed, img, clips, clip, music, narrationUrl, cat, funnel,
     handle = "@dr.liberdad", brand = "Dr. Libertad", ctaFollow = "Sigue", ctaBio = "→ Más en el link de la bio",
   } = props;
   const accent = CAT_ACCENT[cat ?? "freedom"] ?? RED;
@@ -416,7 +438,7 @@ export const ReelV2: React.FC<ReelProps> = (props) => {
     <AbsoluteFill style={{ backgroundColor: "#0B0B0C" }}>
       <Sequence from={COVER_S.fromFrame} durationInFrames={COVER_S.durationInFrames}>
         <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER_S.durationInFrames} cat={cat}>
-          <CoverTextV2 title={title} accent={accent} brand={brand} handle={handle} kw={kw} wordFrames={wordFrames[0]} />
+          <CoverTextV2 title={title} accent={accent} brand={brand} handle={handle} kw={kw} ed={ed} wordFrames={wordFrames[0]} />
         </Scene>
       </Sequence>
 

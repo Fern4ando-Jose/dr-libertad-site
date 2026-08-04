@@ -48,10 +48,27 @@ async function publishReel(videoUrl: string, caption: string, lang: Lang = "es")
   }
 
   // 1. Criar container do reel
-  // Capa = frame 0 (footage, SEM título por cima) — preferência do dono pelo visual
-  // limpo. NÃO definir thumb_offset (tentamos 2000ms p/ mostrar o título, revertido:
-  // o dono não quis o título na capa). Se um clipe sair escuro demais na capa, tratar
-  // no FOOTAGE (clipe/seleção), não forçando um frame com texto.
+  //
+  // ⛔ A CAPA DO PERFIL — 04/08/2026, ordem do dono olhando o próprio feed:
+  // *"as capas estão horríveis, eu já havia determinado as capas. Eu não provei
+  // esse tipo de capa."*
+  //
+  // Sem `thumb_offset`, o Instagram usa o PRIMEIRO QUADRO do vídeo como capa do
+  // grid. E o primeiro quadro era, de propósito, footage cru — sem marca, sem
+  // número, sem título. Resultado no perfil: uma parede de fotos de banco
+  // aleatórias (um rosto, um pôr do sol, um caderno), nenhuma parecendo da marca.
+  // Isso contraria a direção que o próprio dono travou em `DIRECAO-CAPAS.md`, que
+  // manda "DR. LIBERDADE · Nº XXX no topo + @handle na base" e lista "footage do
+  // Pexels na capa" entre as coisas que MORREM.
+  //
+  // Houve uma tentativa antiga (PR #36, 2000 ms) revertida na #37 como "o dono
+  // prefere o visual limpo". A palavra dele agora é a oposta, e é a que vale.
+  //
+  // O valor: a capa do ReelV2 dura 3,0 s (`reelDurationsV2`) e o gancho entra
+  // palavra a palavra nos primeiros ~0,5 s. Em 2,4 s o título está inteiro, o
+  // kicker com o Nº está no topo e o @ na base — e ainda sobra margem de 0,6 s
+  // para não cair no primeiro insight se o plano de tempos mudar.
+  const THUMB_OFFSET_MS = 2400;
   const createRes = await fetch(`${base}/media`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -59,6 +76,7 @@ async function publishReel(videoUrl: string, caption: string, lang: Lang = "es")
       media_type: "REELS",
       video_url: videoUrl,
       caption: safeCaption,
+      thumb_offset: THUMB_OFFSET_MS,
       access_token: token,
     }),
   });
