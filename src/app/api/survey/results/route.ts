@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aggregate, toCsv, type SurveyRow } from "@/lib/survey-aggregate";
 import { normalizeCountry, normalizeSource } from "@/lib/survey-source";
+import { optionLabel, orderedValues, questionText, screenTitle } from "@/lib/survey-labels";
 
 // ─── GET /api/survey/results — leitura do painel (/admin/pesquisa) ───────────
 // Devolve TUDO que o dono precisa para acompanhar a pesquisa: totais, série por
@@ -158,6 +159,14 @@ export async function GET(req: NextRequest) {
   }
 
   const agg = aggregate(filtered);
+  // `labels` existe para quem LÊ esta rota de fora do site (a página do painel
+  // local, e a aba dentro do painel-adm). O painel do site importa
+  // `survey-labels` direto; um cliente de fora não tem como — e sem os rótulos
+  // ele só mostraria o código cru do banco ("as_vezes", "q17"), que não serve
+  // para ler resposta de gente. Os dois idiomas vão juntos porque a mesma tela
+  // mistura respostas BR e ES. Fonte única: os textos continuam morando em
+  // `survey.content.ts`; aqui só se copia na saída, nunca se reescreve.
+  const labels = buildLabels(agg.questions.map((q) => q.id));
   // `latest` traz a resposta INTEIRA (é como o dono confere a resposta-teste dele).
   const latest = filtered.slice(0, LATEST_LIMIT).map((r) => ({
     id: r.id,
@@ -170,7 +179,28 @@ export async function GET(req: NextRequest) {
   }));
 
   return NextResponse.json(
-    { ok: true, ready: true, window: { days }, lang: langFilter, country: countryFilter, ...agg, latest },
+    { ok: true, ready: true, window: { days }, lang: langFilter, country: countryFilter, ...agg, latest, labels },
     { headers: { ...CORS, "cache-control": "no-store" } }
   );
+}
+
+type LabelPack = {
+  questions: Record<string, { text: string; screen: string }>;
+  options: Record<string, Record<string, string>>;
+};
+
+/** Texto humano de cada pergunta e de cada opção, nos dois idiomas. */
+function buildLabels(ids: string[]): Record<"br" | "es", LabelPack> {
+  const pack = (lang: "br" | "es"): LabelPack => ({
+    questions: Object.fromEntries(
+      ids.map((id) => [id, { text: questionText(id, lang), screen: screenTitle(id, lang) }])
+    ),
+    options: Object.fromEntries(
+      ids.map((id) => [
+        id,
+        Object.fromEntries(orderedValues(id).map((v) => [v, optionLabel(id, v, lang)])),
+      ])
+    ),
+  });
+  return { br: pack("br"), es: pack("es") };
 }

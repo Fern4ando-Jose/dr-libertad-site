@@ -121,8 +121,15 @@
       <table id="sources"></table>
     </div>
 
+    <div class="card mt" id="storyCard">
+      <div class="kicker">Histórias — o que as pessoas escreveram</div>
+      <p class="small muted" style="margin-top:6px">É daqui que sai material para o livro. Texto inteiro, como a pessoa escreveu.</p>
+      <div id="stories"></div>
+    </div>
+
     <div class="mt">
-      <div class="kicker">Últimas respostas</div>
+      <div class="kicker">Últimas respostas — inteiras</div>
+      <p class="small muted" style="margin-top:6px">Clique numa resposta para abrir as 24 perguntas com o que a pessoa marcou.</p>
       <div id="latest"></div>
     </div>
 
@@ -161,6 +168,21 @@ function flag(cc) {
 }
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const srcKey = (s) => { const p = [s?.s, s?.m, s?.c, s?.n].filter(Boolean); return p.length ? p.join(" / ") : "direto"; };
+
+// ── Código do banco → texto que se lê ────────────────────────────────────────
+// O banco guarda código estável ("as_vezes", "pnr") para BR e ES serem
+// comparáveis; os textos moram no site e vêm no campo `labels` da resposta.
+// Sem eles, esta tela mostraria o código cru — por isso o fallback devolve o
+// próprio código em vez de esconder a resposta.
+let LABELS = null;
+const pergunta = (id, lang) => LABELS?.[lang]?.questions?.[id]?.text || LABELS?.br?.questions?.[id]?.text || id;
+function resposta(id, val, lang) {
+  const mapa = LABELS?.[lang]?.options?.[id] || LABELS?.br?.options?.[id] || {};
+  const um = (v) => mapa[v] ?? String(v);
+  if (Array.isArray(val)) return val.map(um).join(" · ");
+  if (val === null || val === undefined || val === "") return "—";
+  return um(val);
+}
 
 function show() {
   $("gate").style.display = token ? "none" : "block";
@@ -223,6 +245,7 @@ async function load() {
 }
 
 function render(d) {
+  LABELS = d.labels || LABELS;
   const t = d.totals;
   const on = t.total > 0;
   $("status").className = "card" + (on ? " ok" : "");
@@ -262,15 +285,45 @@ function render(d) {
     "<tr><td class='mono'>" + esc(s.key) + "</td>" +
     '<td class="num muted">' + s.br + '</td><td class="num muted">' + s.es + '</td><td class="num">' + s.total + "</td></tr>").join("");
 
-  $("latest").innerHTML = d.latest.map((r) =>
-    '<div class="resp"><div class="head">' +
-      '<span class="tag">' + r.lang.toUpperCase() + "</span>" +
+  // ── As HISTÓRIAS ────────────────────────────────────────────────────────────
+  // O que a pessoa ESCREVEU, não o que ela marcou. É o material do livro, então
+  // vem inteiro, sem corte e sem resumo — só agrupado pela pergunta que provocou.
+  const abertas = (d.questions || []).filter((q) => q.kind === "open" && (q.open || []).length);
+  $("storyCard").style.display = abertas.length ? "block" : "none";
+  $("stories").innerHTML = abertas.map((q) =>
+    '<div style="margin-top:18px">' +
+      '<div class="small muted">' + q.number + ". " + esc(pergunta(q.id, "br")) + "</div>" +
+      q.open.map((o) =>
+        '<div class="resp"><div class="head">' +
+          '<span class="tag">' + String(o.lang || "br").toUpperCase() + "</span>" +
+          "<span class='muted'>#" + o.id + "</span>" +
+          "<span class='muted'>" + fmtDT(o.created_at) + "</span>" +
+        "</div>" +
+        '<p style="margin-top:8px;line-height:1.6;white-space:pre-wrap">' + esc(o.text) + "</p></div>"
+      ).join("") +
+    "</div>").join("");
+
+  // ── As respostas INTEIRAS ───────────────────────────────────────────────────
+  // Fechadas por padrão (5 respostas × 24 perguntas viram uma parede de texto);
+  // abre a que interessar. O rótulo humano vem do próprio site (campo `labels`),
+  // senão a tela mostraria o código do banco — "as_vezes", "q17" — que não se lê.
+  $("latest").innerHTML = d.latest.map((r) => {
+    const lang = r.lang === "es" ? "es" : "br";
+    const itens = Object.entries(r.answers || {}).map(([qid, val]) =>
+      '<div style="margin-top:12px">' +
+        '<div class="small muted">' + esc(pergunta(qid, lang)) + "</div>" +
+        '<div style="margin-top:3px;line-height:1.55;white-space:pre-wrap">' + esc(resposta(qid, val, lang)) + "</div>" +
+      "</div>").join("");
+    return '<details class="resp"><summary class="head" style="cursor:pointer;list-style:none">' +
+      '<span class="tag">' + lang.toUpperCase() + "</span>" +
       "<span class='muted'>#" + r.id + "</span>" +
       "<span class='muted'>" + fmtDT(r.created_at) + "</span>" +
       "<span class='muted'>" + flag(r.country) + " " + esc(r.country || "??") + "</span>" +
       "<span class='mono'>" + esc(srcKey(r.source)) + "</span>" +
       (r.email ? "<span class='muted small'>✉ " + esc(r.email) + "</span>" : "") +
-    "</div></div>").join("") || '<p class="small muted" style="margin-top:10px">Nada nesta janela.</p>';
+      "<span class='muted small'>▾ ver as respostas</span>" +
+    "</summary>" + itens + "</details>";
+  }).join("") || '<p class="small muted" style="margin-top:10px">Nada nesta janela.</p>';
 }
 
 show();
