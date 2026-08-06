@@ -102,8 +102,18 @@ export interface SpendEntry {
   meta?: Record<string, unknown>;
 }
 
+// ⛔ ESTE `catch` JÁ FOI MUDO — e foi assim que 40% do gasto sumiu (medido 2026-08-05).
+// Comparando o que a fal diz ter recebido com o que estava aqui, no mesmo período:
+// imagem 14×14 (certo), MiniMax 6×6 (certo), mas **ElevenLabs 15 chamadas × 6 registradas**.
+// A chamada acontecia, o INSERT falhava (banco lento/indisponível) e o `catch {}` engolia:
+// o dinheiro saía e não ficava rastro nenhum. Pior que não medir é achar que se mede —
+// todo teto da casa é calculado em cima desta tabela, então o freio deixava passar 40% a mais.
+// Agora: tenta de novo uma vez, e se ainda falhar GRITA no registro do servidor (nunca cala).
+// Continua sem derrubar o pipeline (o gasto já aconteceu; travar aqui só perderia a peça).
+// A rede de segurança de fora mora no workspace, não neste repo: `.claude/gastos/conferir-fal.mjs`
+// (roda todo dia às 9h) compara a QUEDA DE SALDO da conta da fal com o que esta tabela somou.
 export async function logSpend(entry: SpendEntry): Promise<void> {
-  try {
+  const gravar = async () => {
     const { sql } = await import("@vercel/postgres");
     await sql`
       INSERT INTO spend_log (automation, platform, operation, model, units, cost_usd, meta)
@@ -113,7 +123,22 @@ export async function logSpend(entry: SpendEntry): Promise<void> {
         ${JSON.stringify(entry.meta ?? {})}::jsonb
       )
     `;
-  } catch { /* fail-open: nunca quebra o pipeline por causa do log */ }
+  };
+  try {
+    await gravar();
+  } catch (e1) {
+    try {
+      await new Promise((r) => setTimeout(r, 400));
+      await gravar();
+      console.warn(`[spend] registro gravado só na 2ª tentativa (${entry.platform}/${entry.operation})`);
+    } catch (e2) {
+      // Última linha: o gasto FICA VISÍVEL no registro do servidor mesmo sem banco.
+      console.error(
+        `[spend] GASTO NÃO REGISTRADO — US$ ${entry.costUsd} · ${entry.automation} · ${entry.platform}/${entry.operation} · ${entry.model ?? "?"} · units=${entry.units ?? 0} · ` +
+          `erro1=${e1 instanceof Error ? e1.message : String(e1)} · erro2=${e2 instanceof Error ? e2.message : String(e2)}`
+      );
+    }
+  }
 }
 
 // ─── Teto por automação ───────────────────────────────────────────────────────
