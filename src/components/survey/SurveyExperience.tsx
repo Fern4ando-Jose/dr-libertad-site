@@ -31,6 +31,19 @@ const QUESTION_NUMBER: Record<string, number> = (() => {
   return map;
 })();
 
+// Sobe ao topo ao trocar de tela. Era `behavior: "smooth"` — e rolagem suave é
+// CANCELADA pelo navegador ao primeiro toque de roda/trackpad, deixando a tela nova
+// no meio (queixa do dono 2026-08-05: "não sobe pra primeira linha, fica no e-mail;
+// no computador está desconfigurado"). Instantâneo não tem esse buraco. O site roda
+// o Lenis (rolagem suave global): quando ele existe, quem manda é ele — `scrollTo`
+// nativo pode ser desfeito no quadro seguinte pela posição que o Lenis guarda.
+function subirAoTopo() {
+  if (typeof window === "undefined") return;
+  const lenis = (window as unknown as { __lenis?: { scrollTo: (y: number, o?: { immediate?: boolean }) => void } }).__lenis;
+  if (lenis?.scrollTo) lenis.scrollTo(0, { immediate: true });
+  else window.scrollTo(0, 0);
+}
+
 function CheckIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
@@ -91,7 +104,7 @@ export default function SurveyExperience({ lang }: { lang: Lang }) {
   function goTo(next: number) {
     setSubmitError(false);
     setStep(next);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    subirAoTopo();
   }
 
   async function submit() {

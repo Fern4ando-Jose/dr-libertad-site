@@ -25,5 +25,9 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  // `Arquivo-Midia/` é o DEPÓSITO de mídia/resgate da casa (regra de higiene do
+  // workspace), não código do site: não é rastreado no git e o CI nunca o vê.
+  // Sem esta linha, um resgate antigo lá dentro reprovava a conferência LOCAL de
+  // todo mundo — e a trava de commit é fail-closed, então ninguém publicava.
+  "exclude": ["node_modules", "Arquivo-Midia"]
 }
