@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { isAllowedFetchUrl } from "@/lib/safe-fetch";
 import { isRateLimited } from "@/lib/rate-limit";
 import { loadFraunces } from "@/lib/og-font";
+import { loadAnton } from "@/lib/og-font-anton";
 
 export const runtime = "edge";
 
@@ -39,6 +40,9 @@ const PAD = Math.round(28 * F);
 
 // ─── Tamanho da fonte do título ───────────────────────────────────────────────
 const SERIF = '"Fraunces", ui-serif, Georgia, serif';
+// A FRASE da peça — condensada, sem serifa. É um dos 5 atributos que a régua da casa manda
+// copiar da referência (BIBLIOTECA-FORMATOS §2.1). A serifa fica na ASSINATURA.
+const SANS = '"Anton", ui-sans-serif, system-ui, sans-serif';
 
 // ESCALA (subida 2026-08-09, medida — não opinada): a capa publicada em 09/08 ocupava
 // **76% da largura**; as 10 contas de referência ficam entre **85% e 95%**. Margem grande
@@ -587,14 +591,23 @@ function CoverSlide({ title, issue, cat, motif, seed, img, lang }: {
             // «eu tenho / direito a dizer». A virada da frase (o que vem depois do ponto-e-
             // vírgula, do travessão ou da vírgula que separa a antítese) é o GOLPE da voz e
             // ganha linha própria. 5 linhas em vez de 4: a escala subiu, então cabe mais.
+            // O GOLPE GANHA A COR (2026-08-09, bronca do dono "cores sem destaque"): a capa
+            // saía creme do começo ao fim, sem um ponto de realce. Quando a frase tem virada,
+            // a SEGUNDA parte — a antítese, onde a voz dobra — sai no acento da marca. Frase
+            // sem virada continua toda em creme: destaque em tudo é destaque em nada.
             <div style={{
-              fontFamily: SERIF, fontSize: fitTitleFill(coverTitle, W - 2 * M, 5, 210, Math.round(H * 0.46)), lineHeight: 1.02,
-              letterSpacing: "-0.03em", color: OFFWHITE, maxWidth: W - 2 * M, display: "flex",
+              fontFamily: SANS, fontSize: fitTitleFill(coverTitle, W - 2 * M, 5, 210, Math.round(H * 0.46)), lineHeight: 1.04,
+              letterSpacing: "0", color: OFFWHITE, maxWidth: W - 2 * M, display: "flex",
               flexDirection: "column", marginBottom: 34, textShadow: "0 2px 28px rgba(11,11,12,0.95)",
             }}>
-              {quebrarPorSentido(coverTitle).map((linha, i) => (
-                <span key={i} style={{ display: "flex" }}>{linha}</span>
-              ))}
+              {(() => {
+                const partes = quebrarPorSentido(coverTitle);
+                return partes.map((linha, i) => (
+                  <span key={i} style={{ display: "flex", color: partes.length > 1 && i === partes.length - 1 ? c.accent : OFFWHITE }}>
+                    {linha.toUpperCase()}
+                  </span>
+                ));
+              })()}
             </div>
           ) : null}
           <span style={{ fontFamily: SERIF, fontSize: 34, letterSpacing: "0.06em", color: rgba("#F4F0E8", 0.9), display: "flex" }}>
@@ -636,7 +649,7 @@ function InsightSlide({ text, num, total, kw, issue, cat, motif, seed, lang }: {
         <span style={{ fontFamily: SERIF, fontSize: 132, lineHeight: 0.8, letterSpacing: "-0.04em", color: rgba(c.accent, 0.92), marginBottom: 18, display: "flex" }}>
           {String(num).padStart(2, "0")}
         </span>
-        <div style={{ fontFamily: SERIF, fontSize: fitTitleSize(mainText, W - 2 * M), lineHeight: 0.96, letterSpacing: "-0.03em", color: OFFWHITE, maxWidth: W - 2 * M, display: "flex" }}>
+        <div style={{ fontFamily: SANS, fontSize: fitTitleFill(mainText, W - 2 * M, 4, 190, Math.round(H * 0.40)), lineHeight: 1.02, letterSpacing: "0", color: OFFWHITE, maxWidth: W - 2 * M, display: "flex" }}>
           {mainText.toUpperCase()}
         </div>
         {subText ? (
@@ -893,7 +906,14 @@ export async function GET(req: NextRequest) {
       node = <CoverSlide title={title} kw={kw} issue={issue} mood={mood} cat={cat} motif={motif} total={total} seed={seed} img={img} lang={lang} />;
     }
 
-    const fonts = [{ name: "Fraunces", data: fontBold, weight: 700 as const, style: "normal" as const }];
+    // DUAS FAMÍLIAS, PAPÉIS SEPARADOS (2026-08-09): Anton condensada na FRASE (o que a
+    // régua da casa chama de "letra sem serifa, limpa"), Fraunces na ASSINATURA — nome da
+    // marca, número da edição, @handle. Serifa no nome + condensada na frase é o contraste
+    // que a referência usa; duas famílias parecidas brigariam e nenhuma venceria.
+    const fonts = [
+      { name: "Fraunces", data: fontBold, weight: 700 as const, style: "normal" as const },
+      { name: "Anton", data: loadAnton(), weight: 400 as const, style: "normal" as const },
+    ];
 
     // og é determinístico por URL → o Instagram pode reusar o fetch (e reduz cold starts).
     const headers: Record<string, string> = {
