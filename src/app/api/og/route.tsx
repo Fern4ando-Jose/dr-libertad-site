@@ -484,13 +484,20 @@ function Footer({ left, accent, dark, num, total }: {
 // onde vive o sujeito, fica LIMPO). A arte já é 4:5 (= 1080×1350) e o enquadramento é FIXO
 // (figura grande/centralizada) → o full-bleed NÃO corta o sujeito. Fundo INK cobre qualquer
 // folga (nunca creme). Sem ilustração → motivo abstrato escuro (fail-open).
-function CoverSlide({ issue, cat, motif, seed, img, lang }: {
+function CoverSlide({ title, issue, cat, motif, seed, img, lang }: {
   title: string; kw: string; issue: string; mood: "red" | "ink"; cat: Cat; motif: MotifId; total: number; seed: number; img?: string; lang: OgLang;
 }) {
   const c      = CATS[cat];
   const handle = HANDLE[lang];
   const edNum  = issue.replace(/\D+/g, "") || "01"; // "ED. 243" → "243"
   const brandLine = `${BRAND[lang].toUpperCase()} · Nº ${edNum}`;
+  // A CAPA FALA (2026-08-09, ordem do dono): a capa vinha MUDA desde a reversão de
+  // 15/07 — o título saiu carona no que ele vetou (faixa creme + escurecimento pesado),
+  // não por decisão de tirar texto. Duas de cada três peças do feed não diziam nada, e
+  // quem passa o dedo não tinha por que parar. A frase entra na METADE DE BAIXO, onde o
+  // véu da base já escurece: preserva o que ele aprovou (arte full-bleed, sujeito nunca
+  // cortado, sem faixa, miolo limpo) e devolve a ideia a quem só vê a miniatura.
+  const coverTitle = (title || "").trim();
 
   return (
     <div style={{ width: W, height: H, position: "relative", display: "flex", background: INK, color: OFFWHITE }}>
@@ -511,7 +518,9 @@ function CoverSlide({ issue, cat, motif, seed, img, lang }: {
       {/* Véus SUAVES só nas bordas (topo/base) p/ o texto — o miolo fica limpo (nada de scrim pesado). */}
       <div style={{
         position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex",
-        background: `linear-gradient(180deg, rgba(11,11,12,0.50) 0%, rgba(11,11,12,0) 24%, rgba(11,11,12,0) 74%, rgba(11,11,12,0.58) 100%)`,
+        // A base desce mais fundo (54% em vez de 74%) e fecha mais escura porque a FRASE
+        // agora mora aqui. O miolo — onde vive o sujeito da ilustração — continua limpo.
+        background: `linear-gradient(180deg, rgba(11,11,12,0.50) 0%, rgba(11,11,12,0) 24%, rgba(11,11,12,0) 54%, rgba(11,11,12,0.80) 100%)`,
       }} />
       {/* Texto discreto: marca+Nº no topo (régua no acento), @handle na base. */}
       <div style={{ position: "relative", display: "flex", flexDirection: "column", justifyContent: "space-between", width: "100%", height: "100%", padding: M }}>
@@ -521,7 +530,16 @@ function CoverSlide({ issue, cat, motif, seed, img, lang }: {
           </span>
           <div style={{ marginTop: 18, height: 2, width: 120, background: c.accent, display: "flex" }} />
         </div>
-        <div style={{ display: "flex", flexShrink: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
+          {coverTitle ? (
+            <div style={{
+              fontFamily: SERIF, fontSize: fitTitleSize(coverTitle, W - 2 * M, 4), lineHeight: 1.02,
+              letterSpacing: "-0.03em", color: OFFWHITE, maxWidth: W - 2 * M, display: "flex",
+              marginBottom: 34, textShadow: "0 2px 28px rgba(11,11,12,0.95)",
+            }}>
+              {coverTitle}
+            </div>
+          ) : null}
           <span style={{ fontFamily: SERIF, fontSize: 34, letterSpacing: "0.06em", color: rgba("#F4F0E8", 0.9), display: "flex" }}>
             {handle}
           </span>
