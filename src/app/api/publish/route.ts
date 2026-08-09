@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateIllustration } from "@/lib/illustration";
 import { capaDoAcervo } from "@/lib/cover-acervo";
+import { curarCapa } from "@/lib/curador-imagem";
+import { formatoDaVaga, diretrizDoRedator } from "@/lib/formatos-peca";
+import { revisarTexto, instrucaoDeCorrecao } from "@/lib/revisao-editorial";
 import { prehostCover } from "@/lib/cover-prehost";
 import { Lang, accountFor, getLang, envToken, envAccountId, langLegado } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
@@ -454,7 +457,12 @@ async function generateContent(
   // Títulos JÁ publicados recentemente (mesmo idioma). Se o título gerado repetir um
   // deles (palavra-por-palavra ou quase), REGENERA com outro ângulo — trava da CAMADA
   // DE SAÍDA, que as travas de semente (topic) não pegam. Vazio = comportamento anterior.
-  avoidTitles: string[] = []
+  avoidTitles: string[] = [],
+  // O REDATOR DA MARCA (2026-08-09): o esqueleto que esta peça tem de seguir + a exigência
+  // de conflito na abertura. Vazio = comportamento anterior (peça escrita livre), que é o
+  // que o estudo da referência aponta como a causa de nada ser comparável entre si.
+  formatoDiretriz: string = "",
+  formatoNome: string = ""
 ): Promise<GeneratedContent> {
   const acc = accountFor(lang);
   const L = acc.langName; // "español" | "português do Brasil"
@@ -481,8 +489,13 @@ async function generateContent(
     ? ` + una invitación clara a COMENTAR exactamente la palabra «${guideWord}» para recibir GRATIS, por mensaje privado, una PREVIA del libro «I Love Dopamina». ATENCIÓN: SOLO «${guideWord}» y «I Love Dopamina» van TAL CUAL (sin traducir); TODO LO DEMÁS de esta invitación va en ${L} NATURAL — en portugués «adelanto/avance»→«prévia», «libro»→«livro», «mensaje privado»→«mensagem privada», «gratis»→«grátis» (NUNCA dejes la palabra «adelanto» en un texto en portugués)`
     : "";
 
-  const prompt = `Eres el editor de ${acc.brand}, estudio editorial sobre psicología, atención y ${acc.freedom} mental.
+  // O ESQUELETO VEM ANTES DE TUDO — o formato manda na ARQUITETURA da peça; a voz manda na
+  // frase. Em português de propósito: é a régua da casa, não texto de mercado (o prompt é
+  // bilíngue por herança, e traduzir a diretriz abriria espaço para a paráfrase amenizar).
+  const formatoSection = formatoDiretriz ? `\n════ ARQUITETURA OBRIGATÓRIA DESTA PEÇA ════\n${formatoDiretriz}\n═══════════════════════════════════════════\n` : "";
 
+  const prompt = `Eres el editor de ${acc.brand}, estudio editorial sobre psicología, atención y ${acc.freedom} mental.
+${formatoSection}
 IMPORTANTE — IDIOMA: genera ABSOLUTAMENTE TODA la salida (postTitle, postBody, slides, cta, instagramCaption, tags/hashtags) en ${L}. NO mezcles idiomas — ni una sola palabra del otro idioma NI EN INGLÉS (nada de "gagged", "minefield", "mindset"…), INCLUIDAS LAS HASHTAGS (ej. en portugués es "livre", NUNCA "libre"; "encontro", NUNCA "cita"). El "Tema" de abajo está escrito en ESPAÑOL como semilla interna: PROHIBIDO copiarlo literal — el postTitle y el PRIMER slide deben estar 100% REESCRITOS en ${L}, nunca el enunciado del Tema palabra por palabra. (videoQueries es la ÚNICA excepción: va en inglés.) REVISIÓN FINAL OBLIGATORIA antes de devolver el JSON: reléelo entero y corrige cualquier ERRATA o palabra pegada (p.ej. "Yesa"→"Y esa", "#LlbertadMental"→"#LibertadMental") y elimina cualquier palabra en inglés o del otro idioma que se haya colado.
 ${marketSection}
 Tema: "${topic}"
@@ -636,12 +649,31 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
       if (!hits.length && !statsHits.length && !anchorBroken) lastErr = new Error(`título repete um post recente («${content.postTitle}»)`);
       note += `\n\n⚠️ CORRECCIÓN OBLIGATORIA (TÍTULO REPETIDO): tu "postTitle" es igual (o casi igual) a uno YA PUBLICADO hace pocos días. PROHIBIDO repetir la misma frase de título — reescríbelo con OTRO ángulo/gancho DISTINTO. Títulos a EVITAR (no coincidas ni te acerques a ninguno): ${avoidTitles.map((t) => `«${t}»`).join("; ")}.`;
     }
-    contaminationNote = note;
+    // ── O REVISOR (ordem do dono 2026-08-09: "o primeiro revisor vai ser após a criação
+    // do texto"). Só roda quando as travas determinísticas (grátis) já passaram — mandar
+    // revisar um texto que JÁ vai ser regenerado é pagar duas vezes pela mesma volta.
+    // Não roda na última tentativa: ali não há mais volta, e a peça sai como está.
+    let revisaoNote = "";
+    if (formatoNome && !note && attempt < MAX_CONTENT_TRIES) {
+      const vered = await revisarTexto(
+        { postTitle: content.postTitle, slides: content.slides, cta: content.cta, caption: content.instagramCaption },
+        { formatoNome, ancora: literalAnchor, lang, automation }
+      );
+      if (vered.rodou && !vered.aprovado) {
+        lastErr = new Error(`revisor reprovou: ${vered.achados.map((a) => a.oQue).join(" · ")}`);
+        revisaoNote = `\n\n${instrucaoDeCorrecao(vered)}`;
+      }
+    }
+    contaminationNote = note + revisaoNote;
 
     // Última tentativa: idioma contaminado, dado fabricado, convicção alterada OU título
     // repetido BLOQUEIAM (caem no throw → vaga pulada). Repetição título×slide sozinha
     // NÃO bloqueia — devolve a copy (melhor publicar que perder a vaga). A duplicata de
     // TÍTULO no feed é o pior caso (doutrina "tem de ser ÚNICA") → bloqueia.
+    // ⚠️ A reprovação do REVISOR também não bloqueia: ela regenera enquanto houver
+    // tentativa e, na última, a peça sai. Revisor que veta na última volta troca "peça
+    // imperfeita" por "vaga vazia" — e vaga vazia foi o que custou 4 dias de silêncio.
+    if (!note && !revisaoNote) return content;
     if (attempt === MAX_CONTENT_TRIES && !hits.length && !statsHits.length && !anchorBroken && !titleDup) return content;
   }
   throw new Error(`generateContent: conteúdo não-publicável após ${MAX_CONTENT_TRIES} tentativas: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`);
@@ -895,7 +927,8 @@ export async function GET(req: NextRequest) {
       // idêntico ao anterior (deploy dormente; ativação = flip do env, decisão do dono P7).
       const titleDedupOn = (process.env.TITLE_DEDUP_ENABLED ?? "").toLowerCase() === "on";
       const avoidTitles = titleDedupOn ? await recentTitlesForLang(lang, 12) : [];
-      content = await generateContent(topic, searchResults, slot, lang, "ig-reels", avoidTitles);
+      const fmtReel = formatoDaVaga("reel", `${topic}|${day}`);
+      content = await generateContent(topic, searchResults, slot, lang, "ig-reels", avoidTitles, diretrizDoRedator(fmtReel), fmtReel.nome);
       await writeContentCache(topic, day, lang, content);
     }
 
@@ -1179,7 +1212,11 @@ export async function GET(req: NextRequest) {
           // idêntico ao anterior (deploy dormente; ativação = flip do env, decisão do dono P7).
           const titleDedupOn = (process.env.TITLE_DEDUP_ENABLED ?? "").toLowerCase() === "on";
           const avoidTitles = titleDedupOn ? await recentTitlesForLang(lang, 12) : [];
-          content = await generateContent(topic, searchResults, slot, lang, "ig-posts", avoidTitles);
+          // Formato da vaga: o MESMO esqueleto para ES e BR (a chave não leva o idioma),
+          // senão o par sai com arquiteturas diferentes e nada é comparável.
+          const fmt = formatoDaVaga("carrossel", `${topic}|${dayBRT(now)}`);
+          slotLog.formato = fmt.id;
+          content = await generateContent(topic, searchResults, slot, lang, "ig-posts", avoidTitles, diretrizDoRedator(fmt), fmt.nome);
           await writeContentCache(topic, dayBRT(now), lang, content);
         }
         slotLog.title = content.postTitle;
@@ -1235,6 +1272,13 @@ export async function GET(req: NextRequest) {
         // `capaDoAcervoUrl` já traz a foto curada do pilar — e a fal NÃO é chamada. ES e BR do
         // mesmo tema recebem a MESMA foto (a chave é tópico+dia, sem o idioma), então o par não
         // sai divergente. Havendo orçamento, nada muda: a IA continua sendo a capa.
+        // O CURADOR DE IMAGENS entra aqui: entre as fotos do pilar, escolhe a que tem o
+        // mesmo SUJEITO da frase da capa. Sem ele, "você tem direito de falar" ganhava um
+        // paredão de pedra — pilar certo, imagem que não conversa com a frase (09/08).
+        if (capaDoAcervoUrl) {
+          const curada = await curarCapa(cat, content.postTitle, { automation: "ig-posts" });
+          if (curada) { capaDoAcervoUrl = curada; slotLog.capaCurada = true; }
+        }
         const ill = capaDoAcervoUrl
           ? { url: capaDoAcervoUrl, error: undefined as string | undefined }
           : await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { automation: "ig-posts", maxTries: 2, meta: { topic, lang } });
