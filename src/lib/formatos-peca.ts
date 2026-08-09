@@ -14,6 +14,32 @@
 // Os formatos que exigiriam rosto (dinamismo, diálogo, telepatia, conversa de bar, the
 // office) estão FORA por trava do dono: ele não aparece.
 
+// ─── DELTA 2026-08-09 (ordem do dono: "aplique as mudanças, elas devem entrar agora") ───
+// O estudo ganhou uma segunda fonte: os **8 perfis que a referência cita no próprio Reel**,
+// lidos quadro a quadro do vídeo e medidos um a um (12 posts recentes de cada, com views,
+// curtidas, comentários e duração). Levantamento em
+// `Meus Projetos\Crescimento\DOSSIE-UNICO-Hanah-2026-08-09.html`.
+//
+// O que os 8 têm em comum e ainda faltava aqui:
+//   · um **título-molde** repetido literalmente, que muda só o complemento;
+//   · uma **assinatura fixa que não é o rosto** (emoji, frase ou número de série);
+//   · o **gancho em três camadas** — fala, imagem e texto na tela apontando para o MESMO conflito;
+//   · a venda **dentro** do molde, nunca no lugar dele.
+//
+// O contra-exemplo que justifica a última regra: @salesadestramento tem 286 mil seguidores e
+// entrega 2 a 8 mil views por post desde que trocou o conteúdo pelo "comenta QUERO que eu
+// mando o link" — menos de 3% dos próprios seguidores. @arthurpaek faz publicidade paga
+// DENTRO do mesmo molde e bate 12,6 milhões.
+//
+// ⛔ REGRA DE PLATAFORMA (ordem do dono, 2026-08-09): **cada plataforma tem as suas regras de
+// criação, separadas.** Este arquivo é o motor do INSTAGRAM (@dr.liberdad ES · @dr.liberdade.br
+// BR) e carrega SÓ as regras de Instagram. A régua de YouTube Shorts (gancho entendível no
+// mudo em 3 s, primeiro quadro claro e saturado, pergunta que se responde, anúncio do fim,
+// progressão visível, virada do "mas") é de OUTRA fonte e de OUTRO motor — **não entra aqui**.
+// Fonte-dona da separação: `.claude\marca\dr-libertad\REGRAS-POR-PLATAFORMA.md`.
+// Misturar as duas já causou um erro registrado: régua de mercado apresentada como se fosse
+// método da referência.
+
 export type FormatoId =
   | "palestrinha"
   | "narrado"
@@ -30,6 +56,14 @@ export interface Formato {
   midia: ("carrossel" | "reel")[];
   /** A instrução que entra no prompt — em português, imperativa, sem jargão. */
   roteiro: string;
+  /**
+   * O TÍTULO-MOLDE do formato: a forma fixa da primeira linha, que se repete peça após peça
+   * mudando só o complemento. É o que faz reconhecer antes de entender — nos 8 perfis medidos,
+   * TODOS têm um ("COMO DANÇAR IGUAL O ___", "Diga para mim", "GAMBIGATO EP __").
+   * ⚠️ Em tema-convicção (`literal: true`) a âncora do dono manda e este molde CEDE: a frase
+   * dele sai verbatim. O molde é forma, nunca substitui a verdade.
+   */
+  tituloMolde: string;
 }
 
 export const FORMATOS: Formato[] = [
@@ -39,6 +73,7 @@ export const FORMATOS: Formato[] = [
     midia: ["carrossel", "reel"],
     roteiro:
       "Estruture como uma MINI-PALESTRA de uma ideia só: abre nomeando o conflito, desenvolve UM argumento em três passos encadeados (cada tela puxa a seguinte) e fecha com a virada. Nada de lista solta — é raciocínio contínuo, como quem convence alguém numa conversa.",
+    tituloMolde: "NINGUÉM TE CONTOU QUE ___",
   },
   {
     id: "narrado",
@@ -46,6 +81,7 @@ export const FORMATOS: Formato[] = [
     midia: ["reel"],
     roteiro:
       "Escreva para ser OUVIDO: frases curtas, sujeito antes do verbo, zero subordinada longa. O texto na tela repete só a palavra-chave de cada frase, nunca a frase inteira. Abre nomeando o conflito em voz alta.",
+    tituloMolde: "O QUE ACONTECE QUANDO ___",
   },
   {
     id: "analogia",
@@ -53,6 +89,7 @@ export const FORMATOS: Formato[] = [
     midia: ["carrossel", "reel"],
     roteiro:
       "Ancore a ideia numa IMAGEM CONCRETA do mundo físico (a gaiola sem grade, a corrente de ouro, a porta destrancada) e mantenha essa mesma imagem até o fim — a cada tela ela avança um passo. Proibido trocar de metáfora no meio.",
+    tituloMolde: "___ É COMO ___",
   },
   {
     id: "comparacao",
@@ -60,6 +97,7 @@ export const FORMATOS: Formato[] = [
     midia: ["carrossel", "reel"],
     roteiro:
       "Monte em DOIS LADOS: o que a pessoa faz hoje × o que fazer. Cada tela é um par (isto × aquilo), sempre na mesma ordem. A antítese é a espinha da peça, não um enfeite no fim.",
+    tituloMolde: "___ NÃO É ___",
   },
   {
     id: "polemica",
@@ -67,6 +105,7 @@ export const FORMATOS: Formato[] = [
     midia: ["carrossel", "reel"],
     roteiro:
       "Abra com a afirmação que a maioria vai querer contestar — a tese incômoda, dita sem rodeio na primeira tela. As telas seguintes SUSTENTAM com argumento, não recuam. Provoca pela IDEIA, nunca por desprezo a pessoas ou grupos.",
+    tituloMolde: "VOCÊ NÃO VAI GOSTAR: ___",
   },
   {
     id: "caixinha-polemica",
@@ -74,6 +113,7 @@ export const FORMATOS: Formato[] = [
     midia: ["carrossel", "reel"],
     roteiro:
       "Abra citando a objeção mais comum contra a tese, entre aspas, como se fosse um comentário recebido. Depois responda a ela ponto a ponto. O conflito já vem embutido na citação.",
+    tituloMolde: "«___» — RESPONDENDO",
   },
   {
     id: "tela-verde",
@@ -81,6 +121,7 @@ export const FORMATOS: Formato[] = [
     midia: ["reel"],
     roteiro:
       "A peça comenta um FATO EXTERNO (um dado, uma manchete, um número) que aparece atrás do texto. Abre com o fato, nomeia por que ele incomoda e vira para a tese da marca.",
+    tituloMolde: "O NÚMERO QUE NINGUÉM COMENTA: ___",
   },
 ];
 
@@ -114,5 +155,22 @@ export function diretrizDoRedator(f: Formato): string {
     "situação concreta que ele reconhece em si. Só a partir da segunda tela vem a tese.",
     "Abrir com a conclusão é responder a uma pergunta que ninguém fez: a peça é descartada no dedo.",
     "O conflito NÃO é uma pergunta retórica genérica — é o atrito específico deste tema.",
+    "",
+    "TÍTULO-MOLDE (a forma se repete, o assunto muda):",
+    `A primeira linha segue a forma «${f.tituloMolde}», preenchendo o espaço com o que este tema pede.`,
+    "É o que faz a peça ser reconhecida antes de ser entendida — a mesma forma, post após post.",
+    "EXCEÇÃO ÚNICA: em tema-convicção, a frase do autor sai VERBATIM e o molde cede. A verdade",
+    "manda na forma, nunca o contrário.",
+    "",
+    "GANCHO EM TRÊS CAMADAS — as três apontam para o MESMO conflito:",
+    "1) a frase (o que se lê ou se ouve); 2) a imagem, escolhida para INTENSIFICAR o conflito, não",
+    "para ilustrar o assunto; 3) o texto na tela, inteiro no PRIMEIRO quadro — a capa tem de",
+    "funcionar parada, sem a peça rodar.",
+    "Descrever cenário bonito que só decora é gancho de uma camada só: some no feed.",
+    "",
+    "A VENDA MORA DENTRO DO MOLDE — nunca no lugar dele:",
+    "Se houver convite (livro, lista, link), ele entra como ÚLTIMA batida do mesmo esqueleto, com a",
+    "mesma voz. Peça que troca o conteúdo pela oferta para de ser entregue: a referência medida tem",
+    "286 mil seguidores e entrega 2 a 8 mil visualizações desde que virou anúncio.",
   ].join("\n");
 }
