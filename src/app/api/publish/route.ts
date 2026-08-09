@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateIllustration } from "@/lib/illustration";
+import { capaDoAcervo } from "@/lib/cover-acervo";
 import { prehostCover } from "@/lib/cover-prehost";
 import { Lang, accountFor, getLang, envToken, envAccountId, langLegado } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
@@ -1118,7 +1119,28 @@ export async function GET(req: NextRequest) {
 
         // Teto diário da automação ig-posts: se a próxima publicação estoura o
         // orçamento, BLOQUEIA (não gasta) e sinaliza p/ o GitHub Actions falhar.
-        const gate = await checkBudget("ig-posts", EST_RUN_COST.publish);
+        //
+        // A ESTIMATIVA TEM DE DIZER A VERDADE (2026-08-09). Ela era sempre US$0,20 — o preço
+        // do pacote completo (texto em haiku + capa gerada na fal + QA de visão). Mas os dois
+        // pedaços caros são EVITÁVEIS: o texto pode já estar no cache do dia (redisparo do
+        // catchup, ou a língua-irmã que passou antes) e a capa pode vir do ACERVO, de graça.
+        // Cobrar o pacote inteiro de um post que custaria US$0,00 é bloquear à toa — foi o que
+        // manteve as DUAS contas paradas de 05/08 a 09/08. Com o teto zerado pelo dono, a régua
+        // certa é: só o que REALMENTE vai ser pago entra na conta.
+        //
+        // ⛔ Isto NÃO sobe teto nenhum. O número do teto é do dono e só ele o diz (05/08).
+        const contentCache = (await readContentCache(topic, dayBRT(now), lang)) as GeneratedContent | null;
+        const custoTexto = contentCache ? 0 : EST_RUN_COST.publishAcervo; // cache = a Anthropic não é chamada
+        const custoCapaIA = EST_RUN_COST.publish - EST_RUN_COST.publishAcervo; // fal + QA de visão
+        let capaDoAcervoUrl: string | null = null;
+        let gate = await checkBudget("ig-posts", custoTexto + custoCapaIA);
+        if (!gate.ok) {
+          // Sem orçamento para a arte gerada: tenta a capa do acervo (foto curada, licença
+          // livre, custo zero) em vez de desistir do post. A ilustração por IA segue sendo a
+          // primeira escolha sempre que couber no teto — isto é o degrau de baixo, não a troca.
+          capaDoAcervoUrl = capaDoAcervo(TOPIC_CAT[topic] ?? "freedom", `${topic}|${dayBRT(now)}`);
+          if (capaDoAcervoUrl) gate = await checkBudget("ig-posts", custoTexto);
+        }
         if (!gate.ok) {
           // ATOMICIDADE ES+PT (regra do dono "tem de sair nas DUAS contas"): se a língua-
           // IRMÃ desta MESMA vaga JÁ publicou, NÃO bloqueia por orçamento — senão a vaga
@@ -1145,7 +1167,8 @@ export async function GET(req: NextRequest) {
 
         // Copy: reusa o cache por (tópico, dia, idioma) → redisparo NÃO repaga
         // a Anthropic. Só busca (Wikipedia, grátis) + gera no MISS.
-        let content = (await readContentCache(topic, dayBRT(now), lang)) as GeneratedContent | null;
+        // (a leitura já aconteceu acima, para o gate saber se o texto seria pago)
+        let content = contentCache;
         if (!content) {
           const searchResults = await searchTopic(topic, "ig-posts");
           // Títulos recentes (mesmo idioma) p/ a trava de saída: o título gerado não pode
@@ -1208,8 +1231,14 @@ export async function GET(req: NextRequest) {
         // best-of-2 (era best-of-5 no Flux): a Nano Banana passa muito mais no QA (anatomia
         // boa, sem nudez), então 2 candidatas bastam — e 2×US$0,08 mantém 2 vagas/dia dentro
         // do teto US$0,50 (5× nano seria US$0,80). Troca travada 2026-07-07 (ver spend.ts).
-        const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { automation: "ig-posts", maxTries: 2, meta: { topic, lang } });
-        slotLog.illustration = ill.url ? "ia" : `fallback: ${ill.error ?? "?"}`;
+        // CAPA DO ACERVO: quando o gate acima decidiu que a arte gerada não cabe no teto,
+        // `capaDoAcervoUrl` já traz a foto curada do pilar — e a fal NÃO é chamada. ES e BR do
+        // mesmo tema recebem a MESMA foto (a chave é tópico+dia, sem o idioma), então o par não
+        // sai divergente. Havendo orçamento, nada muda: a IA continua sendo a capa.
+        const ill = capaDoAcervoUrl
+          ? { url: capaDoAcervoUrl, error: undefined as string | undefined }
+          : await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { automation: "ig-posts", maxTries: 2, meta: { topic, lang } });
+        slotLog.illustration = capaDoAcervoUrl ? "acervo" : ill.url ? "ia" : `fallback: ${ill.error ?? "?"}`;
 
         // O carrossel NÃO sai sem ilustração (decisão do dono 2026-06-26): a capa abstrata
         // (motivo) QUEBRA o padrão visual do feed — "sem capa quebra o padrão; com capa fica

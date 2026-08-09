@@ -66,8 +66,14 @@ const DEFAULT_BUDGETS: Record<Automation, number> = {
 // de US$0,469 (máx 7d, com 6 carrosséis). Real médio/carrossel ~US$0,07. Baixar p/ 0,10
 // elimina o bloqueio à toa e mantém margem. TETO inalterado (0,50); ilustração e QA
 // best-of-3 inalterados (o gasto não é o problema — a estimativa era).
-export const EST_RUN_COST: Record<"publish" | "preview" | "dryrun", number> = {
+export const EST_RUN_COST: Record<"publish" | "publishAcervo" | "preview" | "dryrun", number> = {
   publish: 0.20, // haiku + Nano Banana best-of-2 (2×US$0,08) compartilhada ES/PT + QA. Estimativa do GATE, não o teto (teto ig-posts segue US$0,50; 2 vagas/dia ≈ US$0,38).
+  // CAPA DO ACERVO (2026-08-09): mesmo post, mas o fundo vem de foto JÁ PAGA/livre do
+  // FOOTAGE_LIBRARY em vez de gerada — some a fal (US$0,16) e some o QA de visão
+  // (US$0,01), sobra só o texto em haiku. Custo aferido, não chutado: ver o comentário
+  // de `capaDoAcervo` em cover-acervo.ts. É este número que o gate usa quando a capa não
+  // vai ser gerada — cobrar US$0,20 por um post que custa US$0,03 bloqueia à toa.
+  publishAcervo: 0.04,
   preview: 0.10, // haiku + 1×(fal Nano Banana + QA)  (pesquisa Wikipedia = grátis)
   dryrun: 0.09,  // 1×(fal Nano Banana + QA)
 };
