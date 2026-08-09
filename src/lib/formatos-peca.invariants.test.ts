@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { FORMATOS, formatosPara, formatoDaVaga, diretrizDoRedator } from "./formatos-peca";
+import { FORMATOS, formatosPara, formatoDaVaga, diretrizDoRedator, ganchosDeCarona, diretrizDeCarona } from "./formatos-peca";
 
 // Invariantes do REDATOR DA MARCA. O que estes testes seguram é a regra que o estudo da
 // referência produziu: formato = esqueleto fixo repetido, e conflito ANTES da tese.
@@ -74,5 +74,44 @@ describe("formatos da peça", () => {
       const d = diretrizDoRedator(f);
       expect(d).not.toMatch(/YouTube|Shorts|entendível no mudo|anuncie o fim/i);
     }
+  });
+
+  // ─── CARONA (delta 2026-08-09) — ancorar no que já tem procura ─────────────
+  it("a diretriz cobra a carona, e sempre no CONFLITO", () => {
+    for (const f of FORMATOS) {
+      const d = diretrizDoRedator(f);
+      expect(d).toMatch(/CARONA/);
+      expect(d).toMatch(/NOME PRÓPRIO/);
+      expect(d).toMatch(/entra no CONFLITO, nunca na tese/);
+      // a guarda da voz: carona não vira julgamento de pessoa
+      expect(d).toMatch(/jamais julgar, expor ou ridicularizar/);
+    }
+  });
+
+  it("acha nome próprio, número e data na pesquisa", () => {
+    const p = 'Estudo publicado em 2026 mostra que 62% dos jovens dormem com o celular. Anna Lembke, de Stanford, chama isso de dívida de dopamina.';
+    const g = ganchosDeCarona(p, 9);
+    expect(g.some((x) => /Anna Lembke/.test(x))).toBe(true);
+    expect(g.some((x) => /62\s?%/.test(x))).toBe(true);
+    expect(g.some((x) => /2026/.test(x))).toBe(true);
+  });
+
+  it("NÃO inventa gancho quando não há pesquisa — silêncio, não lista de mentira", () => {
+    expect(ganchosDeCarona('')).toEqual([]);
+    expect(ganchosDeCarona(null)).toEqual([]);
+    expect(ganchosDeCarona('texto simples sem nada citável aqui.')).toEqual([]);
+    expect(diretrizDeCarona('')).toBe('');
+    expect(diretrizDeCarona('nada citável.')).toBe('');
+  });
+
+  it("uma palavra capitalizada sozinha NÃO é nome próprio (todo início de frase é maiúsculo)", () => {
+    expect(ganchosDeCarona('Dopamina causa isso. Cerebro reage assim.')).toEqual([]);
+  });
+
+  it("o bloco da carona se declara OFERTA, não ordem", () => {
+    const d = diretrizDeCarona('Segundo Anna Lembke, 62% relatam o mesmo.');
+    expect(d).toMatch(/CARONA DISPONÍVEL/);
+    expect(d).toMatch(/oferta, não ordem/);
+    expect(d).toMatch(/Anna Lembke/);
   });
 });
