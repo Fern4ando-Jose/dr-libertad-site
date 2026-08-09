@@ -122,10 +122,26 @@ jobs:
           CTA_FOLLOW: ${{ steps.params.outputs.cta_follow }}
           CTA_BIO: ${{ steps.params.outputs.cta_bio }}
         run: |
-          curl -fsS --max-time 180 \
+          # 402 = FREIO DE GASTO, não defeito. Desde 05/08/2026 o dono zerou os tetos
+          # ("pare de gastar meus créditos") e TODA chamada volta 402 — o robô falhava,
+          # e cada falha virava e-mail de erro pro dono, várias vezes por dia. Ordem
+          # obedecida é estado normal: aqui vira AVISO e o robô encerra em paz.
+          # Erro de verdade (401 token vencido, 500, rede) continua derrubando o robô.
+          HTTP=$(curl -sS --max-time 180 -o preview.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "https://www.drlibertad.com/api/publish?preview=1${{ steps.params.outputs.langqs }}&run=${{ steps.params.outputs.run }}" \
-            -o preview.json
+            || echo 000)
+          if [ "$HTTP" = "402" ]; then
+            echo "pulado=1" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Reel pulado — gasto desligado::O teto de gasto está em zero (ordem do dono, 05/08/2026). Nada foi publicado. Religar = o dono dizer o número."
+            cat preview.json; echo
+            exit 0
+          fi
+          if [ "$HTTP" != "200" ]; then
+            echo "::error title=Falha ao obter conteúdo::HTTP $HTTP"
+            cat preview.json; echo
+            exit 1
+          fi
           echo "Prévia recebida:"
           cat preview.json | head -c 400; echo
 
@@ -185,6 +201,7 @@ jobs:
       #     clipes de fundo (movimento real, 5 cenas). NÃO-FATAL: sem PEXELS_API_KEY ou
       #     sem match, segue sem clips e o Reel usa a ilustração estática.
       - name: Buscar footage (Pexels + Pixabay) → clipes de fundo
+        if: ${{ steps.content.outputs.pulado != '1' }}
         env:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           # 4ª fonte (2026-07-17): Pixabay vídeo+foto entram na mistura de footage.
@@ -207,6 +224,7 @@ jobs:
       #     (caso Nº 102). Regra única em scripts/reel-media.cjs (teste invariante).
       - name: Garantir fundo (footage → ilustração → pular)
         id: media
+        if: ${{ steps.content.outputs.pulado != '1' }}
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |

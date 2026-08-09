@@ -100,6 +100,7 @@ jobs:
       # SEM ilustração e o slot vira um Reel de FOOTAGE — o run 3 nunca fica sem sair
       # por causa da ilustração.
       - name: Obter conteúdo (preview, tenta ilustração) e montar REEL_PROPS
+        id: content
         env:
           CTA_FOLLOW: ${{ steps.params.outputs.cta_follow }}
           CTA_BIO: ${{ steps.params.outputs.cta_bio }}
@@ -112,8 +113,23 @@ jobs:
           echo "preview (com ilustração): HTTP $HTTP"
           if [ "$HTTP" != "200" ]; then
             echo "::warning title=Clássico sem ilustração::HTTP $HTTP no preview illus=1 — caindo pra footage."
-            curl -fsS --max-time 180 -H "$AUTH" \
-              "https://www.drlibertad.com/api/publish?preview=1${LANGQS}&run=$RUN" -o preview.json
+            # Sem a ilustração paga o Reel ainda sai de footage. Mas se o segundo
+            # pedido também vier 402, é o FREIO DE GASTO fechado (tetos zerados pelo
+            # dono em 05/08/2026): ordem obedecida não é defeito — vira aviso e o robô
+            # encerra em paz, em vez de mandar e-mail de erro a cada disparo.
+            HTTP2=$(curl -sS -o preview.json -w "%{http_code}" --max-time 180 -H "$AUTH" \
+              "https://www.drlibertad.com/api/publish?preview=1${LANGQS}&run=$RUN" || echo 000)
+            if [ "$HTTP2" = "402" ]; then
+              echo "pulado=1" >> "$GITHUB_OUTPUT"
+              echo "::warning title=Reel clássico pulado — gasto desligado::O teto de gasto está em zero (ordem do dono, 05/08/2026). Nada foi publicado. Religar = o dono dizer o número."
+              cat preview.json; echo
+              exit 0
+            fi
+            if [ "$HTTP2" != "200" ]; then
+              echo "::error title=Falha ao obter conteúdo::HTTP $HTTP2"
+              cat preview.json; echo
+              exit 1
+            fi
           fi
           echo "Prévia recebida:"; cat preview.json | head -c 400; echo
 
@@ -155,6 +171,7 @@ jobs:
       # scripts/reel-media.cjs). É a cascata robusta do Reel de footage no clássico.
       - name: Garantir fundo (ilustração → footage → pular)
         id: media
+        if: ${{ steps.content.outputs.pulado != '1' }}
         env:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           # 4ª fonte (2026-07-17): Pixabay vídeo+foto entram na mistura de footage.

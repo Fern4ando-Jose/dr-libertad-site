@@ -114,6 +114,14 @@ jobs:
           echo "--- resposta ---"
           cat response.json
           echo ""
+          # 402 = FREIO DE GASTO fechado, não defeito. Os tetos estão em zero desde
+          # 05/08/2026 por ordem do dono ("pare de gastar meus créditos"). Antes disto
+          # cada disparo virava e-mail de erro pra ele. Ordem obedecida vira AVISO;
+          # erro de verdade (401, 500, rede) continua derrubando o robô como sempre.
+          if [ "$HTTP_CODE" = "402" ]; then
+            echo "::warning title=Carrossel pulado — gasto desligado::O teto de gasto está em zero (ordem do dono, 05/08/2026). Nada foi publicado (lang=$LANG). Religar = o dono dizer o número."
+            exit 0
+          fi
           if [ "$HTTP_CODE" -ge 400 ]; then
             echo "::error::Falha na publicação (HTTP $HTTP_CODE, lang=$LANG)"
             exit 1
