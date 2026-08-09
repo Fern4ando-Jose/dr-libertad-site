@@ -93,6 +93,34 @@ function fitTitleSize(text: string, maxWidth: number, maxLines = 5): number {
   return Math.max(40, size);
 }
 
+/**
+ * ENCHER A LARGURA (2026-08-09) — a escala da MANCHETE não é "um corpo por faixa de
+ * tamanho": é o corpo que faz o texto **ocupar a largura toda** dentro de `maxLines`.
+ *
+ * Por que a tabela sozinha não resolveu: subir os degraus levou a capa de 76% para 74% de
+ * largura — praticamente nada. A conta certa é geométrica: com L caracteres distribuídos em
+ * K linhas, cada linha tem ~L/K caracteres, e a largura de uma linha é `(L/K)·0.66·corpo`.
+ * Igualando isso a `maxWidth`, o corpo que enche a linha é `maxWidth·K / (L·0.66)`.
+ *
+ * Duas travas: (a) nenhuma PALAVRA pode estourar sozinha (`byWord`); (b) teto absoluto para
+ * frase curtíssima não virar cartaz de 3 palavras gigantes. Piso de 40 mantido.
+ */
+function fitTitleFill(text: string, maxWidth: number, maxLines = 5, teto = 210, maxAlturaPx = 0): number {
+  const L = Math.max(text.replace(/\s+/g, " ").trim().length, 1);
+  const longest = text.split(/\s+/).reduce((m, w) => Math.max(m, w.length), 1);
+  const byWord = Math.floor(maxWidth / longest / 0.66);
+  const porLinhas = Math.floor((maxWidth * maxLines) / (L * 0.66));
+  let size = Math.max(40, Math.min(teto, byWord, porLinhas));
+  // TETO DE ALTURA: encher a largura em 5 linhas de corpo grande empurra o @handle para
+  // fora do quadro. Aqui o corpo desce até o bloco caber na faixa reservada — a largura
+  // cede primeiro que a peça quebrar.
+  if (maxAlturaPx > 0) {
+    const linhas = (f: number) => Math.ceil(L / Math.max(1, Math.floor(maxWidth / (f * 0.66))));
+    while (size > 40 && linhas(size) * size * 1.02 > maxAlturaPx) size -= 2;
+  }
+  return Math.max(40, size);
+}
+
 // RNG determinístico por post: mesmo seed → mesmo desenho (estável entre renders)
 function hashStr(s: string): number {
   let h = 2166136261;
@@ -560,7 +588,7 @@ function CoverSlide({ title, issue, cat, motif, seed, img, lang }: {
             // vírgula, do travessão ou da vírgula que separa a antítese) é o GOLPE da voz e
             // ganha linha própria. 5 linhas em vez de 4: a escala subiu, então cabe mais.
             <div style={{
-              fontFamily: SERIF, fontSize: fitTitleSize(coverTitle, W - 2 * M, 5), lineHeight: 1.02,
+              fontFamily: SERIF, fontSize: fitTitleFill(coverTitle, W - 2 * M, 5, 210, Math.round(H * 0.46)), lineHeight: 1.02,
               letterSpacing: "-0.03em", color: OFFWHITE, maxWidth: W - 2 * M, display: "flex",
               flexDirection: "column", marginBottom: 34, textShadow: "0 2px 28px rgba(11,11,12,0.95)",
             }}>

@@ -78,3 +78,56 @@ describe("rodapé útil", () => {
     expect(rodapeUtil("SILÊNCIO", "MENTE")).toBe("SILÊNCIO");
   });
 });
+
+// ── ENCHER A LARGURA (a correção que a tabela de degraus sozinha não deu) ──────
+function fitTitleFill(text: string, maxWidth: number, maxLines = 5, teto = 210, maxAlturaPx = 0): number {
+  const L = Math.max(text.replace(/\s+/g, " ").trim().length, 1);
+  const longest = text.split(/\s+/).reduce((m, w) => Math.max(m, w.length), 1);
+  const byWord = Math.floor(maxWidth / longest / 0.66);
+  const porLinhas = Math.floor((maxWidth * maxLines) / (L * 0.66));
+  let size = Math.max(40, Math.min(teto, byWord, porLinhas));
+  if (maxAlturaPx > 0) {
+    const linhas = (f: number) => Math.ceil(L / Math.max(1, Math.floor(maxWidth / (f * 0.66))));
+    while (size > 40 && linhas(size) * size * 1.02 > maxAlturaPx) size -= 2;
+  }
+  return Math.max(40, size);
+}
+const MW = 1080 - 2 * 72;
+const MH = Math.round(1350 * 0.46);
+const preenchimento = (t: string) => {
+  const s = fitTitleFill(t, MW, 5, 210, MH);
+  const linhas = Math.ceil(t.length / Math.floor(MW / (s * 0.66)));
+  return Math.min(1, ((t.length / linhas) * 0.66 * s) / MW);
+};
+
+describe("a manchete enche a largura", () => {
+  it("chega perto da régua das 10 contas nas frases reais do feed", () => {
+    // Piso de 0.82 e não 0.85: o número de linhas é INTEIRO, então o preenchimento salta em
+    // degraus — uma frase que precisaria de 3,4 linhas gasta 4 e sobra margem. A régua de
+    // 85% é o ALVO medido na peça publicada; aqui o que se trava é o piso que a estimativa
+    // garante. A capa de 09/08 estava em 0.76 com este mesmo cálculo.
+    for (const t of [
+      "Você está competindo contra a pessoa errada",
+      "Ninguém te deve nada",
+      "Se você não põe limites, vira uma opção",
+      "Você edita a foto, evita chorar, força virilidade",
+    ]) {
+      expect(preenchimento(t), t).toBeGreaterThanOrEqual(0.82);
+    }
+  });
+
+  it("nunca estoura a faixa de altura reservada", () => {
+    for (const t of ["Ninguém te deve nada", "Você tem direito a fazer o que quiser; eu tenho direito de dizer o que penso", "palavra ".repeat(18)]) {
+      const s = fitTitleFill(t, MW, 5, 210, MH);
+      const linhas = Math.ceil(t.length / Math.floor(MW / (s * 0.66)));
+      expect(linhas * s * 1.02, t.slice(0, 20)).toBeLessThanOrEqual(MH);
+    }
+  });
+
+  it("palavra longa nunca estoura a largura sozinha", () => {
+    const t = "Autodesenvolvimento incondicional";
+    const maior = t.split(/\s+/).reduce((m, w) => Math.max(m, w.length), 1);
+    const s = fitTitleFill(t, MW, 5, 210, MH);
+    expect(maior * 0.66 * s).toBeLessThanOrEqual(MW);
+  });
+});
