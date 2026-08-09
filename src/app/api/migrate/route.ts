@@ -155,6 +155,10 @@ export async function GET(req: NextRequest) {
   // IG por excesso de tentativas). Ver bumpAttempt/attemptsToday em src/lib/run-ledger.ts.
   try {
     await sql`ALTER TABLE published_runs ADD COLUMN IF NOT EXISTS attempts INT NOT NULL DEFAULT 0`;
+    // FORMATO da peça (2026-08-09) — é o que o placar por formato mede. Sem esta coluna a
+    // biblioteca de formatos nunca vira "lista de sobreviventes": não há como saber qual
+    // esqueleto gerou qual post, e portanto qual descartar.
+    await sql`ALTER TABLE published_runs ADD COLUMN IF NOT EXISTS formato TEXT`;
     results.push("published_runs.attempts: ok");
   } catch (e) {
     results.push("published_runs.attempts: " + String(e));

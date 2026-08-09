@@ -1372,7 +1372,7 @@ export async function GET(req: NextRequest) {
         // Livro-razão (dia,run,lang) p/ o watchdog — só conta como publicado se saiu.
         // Se NÃO saiu, conta a tentativa falha (disjuntor): após MAX, o catchup para
         // de redisparar a vaga; bloqueio/limite do IG já estoura o contador na hora.
-        if (instagramPostId) await recordRun(dayBRT(now), runIndex, lang, "carousel", instagramPostId, topic);
+        if (instagramPostId) await recordRun(dayBRT(now), runIndex, lang, "carousel", instagramPostId, topic, String(slotLog.formato ?? "") || null);
         else await bumpAttempt(dayBRT(now), runIndex, lang, isHardPublishBlock(slotLog.instagramError));
 
         slotLog.ok = true;

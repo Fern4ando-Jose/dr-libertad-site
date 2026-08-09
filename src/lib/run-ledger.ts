@@ -49,6 +49,11 @@ export async function runAlreadyPublished(day: string, run: number, lang: string
 export async function recordRun(
   day: string, run: number, lang: string, kind: string, instagramPostId: string | null,
   topic?: string | null,
+  // O FORMATO da peça (2026-08-09) — sem ele o ANALISTA DE MÉTRICAS não tem o que medir.
+  // A biblioteca de formatos existe para ser podada por desempenho ("formato que não
+  // performa é descartado, não melhorado"), e isso exige saber qual formato gerou qual
+  // post. Opcional e best-effort: coluna ausente (pré-migração) não derruba o registro.
+  formato?: string | null,
 ): Promise<void> {
   try {
     const { sql } = await import("@vercel/postgres");
@@ -60,6 +65,14 @@ export async function recordRun(
         topic = COALESCE(${topic ?? null}, published_runs.topic), ts = NOW()
     `;
   } catch { /* livro-razão é best-effort — nunca quebra o pipeline */ }
+  // Query SEPARADA, pelo mesmo motivo do `attempts` abaixo: se a coluna `formato` ainda
+  // não existir, só ela falha — o registro de idempotência acima nunca depende dela.
+  if (formato) {
+    try {
+      const { sql } = await import("@vercel/postgres");
+      await sql`UPDATE published_runs SET formato = ${formato} WHERE day = ${day} AND run = ${run} AND lang = ${lang}`;
+    } catch { /* pré-migração: sem coluna, sem placar por formato — nada mais quebra */ }
+  }
   // ZERA o disjuntor numa publicação CONFIRMADA (id não-nulo): sem isto a vaga ficava
   // "publicada" E com attempts>0 — estado contraditório que só não mordia porque o gate
   // checa runAlreadyPublished ANTES de shouldStopRetrying (ordem load-bearing, ver
