@@ -117,7 +117,7 @@ jobs:
             # pedido também vier 402, é o FREIO DE GASTO fechado (tetos zerados pelo
             # dono em 05/08/2026): ordem obedecida não é defeito — vira aviso e o robô
             # encerra em paz, em vez de mandar e-mail de erro a cada disparo.
-            HTTP2=$(curl -sS -o preview.json -w "%{http_code}" --max-time 180 -H "$AUTH" \
+            HTTP2=$(curl -sS -o preview.json -w "%{http_code}" --max-time 480 -H "$AUTH" \
               "https://www.drlibertad.com/api/publish?preview=1${LANGQS}&run=$RUN" || echo 000)
             if [ "$HTTP2" = "402" ]; then
               echo "pulado=1" >> "$GITHUB_OUTPUT"

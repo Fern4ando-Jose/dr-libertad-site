@@ -127,7 +127,14 @@ jobs:
           # e cada falha virava e-mail de erro pro dono, várias vezes por dia. Ordem
           # obedecida é estado normal: aqui vira AVISO e o robô encerra em paz.
           # Erro de verdade (401 token vencido, 500, rede) continua derrubando o robô.
-          HTTP=$(curl -sS --max-time 180 -o preview.json -w "%{http_code}" \
+          # TEMPO DE ESPERA: 180 s não bastava e o Reel morria ANTES de existir — três
+          # execuções seguidas em 09/08 caíram em `curl: (28) Operation timed out after
+          # 180001 ms with 0 bytes received`, com a vaga marcada como faltante e nenhum
+          # vídeo no ar. O preview faz muita coisa numa chamada só (escreve o texto, passa
+          # pelo revisor, escolhe o footage e gera a NARRAÇÃO — a voz é o trecho lento).
+          # 480 s dá folga sem cegar nada: o job tem limite próprio, e um site realmente
+          # travado ainda derruba o passo, só que 8 min depois em vez de 3.
+          HTTP=$(curl -sS --max-time 480 -o preview.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "https://www.drlibertad.com/api/publish?preview=1${{ steps.params.outputs.langqs }}&run=${{ steps.params.outputs.run }}" \
             || echo 000)
