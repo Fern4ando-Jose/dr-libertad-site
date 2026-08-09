@@ -40,15 +40,21 @@ const PAD = Math.round(28 * F);
 // ─── Tamanho da fonte do título ───────────────────────────────────────────────
 const SERIF = '"Fraunces", ui-serif, Georgia, serif';
 
+// ESCALA (subida 2026-08-09, medida — não opinada): a capa publicada em 09/08 ocupava
+// **76% da largura**; as 10 contas de referência ficam entre **85% e 95%**. Margem grande
+// no feed é espaço desperdiçado: a frase É o assunto da peça, não uma legenda por cima da
+// foto. Cada degrau subiu ~18%, mantendo a mesma curva (frase curta domina mais).
+// A trava de segurança continua sendo `fitTitleSize`: se a palavra mais longa estourar a
+// largura, ou se passar do número de linhas, o corpo desce sozinho.
 function titleSize(text: string): number {
   const l = text.length;
-  if (l <= 14) return 150;
-  if (l <= 22) return 128;
-  if (l <= 32) return 108;
-  if (l <= 44) return 92;
-  if (l <= 58) return 78;
-  if (l <= 76) return 64;
-  return 54;
+  if (l <= 14) return 176;
+  if (l <= 22) return 150;
+  if (l <= 32) return 128;
+  if (l <= 44) return 110;
+  if (l <= 58) return 94;
+  if (l <= 76) return 76;
+  return 64;
 }
 
 // Garante que o título caiba na largura: limita pela palavra MAIS LONGA
@@ -60,6 +66,23 @@ function titleSize(text: string): number {
 // todos os call-sites): estima linhas com ~0.55·fontSize por char (média Fraunces
 // caixa-alta) e reduz o corpo até caber em `maxLines` (piso 40). Título curto normal
 // (1-3 linhas) NÃO muda — o laço nem executa; só o título patológico encolhe.
+/**
+ * Corta a manchete nos pontos de VIRADA da frase (`;` `—` `:` e a vírgula da antítese),
+ * não por contagem de caracteres. É onde a voz da marca dobra — «você tem direito a fazer
+ * o que quiser; **eu tenho direito de dizer o que penso**» — e é a linha que precisa
+ * respirar sozinha. Devolve 1 bloco quando não há virada: aí o satori quebra como antes.
+ */
+function quebrarPorSentido(texto: string): string[] {
+  const t = texto.trim();
+  const m = t.match(/^(.+?[;:—–])\s*(.+)$/);
+  if (m && m[1].length > 8 && m[2].length > 8) return [m[1].trim(), m[2].trim()];
+  // Vírgula só vale como virada quando os dois lados têm corpo — senão parte uma
+  // enumeração no meio, que é pior do que não quebrar.
+  const v = t.match(/^(.{18,}?),\s*(.{18,})$/);
+  if (v) return [v[1].trim() + ",", v[2].trim()];
+  return [t];
+}
+
 function fitTitleSize(text: string, maxWidth: number, maxLines = 5): number {
   const base = titleSize(text);
   const longest = text.split(/\s+/).reduce((m, w) => Math.max(m, w.length), 0);
@@ -532,12 +555,18 @@ function CoverSlide({ title, issue, cat, motif, seed, img, lang }: {
         </div>
         <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
           {coverTitle ? (
+            // QUEBRA POR SENTIDO (2026-08-09): o corte automático caía no meio do verbo —
+            // «eu tenho / direito a dizer». A virada da frase (o que vem depois do ponto-e-
+            // vírgula, do travessão ou da vírgula que separa a antítese) é o GOLPE da voz e
+            // ganha linha própria. 5 linhas em vez de 4: a escala subiu, então cabe mais.
             <div style={{
-              fontFamily: SERIF, fontSize: fitTitleSize(coverTitle, W - 2 * M, 4), lineHeight: 1.02,
+              fontFamily: SERIF, fontSize: fitTitleSize(coverTitle, W - 2 * M, 5), lineHeight: 1.02,
               letterSpacing: "-0.03em", color: OFFWHITE, maxWidth: W - 2 * M, display: "flex",
-              marginBottom: 34, textShadow: "0 2px 28px rgba(11,11,12,0.95)",
+              flexDirection: "column", marginBottom: 34, textShadow: "0 2px 28px rgba(11,11,12,0.95)",
             }}>
-              {coverTitle}
+              {quebrarPorSentido(coverTitle).map((linha, i) => (
+                <span key={i} style={{ display: "flex" }}>{linha}</span>
+              ))}
             </div>
           ) : null}
           <span style={{ fontFamily: SERIF, fontSize: 34, letterSpacing: "0.06em", color: rgba("#F4F0E8", 0.9), display: "flex" }}>
@@ -570,13 +599,16 @@ function InsightSlide({ text, num, total, kw, issue, cat, motif, seed, lang }: {
   }
 
   return (
-    <Surface dark={false} accent={c.accent} motif={motif} seed={seed}>
-      <Folio issue={issue} accent={c.accent} dark={false} brand={BRAND[lang]} />
+    // MESMA CARA DO POST INTEIRO (2026-08-09). Estas telas saíam em BEGE enquanto a capa e
+    // o fecho saíam escuros — três aparências no mesmo carrossel, e quem desliza vê três
+    // peças em vez de uma. Nenhuma das 10 contas de referência troca de fundo no meio.
+    <Surface dark={true} accent={c.accent} motif={motif} seed={seed}>
+      <Folio issue={issue} accent={c.accent} dark={true} brand={BRAND[lang]} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <span style={{ fontFamily: SERIF, fontSize: 132, lineHeight: 0.8, letterSpacing: "-0.04em", color: rgba(c.accent, 0.92), marginBottom: 18, display: "flex" }}>
           {String(num).padStart(2, "0")}
         </span>
-        <div style={{ fontFamily: SERIF, fontSize: fitTitleSize(mainText, W - 2 * M), lineHeight: 0.96, letterSpacing: "-0.03em", color: INK, maxWidth: W - 2 * M, display: "flex" }}>
+        <div style={{ fontFamily: SERIF, fontSize: fitTitleSize(mainText, W - 2 * M), lineHeight: 0.96, letterSpacing: "-0.03em", color: OFFWHITE, maxWidth: W - 2 * M, display: "flex" }}>
           {mainText.toUpperCase()}
         </div>
         {subText ? (
@@ -591,9 +623,21 @@ function InsightSlide({ text, num, total, kw, issue, cat, motif, seed, lang }: {
           </div>
         ) : null}
       </div>
-      <Footer left={kw || CAT_LABEL[lang][cat]} accent={c.accent} dark={false} num={num} total={total} />
+      {/* RODAPÉ SEM PALAVRA SOLTA (2026-08-09): `kw` vem de uma extração automática do
+          título e devolvia coisas como «TEM» — um verbo isolado, sem sentido nenhum,
+          impresso em toda tela interna. O rótulo do pilar sempre significa algo; a palavra
+          extraída só entra quando tem corpo (≥4 letras) e não é palavra de ligação. */}
+      <Footer left={rodapeUtil(kw, lang, cat)} accent={c.accent} dark={true} num={num} total={total} />
     </Surface>
   );
+}
+
+/** Palavra do rodapé: só usa a extraída quando ela carrega sentido; senão, o nome do pilar. */
+function rodapeUtil(kw: string, lang: OgLang, cat: Cat): string {
+  const p = (kw || "").trim();
+  const vazias = /^(tem|ter|tém|que|com|por|para|pra|dos|das|los|las|una|uno|uma|seu|sua|ele|ela|voce|você|nao|não|sim|mas|mais|ser|foi|era|sao|são|est[aáeé]|hay|del|the|and)$/i;
+  if (p.length >= 4 && !vazias.test(p)) return p;
+  return CAT_LABEL[lang][cat];
 }
 
 // ─── SLIDE FINAL: CTA ─────────────────────────────────────────────────────────

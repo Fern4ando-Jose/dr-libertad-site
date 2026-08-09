@@ -1305,7 +1305,16 @@ export async function GET(req: NextRequest) {
         const imgParam = `&img=${encodeURIComponent(ill.url)}`;
 
         const slideUrls: string[] = [
-          `${base}/api/og?slide=cover&slot=${slot}&title=${enc(content.postTitle)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}${imgParam}&total=${totalSlides}&lang=${lang}`,
+          // A FRASE DO DONO NÃO SE ENCURTA NA CAPA (2026-08-09). Em tema-convicção o
+          // `postTitle` vinha comprimido para caber no corpo grande — saiu «Você tem direito
+          // de fazer; eu tenho de falar» no lugar de «Você tem direito a fazer o que quiser;
+          // eu tenho direito de dizer o que penso». A trava anti-amenização já protegia o
+          // slide 1 e deixava a CAPA de fora: é a capa que o feed inteiro vê. Agora ela usa
+          // a âncora verbatim; a escala e a quebra por sentido é que se ajustam ao texto.
+          // ⚠️ Só em tema-convicção: `anchorForLang` devolve o próprio tópico quando lang=es,
+          // então usá-lo sem o guarda `TOPIC_LITERAL` trocaria o título gerado pelo enunciado
+          // interno em TODA capa espanhola.
+          `${base}/api/og?slide=cover&slot=${slot}&title=${enc((TOPIC_LITERAL[topic] ? anchorForLang(topic, lang, TOPIC_LITERAL_PT[topic]) : null) || content.postTitle)}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}${imgParam}&total=${totalSlides}&lang=${lang}`,
           ...content.slides.map((text, i) =>
             `${base}/api/og?slide=insight&slot=${slot}&text=${enc(text, 200)}&num=${i + 2}&total=${totalSlides}&kw=${enc(kw)}&ed=${ed}&mood=${mood}&tag=${tag}&cat=${cat}&motif=${motif}&lang=${lang}`
           ),
