@@ -44,4 +44,35 @@ describe("formatos da peça", () => {
       expect(d).toContain(f.nome.toUpperCase());
     }
   });
+
+  // ─── DELTA 2026-08-09 — o que veio dos 8 perfis medidos ───────────────────
+  it("todo formato tem TÍTULO-MOLDE com espaço a preencher", () => {
+    for (const f of FORMATOS) {
+      expect(f.tituloMolde, `${f.id} sem molde`).toBeTruthy();
+      // sem o espaço a preencher não é molde, é frase pronta — sairia igual em todo tema
+      expect(f.tituloMolde, `${f.id} sem lacuna`).toContain("___");
+    }
+  });
+
+  it("a diretriz cobra o molde, as TRÊS camadas do gancho e a venda dentro do molde", () => {
+    for (const f of FORMATOS) {
+      const d = diretrizDoRedator(f);
+      expect(d, `${f.id} sem molde na diretriz`).toContain(f.tituloMolde);
+      expect(d).toMatch(/TRÊS CAMADAS/);
+      expect(d).toMatch(/INTENSIFICAR o conflito/);
+      expect(d).toMatch(/PRIMEIRO quadro/);
+      expect(d).toMatch(/DENTRO DO MOLDE/);
+      // a âncora do autor nunca cede ao molde — a trava literal manda
+      expect(d).toMatch(/VERBATIM/);
+    }
+  });
+
+  it("NÃO carrega régua de outra plataforma (Instagram é Instagram)", () => {
+    // ordem do dono 2026-08-09: cada plataforma tem as suas regras, separadas.
+    // A régua de YouTube Shorts mora no motor do YouTube — se vazar para cá, reprova.
+    for (const f of FORMATOS) {
+      const d = diretrizDoRedator(f);
+      expect(d).not.toMatch(/YouTube|Shorts|entendível no mudo|anuncie o fim/i);
+    }
+  });
 });
