@@ -172,5 +172,74 @@ export function diretrizDoRedator(f: Formato): string {
     "Se houver convite (livro, lista, link), ele entra como ÚLTIMA batida do mesmo esqueleto, com a",
     "mesma voz. Peça que troca o conteúdo pela oferta para de ser entregue: a referência medida tem",
     "286 mil seguidores e entrega 2 a 8 mil visualizações desde que virou anúncio.",
+    "",
+    "CARONA — ancore no que JÁ tem procura, quando houver:",
+    "A pesquisa desta peça vem logo abaixo. Se ela trouxer um NOME PRÓPRIO, um NÚMERO ou uma DATA",
+    "recente que caiba no tema sem forçar, ancore a PRIMEIRA batida nele — é audiência que já está",
+    "procurando, e chega de graça. Não havendo nada que caiba, siga sem carona: forçar um nome que",
+    "não tem a ver é pior do que não ter nenhum.",
+    "A carona entra no CONFLITO, nunca na tese: o fato externo dá a cena; a verdade continua sendo",
+    "nossa. E jamais julgar, expor ou ridicularizar a pessoa citada — a provocação é pela ideia.",
+  ].join("\n");
+}
+
+/**
+ * A CARONA (delta 2026-08-09) — o item que faltava do estudo dos 8 perfis.
+ *
+ * De onde veio: `@comodancar` tira os maiores números do perfil (3,4 mi · 1,7 mi · 705 mil)
+ * ancorando a peça em quem JÁ está sendo procurado — Ronaldinho, Joelma, a Marciele do BBB —
+ * enquanto a série sobre danças tradicionais, do mesmo perfil e mesmo capricho, fica num piso
+ * estável de 87 a 117 mil. Mesma voz, mesmo formato: o que muda é a busca que já existe lá fora.
+ *
+ * O que esta função NÃO faz, de propósito: **não escolhe o tema**. A rotação dos 61 temas é
+ * consolidada (saco de cartas, trava anti-duplicata, livro-razão) e não se mexe nela por causa
+ * disto. A carona trabalha com o material de pesquisa que a peça JÁ recebe — é a versão honesta
+ * do item, não a promessa grande.
+ *
+ * Função PURA: recebe o texto da pesquisa e devolve os ganchos aproveitáveis, para o prompt poder
+ * cobrá-los explicitamente em vez de torcer para o redator reparar.
+ */
+export function ganchosDeCarona(pesquisa: string | null | undefined, max = 3): string[] {
+  const txt = (pesquisa || "").trim();
+  if (!txt) return [];
+
+  const achados: string[] = [];
+  const visto = new Set<string>();
+  const guarda = (s: string) => {
+    const limpo = s.trim().replace(/\s+/g, " ");
+    const chave = limpo.toLowerCase();
+    if (limpo.length < 3 || visto.has(chave)) return;
+    visto.add(chave);
+    achados.push(limpo);
+  };
+
+  // NOME PRÓPRIO: duas ou mais palavras capitalizadas seguidas (aceita acento e o "de/da/do"
+  // do meio). Uma palavra só produziria lixo — todo início de frase é maiúsculo.
+  const nome = /\b[A-ZÀ-Ý][a-zà-ÿ]{2,}(?:\s+(?:d[aeoi]s?|von|van)\s+[A-ZÀ-Ý][a-zà-ÿ]{2,}|\s+[A-ZÀ-Ý][a-zà-ÿ]{2,})+/g;
+  for (const m of txt.matchAll(nome)) guarda(m[0]);
+
+  // NÚMERO que vale citação: percentual, "N mil/milhões", ou valor com 4+ dígitos.
+  const numero = /\b\d{1,3}(?:[.,]\d+)?\s?%|\b\d{1,3}(?:[.,]\d+)?\s+(?:mil|milh(?:ão|ões)|bilh(?:ão|ões))\b|\b\d{4,}\b/gi;
+  for (const m of txt.matchAll(numero)) guarda(m[0]);
+
+  // DATA recente: ano de 2020 em diante, ou mês por extenso com ano.
+  const data = /\b(?:janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+20\d{2}\b|\b20[2-9]\d\b/gi;
+  for (const m of txt.matchAll(data)) guarda(m[0]);
+
+  return achados.slice(0, max);
+}
+
+/**
+ * O bloco que entra no prompt DEPOIS da pesquisa. Vazio quando não há gancho — silêncio é melhor
+ * que mandar o redator "usar a carona" sem ter nenhuma, que é como nasce nome inventado.
+ */
+export function diretrizDeCarona(pesquisa: string | null | undefined): string {
+  const g = ganchosDeCarona(pesquisa);
+  if (!g.length) return "";
+  return [
+    "CARONA DISPONÍVEL — a pesquisa acima trouxe isto, que já tem procura:",
+    ...g.map((x) => `  · ${x}`),
+    "Use UM deles na primeira batida SE couber no tema sem forçar. Não coube? Ignore esta lista —",
+    "ela é oferta, não ordem.",
   ].join("\n");
 }
