@@ -212,7 +212,7 @@ export const reelV2DefaultProps: ReelProps = reelDefaultProps;
 
 function Handle({ color = PAPER, handle = "@dr.liberdad" }: { color?: string; handle?: string }) {
   return (
-    <div style={{ fontFamily: FRAUNCES, fontSize: 38, fontWeight: 600, letterSpacing: 2, color, opacity: 0.85 }}>
+    <div style={{ fontFamily: FRAUNCES, fontSize: 38, fontWeight: 600, letterSpacing: 2, color: PAPER, opacity: 0.85 }}>
       {handle}
     </div>
   );
@@ -308,7 +308,7 @@ function CoverTextV2({ title, accent, brand, handle, kw, ed, wordFrames }: { tit
       {/* Kicker da marca no topo, EM COR DE ACENTO, com o Nº da edição (DIRECAO-CAPAS) */}
       <div style={{ position: "absolute", top: SAFE_TOP, left: 90, display: "flex", alignItems: "center", gap: 22, opacity: kickerO }}>
         <div style={{ width: barW, height: 7, backgroundColor: accent, borderRadius: 4 }} />
-        <div style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 700, letterSpacing: 5, color: accent }}>
+        <div style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 700, letterSpacing: 5, color: PAPER }}>
           {ed ? `${brand.toUpperCase()} · Nº ${ed}` : brand.toUpperCase()}
         </div>
       </div>
@@ -329,7 +329,7 @@ function InsightTextV2({ text, accent, accentColor, index, total, handle, wordFr
   const o = interpolate(frame, [0, 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <AbsoluteFill>
-      <div style={{ position: "absolute", top: SAFE_TOP, left: 90, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 700, color: accentColor, opacity: o }}>
+      <div style={{ position: "absolute", top: SAFE_TOP, left: 90, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 700, color: PAPER, opacity: o }}>
         {String(index).padStart(2, "0")} / {String(total).padStart(2, "0")}
       </div>
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: `0 90px ${SAFE_BOTTOM_TEXT}px` }}>
