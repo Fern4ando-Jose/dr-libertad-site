@@ -21,9 +21,11 @@ on:
     # conjunto de vagas é RUN_HOUR_BRT em src/lib/day.ts (fonte única); estes crons a espelham.
     # ES (:17)
     - cron: "17 15 * * *" # 12:17 BRT — ES run 0
+    - cron: "17 22 * * *" # 19:17 BRT — ES run 3 (era do Reel CLÁSSICO; assumida em 09/08 por ordem do dono)
     - cron: "17 0 * * *"  # 21:17 BRT — ES run 2
     # PT (:22, 5 min após o ES)
     - cron: "22 15 * * *" # 12:22 BRT — PT run 0
+    - cron: "22 22 * * *" # 19:22 BRT — PT run 3 (era do Reel CLÁSSICO)
     - cron: "22 0 * * *"  # 21:22 BRT — PT run 2
   workflow_dispatch:
     inputs:
@@ -87,10 +89,12 @@ jobs:
             case "$SCHEDULE" in
               "17 15 * * *") RUN=0; LANG=es ;;
               "17 20 * * *") RUN=1; LANG=es ;;
+              "17 22 * * *") RUN=3; LANG=es ;;
               "17 0 * * *")  RUN=2; LANG=es ;;
               "17 10 * * *") RUN=6; LANG=es ;;
               "22 15 * * *") RUN=0; LANG=br ;;
               "22 20 * * *") RUN=1; LANG=br ;;
+              "22 22 * * *") RUN=3; LANG=br ;;
               "22 0 * * *")  RUN=2; LANG=br ;;
               "22 10 * * *") RUN=6; LANG=br ;;
               *) RUN=2; LANG=es ;;  # fallback defensivo
