@@ -53,4 +53,23 @@ describe("guardião de arte — a direção travada pelo dono", () => {
     // "DR. LIBERDADE · Nº XXX" é a âncora de coleção — sem ela a peça não é da marca
     expect(reel).toMatch(/Nº|edition|kicker/i);
   });
+
+  it("a MARCA do video usa o CREME, nao o acento — azul/teal somem no fundo escuro", () => {
+    // O dono viu no feed: a Nº 358 com "DR. LIBERDADE · Nº 358" ilegivel. A capa (/api/og) ja
+    // fazia certo (texto creme + regua no acento); o video pintava o texto com o acento da
+    // categoria. Mesma marca nos dois lugares — o acento continua, na regua.
+    for (const arq of ["video/ReelV2.tsx", "video/Reel.tsx"]) {
+      const src = ler(arq);
+      expect(src, arq).not.toMatch(/letterSpacing: 2, color,/);
+      expect(src, arq).not.toMatch(/fontWeight: 700, color: accentColor/);
+    }
+  });
+
+  it("os DOIS motores de video usam a mesma tipografia — peca nao pode variar de fonte", () => {
+    for (const arq of ["video/ReelV2.tsx", "video/Reel.tsx"]) {
+      const src = ler(arq);
+      expect(src, arq).toMatch(/loadAnton|google-fonts\/Anton/);
+      expect(src, arq).not.toMatch(/fontFamily: FRAUNCES, fontWeight: 800/);
+    }
+  });
 });
