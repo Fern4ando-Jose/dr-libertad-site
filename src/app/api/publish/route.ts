@@ -3,6 +3,7 @@ import { generateIllustration } from "@/lib/illustration";
 import { capaDoAcervo } from "@/lib/cover-acervo";
 import { curarCapa } from "@/lib/curador-imagem";
 import { formatoDaVaga, diretrizDoRedator } from "@/lib/formatos-peca";
+import { conferirFormato, reprovado, resumoDoVeredito } from "@/lib/verificador-formato";
 import { revisarTexto, instrucaoDeCorrecao } from "@/lib/revisao-editorial";
 import { prehostCover } from "@/lib/cover-prehost";
 import { Lang, accountFor, getLang, envToken, envAccountId, langLegado } from "@/lib/accounts";
@@ -836,6 +837,46 @@ async function savePost(params: {
 
 // ─── Handler principal ────────────────────────────────────────────────────────
 
+
+// ─── O PORTÃO DE FORMATO (2026-08-09, ordem do dono: "inclua um verificador que cada peça
+// que saia passe por ele e que todas estejam no formato que definimos hoje") ────────────
+// A regra no prompt é PEDIDO; isto é EXIGÊNCIA. Nasceu porque o Reel Nº 362 saiu sem molde
+// nenhum 22 minutos depois de as regras estarem no ar — e quem viu foi o dono, não a máquina.
+//
+// Reprovou → regenera UMA vez (o modelo acerta na segunda quase sempre) e, se insistir,
+// deixa passar COM a reprovação gravada no log da vaga. Escolha deliberada: derrubar a vaga
+// castigaria o dono duas vezes — sem peça E sem alcance — por um defeito nosso de redação.
+// O que NÃO passa em silêncio é o registro: `formatoVeredito` no slotLog conta o que houve.
+// Só 1 regeneração de propósito: cada uma custa texto (P2).
+async function comPortaoDeFormato(
+  gerar: () => Promise<GeneratedContent>,
+  fmt: { id: string; nome: string; tituloMolde: string },
+  topic: string,
+  lang: string,
+  slotLog: Record<string, unknown>,
+): Promise<GeneratedContent> {
+  const literal = THEMES.find((x) => x.topic === topic)?.literal === true;
+  let content = await gerar();
+  for (let tentativa = 0; tentativa < 2; tentativa++) {
+    const achados = conferirFormato({
+      formato: fmt as never,
+      titulo: content.postTitle,
+      slides: content.slides,
+      temaLiteral: literal,
+      lang,
+    });
+    slotLog.formatoVeredito = resumoDoVeredito(achados);
+    if (!reprovado(achados)) return content;
+    if (tentativa === 1) {
+      console.warn(`[formato] peça REPROVADA e publicada assim mesmo · ${fmt.id} · ${resumoDoVeredito(achados)}`);
+      return content;
+    }
+    console.warn(`[formato] ${resumoDoVeredito(achados)} · regenerando 1×`);
+    content = await gerar();
+  }
+  return content;
+}
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -928,7 +969,10 @@ export async function GET(req: NextRequest) {
       const titleDedupOn = (process.env.TITLE_DEDUP_ENABLED ?? "").toLowerCase() === "on";
       const avoidTitles = titleDedupOn ? await recentTitlesForLang(lang, 12) : [];
       const fmtReel = formatoDaVaga("reel", `${topic}|${day}`);
-      content = await generateContent(topic, searchResults, slot, lang, "ig-reels", avoidTitles, diretrizDoRedator(fmtReel), fmtReel.nome);
+      content = await comPortaoDeFormato(
+        () => generateContent(topic, searchResults, slot, lang, "ig-reels", avoidTitles, diretrizDoRedator(fmtReel), fmtReel.nome),
+        fmtReel, topic, lang, {},
+      );
       await writeContentCache(topic, day, lang, content);
     }
 
@@ -1216,7 +1260,10 @@ export async function GET(req: NextRequest) {
           // senão o par sai com arquiteturas diferentes e nada é comparável.
           const fmt = formatoDaVaga("carrossel", `${topic}|${dayBRT(now)}`);
           slotLog.formato = fmt.id;
-          content = await generateContent(topic, searchResults, slot, lang, "ig-posts", avoidTitles, diretrizDoRedator(fmt), fmt.nome);
+          content = await comPortaoDeFormato(
+            () => generateContent(topic, searchResults, slot, lang, "ig-posts", avoidTitles, diretrizDoRedator(fmt), fmt.nome),
+            fmt, topic, lang, slotLog as unknown as Record<string, unknown>,
+          );
           await writeContentCache(topic, dayBRT(now), lang, content);
         }
         slotLog.title = content.postTitle;
