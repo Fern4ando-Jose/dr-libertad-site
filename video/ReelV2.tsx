@@ -35,6 +35,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { loadFont as loadFraunces } from "@remotion/google-fonts/Fraunces";
+import { loadFont as loadAnton } from "@remotion/google-fonts/Anton";
 import { Scene, reelDefaultProps, type ReelProps, FPS, CAT_ACCENT } from "./Reel";
 import { normalizePhrase } from "../src/lib/slide-dedup";
 // Import RELATIVO (não `@/…`) p/ o webpack do Remotion resolver no bundle do render.
@@ -47,6 +48,13 @@ import {
 } from "../src/lib/narration-sync";
 
 const { fontFamily: FRAUNCES } = loadFraunces();
+// ─── A FONTE DA FRASE (2026-08-09, o dono viu no feed: "fonte errada") ──────────
+// A régua da marca separa as duas: a FRASE é condensada (Anton) e a ASSINATURA/Nº é a
+// Fraunces 700 — serifa no nome + condensada na frase é o contraste que a marca pede.
+// O vídeo estava com Fraunces nas DUAS, e no feed a frase serifada não segura: foi
+// medido em `Comparacao-Fontes-2026-08-09.html` e travado na BIBLIOTECA-FORMATOS §2.2.
+// ⚠️ Não trocar a Fraunces da marca — ela continua sendo a assinatura.
+const { fontFamily: ANTON } = loadAnton();
 
 // Constantes de texto (espelham o Reel; valores simples, isolados no V2 — não tocam
 // a produção). A grade/footage vêm de `Scene`, então nada de cor de vídeo aqui.
@@ -234,7 +242,7 @@ function KineticText({
   const timed = Array.isArray(wordFrames) && wordFrames.length === words.length;
   const clean = (w: string) => w.toLowerCase().replace(/[.,;:!?¿¡"']/g, "");
   return (
-    <div style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize, lineHeight: 1.12, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}>
+    <div style={{ fontFamily: ANTON, fontWeight: 400, fontSize, lineHeight: 1.12, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}>
       {words.map((w, i) => {
         const f0 = timed ? wordFrames![i] : startFrame + i * perWord;
         const o = interpolate(frame, [f0, f0 + 7], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -344,7 +352,7 @@ function CtaTextV2({ cta, accent, handle, ctaFollow, ctaBio }: { cta: string; ac
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", padding: "0 90px", textAlign: "center" }}>
       <div style={{ transform: `scale(${scale})`, opacity: o, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{ width: 110, height: 8, backgroundColor: accent, marginBottom: 50, borderRadius: 4 }} />
-        <div style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 92, lineHeight: 1.1, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", transform: `scale(${pulse})` }}>
+        <div style={{ fontFamily: ANTON, fontWeight: 400, fontSize: 92, lineHeight: 1.1, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", transform: `scale(${pulse})` }}>
           {ctaFollow} <span style={{ color: accent }}>{handle}</span>
         </div>
         <div style={{ marginTop: 50, fontFamily: FRAUNCES, fontWeight: 400, fontSize: 50, lineHeight: 1.3, color: PAPER, opacity: 0.92, maxWidth: 880, textShadow: "0 2px 20px rgba(0,0,0,0.55)" }}>
@@ -387,7 +395,7 @@ function FunnelCardV2({ cover, keyword, action, note, handle }: { cover?: string
             {action}
           </div>
           <div style={{ transform: `scale(${pulse})`, borderRadius: 9999, padding: "30px 84px", background: FUNNEL_GRAD, boxShadow: `0 0 ${halo}px ${FUNNEL_MAGENTA}` }}>
-            <div style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 100, letterSpacing: 8, color: FUNNEL_CREAM, textTransform: "uppercase" }}>
+            <div style={{ fontFamily: ANTON, fontWeight: 400, fontSize: 100, letterSpacing: 8, color: FUNNEL_CREAM, textTransform: "uppercase" }}>
               {keyword}
             </div>
           </div>
