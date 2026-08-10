@@ -1,3 +1,5 @@
+import { limparInvisiveis } from "./texto-limpo";
+
 // Parser robusto do JSON que o haiku devolve em generateContent.
 // O modelo às vezes embrulha a saída em prosa ou em ```backticks```; extraímos
 // o objeto do primeiro "{" ao último "}" e parseamos. Se ainda assim o JSON
@@ -18,9 +20,15 @@ export function parseContentJson<T = unknown>(raw: string): T {
 // a VAGA INTEIRA no catch (não publica). Aqui coagimos só o TIPO (array/string) dos
 // campos que o pipeline consome, para o acesso nunca lançar. NÃO inventa conteúdo:
 // campo ausente vira vazio; a qualidade é decidida por missingEssentialContent.
-const asString = (v: unknown): string => (typeof v === "string" ? v : "");
+// A limpeza de INVISÍVEIS entra aqui, no funil por onde passa TODO texto gerado
+// (carrossel, Reel, legenda, voz). Um hífen suave dentro de "buscas" — invisível na
+// tela — fez a voz do Reel ES falar "busca H" e o dono ouvir sem sentido nenhum.
+// Ver src/lib/texto-limpo.ts.
+const asString = (v: unknown): string => (typeof v === "string" ? limparInvisiveis(v) : "");
 const asStringArray = (v: unknown): string[] =>
-  Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  Array.isArray(v)
+    ? v.filter((x): x is string => typeof x === "string").map((x) => limparInvisiveis(x))
+    : [];
 
 export interface NormalizedContent {
   postTitle: string;
@@ -44,7 +52,7 @@ export function normalizeContentJson(obj: unknown): NormalizedContent {
     tags: asStringArray(o.tags),
   };
   if (o.videoQueries !== undefined) out.videoQueries = asStringArray(o.videoQueries);
-  if (typeof o.narration === "string") out.narration = o.narration;
+  if (typeof o.narration === "string") out.narration = limparInvisiveis(o.narration);
   return out;
 }
 
