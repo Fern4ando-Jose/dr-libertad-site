@@ -28,11 +28,14 @@ import {
   useVideoConfig,
 } from "remotion";
 import { loadFont as loadFraunces } from "@remotion/google-fonts/Fraunces";
+import { loadFont as loadAnton } from "@remotion/google-fonts/Anton";
 import { GradeOverlay, gradeFilterCss, DUO_FLOOR, type Pillar } from "./brand-grade";
 import { PhotoKenBurns, pickKenBurnsMode } from "./KenBurns";
 import { isPhotoUrl, hashStr } from "../src/lib/footage-media";
 
 const { fontFamily: FRAUNCES } = loadFraunces();
+// A FRASE é condensada; a MARCA continua na serifa (mesma régua do ReelV2 e da capa).
+const { fontFamily: ANTON } = loadAnton();
 
 // ─── Cores da marca (espelham /api/og) ────────────────────────────────────────
 const INK = "#0B0B0C";
@@ -187,7 +190,7 @@ function Highlighted({ text, accent, color }: { text: string; accent: string; co
 
 function Handle({ color = PAPER, handle = "@dr.liberdad" }: { color?: string; handle?: string }) {
   return (
-    <div style={{ fontFamily: FRAUNCES, fontSize: 38, fontWeight: 600, letterSpacing: 2, color, opacity: 0.85 }}>
+    <div style={{ fontFamily: FRAUNCES, fontSize: 38, fontWeight: 600, letterSpacing: 2, color: PAPER, opacity: 0.85 }}>
       {handle}
     </div>
   );
@@ -351,7 +354,7 @@ function CoverText({ title, ed, accent, brand, handle }: { title: string; ed: st
         <div style={{ transform: `translateY(${y}px) scale(${scale})`, transformOrigin: "left bottom", opacity: o }}>
           <div style={{ width: 110, height: 8, backgroundColor: accent, marginBottom: 40, borderRadius: 4 }} />
           <div
-            style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 100, lineHeight: 1.05, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}
+            style={{ fontFamily: ANTON, fontWeight: 400, fontSize: 100, lineHeight: 1.05, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}
           >
             {title}
           </div>
@@ -374,13 +377,13 @@ function InsightText({ text, accent, accentColor, index, total, handle }: { text
   return (
     <AbsoluteFill>
       <div
-        style={{ position: "absolute", top: SAFE_TOP, left: 90, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 700, color: accentColor, opacity: o }}
+        style={{ position: "absolute", top: SAFE_TOP, left: 90, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 700, color: PAPER, opacity: o }}
       >
         {String(index).padStart(2, "0")} / {String(total).padStart(2, "0")}
       </div>
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: `0 90px ${SAFE_BOTTOM_TEXT}px` }}>
         <div
-          style={{ transform: `translateX(${x}px)`, opacity: o, fontFamily: FRAUNCES, fontWeight: 800, fontSize: 88, lineHeight: 1.12, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}
+          style={{ transform: `translateX(${x}px)`, opacity: o, fontFamily: ANTON, fontWeight: 400, fontSize: 88, lineHeight: 1.12, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}
         >
           <Highlighted text={text} accent={accent} color={accentColor} />
         </div>
@@ -405,7 +408,7 @@ function CtaText({ cta, accent, handle, ctaFollow, ctaBio }: { cta: string; acce
       <div style={{ transform: `scale(${scale})`, opacity: o, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{ width: 110, height: 8, backgroundColor: accent, marginBottom: 50, borderRadius: 4 }} />
         <div
-          style={{ fontFamily: FRAUNCES, fontWeight: 800, fontSize: 92, lineHeight: 1.1, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", transform: `scale(${pulse})` }}
+          style={{ fontFamily: ANTON, fontWeight: 400, fontSize: 92, lineHeight: 1.1, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", transform: `scale(${pulse})` }}
         >
           {ctaFollow} <span style={{ color: accent }}>{handle}</span>
         </div>
