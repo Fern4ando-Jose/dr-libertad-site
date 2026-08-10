@@ -146,10 +146,12 @@ export function reelPlanV2(props: Partial<ReelProps>, fps: number = FPS): ReelV2
   const segments = Array.isArray(props.narrationSegments) ? props.narrationSegments.filter(Boolean) : [];
   const durationSec = Number(props.narrationDurationSec ?? 0);
   // Precisa de: áudio + duração medida + os blocos do roteiro na quantidade que a
-  // voz FALA. Dois formatos válidos desde 29/07 à noite (ordem do dono):
-  //   n+1 = capa + insights, SEM fecho falado (ES — a voz MiniMax embolava
-  //         "Direct"/"LIBERTAD", por isso o fecho saiu da narração ES);
-  //   n+2 = capa + insights + FECHO falado (BR — voz Bill, fecho na voz da marca).
+  // voz FALA. Duas contagens válidas:
+  //   n+2 = capa + insights + FECHO falado — o caminho de HOJE nos DOIS idiomas
+  //         (o ES ganhou fecho em 10/08: sem ele a voz parava aos 18,4 s de um vídeo
+  //         de 27,2 s e o dono ouviu isso como "áudio truncado");
+  //   n+1 = capa + insights, SEM fecho — o formato de 29/07 a 10/08, que ainda chega
+  //         aqui por áudio guardado ou por idioma sem frase de fecho declarada.
   // Qualquer outra contagem → fórmula, como sempre.
   const comFecho = segments.length === n + 2;
   if (!props.narrationUrl || !(durationSec > 0) || (segments.length !== n + 1 && !comFecho)) return fallback();

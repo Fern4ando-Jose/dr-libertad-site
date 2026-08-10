@@ -17,6 +17,8 @@ import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic,
 import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun, RANDOM_POOL } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
+import { filtrarPesquisa } from "@/lib/pesquisa-pertinente";
+import { blocosFalados } from "@/lib/roteiro-falado";
 import { buildLiteralDirective, anchorForLang, anchorViolated } from "@/lib/literal-lock";
 import { scanContentForeign, summarizeHits } from "@/lib/lang-guard";
 import { scanContentForFabricatedStats, summarizeStatHits } from "@/lib/stats-guard";
@@ -404,16 +406,29 @@ const SLOT_INSTRUCTIONS: Record<Slot, string> = {
 // JSON p/ clientes novos → DDG é a única busca grátis de web inteira (decisão 23/06).
 const WIKI_UA = "DrLibertadBot/1.0 (https://www.drlibertad.com; research)";
 
+// PENEIRA DE PERTINÊNCIA (2026-08-10) — o que não fala do tema NÃO entra no prompt.
+// Um verbete sobre prostituição entrou como "Contexto investigado" de um tema sobre
+// incerteza e o Reel ES+BR saiu inteiro sobre prostituição (o dono ouviu e reprovou).
+// Medido nas 131 pesquisas guardadas: 107 não tocavam o tema. Ver src/lib/pesquisa-pertinente.ts.
+function peneirar(topic: string, brutos: SearchResult[], fonte: string): SearchResult[] {
+  const { mantidos, descartados } = filtrarPesquisa(topic, brutos);
+  if (descartados.length) {
+    console.log(
+      `[search] fora do tema (descartados ${descartados.length}) topic="${topic}": ` +
+        descartados.map((d) => `"${d.title}"`).join(", "),
+    );
+  }
+  console.log(`[search] fonte=${fonte} n=${mantidos.length}/${brutos.length} topic="${topic}"`);
+  return mantidos;
+}
+
 async function searchTopic(topic: string, _automation: Automation): Promise<SearchResult[]> {
   // 1º DuckDuckGo (web inteira); se vazio/bloqueado, Wikipedia (reserva). Ambos fail-open.
-  const ddg = await searchDuckDuckGo(topic);
-  if (ddg.length > 0) {
-    console.log(`[search] fonte=ddg n=${ddg.length} topic="${topic}"`);
-    return ddg;
-  }
-  const wiki = await searchWikipedia(topic);
-  console.log(`[search] fonte=wikipedia(reserva) n=${wiki.length} topic="${topic}"`);
-  return wiki;
+  // A peneira roda DEPOIS de cada fonte: se o DDG só trouxe coisa fora do tema, a reserva
+  // ainda tem a chance de trazer algo pertinente, em vez de a vaga ficar com o lixo do DDG.
+  const ddg = peneirar(topic, await searchDuckDuckGo(topic), "ddg");
+  if (ddg.length > 0) return ddg;
+  return peneirar(topic, await searchWikipedia(topic), "wikipedia(reserva)");
 }
 
 async function searchWikipedia(topic: string): Promise<SearchResult[]> {
@@ -530,7 +545,7 @@ MOTOR DE ATENCIÓN (6 principios verificados con fuente — Playbook de Atenció
 - CREDIBILIDAD (REGLA DURA — si la violas, el post se DESCARTA): PROHIBIDO inventar datos con AUTORIDAD: porcentajes ("el 67%"), estudios o investigaciones ("según un estudio", "los estudios dicen"), universidades o instituciones nombradas (Harvard, Pew, OMS…), "X de cada Y" ("1 de cada 3"), y años o fechas concretas ("en 2024"): la frase debe ser ATEMPORAL. EN ESPECIAL, JAMÁS cites multiplicadores de retención/alcance ("+85% de retención = 2,8× alcance" y similares): son FALSOS (refutados). Si no es un dato REAL y verificable con fuente, NO lo pongas — la fuerza viene de la VERDAD cruda, no de cifras falsas. SÍ puedes usar un número concreto de COMPORTAMIENTO como gancho ("revisas el móvil decenas de veces al día"), pero JAMÁS presentado como estadística citada ni atribuido a nadie.
 - BREVEDAD + COMPLETION: los slides son CORTOS de verdad — máx 80 chars, frases que se leen en 1-2 segundos, para que la pieza se vea ENTERA (completion + rewatch dominan la distribución). El PT-BR ya sale así de punzante; el ES también debe serlo (nada de slides de 110 chars).
 
-Contexto investigado:
+Contexto investigado (APOYO, no es el asunto): son notas de fondo, NUNCA el tema de la pieza. El TEMA de arriba manda: si algo de aquí abajo habla de OTRA cosa, IGNÓRALO por completo y escribe igual. PROHIBIDO que el título, los slides o el cta traten de un asunto que sólo aparece aquí y no en el Tema. Si no hay nada útil, escribe SIN contexto — es preferible.
 ${context}
 
 Genera un JSON válido (sin markdown, sin backticks) con esta estructura EXACTA:
@@ -958,7 +973,12 @@ export async function GET(req: NextRequest) {
     const shared = await readReelShared(topic, day);
 
     // Pesquisa: reusa a do cache ou busca agora (Wikipedia, grátis e fail-open).
-    const searchResults = shared?.research?.length ? shared.research : await searchTopic(topic, "ig-reels");
+    // A peneira vale TAMBÉM para o que veio do cache compartilhado: a base guarda a
+    // pesquisa por (tema, dia) e o ES a grava para o BR reusar 5 min depois — sem isto,
+    // material fora do tema gravado antes desta trava seguiria contaminando o par inteiro.
+    const searchResults = shared?.research?.length
+      ? filtrarPesquisa(topic, shared.research).mantidos
+      : await searchTopic(topic, "ig-reels");
     // Copy: reusa o cache por (tópico, dia, idioma) → redisparo NÃO repaga a Anthropic.
     let content = (await readContentCache(topic, day, lang)) as GeneratedContent | null;
     if (!content) {
@@ -1078,18 +1098,24 @@ export async function GET(req: NextRequest) {
     }
     // Blocos do roteiro NA ORDEM falada — o render usa esta MESMA lista pra saber onde
     // cada cena começa (fonte única do alinhamento voz↔tela).
-    // FECHO FALADO SÓ NO BR (ordem do dono 29/07 à noite, depois de aprovar o fecho no
-    // UPM: "no Doutor Liberdade a gente tinha que fazer, mas a voz espanhola está
-    // embolando... coloca no BR"). ES segue SEM fecho — foi a voz ES embolando
-    // "Direct"/"LIBERTAD" que tirou o fecho da narração em 29/07 de manhã. A voz BR
-    // (Bill) fala a pergunta do dia + um pedido de seguir na voz da marca, SEM o
-    // @handle e SEM a palavra-chave do funil (as duas que embolavam).
-    const fechoFaladoBr = lang === "br"
-      ? [content.cta, "Me segue pra mais verdades incômodas."].map((s) => String(s || "").trim()).filter(Boolean).join(" ")
-      : "";
-    const narrationSegments = [content.postTitle, ...spokenSlides, ...(fechoFaladoBr ? [fechoFaladoBr] : [])]
-      .map((s) => String(s).trim()).filter(Boolean)
-      .map((s) => (/[.!?]$/.test(s) ? s : s + "."));
+    // ─── FECHO FALADO NOS DOIS IDIOMAS (2026-08-10) ───────────────────────────
+    // O BR ganhou fecho em 29/07 à noite; o ES ficou sem, porque a voz espanhola
+    // embolava as DUAS palavras do fecho antigo — «Direct» (emprestada do inglês) e a
+    // palavra-chave «LIBERTAD» gritada. O dono naquele dia: "no Doutor Liberdade a gente
+    // TINHA QUE FAZER, mas a voz espanhola está embolando... coloca no BR".
+    //
+    // O efeito de deixar o ES sem fecho é o que ele ouviu agora e chamou de áudio
+    // truncado — MEDIDO nos Reels que estão no ar em @dr.liberdad:
+    //   10/08 · vídeo 27,2 s · a voz para aos 18,4 s → 8,6 s finais sem ninguém falando
+    //   09/08 · vídeo 21,5 s · a voz para aos 12,8 s → 8,7 s, 40% do Reel mudo
+    // O vídeo continua rodando (a tela do CTA e o cartão do funil) com só a música. No BR
+    // isso não acontece: lá a voz vai até o fim, porque lá existe fecho.
+    //
+    // O fecho ES é o ESPELHO do BR aprovado: a pergunta do dia + um convite a seguir, e
+    // nenhuma das palavras que embolavam — sem «Direct», sem a palavra do funil, sem
+    // @handle. As frases e a montagem moram em `src/lib/roteiro-falado.ts` (fonte única,
+    // usada TAMBÉM pelo teste que as trava — antes o teste tinha uma cópia e não travava nada).
+    const narrationSegments = blocosFalados(content.postTitle, spokenSlides, lang, content.cta);
     const narrationText = narrationSegments.join(" ");
     // SEM janela-alvo: a voz sai em velocidade natural e o VÍDEO é que se ajusta a ela
     // (o áudio é o relógio). A antiga `voiceWindowSec` — 3,0 + 5,6·n + 4,6 − 0,6 — era a

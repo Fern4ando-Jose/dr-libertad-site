@@ -91,7 +91,11 @@ export interface NarrationResult {
 // NÃO pode ser reaproveitado: ele ainda fala o fecho enquanto a tela nova não o
 // mostra — a voz sobra no fim e dessincroniza (defeito real, prévia de 29/07).
 // Mudou a forma do roteiro? Suba o número — o cache velho simplesmente nunca casa.
-const ROTEIRO_VERSAO = "v3"; // v3 = ES sem fecho falado · BR com fecho ("Me segue…", 29/07 à noite)
+// v4 (2026-08-10) = os DOIS idiomas com fecho falado. Sem subir o número, o áudio ES
+// guardado nas últimas 48 h (que NÃO fala o fecho) seria reusado enquanto a tela já
+// conta com ele: o plano de cenas esperaria uma frase que ninguém narra e o Reel sairia
+// dessincronizado — exatamente o defeito que esta versão-no-fim-da-chave existe p/ evitar.
+const ROTEIRO_VERSAO = "v4"; // v4 = ES e BR com fecho falado · v3 = só BR (29/07→10/08)
 
 // HASH do TEXTO falado na chave (espelhado do UPM, 29/07 — lá o bug foi real): a
 // voz só pode ser reusada para o MESMO roteiro. Sem isto, um cache de copy que
