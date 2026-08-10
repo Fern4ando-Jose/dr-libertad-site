@@ -27,8 +27,14 @@ import { langLegado } from "@/lib/accounts";
 // + funil traduz "adelanto"→"prévia" — descarta legendas PT contaminadas já cacheadas;
 // v4 = gancho-pergunta + videoQueries DIVERSOS (anti-celular) + integridade/brevidade
 // (#125/#126) — descarta a copy velha pra os fixes valerem já na próxima geração.
+// v5 (2026-08-09) = as REGRAS DE FORMATO (título-molde, gancho em 3 camadas, venda dentro do
+// molde, carona). Sem subir a versão, a copy escrita HOJE antes das regras continuaria valendo
+// por 24h e o motor a reusaria — foi exatamente o que aconteceu: o Reel Nº 362 saiu sem molde
+// nenhum, 22 minutos DEPOIS de as regras estarem no ar, e o dono percebeu antes de mim.
+// ⚠️ REGRA QUE FICA: mudou o que o redator escreve → **suba esta versão no mesmo passo**.
+// Regra nova sem versão nova é regra que só vale amanhã, e ninguém avisa.
 export function contentCacheKey(topic: string, day: string, lang: string): string {
-  return `${topic}|${day}|${lang}|v4`;
+  return `${topic}|${day}|${lang}|v5`;
 }
 
 // Lê a copy cacheada (≤24h). Só devolve se tiver o mínimo válido (postTitle + slides),
