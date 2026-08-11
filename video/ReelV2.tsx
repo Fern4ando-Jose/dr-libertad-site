@@ -549,7 +549,17 @@ export const ReelV2: React.FC<ReelProps> = (props) => {
   const musicSrc = music ? (/^https?:\/\//.test(music) ? music : staticFile(music)) : null;
   // Narração (voz) por cima; quando há narração, a música vira LEITO SUAVE (ducking).
   const narrationSrc = narrationUrl ? (/^https?:\/\//.test(narrationUrl) ? narrationUrl : staticFile(narrationUrl)) : null;
-  const musicMax = narrationSrc ? 0.16 : 0.7;
+  // ⛔ 2026-08-11 — O DONO OUVIU E DISSE "SEM VOZ GRAVADA". A voz estava lá: foi gerada
+  // (23,0 s no acervo, picos a −6,7 dB) e entrou no vídeo. O que faltava era ESPAÇO.
+  // Medido na faixa em que a fala vive (300–3000 Hz): a voz sozinha dá −27,1 dB e a
+  // MISTURA dava −30,1 — mais baixa que a voz sozinha, ou seja, a cama musical ocupava
+  // exatamente a mesma faixa e mascarava a fala em vez de ficar embaixo dela.
+  // A cama cai de 0,16 para 0,07 quando há voz, e a voz passa a ir com um reforço leve.
+  // O 0,16 vinha da época em que a peça era só música com voz por cima em trechos curtos.
+  const musicMax = narrationSrc ? 0.07 : 0.7;
+  // Reforço da fala: mantém a voz claramente ACIMA da cama sem estourar (os picos do
+  // arquivo de voz ficam em −6,7 dB, então 1,5× ainda não chega ao teto).
+  const VOZ_GANHO = 1.5;
   // ⛔ 2026-08-11 — O VOLUME DA MÚSICA SEGUE O RELÓGIO DA PEÇA, NÃO O DA TRILHA.
   // Este `useCurrentFrame` no corpo do componente existe por um motivo exato: o callback
   // `volume={(f) => …}` do `<Audio>` recebe o frame **relativo ao áudio**, e com `loop`
@@ -609,7 +619,7 @@ export const ReelV2: React.FC<ReelProps> = (props) => {
           As cenas acima já começam nos frames em que a voz vira de frase (plano
           sincronizado), então a tela nunca atrasa nem adianta em relação à fala.
           A clareza da abertura vem da velocidade NATURAL fixa (0,85), não de fade. */}
-      {narrationSrc && <Audio src={narrationSrc} />}
+      {narrationSrc && <Audio src={narrationSrc} volume={VOZ_GANHO} />}
     </AbsoluteFill>
   );
 };
