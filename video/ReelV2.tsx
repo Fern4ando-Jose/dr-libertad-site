@@ -29,6 +29,7 @@ import {
   Img,
   Sequence,
   interpolate,
+  interpolateColors,
   spring,
   staticFile,
   useCurrentFrame,
@@ -46,6 +47,17 @@ import {
   segmentTimings,
   splitWords,
 } from "../src/lib/narration-sync";
+// A conta da escala e o nome da série — ambos módulos PUROS, seguros no bundle do render
+// (mesma regra do slide-dedup: sem next/db, import relativo).
+import {
+  REEL_LARGURA_UTIL,
+  REEL_MARGEM_LATERAL,
+  REEL_TEXTO_TOP,
+  REEL_ALTURA_MANCHETE,
+  tamanhoManchete,
+  tamanhoInsight,
+} from "../src/lib/capa-escala";
+import { selo } from "../src/lib/serie";
 
 const { fontFamily: FRAUNCES } = loadFraunces();
 // ─── A FONTE DA FRASE (2026-08-09, o dono viu no feed: "fonte errada") ──────────
@@ -210,6 +222,16 @@ export function reelPlanV2(props: Partial<ReelProps>, fps: number = FPS): ReelV2
 
 export const reelV2DefaultProps: ReelProps = reelDefaultProps;
 
+/**
+ * O idioma da peça, lido do @ da conta — as duas contas são operações separadas e o
+ * handle é o único campo que a composição já recebe e que distingue as duas
+ * (`@dr.liberdade.br` × `@dr.liberdad`). Preferi isto a acrescentar um campo em
+ * `ReelProps`, que é compartilhado com o Reel clássico e com o carrossel.
+ */
+export function langDoHandle(handle: string | undefined): "br" | "es" {
+  return /\.br\b|liberdade/i.test(handle ?? "") ? "br" : "es";
+}
+
 function Handle({ color = PAPER, handle = "@dr.liberdad" }: { color?: string; handle?: string }) {
   return (
     <div style={{ fontFamily: FRAUNCES, fontSize: 38, fontWeight: 600, letterSpacing: 2, color: PAPER, opacity: 0.85 }}>
@@ -219,6 +241,19 @@ function Handle({ color = PAPER, handle = "@dr.liberdad" }: { color?: string; ha
 }
 
 // ─── Legenda cinética: revela palavra-por-palavra (movimento = retenção) ───────
+//
+// ⛔ 2026-08-11 — A CAPA DEIXOU DE ENTRAR PALAVRA A PALAVRA (`inteiroDeInicio`).
+// O que estava medido: **12,4% continuaram assistindo** no canal BR e 19,2% no ES,
+// contra 70% da referência estudada. A causa apareceu quadro a quadro: no segundo 0 a
+// tela não trazia mensagem nenhuma (só marca e @), a frase ia se formando e só ficava
+// inteira no **3º segundo** — e a pessoa decide no primeiro. Em feed de deslizar, tela
+// que começa muda é tela que ninguém espera terminar.
+//
+// A revelação cinética foi decidida em junho (PR #102) contra um problema DIFERENTE: a
+// capa parada de 5 s, que fazia sair DURANTE a capa. Ela resolveu aquilo e criou este.
+// Agora a capa nasce inteira e o movimento continua — a palavra-chave acende na cor da
+// marca, o fundo respira, a barra do selo cresce. Os INSIGHTS seguem palavra a palavra:
+// lá a pessoa já está dentro, e é a voz que manda no ritmo.
 function KineticText({
   text,
   accent,
@@ -227,6 +262,8 @@ function KineticText({
   perWord = 3,
   fontSize = 88,
   wordFrames,
+  inteiroDeInicio = false,
+  maxWidth = REEL_LARGURA_UTIL,
 }: {
   text: string;
   accent: string;
@@ -238,22 +275,36 @@ function KineticText({
   // legenda acende no ritmo da voz — não num compasso fixo de 3 frames que só por
   // coincidência batia com a fala. Ausente/incompleto → ritmo fixo de sempre.
   wordFrames?: number[];
+  /** Frase legível no PRIMEIRO quadro: nenhuma palavra nasce apagada. */
+  inteiroDeInicio?: boolean;
+  maxWidth?: number;
 }) {
   const frame = useCurrentFrame();
   const words = (text || "").split(" ");
-  const timed = Array.isArray(wordFrames) && wordFrames.length === words.length;
+  const timed = !inteiroDeInicio && Array.isArray(wordFrames) && wordFrames.length === words.length;
   const clean = (w: string) => w.toLowerCase().replace(/[.,;:!?¿¡"']/g, "");
   return (
-    <div style={{ fontFamily: ANTON, fontWeight: 400, fontSize, lineHeight: 1.12, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth: 920 }}>
+    <div style={{ fontFamily: ANTON, fontWeight: 400, fontSize, lineHeight: 1.12, color: WHITE, textShadow: "0 2px 28px rgba(0,0,0,0.55)", maxWidth }}>
       {words.map((w, i) => {
         const f0 = timed ? wordFrames![i] : startFrame + i * perWord;
-        const o = interpolate(frame, [f0, f0 + 7], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-        const y = interpolate(frame, [f0, f0 + 7], [18, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+        const o = inteiroDeInicio
+          ? 1
+          : interpolate(frame, [f0, f0 + 7], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+        const y = inteiroDeInicio
+          ? 0
+          : interpolate(frame, [f0, f0 + 7], [18, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
         const isAccent = !!accent && clean(w).includes(accent.toLowerCase());
+        // Com a frase inteira desde o quadro 0, o movimento passa a ser a palavra-chave
+        // ACENDENDO na cor da marca — nada apaga, nada falta, e a tela não fica parada.
+        const cor = !isAccent
+          ? WHITE
+          : inteiroDeInicio
+            ? interpolateColors(frame, [6, 16], [WHITE, accentColor])
+            : accentColor;
         return (
           <span
             key={i}
-            style={{ display: "inline-block", opacity: o, transform: `translateY(${y}px)`, color: isAccent ? accentColor : WHITE, marginRight: "0.26em" }}
+            style={{ display: "inline-block", opacity: o, transform: `translateY(${y}px)`, color: cor, marginRight: "0.26em" }}
           >
             {w}
           </span>
@@ -295,28 +346,47 @@ function pickCoverAccent(title: string, kw: string): string {
 //   • o gancho continua entrando palavra a palavra (nada de "vão" parado);
 //   • a capa do GRID deixa de ser o frame 0 cru: `publish-reel` passa a mandar
 //     `thumb_offset` no fim da capa, quando o título já está inteiro.
-function CoverTextV2({ title, accent, brand, handle, kw, ed, wordFrames }: { title: string; accent: string; brand: string; handle: string; kw: string; ed?: string; wordFrames?: number[] }) {
+//
+// ⛔ 2026-08-11 — TRÊS CONSERTOS MEDIDOS ENTRARAM AQUI (o dono autorizou os três):
+//   1. a frase nasce INTEIRA no quadro 0 (ver o cabeçalho de `KineticText`);
+//   2. a letra passa a ENCHER a largura — era 74–76% do quadro contra 85–95% das 10
+//      contas de referência. A margem lateral de 90px sozinha travava o teto em 83,3%,
+//      então nenhuma escolha de fonte alcançaria a régua sem mexer nela (agora 40px);
+//   3. o cabeçalho ganha o NOME da série. Tínhamos "Nº 244" — número sem nome não vira
+//      coleção. O nome não é invenção desta sessão: é a bandeira que o dono escolheu em
+//      14/07 ("Gaiola sem grade" / "Jaula sin rejas"), e o CONCEITO-BANDEIRA.md já
+//      mandava usá-la como âncora de coleção na capa numerada.
+// O texto saiu da base e foi para o MIOLO do quadro: ancorado embaixo com largura cheia,
+// ele passaria por baixo dos botões de curtir/comentar/enviar que o Instagram desenha na
+// direita. `capa-escala.ts` tem a faixa livre medida.
+function CoverTextV2({ title, accent, brand, handle, kw, ed, lang, wordFrames }: { title: string; accent: string; brand: string; handle: string; kw: string; ed?: string; lang?: string; wordFrames?: number[] }) {
   const frame = useCurrentFrame();
   const coverAccent = pickCoverAccent(title, kw);
   // Nasce em 1 (não em 0): a identidade tem de estar no primeiro quadro.
   const kickerO = 1;
   const barW = interpolate(frame, [0, 12], [42, 96], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const fontSize = tamanhoManchete(title);
   return (
     <AbsoluteFill>
       {/* Glow do acento atrás do texto → tira o "morto", dá profundidade de marca */}
       <AbsoluteFill style={{ background: `radial-gradient(60% 38% at 26% 78%, ${accent}38 0%, rgba(0,0,0,0) 70%)` }} />
-      {/* Kicker da marca no topo, EM COR DE ACENTO, com o Nº da edição (DIRECAO-CAPAS) */}
-      <div style={{ position: "absolute", top: SAFE_TOP, left: 90, display: "flex", alignItems: "center", gap: 22, opacity: kickerO }}>
-        <div style={{ width: barW, height: 7, backgroundColor: accent, borderRadius: 4 }} />
-        <div style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 700, letterSpacing: 5, color: PAPER }}>
-          {ed ? `${brand.toUpperCase()} · Nº ${ed}` : brand.toUpperCase()}
+      {/* Cabeçalho: a marca (DIRECAO-CAPAS) + o selo de coleção logo abaixo */}
+      <div style={{ position: "absolute", top: SAFE_TOP - 150, left: REEL_MARGEM_LATERAL, opacity: kickerO }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
+          <div style={{ width: barW, height: 7, backgroundColor: accent, borderRadius: 4 }} />
+          <div style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 700, letterSpacing: 5, color: PAPER }}>
+            {brand.toUpperCase()}
+          </div>
+        </div>
+        <div style={{ marginTop: 14, marginLeft: 118, fontFamily: FRAUNCES, fontSize: 28, fontWeight: 600, letterSpacing: 4, color: accent }}>
+          {selo(lang ?? "br", ed)}
         </div>
       </div>
-      <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: `0 90px ${SAFE_BOTTOM_TEXT}px` }}>
-        {/* Gancho cinético, maior, com a palavra-chave na cor da marca */}
-        <KineticText text={title} accent={coverAccent} accentColor={accent} startFrame={3} perWord={2} fontSize={108} wordFrames={wordFrames} />
-      </AbsoluteFill>
-      <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: 90 }}>
+      <div style={{ position: "absolute", top: REEL_TEXTO_TOP, left: REEL_MARGEM_LATERAL, width: REEL_LARGURA_UTIL, height: REEL_ALTURA_MANCHETE, display: "flex", alignItems: "center", justifyContent: "flex-start" }}>
+        {/* A manchete inteira, no tamanho que enche a largura */}
+        <KineticText text={title} accent={coverAccent} accentColor={accent} fontSize={fontSize} inteiroDeInicio wordFrames={wordFrames} />
+      </div>
+      <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: REEL_MARGEM_LATERAL }}>
         <Handle color={PAPER} handle={handle} />
       </div>
     </AbsoluteFill>
@@ -329,13 +399,16 @@ function InsightTextV2({ text, accent, accentColor, index, total, handle, wordFr
   const o = interpolate(frame, [0, 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <AbsoluteFill>
-      <div style={{ position: "absolute", top: SAFE_TOP, left: 90, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 700, color: PAPER, opacity: o }}>
+      <div style={{ position: "absolute", top: SAFE_TOP - 150, left: REEL_MARGEM_LATERAL, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 700, color: PAPER, opacity: o }}>
         {String(index).padStart(2, "0")} / {String(total).padStart(2, "0")}
       </div>
-      <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: `0 90px ${SAFE_BOTTOM_TEXT}px` }}>
-        <KineticText text={text} accent={accent} accentColor={accentColor} startFrame={3} perWord={3} wordFrames={wordFrames} />
-      </AbsoluteFill>
-      <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: 90 }}>
+      {/* Mesma faixa livre e mesma largura útil da capa — a régua de 85% vale para a peça
+          inteira, não só para o primeiro quadro. Aqui o texto SEGUE entrando palavra a
+          palavra: quem chegou até o insight já decidiu ficar, e é a voz que dá o ritmo. */}
+      <div style={{ position: "absolute", top: REEL_TEXTO_TOP, left: REEL_MARGEM_LATERAL, width: REEL_LARGURA_UTIL, height: REEL_ALTURA_MANCHETE, display: "flex", alignItems: "center", justifyContent: "flex-start" }}>
+        <KineticText text={text} accent={accent} accentColor={accentColor} startFrame={3} perWord={3} fontSize={tamanhoInsight(text)} wordFrames={wordFrames} />
+      </div>
+      <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: REEL_MARGEM_LATERAL }}>
         <Handle color={PAPER} handle={handle} />
       </div>
     </AbsoluteFill>
@@ -448,7 +521,7 @@ export const ReelV2: React.FC<ReelProps> = (props) => {
     <AbsoluteFill style={{ backgroundColor: "#0B0B0C" }}>
       <Sequence from={COVER_S.fromFrame} durationInFrames={COVER_S.durationInFrames}>
         <Scene clip={sceneClip(sceneIdx++)} img={img} kw={kw} accent={accent} dur={COVER_S.durationInFrames} cat={cat}>
-          <CoverTextV2 title={title} accent={accent} brand={brand} handle={handle} kw={kw} ed={ed} wordFrames={wordFrames[0]} />
+          <CoverTextV2 title={title} accent={accent} brand={brand} handle={handle} kw={kw} ed={ed} lang={langDoHandle(handle)} wordFrames={wordFrames[0]} />
         </Scene>
       </Sequence>
 

@@ -26,6 +26,7 @@ import { titleDupedInSlides, dedupeSlides } from "@/lib/slide-dedup";
 import { titleCollides, recentTitlesForLang } from "@/lib/title-dedup";
 import { clipSlideText } from "@/lib/slide-text";
 import { appendSurveyCta } from "@/lib/caption-cta";
+import { assinarLegenda } from "@/lib/serie";
 
 // Aumenta o limite de execução para 60s (Vercel Hobby permite até 300s)
 export const maxDuration = 300;
@@ -1423,7 +1424,9 @@ export async function GET(req: NextRequest) {
         // original; generateContent/temas/rotação não são tocados.
         let instagramPostId: string | null = null;
         try {
-          instagramPostId = await publishCarousel(appendSurveyCta(content.instagramCaption, lang), slideUrls, lang);
+          // Assinatura fixa na abertura (src/lib/serie.ts): o mesmo 🔒 da bio das duas
+          // contas. Sinal repetido = conta reconhecida sem o dono aparecer.
+          instagramPostId = await publishCarousel(assinarLegenda(appendSurveyCta(content.instagramCaption, lang)), slideUrls, lang);
           slotLog.instagramPostId = instagramPostId;
           slotLog.slides = slideUrls.length;
         } catch (igErr) {

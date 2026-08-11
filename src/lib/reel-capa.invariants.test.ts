@@ -49,9 +49,19 @@ describe("capa do Reel no grid do Instagram", () => {
   });
 
   it("depois do gancho terminar de entrar (o título tem de estar inteiro)", () => {
-    // O gancho entra palavra a palavra a partir do frame 3, ~2 frames por palavra
-    // a 30 fps: um título de 10 palavras fecha em ~0,77 s. 1,5 s é folga larga.
+    // Desde 11/08 o título já nasce inteiro no quadro 0 (`inteiroDeInicio`), então
+    // qualquer offset serviria para o grid. A folga continua travada porque ela também
+    // protege contra o caso inverso: se um dia a revelação voltar, o quadro do perfil
+    // não pode cair no meio de uma frase pela metade.
     expect(offsetMs()).toBeGreaterThanOrEqual(1500);
+  });
+
+  it("a manchete da CAPA está legível no primeiro quadro — nada de tela muda", () => {
+    // O defeito medido em 09/08: 87,6% deslizavam antes de a frase fechar, porque ela
+    // entrava palavra a palavra e só ficava inteira no 3º segundo. O que este teste
+    // trava é a capa; os INSIGHTS continuam cinéticos de propósito.
+    expect(reelV2).toMatch(/<KineticText[^/]*inteiroDeInicio/);
+    expect(reelV2).toMatch(/inteiroDeInicio\s*\?\s*1\s*\n?\s*:/);
   });
 
   it("a publicação REALMENTE manda o thumb_offset (não basta declarar a constante)", () => {
@@ -60,8 +70,19 @@ describe("capa do Reel no grid do Instagram", () => {
 
   it("a capa leva a identidade da marca com o número da edição", () => {
     // DIRECAO-CAPAS.md: "DR. LIBERDADE · Nº XXX" no topo é a âncora de coleção.
-    expect(reelV2).toMatch(/Nº \$\{ed\}/);
+    // Desde 11/08 o "Nº" não é mais montado à mão dentro do ReelV2: ele vem de
+    // `selo()` (src/lib/serie.ts), que passou a juntar o NOME da série ao número —
+    // "GAIOLA SEM GRADE · Nº 244". O teste segue o fato para a fonte única em vez de
+    // exigir a string no arquivo onde ela deixou de morar.
+    expect(reelV2).toMatch(/\bselo\(/);
     expect(reelV2).toMatch(/<CoverTextV2[^>]*\bed=\{ed\}/);
+    expect(readFileSync(join(raiz, "src", "lib", "serie.ts"), "utf8")).toMatch(/Nº \$\{n\}/);
+  });
+
+  it("a série tem NOME, não só número — é o item dos 8 perfis medidos", () => {
+    const serie = readFileSync(join(raiz, "src", "lib", "serie.ts"), "utf8");
+    expect(serie).toMatch(/GAIOLA SEM GRADE/);
+    expect(serie).toMatch(/JAULA SIN REJAS/);
   });
 
   it("o Reel de produção usa os 6 acentos da marca, não o mapa da fase reprovada", () => {

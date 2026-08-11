@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Lang, accountFor, getLang, envToken, envAccountId } from "@/lib/accounts";
 import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, clearRunTopic, siblingPublished, publishedId, bumpAttempt, isHardPublishBlock, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome } from "@/lib/run-ledger";
 import { appendSurveyCta } from "@/lib/caption-cta";
+import { assinarLegenda } from "@/lib/serie";
 
 // Publicação de REELS (vídeo) no @drlibertad via Instagram Graph API v25.
 // O vídeo já precisa estar hospedado em URL pública (ex.: Vercel Blob).
@@ -212,7 +213,9 @@ async function handle(req: NextRequest) {
   try {
     // CTA da pesquisa APENSADO no rodapé da legenda na fronteira do publish
     // (append-only, idempotente, fail-open no limite de 2200 — src/lib/caption-cta.ts).
-    const postId = await publishReel(video, appendSurveyCta(caption || "", lang), lang);
+    // A ASSINATURA FIXA abre a legenda e o CTA fecha — as duas na MESMA fronteira, pelo
+    // mesmo motivo: nada que enfeite a peça pode impedi-la de sair (fail-open, idempotente).
+    const postId = await publishReel(video, assinarLegenda(appendSurveyCta(caption || "", lang)), lang);
     log.postId = postId;
     log.ok = true;
     // Livro-razão p/ o watchdog + anti-dup cross-formato (grava o tópico).
