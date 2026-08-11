@@ -62,9 +62,19 @@ export interface Formato {
    * TODOS têm um ("COMO DANÇAR IGUAL O ___", "Diga para mim", "GAMBIGATO EP __").
    * ⚠️ Em tema-convicção (`literal: true`) a âncora do dono manda e este molde CEDE: a frase
    * dele sai verbatim. O molde é forma, nunca substitui a verdade.
+   *
+   * POR IDIOMA (2026-08-11) — e isto NÃO é preciosismo, é conserto de defeito em produção: o
+   * portão de formato BLOQUEIA a peça cujo título não segue o molde, e a régua compara TEXTO.
+   * Com um molde único em português, as cinco famílias reprovavam 100% das peças em espanhol —
+   * medido: comparação, analogia, polêmica, palestrinha e narrado, todas `REPROVADA? true` com
+   * título correto em ES. A conta @dr.liberdad (a única com público real) estava com o portão
+   * fechado desde 09/08. As lacunas são livres; as partes fixas viram a régua, em cada língua.
    */
-  tituloMolde: string;
+  tituloMolde: Record<LangPeca, string>;
 }
+
+/** As duas contas são operações SEPARADAS: o Instagram divide a audiência por língua. */
+export type LangPeca = "br" | "es";
 
 export const FORMATOS: Formato[] = [
   {
@@ -73,7 +83,7 @@ export const FORMATOS: Formato[] = [
     midia: ["carrossel", "reel"],
     roteiro:
       "Estruture como uma MINI-PALESTRA de uma ideia só: abre nomeando o conflito, desenvolve UM argumento em três passos encadeados (cada tela puxa a seguinte) e fecha com a virada. Nada de lista solta — é raciocínio contínuo, como quem convence alguém numa conversa.",
-    tituloMolde: "NINGUÉM TE CONTOU QUE ___",
+    tituloMolde: { br: "NINGUÉM TE CONTOU QUE ___", es: "NADIE TE CONTÓ QUE ___" },
   },
   {
     id: "narrado",
@@ -81,7 +91,7 @@ export const FORMATOS: Formato[] = [
     midia: ["reel"],
     roteiro:
       "Escreva para ser OUVIDO: frases curtas, sujeito antes do verbo, zero subordinada longa. O texto na tela repete só a palavra-chave de cada frase, nunca a frase inteira. Abre nomeando o conflito em voz alta.",
-    tituloMolde: "O QUE ACONTECE QUANDO ___",
+    tituloMolde: { br: "O QUE ACONTECE QUANDO ___", es: "LO QUE PASA CUANDO ___" },
   },
   {
     id: "analogia",
@@ -89,7 +99,7 @@ export const FORMATOS: Formato[] = [
     midia: ["carrossel", "reel"],
     roteiro:
       "Ancore a ideia numa IMAGEM CONCRETA do mundo físico (a gaiola sem grade, a corrente de ouro, a porta destrancada) e mantenha essa mesma imagem até o fim — a cada tela ela avança um passo. Proibido trocar de metáfora no meio.",
-    tituloMolde: "___ É COMO ___",
+    tituloMolde: { br: "___ É COMO ___", es: "___ ES COMO ___" },
   },
   {
     id: "comparacao",
@@ -97,7 +107,7 @@ export const FORMATOS: Formato[] = [
     midia: ["carrossel", "reel"],
     roteiro:
       "Monte em DOIS LADOS: o que a pessoa faz hoje × o que fazer. Cada tela é um par (isto × aquilo), sempre na mesma ordem. A antítese é a espinha da peça, não um enfeite no fim.",
-    tituloMolde: "___ NÃO É ___",
+    tituloMolde: { br: "___ NÃO É ___", es: "___ NO ES ___" },
   },
   {
     id: "polemica",
@@ -105,7 +115,7 @@ export const FORMATOS: Formato[] = [
     midia: ["carrossel", "reel"],
     roteiro:
       "Abra com a afirmação que a maioria vai querer contestar — a tese incômoda, dita sem rodeio na primeira tela. As telas seguintes SUSTENTAM com argumento, não recuam. Provoca pela IDEIA, nunca por desprezo a pessoas ou grupos.",
-    tituloMolde: "VOCÊ NÃO VAI GOSTAR: ___",
+    tituloMolde: { br: "VOCÊ NÃO VAI GOSTAR: ___", es: "NO TE VA A GUSTAR: ___" },
   },
   {
     id: "caixinha-polemica",
@@ -113,7 +123,7 @@ export const FORMATOS: Formato[] = [
     midia: ["carrossel", "reel"],
     roteiro:
       "Abra citando a objeção mais comum contra a tese, entre aspas, como se fosse um comentário recebido. Depois responda a ela ponto a ponto. O conflito já vem embutido na citação.",
-    tituloMolde: "«___» — RESPONDENDO",
+    tituloMolde: { br: "«___» — RESPONDENDO", es: "«___» — RESPONDIENDO" },
   },
   {
     id: "tela-verde",
@@ -121,7 +131,7 @@ export const FORMATOS: Formato[] = [
     midia: ["reel"],
     roteiro:
       "A peça comenta um FATO EXTERNO (um dado, uma manchete, um número) que aparece atrás do texto. Abre com o fato, nomeia por que ele incomoda e vira para a tese da marca.",
-    tituloMolde: "O NÚMERO QUE NINGUÉM COMENTA: ___",
+    tituloMolde: { br: "O NÚMERO QUE NINGUÉM COMENTA: ___", es: "EL NÚMERO QUE NADIE COMENTA: ___" },
   },
 ];
 
@@ -145,7 +155,11 @@ export function formatoDaVaga(midia: "carrossel" | "reel", chave: string): Forma
  * O bloco que entra no prompt do redator. Traz o esqueleto do formato + a exigência de
  * conflito. Vai ANTES das regras de voz — o formato manda na arquitetura, a voz manda na frase.
  */
-export function diretrizDoRedator(f: Formato): string {
+export function moldeDoFormato(f: Formato, lang: string): string {
+  return f.tituloMolde[lang === "es" ? "es" : "br"];
+}
+
+export function diretrizDoRedator(f: Formato, lang: string = "br"): string {
   return [
     `FORMATO OBRIGATÓRIO DESTA PEÇA: ${f.nome.toUpperCase()}.`,
     f.roteiro,
@@ -157,7 +171,7 @@ export function diretrizDoRedator(f: Formato): string {
     "O conflito NÃO é uma pergunta retórica genérica — é o atrito específico deste tema.",
     "",
     "TÍTULO-MOLDE (a forma se repete, o assunto muda):",
-    `A primeira linha segue a forma «${f.tituloMolde}», preenchendo o espaço com o que este tema pede.`,
+    `A primeira linha segue a forma «${moldeDoFormato(f, lang)}», preenchendo o espaço com o que este tema pede.`,
     "É o que faz a peça ser reconhecida antes de ser entendida — a mesma forma, post após post.",
     "EXCEÇÃO ÚNICA: em tema-convicção, a frase do autor sai VERBATIM e o molde cede. A verdade",
     "manda na forma, nunca o contrário.",

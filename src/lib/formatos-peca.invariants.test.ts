@@ -48,16 +48,22 @@ describe("formatos da peça", () => {
   // ─── DELTA 2026-08-09 — o que veio dos 8 perfis medidos ───────────────────
   it("todo formato tem TÍTULO-MOLDE com espaço a preencher", () => {
     for (const f of FORMATOS) {
-      expect(f.tituloMolde, `${f.id} sem molde`).toBeTruthy();
-      // sem o espaço a preencher não é molde, é frase pronta — sairia igual em todo tema
-      expect(f.tituloMolde, `${f.id} sem lacuna`).toContain("___");
+      // POR IDIOMA (2026-08-11): molde só em português reprovava 100% das peças em espanhol.
+      for (const lang of ["br", "es"] as const) {
+        expect(f.tituloMolde[lang], `${f.id}/${lang} sem molde`).toBeTruthy();
+        // sem o espaço a preencher não é molde, é frase pronta — sairia igual em todo tema
+        expect(f.tituloMolde[lang], `${f.id}/${lang} sem lacuna`).toContain("___");
+      }
     }
   });
 
   it("a diretriz cobra o molde, as TRÊS camadas do gancho e a venda dentro do molde", () => {
     for (const f of FORMATOS) {
+      for (const lang of ["br", "es"] as const) {
+        const dl = diretrizDoRedator(f, lang);
+        expect(dl, `${f.id}/${lang} sem molde na diretriz`).toContain(f.tituloMolde[lang]);
+      }
       const d = diretrizDoRedator(f);
-      expect(d, `${f.id} sem molde na diretriz`).toContain(f.tituloMolde);
       expect(d).toMatch(/TRÊS CAMADAS/);
       expect(d).toMatch(/INTENSIFICAR o conflito/);
       expect(d).toMatch(/PRIMEIRO quadro/);

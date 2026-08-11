@@ -22,6 +22,7 @@
 // justamente a peça mais fiel à marca.
 
 import type { Formato } from "./formatos-peca";
+import { moldeDoFormato } from "./formatos-peca";
 
 export type Gravidade = "bloqueia" | "avisa";
 
@@ -92,14 +93,14 @@ export function conferirFormato(p: PecaParaConferir): Achado[] {
   // 3) TÍTULO-MOLDE — a forma fixa que faz reconhecer antes de entender.
   //    Pulado em tema-convicção: ali a âncora do autor manda.
   if (titulo && !p.temaLiteral) {
-    const fixas = partesFixasDoMolde(p.formato.tituloMolde);
+    const fixas = partesFixasDoMolde(moldeDoFormato(p.formato, lang));
     const t = norm(titulo);
     const bate = fixas.length === 0 || fixas.some((f) => t.includes(norm(f)));
     if (!bate) {
       achados.push({
         regra: "titulo-molde",
         gravidade: "bloqueia",
-        detalhe: `a primeira linha não segue a forma «${p.formato.tituloMolde}» do formato ${p.formato.nome}`,
+        detalhe: `a primeira linha não segue a forma «${moldeDoFormato(p.formato, lang)}» do formato ${p.formato.nome}`,
       });
     }
   }

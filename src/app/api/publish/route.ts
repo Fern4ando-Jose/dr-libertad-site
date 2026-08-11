@@ -865,7 +865,7 @@ async function savePost(params: {
 // Só 1 regeneração de propósito: cada uma custa texto (P2).
 async function comPortaoDeFormato(
   gerar: () => Promise<GeneratedContent>,
-  fmt: { id: string; nome: string; tituloMolde: string },
+  fmt: { id: string; nome: string; tituloMolde: Record<"br" | "es", string> },
   topic: string,
   lang: string,
   slotLog: Record<string, unknown>,
@@ -990,7 +990,7 @@ export async function GET(req: NextRequest) {
       const avoidTitles = titleDedupOn ? await recentTitlesForLang(lang, 12) : [];
       const fmtReel = formatoDaVaga("reel", `${topic}|${day}`);
       content = await comPortaoDeFormato(
-        () => generateContent(topic, searchResults, slot, lang, "ig-reels", avoidTitles, diretrizDoRedator(fmtReel), fmtReel.nome),
+        () => generateContent(topic, searchResults, slot, lang, "ig-reels", avoidTitles, diretrizDoRedator(fmtReel, lang), fmtReel.nome),
         fmtReel, topic, lang, {},
       );
       await writeContentCache(topic, day, lang, content);
@@ -1287,7 +1287,7 @@ export async function GET(req: NextRequest) {
           const fmt = formatoDaVaga("carrossel", `${topic}|${dayBRT(now)}`);
           slotLog.formato = fmt.id;
           content = await comPortaoDeFormato(
-            () => generateContent(topic, searchResults, slot, lang, "ig-posts", avoidTitles, diretrizDoRedator(fmt), fmt.nome),
+            () => generateContent(topic, searchResults, slot, lang, "ig-posts", avoidTitles, diretrizDoRedator(fmt, lang), fmt.nome),
             fmt, topic, lang, slotLog as unknown as Record<string, unknown>,
           );
           await writeContentCache(topic, dayBRT(now), lang, content);

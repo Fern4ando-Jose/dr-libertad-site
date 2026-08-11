@@ -85,7 +85,9 @@ describe("verificador de formato — nenhuma peça sai fora do molde", () => {
 
   it("todo formato da casa tem molde conferível (nenhum passa por ser vago)", () => {
     for (const f of FORMATOS) {
-      expect(partesFixasDoMolde(f.tituloMolde).length, `${f.id} sem parte fixa`).toBeGreaterThan(0);
+      for (const lang of ["br", "es"] as const) {
+        expect(partesFixasDoMolde(f.tituloMolde[lang]).length, `${f.id}/${lang} sem parte fixa`).toBeGreaterThan(0);
+      }
     }
   });
 
@@ -97,5 +99,28 @@ describe("verificador de formato — nenhuma peça sai fora do molde", () => {
       lang: "br",
     });
     expect(a.some((x) => x.regra === "titulo-molde")).toBe(false);
+  });
+
+  // ─── DELTA 2026-08-11 — o portão fechou em cima do espanhol ──────────────────
+  // Medido no que estava NO AR: com um molde único em português, TODOS os formatos
+  // devolviam `REPROVADA? true` para peça em ES com título correto — a operação inteira
+  // do @dr.liberdad (a única conta com público real) estava barrada desde 09/08.
+  // Este teste é a trava: quebra se alguém voltar o molde para uma língua só.
+  it("peça em ESPANHOL passa pelo portão — o molde tem de existir na língua da peça", () => {
+    const titulosES: Partial<Record<string, string>> = {
+      palestrinha: "NADIE TE CONTÓ QUE EL DESCANSO SE ENTRENA",
+      narrado: "LO QUE PASA CUANDO DEJAS EL MÓVIL EN OTRA HABITACIÓN",
+      analogia: "TU ATENCIÓN ES COMO UNA MONEDA",
+      comparacao: "DESCANSAR NO ES MIRAR EL FEED",
+      polemica: "NO TE VA A GUSTAR: la recompensa fácil cobra intereses",
+      "caixinha-polemica": "«ESO ES EXAGERADO» — RESPONDIENDO",
+      "tela-verde": "EL NÚMERO QUE NADIE COMENTA: 4 HORAS AL DÍA",
+    };
+    for (const f of FORMATOS) {
+      const titulo = titulosES[f.id];
+      expect(titulo, `${f.id} sem título de prova em ES`).toBeTruthy();
+      const a = conferirFormato({ formato: f, titulo: titulo!, slides: ["Te acuestas agotado."], lang: "es" });
+      expect(a.some((x) => x.regra === "titulo-molde"), `${f.id} REPROVADO em espanhol`).toBe(false);
+    }
   });
 });
