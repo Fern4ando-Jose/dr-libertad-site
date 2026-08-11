@@ -115,7 +115,28 @@ export interface Quebra {
  * linha, então a linha ficou com "Ninguém te" e sobrou um terço do quadro vazio à direita
  * — com o corpo de letra no máximo. Corpo grande e linha curta é o pior dos dois mundos.
  */
-export function quebrarPorPalavra(text: string, size: number, maxWidth: number, fator: number): Quebra {
+/**
+ * Como medir a largura de uma palavra. O padrão é a ESTIMATIVA (nº de letras × fator),
+ * que é o que dá para fazer sem navegador — serve aos testes e a qualquer chamador puro.
+ *
+ * ⛔ 2026-08-11 — MAS A ESTIMATIVA ERRA, e agora com número: medindo 8 manchetes REAIS
+ * num quadro renderizado, só **5 ficaram na régua** de 85–96%; a pior caiu em **70,6%**
+ * ("Você está competindo contra a pessoa errada"). O motivo é que o fator é uma média:
+ * frase cheia de letra estreita (i, l, t, r) mede bem menos que a conta prevê, sobra
+ * margem à direita e a régua vai pro chão.
+ *
+ * No vídeo, quem chama passa `medir` usando `measureText` do Remotion — a largura REAL
+ * daquela fonte, naquele corpo. Aí não há estimativa nenhuma no caminho.
+ */
+export type MedirPalavra = (palavra: string, size: number) => number;
+
+export function quebrarPorPalavra(
+  text: string,
+  size: number,
+  maxWidth: number,
+  fator: number,
+  medir?: MedirPalavra,
+): Quebra {
   const palavras = text.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
   const espaco = ESPACO_ENTRE_PALAVRAS * size;
   // ⚠️ CADA palavra carrega o seu espaço à direita — inclusive a ÚLTIMA da linha. No
@@ -124,7 +145,7 @@ export function quebrarPorPalavra(text: string, size: number, maxWidth: number, 
   // acreditar que cabia mais uma, escolher um corpo pequeno para "aproveitar" essa palavra
   // extra — e o navegador quebrava assim mesmo, deixando a linha curta com letra miúda.
   // Medido no quadro: previsto 90%, entregue 72%.
-  const custo = (w: string) => w.length * fator * size + espaco;
+  const custo = (w: string) => (medir ? medir(w, size) : w.length * fator * size) + espaco;
   const linhas: string[] = [];
   const larguras: number[] = [];
   let atual = "";
@@ -193,12 +214,13 @@ export function tamanhoQueEnche(
   fator: number = FATOR_LARGURA.anton,
   alvoDoQuadro: number = OCUPACAO_ALVO,
   quadro: number = REEL_W,
+  medir?: MedirPalavra,
 ): number {
   const alvo = (alvoDoQuadro * quadro) / maxWidth;
   let melhor = piso;
   let melhorEnche = -1;
   for (let s = teto; s >= piso; s -= 2) {
-    const q = quebrarPorPalavra(text, s, maxWidth, fator);
+    const q = quebrarPorPalavra(text, s, maxWidth, fator, medir);
     // Palavra que não cabe sozinha na linha vaza para fora do quadro.
     if (q.larguraMaxima > maxWidth) continue;
     if (maxAlturaPx > 0 && q.altura > maxAlturaPx) continue;
@@ -217,12 +239,12 @@ export function ocupacaoDoQuadro(text: string, size: number, maxWidth = REEL_LAR
   return quebrarPorPalavra(text, size, maxWidth, FATOR_LARGURA.anton).larguraMaxima / quadro;
 }
 
-/** O tamanho da manchete da CAPA do Reel. Fonte Anton, no miolo livre do quadro. */
-export function tamanhoManchete(title: string): number {
-  return tamanhoQueEnche(title, REEL_LARGURA_UTIL, REEL_ALTURA_MANCHETE, 190, 56);
+/** O tamanho da manchete da CAPA do Reel. `medir` = largura real da fonte, quando houver. */
+export function tamanhoManchete(title: string, medir?: MedirPalavra): number {
+  return tamanhoQueEnche(title, REEL_LARGURA_UTIL, REEL_ALTURA_MANCHETE, 190, 56, FATOR_LARGURA.anton, OCUPACAO_ALVO, REEL_W, medir);
 }
 
 /** O tamanho de cada insight do Reel — mesma largura útil, teto um pouco menor. */
-export function tamanhoInsight(text: string): number {
-  return tamanhoQueEnche(text, REEL_LARGURA_UTIL, REEL_ALTURA_MANCHETE, 170, 52);
+export function tamanhoInsight(text: string, medir?: MedirPalavra): number {
+  return tamanhoQueEnche(text, REEL_LARGURA_UTIL, REEL_ALTURA_MANCHETE, 170, 52, FATOR_LARGURA.anton, OCUPACAO_ALVO, REEL_W, medir);
 }

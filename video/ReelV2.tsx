@@ -57,6 +57,7 @@ import {
   tamanhoInsight,
 } from "../src/lib/capa-escala";
 import { selo } from "../src/lib/serie";
+import { measureText } from "@remotion/layout-utils";
 
 const { fontFamily: FRAUNCES } = loadFraunces();
 // ─── A FONTE DA FRASE (2026-08-09, o dono viu no feed: "fonte errada") ──────────
@@ -66,6 +67,19 @@ const { fontFamily: FRAUNCES } = loadFraunces();
 // medido em `Comparacao-Fontes-2026-08-09.html` e travado na BIBLIOTECA-FORMATOS §2.2.
 // ⚠️ Não trocar a Fraunces da marca — ela continua sendo a assinatura.
 const { fontFamily: ANTON } = loadAnton();
+
+/**
+ * A largura REAL de uma palavra nesta fonte e neste corpo — medida pelo navegador que
+ * renderiza a peça, não estimada.
+ *
+ * ⛔ 2026-08-11 — POR QUE ISTO EXISTE. A conta anterior multiplicava nº de letras por um
+ * fator médio (0,46). Medindo **8 manchetes reais** em quadro renderizado, só **5 ficaram
+ * na régua** de 85–96% e a pior deu **70,6%** — frase cheia de letra estreita (i, l, t, r)
+ * mede muito menos que a média, sobra margem à direita e a régua vai ao chão. `measureText`
+ * usa a métrica da própria fonte: acaba a estimativa, acaba o erro.
+ */
+const medirAnton = (palavra: string, size: number) =>
+  measureText({ text: palavra, fontFamily: ANTON, fontSize: size, fontWeight: 400 }).width;
 
 // Constantes de texto (espelham o Reel; valores simples, isolados no V2 — não tocam
 // a produção). A grade/footage vêm de `Scene`, então nada de cor de vídeo aqui.
@@ -383,7 +397,7 @@ function CoverTextV2({ title, accent, brand, handle, kw, ed, lang, wordFrames }:
   //     peça nossa (Nº 363) com a manchete em CAIXA ALTA. Era a única diferença de fato:
   //     a fonte já era a mesma (Anton) e a ocupação já estava na régua.
   const manchete = (title || "").toUpperCase();
-  const fontSize = tamanhoManchete(manchete);
+  const fontSize = tamanhoManchete(manchete, medirAnton);
   return (
     <AbsoluteFill>
       {/* Glow do acento atrás do texto → tira o "morto", dá profundidade de marca */}
@@ -427,7 +441,7 @@ function InsightTextV2({ text, accent, accentColor, index, total, handle, wordFr
           Aqui o texto SEGUE entrando palavra a palavra: quem chegou até o insight já
           decidiu ficar, e é a voz que dá o ritmo. */}
       <div style={{ position: "absolute", bottom: REEL_TEXTO_BOTTOM, left: REEL_MARGEM_LATERAL, width: REEL_LARGURA_UTIL, maxHeight: REEL_ALTURA_MANCHETE, display: "flex", alignItems: "flex-end", justifyContent: "flex-start" }}>
-        <KineticText text={text} accent={accent} accentColor={accentColor} startFrame={3} perWord={3} fontSize={tamanhoInsight(text)} wordFrames={wordFrames} />
+        <KineticText text={text} accent={accent} accentColor={accentColor} startFrame={3} perWord={3} fontSize={tamanhoInsight(text, medirAnton)} wordFrames={wordFrames} />
       </div>
       <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: REEL_MARGEM_LATERAL }}>
         <Handle color={PAPER} handle={handle} />

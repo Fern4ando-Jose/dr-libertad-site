@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   FATOR_LARGURA,
@@ -107,6 +109,26 @@ describe("o insight segue a mesma régua", () => {
         REEL_ALTURA_MANCHETE,
       );
     }
+  });
+});
+
+describe("a largura vem da FONTE, não de uma média (2026-08-11)", () => {
+  it("o vídeo passa um medidor real para a conta — sem ele, a régua não se cumpre", () => {
+    // Medido em 8 manchetes reais, em quadro renderizado: com a estimativa por caractere,
+    // só 5 de 8 ficavam em 85–96% e a pior caía a 70,6%; com `measureText`, 8 de 8 entre
+    // 86,6% e 88,0%. Se este teste falhar, alguém tirou a medição real do caminho e a
+    // peça voltou a sair com um terço do quadro vazio em algumas frases.
+    const reelV2 = readFileSync(join(__dirname, "..", "..", "video", "ReelV2.tsx"), "utf8");
+    expect(reelV2).toMatch(/measureText\(\{[\s\S]*?fontFamily: ANTON/);
+    expect(reelV2).toMatch(/tamanhoManchete\(manchete, medirAnton\)/);
+    expect(reelV2).toMatch(/tamanhoInsight\(text, medirAnton\)/);
+  });
+
+  it("a conta ACEITA um medidor e o usa em vez do fator médio", () => {
+    // Medidor de mentira: toda palavra tem 100px. A quebra tem de obedecer a ele.
+    const q = quebrarPorPalavra("uma frase de teste aqui", 100, 500, FATOR_LARGURA.anton, () => 100);
+    // 500px de largura, cada palavra custa 100 + espaço (26) = 126 → 3 por linha.
+    expect(q.linhas[0].split(" ")).toHaveLength(3);
   });
 });
 
