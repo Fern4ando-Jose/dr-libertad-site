@@ -3,6 +3,7 @@ import { generateIllustration } from "@/lib/illustration";
 import { capaDoAcervo } from "@/lib/cover-acervo";
 import { curarCapa } from "@/lib/curador-imagem";
 import { formatoDaVaga, diretrizDoRedator, diretrizDeCarona } from "@/lib/formatos-peca";
+import { assuntosDoDia, diretrizDoAssuntoDoDia } from "@/lib/assunto-do-dia";
 import { conferirFormato, reprovado, resumoDoVeredito } from "@/lib/verificador-formato";
 import { revisarTexto, instrucaoDeCorrecao } from "@/lib/revisao-editorial";
 import { prehostCover } from "@/lib/cover-prehost";
@@ -518,10 +519,18 @@ async function generateContent(
   // A régua da carona não mudou: ela é OFERTA, não ordem — sem nome/número/data que caiba
   // no tema, o bloco sai vazio e a peça segue igual (forçar um nome sem relação é pior).
   const caronaSection = diretrizDeCarona(context);
+  // ⛔ 2026-08-11 — O ASSUNTO DO DIA, que era a pergunta dele. A carona acima só aproveita
+  // o que já está na pesquisa DA PEÇA, e essa pesquisa busca o TEMA (catálogo fixo de 61,
+  // respondido pela Wikipédia/DDG de forma atemporal): nenhuma peça publicada teve carona
+  // de assunto quente porque não havia de onde vir. Este bloco busca o que está sendo
+  // discutido AGORA dentro dos assuntos da marca. Fail-open: falhou ou veio vazio → string
+  // vazia e a peça sai exatamente como sairia antes.
+  const assuntoSection = diretrizDoAssuntoDoDia(await assuntosDoDia(lang));
+  const extras = [caronaSection, assuntoSection].filter(Boolean).join("\n\n");
   const formatoSection = formatoDiretriz
-    ? `\n════ ARQUITETURA OBRIGATÓRIA DESTA PEÇA ════\n${formatoDiretriz}\n${caronaSection ? `\n${caronaSection}\n` : ""}═══════════════════════════════════════════\n`
-    : caronaSection
-      ? `\n${caronaSection}\n`
+    ? `\n════ ARQUITETURA OBRIGATÓRIA DESTA PEÇA ════\n${formatoDiretriz}\n${extras ? `\n${extras}\n` : ""}═══════════════════════════════════════════\n`
+    : extras
+      ? `\n${extras}\n`
       : "";
 
   const prompt = `Eres el editor de ${acc.brand}, estudio editorial sobre psicología, atención y ${acc.freedom} mental.

@@ -80,13 +80,17 @@ export const REEL_W = 1080;
 export const REEL_MARGEM_LATERAL = 40;
 export const REEL_LARGURA_UTIL = REEL_W - 2 * REEL_MARGEM_LATERAL; // 1000
 
-// ─── ONDE O TEXTO PODE FICAR, sem a interface do Instagram por cima ───────────
-// O Instagram desenha por cima do Reel: a coluna de curtir/comentar/enviar ocupa a
-// DIREITA de y≈1180 até y≈1720, e o nome do autor + legenda ocupam a base esquerda.
-// A faixa livre de ponta a ponta é y≈380 até y≈1120. Ancorar a manchete embaixo (o que
-// se fazia) obrigava a manter margem lateral de 90px para escapar dos botões — e é
-// justamente essa margem que tornava a régua de 85% inalcançável.
-export const REEL_TEXTO_TOP = 380;
+// ─── ONDE O TEXTO FICA ────────────────────────────────────────────────────────
+// ⛔ 2026-08-11 (ordem do dono, vendo o próprio grid): *"o texto do reel deveria descer
+// igual ao do carrossel"*. O carrossel ancora a manchete EMBAIXO, logo acima do @handle
+// (`api/og/route.tsx`: coluna com `space-between` — marca no topo, frase + handle na
+// base), e no grid do perfil o Reel com texto no alto destoava dos vizinhos.
+//
+// Eu havia subido o texto para o miolo por um motivo real — a coluna de curtir/comentar/
+// enviar que o Instagram desenha na DIREITA, de y≈1180 a y≈1720. Disse isso a ele; ele
+// viu e decidiu pela coerência do perfil, que é o que a pessoa julga primeiro. Registrado
+// aqui para a próxima sessão não "corrigir" de volta achando que foi descuido.
+export const REEL_TEXTO_BOTTOM = 380; // base do bloco: y = 1920 − 380 = 1540, acima do @
 export const REEL_ALTURA_MANCHETE = 740;
 
 /** Espaço entre palavras, em fração do corpo da fonte (o `marginRight` do KineticText). */
