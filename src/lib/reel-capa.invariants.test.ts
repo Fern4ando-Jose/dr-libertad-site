@@ -84,6 +84,45 @@ describe("capa do Reel no grid do Instagram", () => {
     expect(serie).toMatch(/GAIOLA SEM GRADE/);
     expect(serie).toMatch(/JAULA SIN REJAS/);
   });
+});
+
+// ─── OS 4 APONTAMENTOS DO DONO NA PEÇA DE 11/08 ──────────────────────────────
+// Ele viu o Reel publicado e listou o que estava errado. Cada item vira trava aqui:
+// sem isso, a próxima sessão desfaz sem perceber e ele tem de apontar de novo.
+describe("o que o dono apontou na peça publicada (11/08/2026)", () => {
+  it("«áudio quebra»: a cama musical REPETE, porque toda trilha tem 28,0 s fixos", () => {
+    // Medido no Reel publicado: o som caía de −17 dB para −85 dB aos ~27 s num vídeo de
+    // 30,6 s. Todas as 90 trilhas do acervo têm exatamente 28,000 s — quem passar disso
+    // fica mudo no fecho, justo em cima do convite. Sem `loop`, o defeito volta.
+    expect(reelV2).toMatch(/<Audio\s+src=\{musicSrc\}\s+loop/);
+  });
+
+  it("«destaque não é da cor da nossa marca»: identidade usa MARCA, não o acento do pilar", () => {
+    // A peça era do pilar `anxiety` (verde-azulado #3D6360) e a barra + o selo saíram nessa
+    // cor. Identidade que muda de cor a cada peça não é identidade.
+    expect(reelV2).toMatch(/const MARCA = RED/);
+    expect(reelV2).toMatch(/backgroundColor: MARCA/);
+    expect(reelV2).toMatch(/accentColor=\{MARCA\}/);
+  });
+
+  it("«tamanho da letra e fonte iguais ao print»: a manchete da capa vai em CAIXA ALTA", () => {
+    expect(reelV2).toMatch(/const manchete = \(title \|\| ""\)\.toUpperCase\(\)/);
+    expect(reelV2).toMatch(/text=\{manchete\}/);
+  });
+
+  it("«nome da série em um quadrado vermelho»: o selo é etiqueta sólida, não texto solto", () => {
+    const bloco = reelV2.slice(reelV2.indexOf("{selo(") - 400, reelV2.indexOf("{selo(") + 60);
+    expect(bloco).toMatch(/backgroundColor: MARCA/);
+    expect(bloco).toMatch(/borderRadius/);
+  });
+
+  it("«a polêmica do dia»: a carona está LIGADA no caminho da peça", () => {
+    // `diretrizDeCarona` existia desde 09/08 e NENHUM arquivo a chamava — a peça recebia a
+    // pesquisa e nada mandava ancorar nela. Este teste é a prova de que ela é chamada.
+    const publish = readFileSync(join(raiz, "src", "app", "api", "publish", "route.ts"), "utf8");
+    expect(publish).toMatch(/diretrizDeCarona\(context\)/);
+    expect(publish).toMatch(/import \{[^}]*diretrizDeCarona[^}]*\} from "@\/lib\/formatos-peca"/);
+  });
 
   it("o Reel de produção usa os 6 acentos da marca, não o mapa da fase reprovada", () => {
     // O mapa vem de ./Reel (fonte única). Se alguém recriar um CAT_ACCENT local
