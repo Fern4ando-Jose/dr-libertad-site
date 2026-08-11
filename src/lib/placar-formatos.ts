@@ -22,7 +22,7 @@ export interface LinhaPlacar {
   semDados: number;
 }
 
-interface RegistroPeca {
+export interface RegistroPeca {
   formato: string | null;
   reach?: number | null;
   shares?: number | null;
@@ -71,6 +71,49 @@ export function veredito(l: LinhaPlacar, medianaEnviosPorPeca: number): "manter"
   const porPeca = l.envios / l.pecas;
   if (porPeca >= medianaEnviosPorPeca) return "manter";
   return porPeca < medianaEnviosPorPeca * 0.5 ? "descartar" : "observar";
+}
+
+// ─── O CRUZAMENTO (2026-08-11): de onde vem cada metade do placar ─────────────
+// Este módulo existia desde 09/08 e NUNCA foi ligado a nada — só o próprio teste o
+// chamava. Ele respondia "não sei contar" com toda a razão: quem sabe o FORMATO de cada
+// peça é o livro-razão do site (`published_runs.formato`), e quem sabe o DESEMPENHO é o
+// Instagram (alcance, envios, curtidas por media id). Eram duas metades que nunca se
+// encontravam — e sem elas nenhum dos formatos podia ser julgado, o que deixava a regra
+// da biblioteca ("formato que não performa é descartado") impossível de cumprir.
+//
+// A função abaixo é PURA de propósito: quem vai ao banco e à Graph API é a rota. Assim o
+// cruzamento é testável sem rede, sem chave e sem banco.
+
+/** Uma linha do livro-razão: a peça que saiu e o esqueleto com que ela foi escrita. */
+export interface RunPublicada {
+  instagramPostId: string | null;
+  formato: string | null;
+}
+
+/** O que o Instagram devolve por peça. Ausente = ausente; nunca vira zero. */
+export interface MetricaPeca {
+  id: string;
+  reach?: number | null;
+  shares?: number | null;
+  likes?: number | null;
+}
+
+/**
+ * Junta o formato (banco) com o desempenho (Instagram) pelo id da publicação.
+ * Peça sem formato carimbado fica de fora — ela é anterior ao carimbo, não é um formato
+ * chamado "nenhum". Peça carimbada cuja métrica ainda não voltou entra SEM métrica, para
+ * ser contada como `semDados`.
+ */
+export function cruzarComMetricas(runs: RunPublicada[], metricas: MetricaPeca[]): RegistroPeca[] {
+  const porId = new Map(metricas.map((m) => [String(m.id), m]));
+  const out: RegistroPeca[] = [];
+  for (const r of runs) {
+    const f = (r.formato || "").trim();
+    if (!f) continue;
+    const m = r.instagramPostId ? porId.get(String(r.instagramPostId)) : undefined;
+    out.push({ formato: f, reach: m?.reach ?? null, shares: m?.shares ?? null, likes: m?.likes ?? null });
+  }
+  return out;
 }
 
 /** Mediana de envios por peça entre os formatos que TÊM medição. */

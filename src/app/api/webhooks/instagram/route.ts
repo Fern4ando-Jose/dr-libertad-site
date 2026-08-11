@@ -41,14 +41,21 @@ function flagOn(name: string): boolean {
   return (process.env[name] ?? "").toLowerCase() === "on";
 }
 
-// Lead magnet "I Love Dopamina" (prévia/adelanto do livro). O DM manda a PÁGINA do
-// livro no site (apresenta + botão de download 1-clique da prévia), não o .pdf cru:
-// aquece o lead, fica sob a marca e abre upsell do livro completo. A página serve o
-// PDF de `public/lead/`. Trocável por env sem deploy; sem URL → a DM só abre conversa.
+// Lead magnet "I Love Dopamina". Trocável por env sem republicar o site; sem URL → a DM
+// só abre conversa.
+//
+// ⛔ 2026-08-11 — O DESTINO MUDOU: era a PÁGINA DO LIVRO, agora é o FUNIL DE CAPTURA
+// (`/br/dopamina` · `/es/dopamina`). O motivo é medido: em 7 dias os três funis trouxeram
+// ZERO pessoa. A página do livro apresenta e oferece o download, mas não PEDE o e-mail —
+// então a única ponte entre a peça e a lista de e-mail terminava numa página que não
+// captura. O funil da dopamina está provado íntegro em produção (captura + primeira carta
+// entregue), e é o que transforma quem comenta em pessoa nossa, não do Instagram.
+// A régua que sustenta o mecanismo: a referência do nicho tira 11,7 mil comentários por
+// peça com "comenta a palavra e eu te mando" — mas só vale se o link for para a captura.
 const SITE_URL = "https://www.drlibertad.com";
 const LEAD_DEFAULTS: Record<Lang, { name: string; url: string }> = {
-  es: { name: "I Love Dopamina — adelanto del libro (Dr. Libertad)", url: `${SITE_URL}/es/livros/i-love-dopamina` },
-  br: { name: "I Love Dopamina — prévia do livro (Dr. Liberdade)", url: `${SITE_URL}/br/livros/i-love-dopamina` },
+  es: { name: "I Love Dopamina — adelanto del libro (Dr. Libertad)", url: `${SITE_URL}/es/dopamina` },
+  br: { name: "I Love Dopamina — prévia do livro (Dr. Liberdade)", url: `${SITE_URL}/br/dopamina` },
 };
 
 // Palavra-chave do funil e lead magnet (configuráveis por env — sem deploy p/ trocar).
