@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateIllustration } from "@/lib/illustration";
 import { capaDoAcervo } from "@/lib/cover-acervo";
 import { curarCapa } from "@/lib/curador-imagem";
-import { formatoDaVaga, diretrizDoRedator } from "@/lib/formatos-peca";
+import { formatoDaVaga, diretrizDoRedator, diretrizDeCarona } from "@/lib/formatos-peca";
 import { conferirFormato, reprovado, resumoDoVeredito } from "@/lib/verificador-formato";
 import { revisarTexto, instrucaoDeCorrecao } from "@/lib/revisao-editorial";
 import { prehostCover } from "@/lib/cover-prehost";
@@ -509,7 +509,20 @@ async function generateContent(
   // O ESQUELETO VEM ANTES DE TUDO — o formato manda na ARQUITETURA da peça; a voz manda na
   // frase. Em português de propósito: é a régua da casa, não texto de mercado (o prompt é
   // bilíngue por herança, e traduzir a diretriz abriria espaço para a paráfrase amenizar).
-  const formatoSection = formatoDiretriz ? `\n════ ARQUITETURA OBRIGATÓRIA DESTA PEÇA ════\n${formatoDiretriz}\n═══════════════════════════════════════════\n` : "";
+  // ⛔ 2026-08-11 — A CARONA ESTAVA ESCRITA E DESLIGADA. O dono perguntou: «não íamos criar
+  // os posts de acordo com uma polêmica do dia? como ficou isso?». `diretrizDeCarona` foi
+  // escrita em 09/08 junto com o resto do redator e **nenhum arquivo a chamava** — a peça
+  // recebia a pesquisa mas nada mandava o redator ANCORAR nela. Ligada aqui, dentro do
+  // próprio `generateContent`, porque é aqui que o texto da pesquisa (`context`) existe:
+  // assim vale para o Reel E para o carrossel de uma vez, sem depender de quem chama.
+  // A régua da carona não mudou: ela é OFERTA, não ordem — sem nome/número/data que caiba
+  // no tema, o bloco sai vazio e a peça segue igual (forçar um nome sem relação é pior).
+  const caronaSection = diretrizDeCarona(context);
+  const formatoSection = formatoDiretriz
+    ? `\n════ ARQUITETURA OBRIGATÓRIA DESTA PEÇA ════\n${formatoDiretriz}\n${caronaSection ? `\n${caronaSection}\n` : ""}═══════════════════════════════════════════\n`
+    : caronaSection
+      ? `\n${caronaSection}\n`
+      : "";
 
   const prompt = `Eres el editor de ${acc.brand}, estudio editorial sobre psicología, atención y ${acc.freedom} mental.
 ${formatoSection}

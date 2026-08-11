@@ -73,6 +73,11 @@ const { fontFamily: ANTON } = loadAnton();
 const PAPER = "#F4F0E8";
 const WHITE = "#ffffff";
 const RED = "#A45A5A";
+// A COR DA MARCA (o mesmo vinho de `CAT_ACCENT.freedom`). Identidade — barra do topo,
+// etiqueta da série, palavra em destaque da manchete — usa SEMPRE esta, nunca o acento do
+// pilar: em 11/08 o dono viu uma peça de pilar `anxiety` e disse «destaque não é da cor da
+// nossa marca». O acento por pilar segue mandando no wash e no miolo da peça.
+const MARCA = RED;
 // ⛔ 04/08/2026 — ESTE MAPA ESTAVA PRESO NA FASE QUE O DONO REPROVOU.
 //
 // Em 14/07 travou-se um acento ÚNICO vinho, junto com a direção "grafite editorial
@@ -365,26 +370,39 @@ function CoverTextV2({ title, accent, brand, handle, kw, ed, lang, wordFrames }:
   // Nasce em 1 (não em 0): a identidade tem de estar no primeiro quadro.
   const kickerO = 1;
   const barW = interpolate(frame, [0, 12], [42, 96], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const fontSize = tamanhoManchete(title);
+  // ⛔ 2026-08-11, 2ª rodada — O DONO VIU A PEÇA E APONTOU TRÊS COISAS:
+  //   · «destaque não é da cor da nossa marca» — a barra e o selo saíam no acento do
+  //     PILAR (esta peça era `anxiety` = verde-azulado #3D6360). Os 6 acentos por pilar
+  //     continuam valendo para o wash e para a palavra em destaque do texto (decisão dele
+  //     de 15/07), mas a IDENTIDADE — barra, selo, etiqueta — passa a ser sempre o VINHO
+  //     da marca. Identidade que muda de cor a cada peça não é identidade.
+  //   · «coloque o nome da série em um quadrado vermelho» — o selo virou ETIQUETA sólida.
+  //   · «tamanho da letra da capa e fonte devem ser igual a desse print» — o print é uma
+  //     peça nossa (Nº 363) com a manchete em CAIXA ALTA. Era a única diferença de fato:
+  //     a fonte já era a mesma (Anton) e a ocupação já estava na régua.
+  const manchete = (title || "").toUpperCase();
+  const fontSize = tamanhoManchete(manchete);
   return (
     <AbsoluteFill>
       {/* Glow do acento atrás do texto → tira o "morto", dá profundidade de marca */}
       <AbsoluteFill style={{ background: `radial-gradient(60% 38% at 26% 78%, ${accent}38 0%, rgba(0,0,0,0) 70%)` }} />
-      {/* Cabeçalho: a marca (DIRECAO-CAPAS) + o selo de coleção logo abaixo */}
+      {/* Cabeçalho: a marca (DIRECAO-CAPAS) + a ETIQUETA da série logo abaixo */}
       <div style={{ position: "absolute", top: SAFE_TOP - 150, left: REEL_MARGEM_LATERAL, opacity: kickerO }}>
         <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
-          <div style={{ width: barW, height: 7, backgroundColor: accent, borderRadius: 4 }} />
+          <div style={{ width: barW, height: 7, backgroundColor: MARCA, borderRadius: 4 }} />
           <div style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 700, letterSpacing: 5, color: PAPER }}>
             {brand.toUpperCase()}
           </div>
         </div>
-        <div style={{ marginTop: 14, marginLeft: 118, fontFamily: FRAUNCES, fontSize: 28, fontWeight: 600, letterSpacing: 4, color: accent }}>
-          {selo(lang ?? "br", ed)}
+        <div style={{ marginTop: 16, marginLeft: 118, display: "inline-block", backgroundColor: MARCA, borderRadius: 6, padding: "12px 22px", boxShadow: "0 4px 18px rgba(0,0,0,0.45)" }}>
+          <div style={{ fontFamily: FRAUNCES, fontSize: 30, fontWeight: 700, letterSpacing: 4, color: PAPER, whiteSpace: "nowrap" }}>
+            {selo(lang ?? "br", ed)}
+          </div>
         </div>
       </div>
       <div style={{ position: "absolute", top: REEL_TEXTO_TOP, left: REEL_MARGEM_LATERAL, width: REEL_LARGURA_UTIL, height: REEL_ALTURA_MANCHETE, display: "flex", alignItems: "center", justifyContent: "flex-start" }}>
-        {/* A manchete inteira, no tamanho que enche a largura */}
-        <KineticText text={title} accent={coverAccent} accentColor={accent} fontSize={fontSize} inteiroDeInicio wordFrames={wordFrames} />
+        {/* A manchete inteira, em CAIXA ALTA, no tamanho que enche a largura */}
+        <KineticText text={manchete} accent={coverAccent} accentColor={MARCA} fontSize={fontSize} inteiroDeInicio wordFrames={wordFrames} />
       </div>
       <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: REEL_MARGEM_LATERAL }}>
         <Handle color={PAPER} handle={handle} />
@@ -549,9 +567,18 @@ export const ReelV2: React.FC<ReelProps> = (props) => {
         </Sequence>
       )}
 
+      {/* ⛔ 2026-08-11 — O ÁUDIO MORRIA ANTES DO FIM (o dono ouviu: "áudio quebra").
+          Medido no Reel publicado: o som cai de −17 dB para −85 dB aos ~27 s e o vídeo
+          termina aos 30,6 s — **2,6 segundos mudos** no fecho, bem em cima do convite.
+          A causa não é o fade: **toda trilha do acervo tem exatamente 28,000 s** (medidas
+          uma a uma) e a peça passou disso. O comentário antigo aqui dizia "casa c/ a
+          música ~28s" — era uma suposição, e ela deixou de valer quando o fecho falado
+          entrou em 10/08 e esticou a peça. Com `loop`, a cama recomeça e cobre qualquer
+          duração; o fade final continua sendo o da interpolação abaixo. */}
       {musicSrc && (
         <Audio
           src={musicSrc}
+          loop
           volume={(f) =>
             interpolate(f, [0, 15, total - 24, total], [0, musicMax, musicMax, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
           }
