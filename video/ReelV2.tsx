@@ -29,7 +29,6 @@ import {
   Img,
   Sequence,
   interpolate,
-  interpolateColors,
   spring,
   staticFile,
   useCurrentFrame,
@@ -301,11 +300,14 @@ function KineticText({
         const isAccent = !!accent && clean(w).includes(accent.toLowerCase());
         // Com a frase inteira desde o quadro 0, o movimento passa a ser a palavra-chave
         // ACENDENDO na cor da marca — nada apaga, nada falta, e a tela não fica parada.
-        const cor = !isAccent
-          ? WHITE
-          : inteiroDeInicio
-            ? interpolateColors(frame, [6, 16], [WHITE, accentColor])
-            : accentColor;
+        // ⛔ 2026-08-11 — A COR NASCE NO QUADRO 0. Eu havia feito a palavra-chave ACENDER
+        // entre os frames 6 e 16, para dar movimento à capa agora estática. O dono olhou o
+        // primeiro quadro e disse *"no seu texto não tem cor"* — e estava certo: medido,
+        // o frame 0 tinha **0 pixel** na cor da marca e o frame 15 tinha 10.569. O quadro 0
+        // é o que o Instagram usa de capa e é o que decide se a pessoa fica; ele não pode
+        // ser uma versão incompleta da peça. O movimento da capa fica por conta do fundo e
+        // da barra do cabeçalho, que já se movem.
+        const cor = isAccent ? accentColor : WHITE;
         return (
           <span
             key={i}

@@ -1,3 +1,5 @@
+import { paraFalar } from "./fala";
+
 // ─── O ROTEIRO QUE A VOZ FALA — fonte única ──────────────────────────────────
 // A montagem morava DENTRO de `api/publish/route.ts`, e o teste que a travava tinha uma
 // CÓPIA da função ("espelha `narrationSegments` de publish/route.ts"). Cópia não trava
@@ -42,6 +44,12 @@ export function blocosFalados(
   return [titulo, ...slides, ...(fecho ? [fecho] : [])]
     .map((s) => String(s ?? "").trim())
     .filter(Boolean)
+    // ⛔ 2026-08-11 — TELA E BOCA SÃO TEXTOS DIFERENTES. O dono ouviu a peça e disse:
+    // *"a palavra (20 min) corta a palavra e fica estranho, não existe 20 min falado"*.
+    // O bloco ia CRU para o motor de voz, então "scrolla 20 min" era lido como está
+    // escrito. Na tela "20 min" é bom (curto, cabe); na boca é "vinte minutos".
+    // Só o roteiro FALADO passa por aqui — o texto que aparece na tela continua o mesmo.
+    .map((s) => paraFalar(s, lang))
     .map((s) => (/[.!?]$/.test(s) ? s : s + "."));
 }
 
