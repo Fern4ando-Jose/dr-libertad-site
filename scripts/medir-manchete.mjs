@@ -7,13 +7,25 @@
 
 import { bundle } from "@remotion/bundler";
 import { renderStill, selectComposition } from "@remotion/renderer";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import sharp from "sharp";
 
 const ROOT = "D:/Claude/Meus Projetos/dr-libertad-site";
 const OUT = resolve(process.argv[2] || ".");
 mkdirSync(OUT, { recursive: true });
+
+// ─── MODO LOTE (2026-08-11) ───────────────────────────────────────────────────
+// `--frases=<arquivo.json>` mede a ocupação de VÁRIAS frases reais, uma por render.
+// Existe porque uma peça publicada saiu com 82,6% (a régua é 85–96%) e a tentação era
+// apertar o alvo no escuro — o que já foi tentado uma vez e PIOROU (derrubou para 71%).
+// Uma amostra medida diz onde a conta erra; um palpite não diz nada.
+// ⚠️ Cada frase custa 2 renders (com e sem texto). Rodar em lote pequeno: o Chrome
+// headless come RAM e esta máquina já trabalha perto do limite.
+const argFrases = process.argv.find((a) => a.startsWith("--frases="));
+const FRASES = argFrases
+  ? JSON.parse(readFileSync(resolve(argFrases.slice("--frases=".length)), "utf8"))
+  : null;
 
 const PROPS = {
   title: "Ninguém te prendeu: a porta está aberta",
@@ -74,6 +86,27 @@ async function main() {
     browserExecutable,
   });
   console.log(`[medir] composição ${comp.width}x${comp.height}, ${comp.durationInFrames} frames`);
+
+  if (FRASES) {
+    const linhas = [];
+    for (let i = 0; i < FRASES.length; i++) {
+      const titulo = FRASES[i];
+      const props = { ...PROPS, title: titulo };
+      const com = resolve(OUT, `lote-${i}.png`);
+      const sem = resolve(OUT, `_sem-lote-${i}.png`);
+      await renderStill({ composition: { ...comp, props }, serveUrl, output: com, frame: 0, browserExecutable, overwrite: true });
+      await renderStill({ composition: { ...comp, props: { ...props, title: "" } }, serveUrl, output: sem, frame: 0, browserExecutable, overwrite: true });
+      const c = await caixaDaDiferenca(com, sem);
+      const pct = (c.largura / c.width) * 100;
+      linhas.push({ titulo, ocupacaoPct: Number(pct.toFixed(1)), largura: c.largura });
+      console.log(`[medir] ${pct.toFixed(1)}%  «${titulo.slice(0, 52)}»`);
+    }
+    const vals = linhas.map((l) => l.ocupacaoPct).sort((a, b) => a - b);
+    const dentro = linhas.filter((l) => l.ocupacaoPct >= 85 && l.ocupacaoPct <= 96).length;
+    console.log(`[medir] ── ${dentro}/${linhas.length} dentro de 85–96% · menor ${vals[0]}% · maior ${vals[vals.length - 1]}% · mediana ${vals[Math.floor(vals.length / 2)]}%`);
+    writeFileSync(resolve(OUT, "lote-medidas.json"), JSON.stringify(linhas, null, 2));
+    process.exit(0);
+  }
 
   const quadros = [
     { nome: "capa-frame0", frame: 0 },
