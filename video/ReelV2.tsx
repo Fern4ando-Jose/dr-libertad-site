@@ -533,6 +533,18 @@ export const ReelV2: React.FC<ReelProps> = (props) => {
   // Narração (voz) por cima; quando há narração, a música vira LEITO SUAVE (ducking).
   const narrationSrc = narrationUrl ? (/^https?:\/\//.test(narrationUrl) ? narrationUrl : staticFile(narrationUrl)) : null;
   const musicMax = narrationSrc ? 0.16 : 0.7;
+  // ⛔ 2026-08-11 — O VOLUME DA MÚSICA SEGUE O RELÓGIO DA PEÇA, NÃO O DA TRILHA.
+  // Este `useCurrentFrame` no corpo do componente existe por um motivo exato: o callback
+  // `volume={(f) => …}` do `<Audio>` recebe o frame **relativo ao áudio**, e com `loop`
+  // esse frame VOLTA A ZERO a cada repetição. Medido: com o loop ligado e a curva no
+  // callback, o fecho ganhou um buraco de 3 s mudo aos 25–27 s e o som "renascia" aos 28 s
+  // com o fade de abertura outra vez. Lendo o frame da COMPOSIÇÃO, a curva é uma só: sobe
+  // no início, segura, e só desce no fim de verdade.
+  const frameDaPeca = useCurrentFrame();
+  const musicVol = interpolate(frameDaPeca, [0, 15, total - 24, total], [0, musicMax, musicMax, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
   let sceneIdx = 0;
 
   return (
@@ -575,15 +587,7 @@ export const ReelV2: React.FC<ReelProps> = (props) => {
           música ~28s" — era uma suposição, e ela deixou de valer quando o fecho falado
           entrou em 10/08 e esticou a peça. Com `loop`, a cama recomeça e cobre qualquer
           duração; o fade final continua sendo o da interpolação abaixo. */}
-      {musicSrc && (
-        <Audio
-          src={musicSrc}
-          loop
-          volume={(f) =>
-            interpolate(f, [0, 15, total - 24, total], [0, musicMax, musicMax, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-          }
-        />
-      )}
+      {musicSrc && <Audio src={musicSrc} loop volume={musicVol} />}
       {/* Narração em volume cheio, do frame 0 — é ela que dita o vídeo, não o contrário.
           As cenas acima já começam nos frames em que a voz vira de frase (plano
           sincronizado), então a tela nunca atrasa nem adianta em relação à fala.
