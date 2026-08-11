@@ -14,13 +14,23 @@
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { spawnSync } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const OUT = resolve(process.argv[2] || ".");
-const SEGUNDOS = Number(process.argv[3] || 32);
+const argSeg = process.argv.slice(3).find((a) => !a.startsWith("--"));
+const SEGUNDOS = Number(argSeg || 32);
 mkdirSync(OUT, { recursive: true });
+
+// `--props=<arquivo.json>` mede uma peça REAL (com a voz que ela usou). Existe porque o
+// dono ouviu um Reel e disse *"sem voz gravada"*: a voz estava lá, mas encoberta pela
+// música. Comparar a faixa da fala (300–3000 Hz) entre versões só é possível medindo a
+// peça de verdade, não um caso sintético.
+const argProps = process.argv.find((a) => a.startsWith("--props="));
+const PROPS_REAIS = argProps ? JSON.parse(readFileSync(resolve(argProps.slice("--props=".length)), "utf8")) : null;
+/** Volume médio na faixa em que a voz humana vive — é ela que diz se dá para ouvir. */
+export const BANDA_VOZ = ["-af", "highpass=f=300,lowpass=f=3000,volumedetect"];
 
 // ⚠️ A PEÇA TEM DE SER MAIS LONGA QUE A TRILHA — senão o teste não toca no defeito.
 // Sem narração, o plano do ReelV2 chega no máximo a ~27,9 s (capa 3,0 + 3 insights de 5,6
@@ -29,7 +39,7 @@ mkdirSync(OUT, { recursive: true });
 // foi o que aconteceu na 1ª tentativa. Por isso aqui vai uma narração de 30 s: é ela que
 // estica o plano, exatamente como na peça que o dono ouviu (30,6 s).
 const NARRACAO_SEG = 30;
-const PROPS = {
+const PROPS_BASE = {
   title: "Ninguém te prendeu: a porta está aberta",
   slides: ["Um", "Dois", "Três"],
   cta: "O que você faria hoje sem o telefone por perto?",
@@ -53,6 +63,7 @@ const PROPS = {
   ],
   narrationWords: [],
 };
+const PROPS = PROPS_REAIS ? { ...PROPS_BASE, ...PROPS_REAIS } : PROPS_BASE;
 
 const browserExecutable =
   process.env.REMOTION_BROWSER_EXECUTABLE || "C:/Program Files/Google/Chrome/Application/chrome.exe";
@@ -78,7 +89,7 @@ async function main() {
   const comp = await selectComposition({ serveUrl, id: "ReelV2", inputProps: PROPS, browserExecutable });
   // A duração é a que o PRÓPRIO plano da peça calculou (é ela que passa dos 28 s da
   // trilha). Só se pede um número na linha de comando é que se força outra.
-  const frames = process.argv[3] ? Math.round(SEGUNDOS * comp.fps) : comp.durationInFrames;
+  const frames = argSeg ? Math.round(SEGUNDOS * comp.fps) : comp.durationInFrames;
   const dur = frames / comp.fps;
   const saida = resolve(OUT, `audio-${dur.toFixed(1)}s.mp3`);
   console.log(`[audio] peça de ${dur.toFixed(1)}s contra trilha de 28,0s`);
@@ -102,6 +113,9 @@ async function main() {
     if (v != null && v < -60) mudos++;
     if (s >= Math.floor(dur) - 10 || s % 5 === 0) console.log(`[audio] ${String(s).padStart(2)}s: ${v ?? "?"} dB${marca}`);
   }
+  const banda = spawnSync("ffmpeg", ["-v","info","-i",saida,"-af","highpass=f=300,lowpass=f=3000,volumedetect","-f","null","-"], {encoding:"utf8"});
+  const mb = /mean_volume:s*(-?[d.]+) dB/.exec(`${banda.stdout ?? ""}${banda.stderr ?? ""}`);
+  console.log(`[audio] FAIXA DA VOZ (300-3000 Hz): ${mb ? mb[1] : "?"} dB`);
   console.log(mudos ? `[audio] ⛔ ${mudos} segundo(s) MUDO(s)` : "[audio] ✅ som do começo ao fim, sem buraco");
   process.exit(mudos ? 1 : 0);
 }
