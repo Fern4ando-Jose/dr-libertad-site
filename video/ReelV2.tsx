@@ -51,7 +51,7 @@ import {
 import {
   REEL_LARGURA_UTIL,
   REEL_MARGEM_LATERAL,
-  REEL_TEXTO_TOP,
+  REEL_TEXTO_BOTTOM,
   REEL_ALTURA_MANCHETE,
   tamanhoManchete,
   tamanhoInsight,
@@ -402,8 +402,9 @@ function CoverTextV2({ title, accent, brand, handle, kw, ed, lang, wordFrames }:
           </div>
         </div>
       </div>
-      <div style={{ position: "absolute", top: REEL_TEXTO_TOP, left: REEL_MARGEM_LATERAL, width: REEL_LARGURA_UTIL, height: REEL_ALTURA_MANCHETE, display: "flex", alignItems: "center", justifyContent: "flex-start" }}>
-        {/* A manchete inteira, em CAIXA ALTA, no tamanho que enche a largura */}
+      {/* A manchete inteira, em CAIXA ALTA, ancorada EMBAIXO como a do carrossel (ordem
+          do dono, 11/08: «o texto do reel deveria descer igual ao do carrossel»). */}
+      <div style={{ position: "absolute", bottom: REEL_TEXTO_BOTTOM, left: REEL_MARGEM_LATERAL, width: REEL_LARGURA_UTIL, maxHeight: REEL_ALTURA_MANCHETE, display: "flex", alignItems: "flex-end", justifyContent: "flex-start" }}>
         <KineticText text={manchete} accent={coverAccent} accentColor={MARCA} fontSize={fontSize} inteiroDeInicio wordFrames={wordFrames} />
       </div>
       <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: REEL_MARGEM_LATERAL }}>
@@ -422,10 +423,10 @@ function InsightTextV2({ text, accent, accentColor, index, total, handle, wordFr
       <div style={{ position: "absolute", top: SAFE_TOP - 150, left: REEL_MARGEM_LATERAL, fontFamily: FRAUNCES, fontSize: 40, fontWeight: 700, color: PAPER, opacity: o }}>
         {String(index).padStart(2, "0")} / {String(total).padStart(2, "0")}
       </div>
-      {/* Mesma faixa livre e mesma largura útil da capa — a régua de 85% vale para a peça
-          inteira, não só para o primeiro quadro. Aqui o texto SEGUE entrando palavra a
-          palavra: quem chegou até o insight já decidiu ficar, e é a voz que dá o ritmo. */}
-      <div style={{ position: "absolute", top: REEL_TEXTO_TOP, left: REEL_MARGEM_LATERAL, width: REEL_LARGURA_UTIL, height: REEL_ALTURA_MANCHETE, display: "flex", alignItems: "center", justifyContent: "flex-start" }}>
+      {/* Mesma âncora e mesma largura útil da capa — a peça inteira tem de ter uma cara só.
+          Aqui o texto SEGUE entrando palavra a palavra: quem chegou até o insight já
+          decidiu ficar, e é a voz que dá o ritmo. */}
+      <div style={{ position: "absolute", bottom: REEL_TEXTO_BOTTOM, left: REEL_MARGEM_LATERAL, width: REEL_LARGURA_UTIL, maxHeight: REEL_ALTURA_MANCHETE, display: "flex", alignItems: "flex-end", justifyContent: "flex-start" }}>
         <KineticText text={text} accent={accent} accentColor={accentColor} startFrame={3} perWord={3} fontSize={tamanhoInsight(text)} wordFrames={wordFrames} />
       </div>
       <div style={{ position: "absolute", bottom: SAFE_BOTTOM_HANDLE, left: REEL_MARGEM_LATERAL }}>
