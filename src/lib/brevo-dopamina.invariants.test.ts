@@ -9,6 +9,7 @@ import {
   isFaixa,
   previaTemplateId,
   buildPreviaEmailPayload,
+  previaSender,
 } from "./brevo-dopamina";
 import { dopaminaContent, faixaForScore } from "@/components/dopamina/dopamina.content";
 
@@ -88,6 +89,27 @@ describe("E0 — entrega da prévia (e-mail transacional)", () => {
     );
     // Sem env de remetente → o template do Brevo define o sender (não forçamos um).
     expect(p.sender).toBeUndefined();
+  });
+
+  it("cada idioma sai do SEU domínio autenticado — BR nunca assina pelo ES", () => {
+    process.env.BREVO_SENDER_EMAIL_BR = "dopamina@drliberdade.com";
+    process.env.BREVO_SENDER_NAME_BR = "Dr. Liberdade";
+    process.env.BREVO_SENDER_EMAIL_ES = "dopamina@drlibertad.com";
+    process.env.BREVO_SENDER_NAME_ES = "Dr. Libertad";
+    expect(previaSender("br")).toEqual({ email: "dopamina@drliberdade.com", name: "Dr. Liberdade" });
+    expect(previaSender("es")).toEqual({ email: "dopamina@drlibertad.com", name: "Dr. Libertad" });
+    // domínio de terceiro (outlook/gmail) faz o Brevo reescrever o remetente → spam
+    for (const lang of ["br", "es"] as const) {
+      expect(previaSender(lang)!.email).toMatch(/@drliberdade\.com$|@drlibertad\.com$/);
+    }
+  });
+
+  it("sem env por idioma, cai no global (legado); sem nenhuma, o template manda", () => {
+    delete process.env.BREVO_SENDER_EMAIL_BR;
+    delete process.env.BREVO_SENDER_EMAIL;
+    expect(previaSender("br")).toBeUndefined();
+    process.env.BREVO_SENDER_EMAIL = "contacto@drlibertad.com";
+    expect(previaSender("br")).toEqual({ email: "contacto@drlibertad.com" });
   });
 
   it("sender só entra quando BREVO_SENDER_EMAIL está setado", () => {

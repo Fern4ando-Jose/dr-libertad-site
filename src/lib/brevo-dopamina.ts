@@ -146,11 +146,21 @@ export function previaTemplateId(lang: "br" | "es"): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/** Remetente do e-mail (opcional: o template do Brevo já traz o seu). */
-export function previaSender(): { email: string; name?: string } | undefined {
-  const email = process.env.BREVO_SENDER_EMAIL;
+/**
+ * Remetente do e-mail, POR IDIOMA (opcional: sem env, o template do Brevo traz o seu).
+ *
+ * ⛔ 2026-08-12 — nasceu de o funil inteiro sair de `fernando-jose@outlook.com.br`: o Outlook
+ * não autoriza terceiros a assinar por ele, o Brevo reescrevia o remetente para
+ * `...@brevosend.com` e TODO e-mail do livro caía no lixo eletrônico. Cada idioma tem agora o
+ * seu domínio autenticado: BR → `dopamina@drliberdade.com`, ES → `dopamina@drlibertad.com`.
+ * Um remetente único para os dois idiomas mandaria o e-mail BR assinado pelo domínio ES.
+ * As envs `_BR`/`_ES` vencem; o global (legado) fica como reserva; vazio = template manda.
+ */
+export function previaSender(lang: "br" | "es"): { email: string; name?: string } | undefined {
+  const sufixo = lang === "br" ? "BR" : "ES";
+  const email = process.env[`BREVO_SENDER_EMAIL_${sufixo}`] || process.env.BREVO_SENDER_EMAIL;
   if (!email) return undefined;
-  const name = process.env.BREVO_SENDER_NAME;
+  const name = process.env[`BREVO_SENDER_NAME_${sufixo}`] || process.env.BREVO_SENDER_NAME;
   return name ? { email, name } : { email };
 }
 
@@ -208,7 +218,7 @@ export async function sendPreviaEmail(input: {
         accept: "application/json",
       },
       body: JSON.stringify(
-        buildPreviaEmailPayload({ ...input, templateId, sender: previaSender() }),
+        buildPreviaEmailPayload({ ...input, templateId, sender: previaSender(input.lang) }),
       ),
     });
     // 201 = e-mail aceito para envio.
@@ -304,7 +314,7 @@ export async function sendDripEmail(input: { email: string; step: DripStep }): P
         templateId,
         params: { LANG: "es", STEP: input.step },
         tags: ["dopamina", "drip", input.step, "es"],
-        ...(previaSender() ? { sender: previaSender() } : {}),
+        ...(previaSender("es") ? { sender: previaSender("es") } : {}),
       }),
     });
     if (res.status === 201) {
@@ -342,7 +352,7 @@ export async function sendFaixaEmail(input: {
         templateId,
         params: { LANG: input.lang, FAIXA: input.faixa },
         tags: ["dopamina", "faixa-resultado", input.faixa, input.lang],
-        ...(previaSender() ? { sender: previaSender() } : {}),
+        ...(previaSender(input.lang) ? { sender: previaSender(input.lang) } : {}),
       }),
     });
     if (res.status === 201) {
