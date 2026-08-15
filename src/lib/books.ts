@@ -8,6 +8,10 @@ export type BookMeta = {
   slug: string;
   dictKey: BookDictKey;
   cover: { br: string; es: string };
+  // Capa da VITRINE /livros — pode ser diferente da da página do livro (pedido do
+  // dono 15/08/2026: a vitrine usa a imagem "Capa-para-site"; a página do livro usa
+  // a "-01"). Ausente → a vitrine cai para `cover` (comportamento antigo).
+  coverList?: { br: string; es: string };
   // Medida real do arquivo da capa. O next/image precisa dela para reservar o
   // espaço antes de a imagem chegar (sem isso a página "pula" — CLS) e o
   // og:image precisa dela para o scraper não ter de baixar tudo para descobrir.
@@ -56,13 +60,17 @@ export const BOOKS: BookMeta[] = [
   {
     // Prévia GRÁTIS do livro "I Love Dopamina" — página-destino do funil comment→DM.
     // Download 1-clique do PDF (já em public/lead). Livro completo: lançamento (lista
-    // de espera por enquanto). Capa por idioma: a ES é a capa oficial do livro em
-    // espanhol (mesma arte, redação ES: "GUÍA·ADELANTO" / "DR. LIBERTAD"), extraída
-    // da capa do PDF de prévia ES.
+    // de espera por enquanto). Capa por idioma: artes oficiais criadas em 15/08/2026 —
+    // vitrine ("Capa-para-site") e página do livro ("-01") separadas por pedido do dono.
     slug: "i-love-dopamina",
     dictKey: "dopamina",
-    cover: { br: "/images/i-love-dopamina-capa-pt.png", es: "/images/i-love-dopamina-capa-es.png" },
-    coverSize: { width: 1024, height: 1536 },
+    // Página do livro (e OG): a arte final "-01" por idioma.
+    cover: { br: "/images/i-love-dopamina-capa-br-01.png", es: "/images/i-love-dopamina-capa-es-01.png" },
+    // Vitrine /livros: a arte "Capa-para-site" (pedido do dono, 15/08/2026).
+    coverList: { br: "/images/i-love-dopamina-capa-pt.png", es: "/images/i-love-dopamina-capa-es.png" },
+    // 1086×1448 é a medida real das quatro artes (capa do livro e da vitrine,
+    // PT e ES) — todas iguais; o next/image reserva o espaço sem a página "pular".
+    coverSize: { width: 1086, height: 1448 },
     free: true,
     price: { br: { amount: 0, currency: "BRL" }, es: { amount: 0, currency: "USD" } },
     leadPdf: { br: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },

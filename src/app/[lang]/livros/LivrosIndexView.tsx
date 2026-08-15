@@ -62,7 +62,9 @@ export default function LivrosIndexView() {
           >
             {VISIBLE_BOOKS.map((book, i) => {
               const b = t[book.dictKey];
-              const cover = book.cover[lang] ?? book.cover.br;
+              // Capa da VITRINE: a "Capa-para-site" quando o livro declara uma
+              // separada (pedido do dono 15/08/2026); senão, a da página do livro.
+              const cover = book.coverList?.[lang] ?? book.coverList?.br ?? book.cover[lang] ?? book.cover.br;
               return (
                 <Reveal key={book.slug} delay={i * 0.06}>
                   <MotionLink
