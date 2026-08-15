@@ -2,9 +2,9 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
-import Book3D from "@/components/ui/Book3D";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 import { VISIBLE_BOOKS } from "@/lib/books";
 
@@ -72,14 +72,15 @@ export default function LivrosIndexView() {
                     whileHover={{ y: -6 }}
                     className="group block rounded-3xl border border-warm-gray/15 bg-white/3 p-4 backdrop-blur transition-colors hover:border-warm-gray/35"
                   >
-                    {/* Sem overflow-hidden aqui: o livro 3D gira e "sai" do
-                        retângulo da capa — recortar achataria o efeito. */}
+                    {/* Capa da VITRINE: a imagem da arte, PLANTA — sem efeito de
+                        "livro 3D" (ordem do dono 15/08/2026: subir a imagem sem
+                        mexer nela). */}
                     <div className="relative px-5 pt-6 pb-3">
                       <div
                         aria-hidden="true"
                         className="absolute -inset-2 -z-10 rounded-[40px] bg-[radial-gradient(circle_at_50%_30%,rgba(45,90,61,0.3),transparent_70%)] blur-2xl"
                       />
-                      <Book3D
+                      <Image
                         src={cover}
                         alt={b.coverAlt}
                         width={book.coverSize.width}
@@ -90,7 +91,7 @@ export default function LivrosIndexView() {
                         // Só a primeira capa entra no pré-carregamento: é a
                         // única que aparece sem rolar a página.
                         priority={i === 0}
-                        spineText={`${b.title} ${b.titleAccent} · ${b.authorTitle}`}
+                        className="w-full h-auto rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]"
                       />
                     </div>
                     <div className="px-2 pb-1 pt-5">

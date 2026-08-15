@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
-import Book3D from "@/components/ui/Book3D";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 import { getBook } from "@/lib/books";
 
@@ -198,7 +197,10 @@ export default function BookSales({ slug }: { slug: string }) {
                   aria-hidden="true"
                   className="absolute -inset-6 -z-10 rounded-[40px] bg-[radial-gradient(circle_at_50%_30%,rgba(45,90,61,0.35),transparent_70%)] blur-2xl"
                 />
-                <Book3D
+                {/* Capa da PÁGINA DO LIVRO: a imagem da arte, PLANTA — sem efeito
+                    de "livro 3D" (ordem do dono 15/08/2026: subir a imagem sem
+                    mexer nela). */}
+                <Image
                   src={cover}
                   alt={L.coverAlt}
                   width={book.coverSize.width}
@@ -207,7 +209,7 @@ export default function BookSales({ slug }: { slug: string }) {
                   sizes="(max-width: 1024px) 80vw, 40vw"
                   // É o maior elemento acima da dobra — ou seja, o LCP da página.
                   priority
-                  spineText={`${L.title} ${L.titleAccent} · ${L.authorTitle}`}
+                  className="w-full h-auto rounded-xl shadow-[0_24px_70px_-18px_rgba(0,0,0,0.7)]"
                 />
               </motion.div>
             </div>
