@@ -382,6 +382,36 @@ export async function clearRunTopic(day: string, run: number): Promise<void> {
   } catch { /* best-effort — sem tabela/erro → no-op */ }
 }
 
+// ── O TEMA DO DIA (run 99) — a polêmica que vira TEMA da reel ──────────────────
+// Ordem do dono (15/08/2026): *"no inicio do dia deve buscar algum tema que está
+// polemico, e vamos criar o reel referente a esse tema, porem com nossa voz"* — a
+// carona deixa de ser oferta e vira o TEMA da reel. O run 99 é RESERVADO (os runs
+// reais vão 0..6): guarda a manchete do dia escolhida na 1ª busca. O 1º chamador
+// grava; os demais LEEM o MESMO → ES e PT seguem no mesmo assunto (o diagrama
+// aprovado "as duas contas recebem o mesmo assunto"). NÃO colide com a rotação:
+// `pinnedTopicsForDay` o inclui, mas o `getFreshTopicForRun` só usa pins cujo tema
+// está no catálogo (o da polêmica não está) e o `selectThemeIndex` nunca lê
+// prevPick(99) (runs vão 0..6). FAIL-OPEN: erro/ausência → null (a rotação segue).
+export const RUN_TEMA_DO_DIA = 99;
+
+export async function getDayTheme(day: string): Promise<string | null> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql<{ topic: string }>`
+      SELECT topic FROM run_topics WHERE day = ${day} AND run = ${RUN_TEMA_DO_DIA} LIMIT 1`;
+    return r.rows[0]?.topic ?? null;
+  } catch { return null; }
+}
+
+export async function setDayTheme(day: string, topic: string): Promise<void> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    await sql`
+      INSERT INTO run_topics (day, run, topic) VALUES (${day}, ${RUN_TEMA_DO_DIA}, ${topic})
+      ON CONFLICT (day, run) DO NOTHING`;
+  } catch { /* fail-open: sem dia-tema → rotação */ }
+}
+
 // ── TRAVA DE PUBLICAÇÃO (rede de segurança INDEPENDENTE da seleção) ────────────
 // O tema já saiu em OUTRA vaga (dia,run) nos últimos `days`? Consulta published_runs,
 // que UNIFICA reel + carrossel + os 2 idiomas (cada um grava sua vaga lá). EXCLUI a

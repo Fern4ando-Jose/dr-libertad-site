@@ -3,7 +3,7 @@ import { generateIllustration } from "@/lib/illustration";
 import { capaDoAcervo } from "@/lib/cover-acervo";
 import { curarCapa } from "@/lib/curador-imagem";
 import { formatoDaVaga, diretrizDoRedator, diretrizDeCarona } from "@/lib/formatos-peca";
-import { assuntosDoDia, diretrizDoAssuntoDoDia } from "@/lib/assunto-do-dia";
+import { assuntosDoDia, diretrizDoAssuntoDoDia, diretrizDoTemaDoDia, garantirTemaDoDia, type TemaDoDia } from "@/lib/assunto-do-dia";
 import { conferirFormato, reprovado, resumoDoVeredito } from "@/lib/verificador-formato";
 import { revisarTexto, instrucaoDeCorrecao } from "@/lib/revisao-editorial";
 import { prehostCover } from "@/lib/cover-prehost";
@@ -480,7 +480,11 @@ async function generateContent(
   // de conflito na abertura. Vazio = comportamento anterior (peça escrita livre), que é o
   // que o estudo da referência aponta como a causa de nada ser comparável entre si.
   formatoDiretriz: string = "",
-  formatoNome: string = ""
+  formatoNome: string = "",
+  // A POLÊMICA DO DIA como TEMA (15/08/2026, ordem do dono): quando vem preenchida
+  // (preview da reel), a diretriz vira ORDEM — a peça é SOBRE a polêmica de hoje, com
+  // a nossa voz. Sem tema do dia (rotação/carrossel) → comportamento anterior.
+  temaDoDia: TemaDoDia | null = null
 ): Promise<GeneratedContent> {
   const acc = accountFor(lang);
   const L = acc.langName; // "español" | "português do Brasil"
@@ -525,7 +529,13 @@ async function generateContent(
   // de assunto quente porque não havia de onde vir. Este bloco busca o que está sendo
   // discutido AGORA dentro dos assuntos da marca. Fail-open: falhou ou veio vazio → string
   // vazia e a peça sai exatamente como sairia antes.
-  const assuntoSection = diretrizDoAssuntoDoDia(await assuntosDoDia(lang));
+  // ⛔ 2026-08-15 — A POLÊMICA DO DIA É O TEMA (ordem do dono). Com `temaDoDia` preenchido
+  // (preview da reel de hoje), a oferta vira ORDEM: a peça é SOBRE a polêmica de hoje, com
+  // a nossa voz. Sem tema do dia (rotação/carrossel) → a oferta de sempre, que NÃO escolhe
+  // o tema — comportamento anterior.
+  const assuntoSection = temaDoDia
+    ? diretrizDoTemaDoDia(temaDoDia)
+    : diretrizDoAssuntoDoDia(await assuntosDoDia(lang));
   const extras = [caronaSection, assuntoSection].filter(Boolean).join("\n\n");
   const formatoSection = formatoDiretriz
     ? `\n════ ARQUITETURA OBRIGATÓRIA DESTA PEÇA ════\n${formatoDiretriz}\n${extras ? `\n${extras}\n` : ""}═══════════════════════════════════════════\n`
@@ -967,8 +977,17 @@ export async function GET(req: NextRequest) {
     const r = runs[0];
     const slot = SLOT_FOR_RUN[r];
     const now = new Date();
-    const topic = topicOverride ?? await getFreshTopicForRun(now, r, lang);
-    const cat = TOPIC_CAT[topic] ?? "freedom";
+    // ⛔ 2026-08-15 — A POLÊMICA DO DIA É O TEMA DA REEL (ordem do dono: "no inicio do dia
+    // deve buscar algum tema que está polemico, e vamos criar o reel referente a esse
+    // tema, porem com nossa voz"). A 1ª tarefa do dia é a busca; cacheada em
+    // run_topics(day, 99), ES e PT leem o MESMO. FAIL-OPEN: sem polêmica (busca falhou,
+    // fora do assunto, cache indisponível) → a rotação dos temas segue intocada. O
+    // carrossel (mais abaixo) NÃO muda — a ordem fala da reel.
+    const dia = dayBRT(now);
+    const tema = await garantirTemaDoDia(lang, dia);
+    const topic = topicOverride ?? (tema?.topic ?? await getFreshTopicForRun(now, r, lang));
+    const cat = tema?.cat ?? TOPIC_CAT[topic] ?? "freedom";
+    const subject = tema?.subject ?? TOPIC_SUBJECT[topic] ?? "";
 
     // Teto: o preview é o pipeline do Reel diário.
     const gate = await checkBudget("ig-reels", EST_RUN_COST.preview);
@@ -1013,7 +1032,7 @@ export async function GET(req: NextRequest) {
       const avoidTitles = titleDedupOn ? await recentTitlesForLang(lang, 12) : [];
       const fmtReel = formatoDaVaga("reel", `${topic}|${day}`);
       content = await comPortaoDeFormato(
-        () => generateContent(topic, searchResults, slot, lang, "ig-reels", avoidTitles, diretrizDoRedator(fmtReel, lang), fmtReel.nome),
+        () => generateContent(topic, searchResults, slot, lang, "ig-reels", avoidTitles, diretrizDoRedator(fmtReel, lang), fmtReel.nome, tema),
         fmtReel, topic, lang, {},
       );
       await writeContentCache(topic, day, lang, content);
@@ -1061,7 +1080,7 @@ export async function GET(req: NextRequest) {
     let illustrationUrl: string | null = null;
     let illustrationError: string | null = null;
     if (sp.get("illus") === "1") {
-      const ill = await generateIllustration(TOPIC_SUBJECT[topic] ?? "", cat, { maxTries: 3, automation: "ig-reels", meta: { topic, lang } });
+      const ill = await generateIllustration(subject, cat, { maxTries: 3, automation: "ig-reels", meta: { topic, lang } });
       illustrationUrl = ill.url ?? null;
       illustrationError = ill.error ?? null;
     }

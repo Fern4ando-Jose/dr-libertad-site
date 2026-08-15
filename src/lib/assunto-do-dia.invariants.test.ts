@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { diretrizDoAssuntoDoDia, pertinente, type AssuntoQuente } from "./assunto-do-dia";
+import { categoriaDoTema, diretrizDoAssuntoDoDia, diretrizDoTemaDoDia, escolherTemaDoDia, pertinente, type AssuntoQuente } from "./assunto-do-dia";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -68,9 +68,43 @@ describe("a diretriz é OFERTA, nunca ordem", () => {
   });
 });
 
+describe("a polêmica do dia vira o TEMA da reel (15/08/2026 — ordem do dono)", () => {
+  // A carona deixa de ser OFERTA e vira o TEMA: *"no inicio do dia deve buscar algum tema
+  // que está polemico, e vamos criar o reel referente a esse tema, porem com nossa voz"*.
+  // Medido no mesmo dia (54 peças): a oferta deixava ZERO rastro — ela não escolhia o tema.
+  const manchete: AssuntoQuente[] = [
+    { titulo: "Escolas proíbem celular e o debate esquenta", resumo: "Especialistas divergem sobre o efeito da proibição no rendimento e na ansiedade dos alunos.", fonte: "https://x.com" },
+  ];
+
+  it("escolhe a 1ª polêmica aproveitável como tema, com categoria da marca", () => {
+    const t = escolherTemaDoDia(manchete);
+    expect(t?.topic).toContain("proíbem celular");
+    expect(t?.cat).toBe("dopamine"); // "celular" → dopamine
+  });
+
+  it("sem polêmica, devolve null — a rotação segue intocada", () => {
+    expect(escolherTemaDoDia([])).toBeNull();
+  });
+
+  it("categoria é sempre uma das 6 da marca (fallback 'freedom')", () => {
+    const cats = ["dopamine", "anxiety", "mind", "self", "network", "freedom"];
+    for (const titulo of ["Liberdade e autonomia", "A ansiedade nas redes", "Qualquer título"]) {
+      expect(cats).toContain(categoriaDoTema(titulo));
+    }
+  });
+
+  it("a diretriz do tema MANDA ancorar na polêmica, com a nossa voz e sem julgar pessoa", () => {
+    const d = diretrizDoTemaDoDia({ topic: "X", cat: "freedom", subject: "X", fonte: "", resumo: "" });
+    expect(d).toMatch(/O TEMA DE HOJE É A POLÊMICA/);
+    expect(d).toMatch(/a tese continua sendo da marca/);
+    expect(d).toMatch(/julgar, expor ou ridicularizar/i);
+  });
+});
+
 describe("está LIGADO no caminho da peça", () => {
   // O defeito que esta sessão encontrou duas vezes: código escrito, testado e que ninguém
-  // chama. Este teste é a prova de que o assunto do dia chega ao redator.
+  // chama. Estes testes provam que o assunto do dia CHEGA ao redator — e agora também
+  // vira o TEMA da reel no preview (a 1ª tarefa do dia).
   const publish = readFileSync(join(__dirname, "..", "app", "api", "publish", "route.ts"), "utf8");
 
   it("a rota chama a busca e injeta a diretriz no prompt", () => {
@@ -78,8 +112,15 @@ describe("está LIGADO no caminho da peça", () => {
     expect(publish).toMatch(/import \{[^}]*assuntosDoDia[^}]*\} from "@\/lib\/assunto-do-dia"/);
   });
 
-  it("NÃO escolhe o tema da peça — a rotação dos 61 continua intocada", () => {
-    const mod = readFileSync(join(__dirname, "assunto-do-dia.ts"), "utf8");
-    expect(mod).not.toMatch(/TOPIC|topics|escolherTema|pickTopic/);
+  it("a 1ª tarefa do dia é a busca da polêmica, e ela vira o TEMA do preview", () => {
+    expect(publish).toMatch(/garantirTemaDoDia\(/);
+    expect(publish).toMatch(/tema\?\.topic/); // a polêmica entra como seed do tema da reel
+    expect(publish).toMatch(/diretrizDoTemaDoDia/); // a oferta vira ordem quando há tema
+  });
+
+  it("o carrossel NÃO muda — a ordem do dono fala do REEL", () => {
+    // O preview (reel) é o caminho que consome o tema do dia; sem polêmica (fail-open)
+    // a rotação dos temas segue como seed, e o carrossel não recebe tema do dia.
+    expect(publish).toMatch(/tema\?\.topic \?\? await getFreshTopicForRun/); // fail-open → rotação
   });
 });

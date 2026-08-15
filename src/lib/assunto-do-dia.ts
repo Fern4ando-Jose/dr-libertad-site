@@ -109,3 +109,97 @@ export function diretrizDoAssuntoDoDia(assuntos: AssuntoQuente[]): string {
     "é pela IDEIA.",
   ].join("\n");
 }
+
+// ─── A CARONA GRANDE: a polêmica do dia vira o TEMA da reel (ordem do dono 15/08) ──
+// Ordem do dono: *"no inicio do dia deve buscar algum tema que está polemico, e vamos
+// criar o reel referente a esse tema, porem com nossa voz"*. Medido no mesmo dia
+// (54 peças): a carona-pequena (diretrizDoAssuntoDoDia, OFERTA) deixava ZERO rastro —
+// ela não escolhia o tema. Agora a polêmica escolhida VIRA o seed do tema da reel.
+// Guardas que ficam (linha editorial inteira): a busca só nos assuntos da marca
+// (RECORTES acima), provocação pela IDEIA (nunca julgar/ridicularizar citados) e
+// FAIL-OPEN → se nada for achado ou for fora do assunto, a rotação segue intocada.
+import { getDayTheme, setDayTheme } from "./run-ledger";
+
+/** O TEMA do dia: a polêmica escolhida como seed da reel (com a categoria da marca). */
+export interface TemaDoDia {
+  /** Seed que entra no prompt como "Tema:" — a manchete limpa. */
+  topic: string;
+  /** Uma das 6 categorias reais do catálogo (fallback "freedom"). */
+  cat: string;
+  /** Descrição p/ a capa gerada — a própria manchete. */
+  subject: string;
+  fonte: string;
+  resumo: string;
+}
+
+/** Limpa a manchete p/ virar seed de tema. CONSERVADORA: só tira aspas e cola espaço. */
+export function limparTituloDeTema(t: string): string {
+  return t.replace(/[“”"']/g, "").replace(/\s+/g, " ").trim();
+}
+
+// ⚠️ ISTO ESTOU INVENTANDO (P4): a categoria é uma heurística por palavra-chave e a
+// lista é a MINHA leitura das 6 categorias reais. Sempre cai numa das 6 (fallback
+// "freedom") — nunca estoura fora do catálogo.
+const REGRAS_DE_CATEGORIA: [RegExp, string][] = [
+  [/(dopamina|vício|vicio|celular|tela|pantalla|notifica|algoritmo|scroll)/i, "dopamine"],
+  [/(ansiedade|ansiedad|estresse|estres|stress|insônia|insónia|insomnio|sono|sueño)/i, "anxiety"],
+  [/(atenção|atencion|foco|distraí|distrai|distracción|concentra)/i, "mind"],
+  [/(amor|relacionamento|relación|solidão|soledad|monogamia|casamento|identidade)/i, "self"],
+  [/(rede social|redes sociales|instagram|tiktok|validação|validación|curtida|seguidor)/i, "network"],
+  [/(liberdade|libertad|autonomia|autonomía|controle|control|escrav|esclav|servidão|servidumbre)/i, "freedom"],
+];
+
+/** Categoria da marca mais próxima da manchete. PURA (testável). Fallback: "freedom". */
+export function categoriaDoTema(titulo: string): string {
+  for (const [re, cat] of REGRAS_DE_CATEGORIA) if (re.test(titulo)) return cat;
+  return "freedom";
+}
+
+/** Escolhe a polêmica que vira tema: a 1ª aproveitável da busca (as RECORTES já
+ *  filtram o assunto da marca). PURA. Nada → null (a rotação segue intocada). */
+export function escolherTemaDoDia(assuntos: AssuntoQuente[]): TemaDoDia | null {
+  const a = assuntos[0];
+  if (!a) return null;
+  const topic = limparTituloDeTema(a.titulo);
+  return { topic, cat: categoriaDoTema(topic), subject: topic, fonte: a.fonte, resumo: a.resumo };
+}
+
+/** Recompõe o TemaDoDia a partir da manchete cacheada (fonte/resumo não persistem). */
+function temaDoDiaDaManchete(topic: string): TemaDoDia {
+  return { topic, cat: categoriaDoTema(topic), subject: topic, fonte: "", resumo: "" };
+}
+
+/**
+ * A PRIMEIRA TAREFA DO DIA (ordem do dono 15/08): busca a polêmica e a guarda como
+ * tema do dia, cacheada em run_topics(day, 99). Só o 1º chamador do dia busca; os
+ * demais LEEM o MESMO (ES e PT no mesmo assunto — o diagrama aprovado). NUNCA lança:
+ * busca falhou / veio vazia / fora do assunto → null (a rotação dos temas segue).
+ */
+export async function garantirTemaDoDia(lang: string, dayStr: string): Promise<TemaDoDia | null> {
+  const cacheado = await getDayTheme(dayStr);
+  if (cacheado) return temaDoDiaDaManchete(cacheado);
+  const escolhido = escolherTemaDoDia(await assuntosDoDia(lang));
+  if (!escolhido) return null;
+  await setDayTheme(dayStr, escolhido.topic);
+  // Corrida: outro chamador gravou primeiro? Segue o que foi gravado (1º vence).
+  const agora = await getDayTheme(dayStr);
+  if (agora && agora !== escolhido.topic) return temaDoDiaDaManchete(agora);
+  return escolhido;
+}
+
+/**
+ * O bloco que entra no prompt QUANDO a polêmica É o tema da reel (ordem do dono). Não
+ * é mais oferta: a peça é SOBRE a polêmica de hoje, com a NOSSA voz. Guardas de voz
+ * que ficam inteiras: o fato externo dá a cena; a verdade continua sendo da marca;
+ * provocar pela IDEIA — jamais julgar, expor ou ridicularizar quem for citado.
+ */
+export function diretrizDoTemaDoDia(tema: TemaDoDia): string {
+  return [
+    "O TEMA DE HOJE É A POLÊMICA DO DIA — a peça é SOBRE isto, com a NOSSA voz:",
+    `  · ${tema.topic}`,
+    ...(tema.resumo ? [`  · ${tema.resumo}`] : []),
+    "Esta conversa JÁ está acontecendo lá fora — a peça abre nela e a devolve com a",
+    "nossa verdade. O fato externo dá a cena; a tese continua sendo da marca.",
+    "Nunca julgar, expor ou ridicularizar quem for citado — a provocação é pela IDEIA.",
+  ].join("\n");
+}
