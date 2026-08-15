@@ -62,4 +62,50 @@ function reelPronto(props, caption) {
   return faltando.length ? { ok: false, faltando } : { ok: true, faltando: [] };
 }
 
-module.exports = { hasVisualMedia, reelPronto };
+// ─── LOOP DE CORREÇÃO (ordem do dono 15/08) ──────────────────────────────────
+// "o trabalho deve ser 100% efetivado, se faltar algo ele tem que corrigir,
+// tem que criar um looping em cada uma das travas… está conferido 100% siga a
+// proxima etapa, não está volte e refaça, até finalir." O teste real pegou a
+// trava barrando `faltou: imagens` e o dono reprovou o comportamento passivo:
+// faltou → o motor CORRIGE (chama o corretor injetado para os componentes
+// ausentes) e RE-CONFERE até 100% (ou teto de tentativas / sem progresso).
+// Fail-closed no fim: não resolveu → ok:false (o catchup redispara a vaga).
+//
+// `corrigir(faltando, props, caption)` é injetado (testável): devolve
+// `{ props?, caption? }` atualizados (novo estado), ou null se não resolveu.
+// A parada "sem progresso" impede loop infinito (e re-pagar o mesmo componente).
+
+/** @param {object} props
+ *  @param {string} caption
+ *  @param {(faltando: string[], props: object, caption: string) => Promise<{props?: object, caption?: string}|null>} corrigir
+ *  @param {number} maxTentativas */
+async function corrigirAtePronto(props, caption, corrigir, maxTentativas = 3) {
+  const log = [];
+  let tentativas = 0;
+  let v = reelPronto(props, caption);
+  while (!v.ok && tentativas < maxTentativas) {
+    const antes = v.faltando;
+    let r = null;
+    try {
+      r = await corrigir(antes, props, caption);
+    } catch (e) {
+      log.push(`corretor falhou: ${e && e.message ? e.message : String(e)}`);
+      break;
+    }
+    if (r) {
+      if (r.props && typeof r.props === "object") props = r.props;
+      if (typeof r.caption === "string") caption = r.caption;
+    }
+    tentativas++;
+    v = reelPronto(props, caption);
+    const depois = v.faltando;
+    if (JSON.stringify(depois) === JSON.stringify(antes)) {
+      log.push(`sem progresso na tentativa ${tentativas} — ainda falta: ${depois.join(", ")}`);
+      break;
+    }
+    log.push(`tentativa ${tentativas}: ${depois.length ? "re-conferiu, ainda falta " + depois.join(", ") : "100% pronto"}`);
+  }
+  return { ok: v.ok, faltando: v.faltando, tentativas, log, props, caption };
+}
+
+module.exports = { hasVisualMedia, reelPronto, corrigirAtePronto };

@@ -6,9 +6,15 @@ import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { hasVisualMedia, reelPronto } = require("../../scripts/reel-media.cjs") as {
+const { hasVisualMedia, reelPronto, corrigirAtePronto } = require("../../scripts/reel-media.cjs") as {
   hasVisualMedia: (props: unknown) => boolean;
   reelPronto: (props: unknown, caption: unknown) => { ok: boolean; faltando: string[] };
+  corrigirAtePronto: (
+    props: object,
+    caption: string,
+    corrigir: (faltando: string[], props: object, caption: string) => Promise<{ props?: object; caption?: string } | null>,
+    maxTentativas?: number
+  ) => Promise<{ ok: boolean; faltando: string[]; tentativas: number; log: string[]; props: Record<string, unknown>; caption: string }>;
 };
 
 describe("hasVisualMedia (guarda anti-preto do Reel)", () => {
@@ -92,5 +98,101 @@ describe("reelPronto (peça completa antes de publicar)", () => {
     expect(reelPronto({}, "")).toEqual({ ok: false, faltando: [
       "texto (title)", "texto (slides)", "texto (caption)", "áudio", "imagens", "vídeo",
     ] });
+  });
+});
+
+// ─── Loop de correção (ordem do dono 15/08) ───────────────────────────────────
+// O teste real pegou `faltou: imagens` e o dono reprovou o comportamento passivo
+// ("se faltar algo ele tem que corrigir… está conferido 100% siga a proxima etapa,
+// não está volte e refaça, até finalir"). Agora faltou → o motor CORRIGE e re-confere
+// em loop até 100% (ou teto de tentativas / sem progresso). Fail-closed no fim.
+describe("corrigirAtePronto (faltou → corrige → re-confere)", () => {
+  const pecaCompleta = {
+    title: "La verdad incómoda",
+    slides: ["slide 1", "slide 2"],
+    narrationUrl: "https://x/narracion.mp3",
+    img: "https://x/cover.png",
+    clips: ["https://x/clip1.mp4", "https://x/clip2.mp4"],
+  };
+
+  it("peça completa → ok na hora, corretor NUNCA é chamado (não paga à toa)", async () => {
+    const chamadas: string[][] = [];
+    const res = await corrigirAtePronto(pecaCompleta, "legenda", async (faltando) => {
+      chamadas.push(faltando);
+      return null;
+    });
+    expect(res.ok).toBe(true);
+    expect(res.tentativas).toBe(0);
+    expect(chamadas).toHaveLength(0);
+  });
+
+  it("faltou imagens → corretor preenche → ok (1 tentativa)", async () => {
+    const props = { ...pecaCompleta, img: undefined };
+    const res = await corrigirAtePronto(props, "legenda", async (faltando, p) => {
+      expect(faltando).toEqual(["imagens"]);
+      return { props: { ...p, img: "https://x/cover.png" } };
+    });
+    expect(res.ok).toBe(true);
+    expect(res.tentativas).toBe(1);
+    expect(res.props.img).toBe("https://x/cover.png");
+  });
+
+  it("corretor não resolve (null) → continua fail-closed", async () => {
+    const res = await corrigirAtePronto(
+      { ...pecaCompleta, img: undefined },
+      "legenda",
+      async () => null
+    );
+    expect(res.ok).toBe(false);
+    expect(res.faltando).toEqual(["imagens"]);
+  });
+
+  it("faltou imagens e vídeo → corrige os dois e fica 100%", async () => {
+    const props = { ...pecaCompleta, img: undefined, clips: [] };
+    const res = await corrigirAtePronto(props, "legenda", async (_f, p) => ({
+      props: { ...p, img: "https://x/cover.png", clips: ["https://x/clip1.mp4"] },
+    }));
+    expect(res.ok).toBe(true);
+    expect(res.tentativas).toBe(1);
+  });
+
+  it("corretor não muda nada → sem progresso, para NA 1ª chamada (não re-paga)", async () => {
+    const props = { ...pecaCompleta, img: undefined, clips: [] };
+    let chamadas = 0;
+    const res = await corrigirAtePronto(props, "legenda", async (_f, p) => {
+      chamadas++;
+      return { props: { ...p } }; // devolve igual — nada foi corrigido
+    });
+    expect(chamadas).toBe(1);
+    expect(res.ok).toBe(false);
+  });
+
+  it("corretor que FALHA (lança) → fail-closed, sem estourar", async () => {
+    const res = await corrigirAtePronto(
+      { ...pecaCompleta, img: undefined },
+      "legenda",
+      async () => {
+        throw new Error("API fora do ar");
+      }
+    );
+    expect(res.ok).toBe(false);
+    expect(res.faltando).toEqual(["imagens"]);
+  });
+
+  it("teto de tentativas respeitado — progresso parcial não vira laço infinito", async () => {
+    const props = { ...pecaCompleta, img: undefined, clips: [] };
+    let chamadas = 0;
+    const res = await corrigirAtePronto(
+      props,
+      "legenda",
+      async (_f, p) => {
+        chamadas++;
+        return { props: { ...p, img: "https://x/cover.png" } }; // conserta 1 de 2 — progresso real
+      },
+      1 // teto mínimo: 1 tentativa
+    );
+    expect(chamadas).toBe(1); // parou no TETO, não no progresso
+    expect(res.ok).toBe(false);
+    expect(res.faltando).toEqual(["vídeo"]);
   });
 });

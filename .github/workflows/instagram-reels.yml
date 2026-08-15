@@ -264,35 +264,34 @@ jobs:
             echo "::warning title=Reel pulado::Sem footage nem ilustração — não publicamos Reel preto (#3)."
           fi
 
-      # 5d. TRAVA DE PEÇA PRONTA (ordem do dono 15/08: "deve chegar o texto, o audio
-      #     e imagens e video" antes de publicar). Depois do 5c — o fetch-footage e o
-      #     fallback de ilustração já deram a última chance de completar a peça — confere
-      #     os 4 componentes no reel-props.json: texto (title+slides+caption), áudio
-      #     (narrationUrl), imagens (img) e vídeo (clips ≥1). Faltou um → NÃO publica
-      #     (pula com warning; o catchup redispara a vaga depois). Fail-closed de
-      #     propósito: o dono pediu o Reel só sair completo. Regra única em
-      #     scripts/reel-media.cjs (teste invariante).
-      - name: Verificar Reel pronto (texto + áudio + imagens + vídeo)
+      # 5d. TRAVA DE PEÇA PRONTA + LOOP DE CORREÇÃO (ordem do dono 15/08: "deve chegar
+      #     o texto, o audio e imagens e video" antes de publicar). O teste real de
+      #     15/08 pegou `faltou: imagens` e o dono reprovou o comportamento passivo:
+      #     "o trabalho deve ser 100% efetivado, se faltar algo ele tem que corrigir,
+      #     tem que criar um looping em cada uma das travas… está conferido 100% siga a
+      #     proxima etapa, não está volte e refaça, até finalir". Agora, faltou um dos
+      #     4 componentes (texto · áudio · imagens · vídeo) → o motor CORRIGE:
+      #       vídeo   → re-roda fetch-footage (Pexels+Pixabay, GRÁTIS);
+      #       imagens → re-obtém o preview com illus=1 (ilustração da fal, ~US$0,03–0,08,
+      #                 DENTRO do teto ig-reels — autorização = teto ativo + ordem de corrigir);
+      #       texto/áudio → re-obtém o preview (cache content_cache/narration_cache,
+      #                 não re-paga o que já existe — só completa o que faltou).
+      #     E RE-CONFERE em loop até 100% (teto 3 tentativas) — só então pronto=1 e os
+      #     passos render/upload/publicar seguem. Fail-closed no fim: não resolveu →
+      #     pronto=0 (o catchup redispara a vaga). Lógica única em scripts/reel-media.cjs
+      #     (corrigirAtePronto) e scripts/corrigir-reel.mjs (o corretor real); teste invariante.
+      - name: Verificar e CORRIGIR Reel pronto (loop até 100%)
         id: pronto
         if: ${{ steps.media.outputs.has_media == '1' }}
-        run: |
-          node -e '
-            const fs = require("fs");
-            const props = JSON.parse(fs.readFileSync("reel-props.json", "utf8"));
-            const caption = fs.readFileSync("caption.txt", "utf8");
-            const v = require("./scripts/reel-media.cjs").reelPronto(props, caption);
-            console.log("::warning title=Reel " + (v.ok ? "pronto" : "INCOMPLETO — não publicado") +
-              "::" + (v.ok ? "texto, áudio, imagens e vídeo presentes" : "faltou: " + v.faltando.join(", ")));
-            process.exit(0); // o GITHUB_OUTPUT decide; nunca derruba a rodada
-          '
-          node -e '
-            const fs = require("fs");
-            const v = require("./scripts/reel-media.cjs").reelPronto(
-              JSON.parse(fs.readFileSync("reel-props.json", "utf8")),
-              fs.readFileSync("caption.txt", "utf8")
-            );
-            console.log("pronto=" + (v.ok ? "1" : "0"));
-          ' >> "$GITHUB_OUTPUT"
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          RUN: ${{ steps.params.outputs.run }}
+          LANGQS: ${{ steps.params.outputs.langqs }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FOOTAGE_NUM_CLIPS: "5"
+        run: node scripts/corrigir-reel.mjs
 
       # 6. Renderiza o Reel para out/reel.mp4 (só se há fundo de verdade).
       #    Composição RETENÇÃO (ReelV2): capa curta 3s + gancho cinético + capa com
