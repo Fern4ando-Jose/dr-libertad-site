@@ -29,11 +29,11 @@ describe("dayBRT — dia ancorado em Brasília (UTC-3)", () => {
 });
 
 describe("minOfDayBRT — minuto-do-dia em BRT (janela do watchdog)", () => {
-  it("00h UTC = 21h BRT = 1260 min (o run 2 já venceu, não 0)", () => {
+  it("00h UTC = 21h BRT = 1260 min (o run 2 já venceu)", () => {
     expect(minOfDayBRT(new Date("2026-06-25T00:00:00Z"))).toBe(21 * 60);
   });
 
-  it("15h UTC = 12h BRT = 720 min (run 0)", () => {
+  it("15h UTC = 12h BRT = 720 min", () => {
     expect(minOfDayBRT(new Date("2026-06-24T15:00:00Z"))).toBe(12 * 60);
   });
 });
@@ -41,15 +41,15 @@ describe("minOfDayBRT — minuto-do-dia em BRT (janela do watchdog)", () => {
 describe("RUN_HOUR_BRT — FONTE ÚNICA do horário-alvo por run (watchdog)", () => {
   // Antes o mapa vivia COPIADO nas 3 rotas do watchdog (catchup/guardian/runs-status).
   // Aqui trava o contrato: se a cadência mudar, muda SÓ este mapa e o teste avisa.
-  it("cobre as 4 vagas da cadência com as horas dos crons dos workflows", () => {
-    // Cadência 4/dia por idioma (determinação do dono 19/07, aplicada 27/07):
-    // 9h carrossel · 12h reel vídeo · 19h reel clássico · 21h reel vídeo.
-    expect(RUN_HOUR_BRT).toEqual({ 4: 9, 0: 12, 3: 19, 2: 21 });
+  it("cobre as 3 vagas da cadência com as horas dos crons dos workflows", () => {
+    // Cadência 3/dia por idioma (1 carrossel + 2 Reels de vídeo, ordem do dono
+    // 15/08): 9h carrossel · 19h reel vídeo · 21h reel vídeo. O run 0 (12h) saiu.
+    expect(RUN_HOUR_BRT).toEqual({ 4: 9, 3: 19, 2: 21 });
   });
 
   it("ACTIVE_RUNS sai do mapa, em ordem de horário, sem número solto", () => {
-    expect(ACTIVE_RUNS).toEqual([4, 0, 3, 2]);
-    expect(POSTS_PER_DAY).toBe(4);
+    expect(ACTIVE_RUNS).toEqual([4, 3, 2]);
+    expect(POSTS_PER_DAY).toBe(3);
   });
 
   it("o dueMin do watchdog casa com o horário do run (ex.: run 2 = 21h)", () => {

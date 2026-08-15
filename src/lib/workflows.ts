@@ -19,9 +19,10 @@
 
 /** Os 3 workflows de publicação. Um por FORMATO — nunca mais um por idioma. */
 export const WORKFLOWS = {
-  /** Reel de vídeo (footage + narração). Runs 0, 1, 2 e 6. */
+  /** Reel de vídeo (footage + narração). Runs 0, 1, 2, 3 e 6. */
   reels: "instagram-reels.yml",
-  /** Reel clássico (slide animado sobre a ilustração). Run 3. */
+  /** Reel clássico (slide animado sobre a ilustração). DESLIGADO 09/08 — sem run
+   * ativo (era run 3; a vaga das 19h virou Reel de VÍDEO em instagram-reels.yml). */
   classic: "instagram-reels-classic.yml",
   /** Carrossel. Runs 4 e 5. */
   posts: "instagram-posts.yml",
@@ -29,14 +30,15 @@ export const WORKFLOWS = {
 
 /**
  * run → arquivo do workflow. Cobre TODOS os runs conhecidos (0..6), inclusive os que
- * hoje não têm cron (1, 5, 6 — retirados na cadência 4/dia de 27/07) e seguem
- * disponíveis para backfill manual. Ver RUN_HOUR_BRT em `./day` p/ as vagas ATIVAS.
+ * hoje não têm cron (0, 1, 5, 6 — retirados: 0 em 15/08, 1/5/6 na cadência 4/dia de
+ * 27/07) e seguem disponíveis para backfill manual. Ver RUN_HOUR_BRT em `./day`
+ * p/ as vagas ATIVAS.
  */
 export const WORKFLOW_FOR_RUN: Record<number, string> = {
   0: WORKFLOWS.reels,
   1: WORKFLOWS.reels,
   2: WORKFLOWS.reels,
-  3: WORKFLOWS.classic,
+  3: WORKFLOWS.reels,
   4: WORKFLOWS.posts,
   5: WORKFLOWS.posts,
   6: WORKFLOWS.reels,

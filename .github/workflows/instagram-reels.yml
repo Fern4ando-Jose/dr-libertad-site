@@ -11,20 +11,21 @@ name: Instagram Reels — Dr. Libertad / Dr. Liberdade (ES + BR)
 # fonte única do job, ES e PT nunca mais saem de sincronia. ES dispara em :17 e PT em
 # :22 (5 min depois, p/ ler a arte que o ES já gerou; imagem compartilhada, só a copy muda).
 #
-# 4 Reels de VÍDEO/dia por idioma (runs 0..2 e 6). O Reel CLÁSSICO (slide animado) roda
-# à parte em instagram-reels-classic.yml (run 3, 19h BRT). O `run` também vem da
-# EXPRESSÃO cron, não do relógio — pra atraso do cron não colidir com o run vizinho.
+# 2 Reels de VÍDEO/dia por idioma (runs 3 e 2). O Reel CLÁSSICO (slide animado) foi
+# DESLIGADO em 09/08 por ordem do dono — a vaga das 19h (run 3) virou Reel de vídeo.
+# O `run` também vem da EXPRESSÃO cron, não do relógio — pra atraso do cron não
+# colidir com o run vizinho.
 on:
   schedule:
-    # Cadência 4/dia por idioma (determinação do dono 19/07, aplicada 27/07): 2 Reels de
-    # vídeo por idioma. Os runs 1 (17:17) e 6 (07:17) foram RETIRADOS — quem manda no
-    # conjunto de vagas é RUN_HOUR_BRT em src/lib/day.ts (fonte única); estes crons a espelham.
+    # Cadência 3/dia por idioma (ordem do dono 15/08: "2 reel ao dia e 1 carrossel"):
+    # 1 carrossel (instagram-posts, 9h) + 2 Reels de VÍDEO por idioma (19h e 21h).
+    # O run 0 (12h) foi RETIRADO em 15/08; os runs 1 (17:17) e 6 (07:17) já haviam
+    # saído em 27/07. Quem manda no conjunto de vagas é RUN_HOUR_BRT em src/lib/day.ts
+    # (fonte única); estes crons a espelham.
     # ES (:17)
-    - cron: "17 15 * * *" # 12:17 BRT — ES run 0
     - cron: "17 22 * * *" # 19:17 BRT — ES run 3 (era do Reel CLÁSSICO; assumida em 09/08 por ordem do dono)
     - cron: "17 0 * * *"  # 21:17 BRT — ES run 2
     # PT (:22, 5 min após o ES)
-    - cron: "22 15 * * *" # 12:22 BRT — PT run 0
     - cron: "22 22 * * *" # 19:22 BRT — PT run 3 (era do Reel CLÁSSICO)
     - cron: "22 0 * * *"  # 21:22 BRT — PT run 2
   workflow_dispatch:
@@ -34,7 +35,7 @@ on:
         required: false
         default: "es"
       run:
-        description: "Run 0..2 ou 6 p/ escolher o tópico (vazio = run 2)"
+        description: "Run 2 ou 3 p/ escolher o tópico (vazio = run 2)"
         required: false
         default: ""
       publish:
@@ -87,12 +88,10 @@ jobs:
             LANG="${IN_LANG:-es}"
           else
             case "$SCHEDULE" in
-              "17 15 * * *") RUN=0; LANG=es ;;
               "17 20 * * *") RUN=1; LANG=es ;;
               "17 22 * * *") RUN=3; LANG=es ;;
               "17 0 * * *")  RUN=2; LANG=es ;;
               "17 10 * * *") RUN=6; LANG=es ;;
-              "22 15 * * *") RUN=0; LANG=br ;;
               "22 20 * * *") RUN=1; LANG=br ;;
               "22 22 * * *") RUN=3; LANG=br ;;
               "22 0 * * *")  RUN=2; LANG=br ;;
@@ -265,11 +264,41 @@ jobs:
             echo "::warning title=Reel pulado::Sem footage nem ilustração — não publicamos Reel preto (#3)."
           fi
 
+      # 5d. TRAVA DE PEÇA PRONTA (ordem do dono 15/08: "deve chegar o texto, o audio
+      #     e imagens e video" antes de publicar). Depois do 5c — o fetch-footage e o
+      #     fallback de ilustração já deram a última chance de completar a peça — confere
+      #     os 4 componentes no reel-props.json: texto (title+slides+caption), áudio
+      #     (narrationUrl), imagens (img) e vídeo (clips ≥1). Faltou um → NÃO publica
+      #     (pula com warning; o catchup redispara a vaga depois). Fail-closed de
+      #     propósito: o dono pediu o Reel só sair completo. Regra única em
+      #     scripts/reel-media.cjs (teste invariante).
+      - name: Verificar Reel pronto (texto + áudio + imagens + vídeo)
+        id: pronto
+        if: ${{ steps.media.outputs.has_media == '1' }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const props = JSON.parse(fs.readFileSync("reel-props.json", "utf8"));
+            const caption = fs.readFileSync("caption.txt", "utf8");
+            const v = require("./scripts/reel-media.cjs").reelPronto(props, caption);
+            console.log("::warning title=Reel " + (v.ok ? "pronto" : "INCOMPLETO — não publicado") +
+              "::" + (v.ok ? "texto, áudio, imagens e vídeo presentes" : "faltou: " + v.faltando.join(", ")));
+            process.exit(0); // o GITHUB_OUTPUT decide; nunca derruba a rodada
+          '
+          node -e '
+            const fs = require("fs");
+            const v = require("./scripts/reel-media.cjs").reelPronto(
+              JSON.parse(fs.readFileSync("reel-props.json", "utf8")),
+              fs.readFileSync("caption.txt", "utf8")
+            );
+            console.log("pronto=" + (v.ok ? "1" : "0"));
+          ' >> "$GITHUB_OUTPUT"
+
       # 6. Renderiza o Reel para out/reel.mp4 (só se há fundo de verdade).
       #    Composição RETENÇÃO (ReelV2): capa curta 3s + gancho cinético + capa com
       #    cor de marca + de-dup capa×insight 1. Promovido a produção 2026-06-26.
       - name: Renderizar Reel (Remotion)
-        if: ${{ steps.media.outputs.has_media == '1' }}
+        if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
         run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelV2
 
       # 7. Sobe o mp4 como asset de um GitHub Release (repo PÚBLICO) e captura a URL
@@ -280,7 +309,7 @@ jobs:
       #    upload-blob.mjs fica preservado p/ rollback.
       - name: Upload do mp4 para GitHub Release (ponte)
         id: upload
-        if: ${{ steps.media.outputs.has_media == '1' }}
+        if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -291,7 +320,7 @@ jobs:
       # 7b. Modo preview: no disparo manual com publish=no, NÃO publica — só expõe a
       #     URL do mp4 p/ revisar a criação. O cron (schedule) sempre publica.
       - name: Preview (sem publicar)
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'yes' && steps.media.outputs.has_media == '1' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'yes' && steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
         run: |
           echo "::notice title=Reel pronto (preview, não publicado)::${{ steps.upload.outputs.video_url }}"
           echo "Preview do Reel (NÃO publicado): ${{ steps.upload.outputs.video_url }}"
@@ -300,7 +329,7 @@ jobs:
       #     Roda no cron (schedule) ou no disparo manual com publish=yes — e só se
       #     houver fundo (has_media): Reel sem footage/ilustração é pulado, não preto.
       - name: Publicar Reel no Instagram
-        if: ${{ (github.event_name == 'schedule' || github.event.inputs.publish == 'yes') && steps.media.outputs.has_media == '1' }}
+        if: ${{ (github.event_name == 'schedule' || github.event.inputs.publish == 'yes') && steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
         run: |
           RESP=$(curl -sS --max-time 280 -G \
             -w $'\nHTTP_CODE:%{http_code}' \

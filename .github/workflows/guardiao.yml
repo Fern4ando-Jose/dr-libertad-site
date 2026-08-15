@@ -1,10 +1,10 @@
-name: Guardião — verifica 6/6 posts do dia nas 2 contas
+name: Guardião — verifica 3/3 posts do dia nas 2 contas
 
 # ROTINA DIÁRIA de vigilância (pedido do dono 2026-07-07: "os 6 posts rodam nos 2
-# IGs, e VOCÊ vigia, não eu"). Roda no FIM DO DIA (23h40 BRT), depois de todas as 6
+# IGs, e VOCÊ vigia, não eu"). Roda no FIM DO DIA (23h40 BRT), depois de todas as 3
 # vagas × 2 idiomas terem vencido e do catchup de hora em hora ter tentado. Faz 3
 # coisas via /api/guardian:
-#   1. VERIFICA se as 6 vagas publicaram em CADA conta (ES + PT);
+#   1. VERIFICA se as 3 vagas publicaram em CADA conta (ES + PT);
 #   2. PERSISTE o veredito do dia em `daily_report` (o painel-adm lê p/ alertar o dono);
 #   3. ÚLTIMA VARREDURA: redispara vagas `missing` recuperáveis (idempotente, como o catchup).
 # O que ele NÃO faz sozinho: regenerar capa PAGA de uma vaga que desistiu (§1.4 — isso
@@ -30,7 +30,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verificar 6/6, gravar veredito e dar a última varredura
+      - name: Verificar 3/3, gravar veredito e dar a última varredura
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -46,9 +46,11 @@ jobs:
             lang=$(echo "$item" | jq -r '.lang')
             run=$(echo "$item" | jq -r '.run')
             case "$run" in
-              0|1|2|6) base="instagram-reels";          extra="-f publish=yes" ;;
-              3)       base="instagram-reels-classic";  extra="-f publish=yes" ;;
-              4|5)     base="instagram-posts";          extra="" ;;
+              # Run 3 (19h) é Reel de VÍDEO desde 09/08 (o clássico foi desligado por
+              # ordem do dono). Mapear pra instagram-reels-classic redispararia o
+              # workflow desligado e a vaga NUNCA sairia — o defeito que este case era.
+              0|1|2|3|6) base="instagram-reels";        extra="-f publish=yes" ;;
+              4|5)       base="instagram-posts";        extra="" ;;
               *)       echo "run $run desconhecido — pulando"; continue ;;
             esac
             # Workflow ÚNICO por formato (fusão ES+PT 2026-07-14): o idioma vai por -f lang.
@@ -59,7 +61,7 @@ jobs:
               || echo "::warning::falha ao disparar $wf run=$run ($lang)"
           done
 
-          # Alerta no log do Actions quando o dia NÃO fechou 6/6 (o veredito completo já
+          # Alerta no log do Actions quando o dia NÃO fechou 3/3 (o veredito completo já
           # foi persistido em daily_report → painel-adm mostra pro dono).
           OK=$(echo "$RESP" | jq -r '.ok')
           NOTE=$(echo "$RESP" | jq -r '.note')
