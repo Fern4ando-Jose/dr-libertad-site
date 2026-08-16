@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, MotionConfig } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 import styles from "./preSalePopup.module.css";
@@ -13,9 +13,12 @@ import styles from "./preSalePopup.module.css";
 //  2. SOBRE O LIVRO — ancorado no canto superior do card do livro, apontando pra capa.
 //  3. NÃO TAPA A IMAGEM — "não esconda o produto": o selo cobre só um canto
 //     da capa; a imagem do livro continua visível inteira.
-//  4. ANIMADO O TEMPO TODO — entra em spring e flutua suavemente, ponto pulsa.
+//  4. ANIMADO O TEMPO TODO — ordem do dono no mesmo dia ("o card deve ser
+//     animado, anime"): a animação roda SEMPRE, mesmo quando o sistema pede
+//     menos movimento — ele quer VER o movimento. Entra em spring, flutua,
+//     dá um "pop" suave e o ponto pulsa.
 //  5. O selo é um link para a página do livro, onde está o card de entrar na
-//     lista (PreSaleCard #pre-venda). Quem pede menos movimento recebe estático.
+//     lista (PreSaleCard #pre-venda).
 
 const KEY = "dl-pre-venda-popup-2026-08";
 
@@ -49,18 +52,17 @@ export default function PreSalePopup({ slug }: { slug: string }) {
   }, [open]);
 
   return (
-    <MotionConfig reducedMotion="user">
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            role="group"
-            aria-label={w.popupTitle}
-            initial={{ opacity: 0, scale: 0.6, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.7, y: -8 }}
-            transition={{ type: "spring", stiffness: 320, damping: 20 }}
-            className={`${styles.tag} absolute -top-3 right-2 z-30`}
-          >
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          role="group"
+          aria-label={w.popupTitle}
+          initial={{ opacity: 0, scale: 0.6, y: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.7, y: -8 }}
+          transition={{ type: "spring", stiffness: 320, damping: 20 }}
+          className={`${styles.tag} absolute -top-3 right-2 z-30`}
+        >
             {/* Fechar — canto superior direito, fora do link. */}
             <button
               type="button"
@@ -90,7 +92,6 @@ export default function PreSalePopup({ slug }: { slug: string }) {
             </Link>
           </motion.div>
         )}
-      </AnimatePresence>
-    </MotionConfig>
+    </AnimatePresence>
   );
 }

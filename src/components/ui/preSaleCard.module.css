@@ -1,7 +1,9 @@
 /* Card de pré-venda (PreSaleCard) — animações em CSS. A copy e a direção de
  * animação vieram da peça ao marketing (15/08/2026): entrada discreta, ponto de
  * vida no selo e glow que "respira" no botão. Sobriedade da marca — nada de grito.
- * A entrada em stagger é do framer-motion (no próprio componente). */
+ * A entrada em stagger é do framer-motion (no próprio componente).
+ * ⚠️ 15/08/2026: a trava de "menos movimento" foi removida por ordem do dono
+ * ("o card deve ser animado, anime") — as animações do card rodam SEMPRE. */
 
 .card {
   position: relative;
@@ -45,13 +47,4 @@
   }
 }
 
-/* Acessibilidade: quem pediu menos movimento, recebe menos movimento. */
-@media (prefers-reduced-motion: reduce) {
-  .card *,
-  .card *::before,
-  .card *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/* (Sem a trava de "menos movimento": ordem do dono 15/08 — ver cabeçalho.) */

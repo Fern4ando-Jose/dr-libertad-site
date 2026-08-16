@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, MotionConfig, type Variants } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 import styles from "./preSaleCard.module.css";
 
@@ -63,7 +63,6 @@ export default function PreSaleCard({ slug }: { slug: string }) {
             "radial-gradient(600px circle at 50% 0%, rgba(164,90,90,0.12), transparent 60%)",
         }}
       />
-      <MotionConfig reducedMotion="user">
         <motion.div
           id="pre-venda"
           variants={cardContainer}
@@ -163,7 +162,6 @@ export default function PreSaleCard({ slug }: { slug: string }) {
             {status === "error" ? <span className="text-muted-red">{msg}</span> : w.disclaimer}
           </div>
         </motion.div>
-      </MotionConfig>
     </section>
   );
 }
