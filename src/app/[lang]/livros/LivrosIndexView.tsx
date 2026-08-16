@@ -103,9 +103,12 @@ export default function LivrosIndexView() {
                             // Card da vitrine: coluna única no celular, 1/2 no
                             // tablet, 1/3 no desktop — nunca a largura toda.
                             sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
-                            // Só a primeira capa entra no pré-carregamento: é a
-                            // única que aparece sem rolar a página.
-                            priority={i === 0}
+                            // TODAS as capas da vitrine carregam de imediato: com a
+                            // moldura 3:4 a imagem usa w-auto e, enquanto não baixa,
+                            // mede 0×0 — o carregamento preguiçoso nunca dispararia
+                            // (deadlock visto ao vivo em 16/08: capa do Tolos sumida).
+                            // São 2 imagens; o custo é mínimo.
+                            priority
                             className="h-auto max-h-full w-auto max-w-full rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]"
                           />
                         </div>
