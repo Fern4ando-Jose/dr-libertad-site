@@ -185,6 +185,10 @@ export const br = {
     errorInvalid: "Digite um e-mail válido.",
     errorGeneric: "Algo deu errado. Tente novamente.",
     disclaimer: "Só um aviso quando a compra abrir. Sem spam, sem repasse do seu e-mail.",
+    popupTitle: "PRÉ-VENDA",
+    popupLead: "O livro que ajuda a voltar ao equilíbrio está em pré-venda. Entre na lista e garanta o preço quando a compra abrir.",
+    popupCta: "Ver o livro",
+    popupClose: "Fechar",
   },
   livro: {
     badge: "Novo · E-book ilustrado",
@@ -667,6 +671,10 @@ export const es: Dict = {
     errorInvalid: "Escribe un correo válido.",
     errorGeneric: "Algo salió mal. Inténtalo de nuevo.",
     disclaimer: "Solo un aviso cuando abra la compra. Sin spam, sin compartir tu correo.",
+    popupTitle: "PREVENTA",
+    popupLead: "El libro que te ayuda a volver al equilibrio está en preventa. Entra en la lista y asegura el precio cuando abra la compra.",
+    popupCta: "Ver el libro",
+    popupClose: "Cerrar",
   },
   livro: {
     badge: "Nuevo · E-book ilustrado",

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
+import PreSalePopup from "@/components/ui/PreSalePopup";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 import { VISIBLE_BOOKS } from "@/lib/books";
 
@@ -45,6 +46,13 @@ export default function LivrosIndexView() {
           </div>
         </StudioContainer>
       </section>
+
+      {/* POP-UP DE PRÉ-VENDA: sobre o livro, título "PRÉ-VENDA" (ordem do dono
+          15/08/2026), na vitrine — captura de e-mail pela mesma rota do card
+          da página do livro. Só quando há livro em pré-venda na vitrine. */}
+      {VISIBLE_BOOKS.some((b) => b.preSale) && (
+        <PreSalePopup slug={VISIBLE_BOOKS.find((b) => b.preSale)!.slug} />
+      )}
 
       <section className="pb-24">
         <StudioContainer>
