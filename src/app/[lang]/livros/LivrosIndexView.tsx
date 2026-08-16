@@ -72,15 +72,15 @@ export default function LivrosIndexView() {
               // separada (pedido do dono 15/08/2026); senão, a da página do livro.
               const cover = book.coverList?.[lang] ?? book.coverList?.br ?? book.cover[lang] ?? book.cover.br;
               return (
-                <Reveal key={book.slug} delay={i * 0.06}>
+                <Reveal key={book.slug} delay={i * 0.06} className="h-full">
                   {/* O wrapper relativo ancora o selo de pré-venda ao card do
                       livro. Ele é IRMÃO do link do card (nunca filha) e é ele
                       mesmo um link para a página do livro. */}
-                  <div className="relative">
+                  <div className="relative h-full">
                     <MotionLink
                       href={`/${lang}/livros/${book.slug}`}
                       whileHover={{ y: -6 }}
-                      className="group block rounded-3xl border border-warm-gray/15 bg-white/3 p-4 backdrop-blur transition-colors hover:border-warm-gray/35"
+                      className="group flex h-full flex-col rounded-3xl border border-warm-gray/15 bg-white/3 p-4 backdrop-blur transition-colors hover:border-warm-gray/35"
                     >
                       {/* Capa da VITRINE: a imagem da arte, PLANTA — sem efeito de
                           "livro 3D" (ordem do dono 15/08/2026: subir a imagem sem
@@ -90,21 +90,27 @@ export default function LivrosIndexView() {
                           aria-hidden="true"
                           className="absolute -inset-2 -z-10 rounded-[40px] bg-[radial-gradient(circle_at_50%_30%,rgba(45,90,61,0.3),transparent_70%)] blur-2xl"
                         />
-                        <Image
-                          src={cover}
-                          alt={b.coverAlt}
-                          width={book.coverSize.width}
-                          height={book.coverSize.height}
-                          // Card da vitrine: coluna única no celular, 1/2 no
-                          // tablet, 1/3 no desktop — nunca a largura toda.
-                          sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
-                          // Só a primeira capa entra no pré-carregamento: é a
-                          // única que aparece sem rolar a página.
-                          priority={i === 0}
-                          className="w-full h-auto rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]"
-                        />
+                        {/* As artes têm proporções diferentes (dopamina 3:4, tolos
+                            mais quadrada) → a moldura fixa em 3:4 iguala a ALTURA
+                            dos cards e centra a arte INTEIRA, sem cortar nada
+                            (ordem do dono 15/08: a imagem não se mexe). */}
+                        <div className="flex aspect-[3/4] w-full items-center justify-center">
+                          <Image
+                            src={cover}
+                            alt={b.coverAlt}
+                            width={book.coverSize.width}
+                            height={book.coverSize.height}
+                            // Card da vitrine: coluna única no celular, 1/2 no
+                            // tablet, 1/3 no desktop — nunca a largura toda.
+                            sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
+                            // Só a primeira capa entra no pré-carregamento: é a
+                            // única que aparece sem rolar a página.
+                            priority={i === 0}
+                            className="h-auto max-h-full w-auto max-w-full rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]"
+                          />
+                        </div>
                       </div>
-                      <div className="px-2 pb-1 pt-5">
+                      <div className="flex flex-1 flex-col px-2 pb-1 pt-5">
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                           <span className="text-[10px] tracking-[0.24em] text-muted-red/90 uppercase">
                             {b.badge}
@@ -121,7 +127,7 @@ export default function LivrosIndexView() {
                           {b.title} {b.titleAccent}
                         </h2>
                         <p className="mt-2 text-sm leading-[1.6] text-warm-gray/85">{b.subtitle}</p>
-                        <div className="mt-5 flex items-center justify-between">
+                        <div className="mt-auto flex items-center justify-between pt-5">
                           <span className="font-serif text-xl text-offwhite">{b.price}</span>
                           <span className="inline-flex items-center text-xs tracking-[0.18em] uppercase text-warm-gray/80 group-hover:text-offwhite transition">
                             {idx.viewLabel}
