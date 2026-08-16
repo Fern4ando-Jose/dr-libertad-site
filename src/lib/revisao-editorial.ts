@@ -16,7 +16,8 @@
 // DESENHO DE CUSTO: UMA chamada só, com as 3 lentes juntas, no modelo que já é usado —
 // ~US$ 0,004 por peça. Três chamadas separadas triplicariam a conta sem melhorar o veredito.
 
-import { anthropicCost, logSpend, type Automation } from "@/lib/spend";
+import { logSpend, type Automation } from "@/lib/spend";
+import { chamarIATexto, custoIATexto, temChaveIATexto } from "@/lib/ia-texto";
 
 export interface AchadoRevisao {
   lente: "voz" | "atencao" | "formato";
@@ -76,36 +77,30 @@ export async function revisarTexto(
   peca: PecaParaRevisar,
   opts: { formatoNome: string; ancora?: string | null; lang: string; automation: Automation }
 ): Promise<VeredictoRevisao> {
-  const chave = process.env.ANTHROPIC_API_KEY;
   // FAIL-OPEN: sem chave ou com erro, a revisão não bloqueia a publicação. Um revisor que
   // derruba a linha quando ele próprio falha troca "peça ruim" por "peça nenhuma".
-  if (!chave) return { aprovado: true, achados: [], rodou: false };
+  // TEXTO via ia-texto.ts (2026-08-16): DeepSeek quando há DEEPSEEK_API_KEY; senão Anthropic.
+  if (!temChaveIATexto()) return { aprovado: true, achados: [], rodou: false };
 
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": chave,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
+    const r = await chamarIATexto(
+      {
         model: MODELO,
         max_tokens: 700,
         messages: [{ role: "user", content: prompt(peca, opts.formatoNome, opts.ancora ?? null, opts.lang) }],
-      }),
-      signal: AbortSignal.timeout(45000),
-    });
+      },
+      { timeoutMs: 45000 }
+    );
     if (!r.ok) return { aprovado: true, achados: [], rodou: false };
-    const data = await r.json();
+    const data = r.dados;
 
     await logSpend({
       automation: opts.automation,
-      platform: "anthropic",
+      platform: r.provedor,
       operation: "revisao-editorial",
-      model: MODELO,
+      model: r.modelo,
       units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0),
-      costUsd: anthropicCost(MODELO, data?.usage),
+      costUsd: custoIATexto(r.provedor, r.modelo, data?.usage),
     });
 
     const txt: string = data?.content?.[0]?.text ?? "";

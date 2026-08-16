@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { accountFor, langLegado } from "@/lib/accounts";
 import { buildEssayPrompt, renderEmail, newsletterFrom } from "@/lib/newsletter";
-import { checkBudget, logSpend, anthropicCost } from "@/lib/spend";
+import { checkBudget, logSpend } from "@/lib/spend";
+import { chamarIATexto, custoIATexto, type ProvedorIA } from "@/lib/ia-texto";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -14,25 +15,25 @@ function authorized(req: NextRequest): boolean {
   return !!process.env.CRON_SECRET && h === `Bearer ${process.env.CRON_SECRET}`;
 }
 
-// Gera o ensaio na voz da marca (Anthropic). Retorna {subject, paragraphs}.
+// Gera o ensaio na voz da marca. Retorna {subject, paragraphs} + quem respondeu
+// (provedor/modelo), para o logSpend registrar a plataforma REAL (P2).
+// TEXTO via ia-texto.ts (2026-08-16): DeepSeek quando há DEEPSEEK_API_KEY; senão Anthropic.
 async function generateEssay(
   acc: ReturnType<typeof accountFor>,
   recentTopics: string[]
-): Promise<{ subject: string; paragraphs: string[]; usage?: { input_tokens?: number; output_tokens?: number } }> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 800,
-      messages: [{ role: "user", content: buildEssayPrompt(acc, recentTopics) }],
-    }),
+): Promise<{
+  subject: string;
+  paragraphs: string[];
+  usage?: { input_tokens?: number; output_tokens?: number };
+  provedor: ProvedorIA;
+  modelo: string;
+}> {
+  const res = await chamarIATexto({
+    model: MODEL,
+    max_tokens: 800,
+    messages: [{ role: "user", content: buildEssayPrompt(acc, recentTopics) }],
   });
-  const data = await res.json();
+  const data = res.dados;
   const raw = (data?.content?.[0]?.text ?? "").trim();
   const json = raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
   const parsed = JSON.parse(json);
@@ -41,7 +42,7 @@ async function generateEssay(
     : [];
   const subject = String(parsed?.subject ?? "").trim();
   if (!subject || paragraphs.length === 0) throw new Error("essay_empty");
-  return { subject, paragraphs, usage: data?.usage };
+  return { subject, paragraphs, usage: data?.usage, provedor: res.provedor, modelo: res.modelo };
 }
 
 // Envia em lotes de até 100 via Resend (/emails/batch).
@@ -121,8 +122,14 @@ export async function POST(req: NextRequest) {
   }
   const recentTopics = [...new Set(recent.rows.map((r) => r.topic).filter(Boolean))];
 
-  // Ensaio (Anthropic) — gera mesmo no dry-run, p/ a prévia ser real.
-  let essay: { subject: string; paragraphs: string[]; usage?: { input_tokens?: number; output_tokens?: number } };
+  // Ensaio (DeepSeek ou Anthropic, via ia-texto) — gera mesmo no dry-run, p/ a prévia ser real.
+  let essay: {
+    subject: string;
+    paragraphs: string[];
+    usage?: { input_tokens?: number; output_tokens?: number };
+    provedor: ProvedorIA;
+    modelo: string;
+  };
   try {
     essay = await generateEssay(acc, recentTopics);
   } catch (e) {
@@ -131,11 +138,11 @@ export async function POST(req: NextRequest) {
   }
   await logSpend({
     automation: "newsletter",
-    platform: "anthropic",
+    platform: essay.provedor,
     operation: "essay",
-    model: MODEL,
+    model: essay.modelo,
     units: (essay.usage?.input_tokens ?? 0) + (essay.usage?.output_tokens ?? 0),
-    costUsd: anthropicCost(MODEL, essay.usage),
+    costUsd: custoIATexto(essay.provedor, essay.modelo, essay.usage),
     meta: { lang, recipients: subs.rowCount },
   });
 

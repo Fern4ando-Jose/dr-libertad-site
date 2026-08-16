@@ -17,6 +17,7 @@ import type { FootageClip } from "@/lib/footage-library";
 
 // Visão BARATA: o check é grosseiro (é pele/corpo/textura/NSFW?), não conta dedos como
 // a ilustração → Haiku basta (~US$0,005/imagem). Modelo na tabela de preços de spend.ts.
+// ⚠️ FICA NO CLAUDE (migração de texto p/ DeepSeek, 2026-08-16 NÃO se aplica): este QA OLHA a imagem (type:"image") e o deepseek-chat não enxerga imagem.
 const QA_MODEL = "claude-haiku-4-5-20251001";
 
 // QUEM aparece no quadro — MESMO vocabulário do campo `who` da whitelist curada

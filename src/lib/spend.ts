@@ -10,7 +10,7 @@
 // Tudo é best-effort/fail-open: falha de banco nunca quebra o pipeline de publicação.
 // O modelo de governança está documentado na memória `cost-governance`.
 
-export type Platform = "fal" | "anthropic" | "tavily";
+export type Platform = "fal" | "anthropic" | "tavily" | "deepseek";
 export type Automation = "ig-posts" | "ig-reels" | "ig-engagement" | "newsletter" | "manual";
 
 // Preço Anthropic por 1M tokens (entrada/saída). Confirmado via skill claude-api.
@@ -90,6 +90,31 @@ export function anthropicCost(model: string, usage: { input_tokens?: number; out
 
 export function falCost(model: string): number {
   return FAL_PRICES[model] ?? FAL_DEFAULT_PRICE;
+}
+
+// Preço DeepSeek por 1M tokens (migração de texto 2026-08-16, ordem do dono). MESMOS
+// números da tabela da casa (D:\Claude\.claude\lib\esteira\orcamento.mjs →
+// PRECOS["deepseek-chat"]: entrada 0.28, saída 0.42, cache lido a 0.1x = 0.028).
+// O normalizador (ia-texto.ts) devolve `input_tokens` = só o cache-MISS e
+// `cache_read_input_tokens` = o cache-HIT — a soma aqui fecha com a fatura.
+const DEEPSEEK_PRICES: Record<string, { in: number; cacheHit: number; out: number }> = {
+  "deepseek-chat": { in: 0.28, cacheHit: 0.028, out: 0.42 },
+};
+
+export function deepseekCost(
+  model: string,
+  usage:
+    | { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number }
+    | undefined
+): number {
+  const p = DEEPSEEK_PRICES[model];
+  if (!p || !usage) return 0;
+  return (
+    ((usage.input_tokens ?? 0) * p.in +
+      (usage.cache_read_input_tokens ?? 0) * p.cacheHit +
+      (usage.output_tokens ?? 0) * p.out) /
+    1_000_000
+  );
 }
 
 export function tavilyCost(): number {

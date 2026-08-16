@@ -11,7 +11,8 @@
 
 import { FOOTAGE_LIBRARY } from "@/lib/footage-library";
 import { isPhotoUrl } from "@/lib/footage-media";
-import { anthropicCost, logSpend, type Automation } from "@/lib/spend";
+import { logSpend, type Automation } from "@/lib/spend";
+import { chamarIATexto, custoIATexto, temChaveIATexto } from "@/lib/ia-texto";
 
 const MODELO = "claude-haiku-4-5-20251001";
 
@@ -42,8 +43,10 @@ export async function curarCapa(
   const cands = candidatasDoPilar(cat);
   if (cands.length < 2) return cands[0]?.url ?? null;
 
-  const chave = process.env.ANTHROPIC_API_KEY;
-  if (!chave) return null;
+  // Só TEXTO sai daqui (a frase + descrições das fotos — nunca a imagem em si), por isso
+  // pode ir ao DeepSeek. TEXTO via ia-texto.ts (2026-08-16): DeepSeek quando há
+  // DEEPSEEK_API_KEY; senão Anthropic, como sempre.
+  if (!temChaveIATexto()) return null;
 
   const lista = cands.map((c, i) => `${i + 1}. ${c.descricao}`).join("\n");
   const p = `A capa de um post vai levar esta frase:
@@ -62,21 +65,19 @@ Escolha a ÚNICA que melhor sustenta a frase. Critério, nesta ordem:
 Responda SÓ com o número da escolhida. Nada além do número.`;
 
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": chave, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: MODELO, max_tokens: 8, messages: [{ role: "user", content: p }] }),
-      signal: AbortSignal.timeout(30000),
-    });
+    const r = await chamarIATexto(
+      { model: MODELO, max_tokens: 8, messages: [{ role: "user", content: p }] },
+      { timeoutMs: 30000 }
+    );
     if (!r.ok) return null;
-    const data = await r.json();
+    const data = r.dados;
     await logSpend({
       automation: opts.automation,
-      platform: "anthropic",
+      platform: r.provedor,
       operation: "curadoria-imagem",
-      model: MODELO,
+      model: r.modelo,
       units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0),
-      costUsd: anthropicCost(MODELO, data?.usage),
+      costUsd: custoIATexto(r.provedor, r.modelo, data?.usage),
     });
     const n = parseInt(String(data?.content?.[0]?.text ?? "").replace(/\D+/g, ""), 10);
     if (!Number.isFinite(n) || n < 1 || n > cands.length) return null;

@@ -8,7 +8,8 @@ import { conferirFormato, reprovado, resumoDoVeredito } from "@/lib/verificador-
 import { revisarTexto, instrucaoDeCorrecao } from "@/lib/revisao-editorial";
 import { prehostCover } from "@/lib/cover-prehost";
 import { Lang, accountFor, getLang, envToken, envAccountId, langLegado } from "@/lib/accounts";
-import { type Automation, checkBudget, logSpend, anthropicCost, EST_RUN_COST } from "@/lib/spend";
+import { type Automation, checkBudget, logSpend, EST_RUN_COST } from "@/lib/spend";
+import { chamarIATexto, custoIATexto } from "@/lib/ia-texto";
 import { parseContentJson, normalizeContentJson, missingEssentialContent } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
 import type { ThemeWho } from "@/lib/footage-subject";
@@ -612,23 +613,17 @@ Para "videoQueries": 3 frases EN INGLÉS, 3-6 palabras, escenas REALES y filmabl
   let lastErr: unknown;
   let contaminationNote = "";
   for (let attempt = 1; attempt <= MAX_CONTENT_TRIES; attempt++) {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 4096,
-        messages: [{ role: "user", content: prompt + contaminationNote }],
-      }),
+    // TEXTO via ia-texto.ts (2026-08-16): DeepSeek quando há DEEPSEEK_API_KEY; senão
+    // Anthropic como sempre. O corpo segue no formato Anthropic — a ponte converte.
+    const res = await chamarIATexto({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 4096,
+      messages: [{ role: "user", content: prompt + contaminationNote }],
     });
 
-    if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
-    const data = await res.json();
-    await logSpend({ automation, platform: "anthropic", operation: "content", model: "claude-haiku-4-5-20251001", units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0), costUsd: anthropicCost("claude-haiku-4-5-20251001", data?.usage) });
+    if (!res.ok) throw new Error(`IA de texto (${res.provedor}) error: ${res.status}`);
+    const data = res.dados;
+    await logSpend({ automation, platform: res.provedor, operation: "content", model: res.modelo, units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0), costUsd: custoIATexto(res.provedor, res.modelo, data?.usage) });
     const raw = data.content?.[0]?.text ?? "";
     let content: GeneratedContent;
     try {

@@ -112,6 +112,7 @@ export interface GenerateOpts {
 }
 
 const MAX_TRIES = 3;        // gera no máx. 3 vezes tentando passar no QA
+// ⚠️ FICA NO CLAUDE (migração de texto p/ DeepSeek, 2026-08-16 NÃO se aplica): este juiz OLHA a imagem (type:"image") e o deepseek-chat não enxerga imagem.
 const QA_MODEL = "claude-sonnet-4-6"; // visão confiável p/ contar mãos/dedos
 
 // ─── Cache de 24h da ilustração do dia ───────────────────────────────────────

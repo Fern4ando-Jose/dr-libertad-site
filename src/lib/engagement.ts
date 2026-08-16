@@ -13,7 +13,8 @@
 // Régua de sobrevivência da conta: NUNCA produzimos ódio (a guarda está na voz) e
 // NÃO engajamos veneno (comentário tóxico → SKIP, não revidamos). Ver `voice.ts`.
 
-import { logSpend, anthropicCost } from "./spend";
+import { logSpend } from "./spend";
+import { chamarIATexto, custoIATexto } from "./ia-texto";
 
 const ENGAGEMENT_MODEL = "claude-haiku-4-5-20251001";
 
@@ -316,28 +317,22 @@ export async function generateDistinctText(
 // balde `ig-engagement`. Devolve o texto limpo. Lança em erro de rede (o chamador
 // trata best-effort — webhook nunca deixa de devolver 200).
 export async function generateText(prompt: string): Promise<string> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: ENGAGEMENT_MODEL,
-      max_tokens: 512,
-      messages: [{ role: "user", content: prompt }],
-    }),
+  // TEXTO via ia-texto.ts (2026-08-16): DeepSeek quando há DEEPSEEK_API_KEY; senão
+  // Anthropic como sempre. O logSpend registra o provedor/modelo REAIS (P2).
+  const res = await chamarIATexto({
+    model: ENGAGEMENT_MODEL,
+    max_tokens: 512,
+    messages: [{ role: "user", content: prompt }],
   });
-  if (!res.ok) throw new Error(`Anthropic API error: ${res.status}`);
-  const data = await res.json();
+  if (!res.ok) throw new Error(`IA de texto (${res.provedor}) error: ${res.status}`);
+  const data = res.dados;
   await logSpend({
     automation: "ig-engagement",
-    platform: "anthropic",
+    platform: res.provedor,
     operation: "engagement",
-    model: ENGAGEMENT_MODEL,
+    model: res.modelo,
     units: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0),
-    costUsd: anthropicCost(ENGAGEMENT_MODEL, data?.usage),
+    costUsd: custoIATexto(res.provedor, res.modelo, data?.usage),
   });
   const raw: string = data?.content?.[0]?.text ?? "";
   return raw.trim().replace(/^["']|["']$/g, "").trim();
