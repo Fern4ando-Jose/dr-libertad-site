@@ -28,6 +28,11 @@ export type BookMeta = {
   // É a página-destino do funil comment→DM (em vez de mandar o .pdf cru no Direct).
   free?: boolean;
   leadPdf?: { br: string; es: string };
+  // PRÉ-VENDA (pré-lançamento): o livro ainda não está à venda. A oferta principal
+  // da página vira a lista de espera (garantir o preço), o CTA rola até o formulário
+  // e o preço vai ao schema.org como PreOrder. Convive com `free`: a prévia grátis
+  // continua disponível como opção secundária (o funil comment→DM aponta para cá).
+  preSale?: boolean;
   // Imagens de "por dentro" (spreads). Ausente → a seção mostra só o texto (sem fotos
   // de outro livro). O guia de plantas declara as suas; a prévia de dopamina não tem.
   insideImages?: string[];
@@ -72,7 +77,10 @@ export const BOOKS: BookMeta[] = [
     // PT e ES) — todas iguais; o next/image reserva o espaço sem a página "pular".
     coverSize: { width: 1086, height: 1448 },
     free: true,
-    price: { br: { amount: 0, currency: "BRL" }, es: { amount: 0, currency: "USD" } },
+    preSale: true,
+    // Pré-lançamento (pedido do dono, 15/08/2026): R$ 29,90 no BR. O ES sai em
+    // US$ 5,90 (equivalente aproximado — o dono decide o valor exato ao publicar).
+    price: { br: { amount: 29.9, currency: "BRL" }, es: { amount: 5.9, currency: "USD" } },
     leadPdf: { br: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },
   },
 ];

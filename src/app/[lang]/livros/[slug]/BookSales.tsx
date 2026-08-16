@@ -1,11 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
+import PreSaleCard from "@/components/ui/PreSaleCard";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 import { getBook } from "@/lib/books";
 
@@ -32,72 +32,9 @@ function Heading({ eyebrow, title }: { eyebrow: string; title: string }) {
   );
 }
 
-// Lista de espera do livro completo (modo prévia grátis). Captura e-mail → /api/waitlist.
-function WaitlistForm({ slug }: { slug: string }) {
-  const { t, lang } = useLang();
-  const w = t.waitlist;
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
-  const [msg, setMsg] = useState("");
-
-  const submit = async () => {
-    const value = email.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      setStatus("error");
-      setMsg(w.errorInvalid);
-      return;
-    }
-    setStatus("loading");
-    setMsg("");
-    try {
-      const res = await fetch("/api/waitlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: value, lang, slug }),
-      });
-      if (!res.ok) throw new Error();
-      setStatus("ok");
-    } catch {
-      setStatus("error");
-      setMsg(w.errorGeneric);
-    }
-  };
-
-  return (
-    <div className="mx-auto mt-10 max-w-xl border-t border-warm-gray/15 pt-8 text-left">
-      <div className="text-xs tracking-[0.26em] uppercase text-warm-gray/80">{w.eyebrow}</div>
-      <h3 className="mt-3 font-serif text-[clamp(1.4rem,2.6vw,1.9rem)] leading-[1.1] text-offwhite text-balance">
-        {w.title}
-      </h3>
-      <p className="mt-3 text-sm leading-[1.7] text-warm-gray/85">{w.lead}</p>
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <input
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            if (status !== "idle") setStatus("idle");
-          }}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder={w.placeholder}
-          type="email"
-          disabled={status === "loading" || status === "ok"}
-          className="w-full rounded-2xl border border-warm-gray/15 bg-ink/35 px-4 py-3 text-offwhite placeholder:text-warm-gray/50 outline-none focus:border-muted-red/60 disabled:opacity-60"
-        />
-        <button
-          type="button"
-          onClick={submit}
-          disabled={status === "loading" || status === "ok"}
-          className="shrink-0 rounded-2xl bg-muted-red px-5 py-3 text-sm font-semibold text-offwhite transition hover:bg-muted-red/85 disabled:opacity-70"
-        >
-          {status === "ok" ? w.success : status === "loading" ? w.submitting : w.submit}
-        </button>
-      </div>
-      <div className="mt-3 text-xs leading-[1.6] text-warm-gray/70">
-        {status === "error" ? <span className="text-muted-red">{msg}</span> : w.disclaimer}
-      </div>
-    </div>
-  );
-}
+// A lista de espera (pré-venda) agora é o card animado `PreSaleCard` — pedido do
+// dono 15/08/2026. Ele é a nova casa da âncora #pre-venda e entra em seção própria,
+// logo abaixo do herói.
 
 export default function BookSales({ slug }: { slug: string }) {
   const { t, lang } = useLang();
@@ -108,6 +45,11 @@ export default function BookSales({ slug }: { slug: string }) {
   const free = !!book.free && !!book.leadPdf;
   const leadPdf = book.leadPdf?.[lang] ?? book.leadPdf?.br ?? "#";
   const checkout = book.checkout?.[lang] ?? book.checkout?.br ?? "#";
+  // PRÉ-VENDA (pré-lançamento): a oferta principal vira a lista de espera (garantir
+  // o preço). O CTA rola até o formulário (#pre-venda) e a prévia grátis fica como
+  // opção secundária — o funil comment→DM continua apontando para esta página.
+  const preSale = !!book.preSale;
+  const heroHref = preSale ? "#pre-venda" : free ? leadPdf : checkout;
   const cover = book.cover[lang] ?? book.cover.br;
   const spreads = book.insideImages ?? [];
   const promoVideo = book.promoVideo?.[lang] ?? null;
@@ -168,11 +110,11 @@ export default function BookSales({ slug }: { slug: string }) {
 
               <div className="mt-9 flex flex-wrap items-center gap-4">
                 <a
-                  href={free ? leadPdf : checkout}
-                  {...(free ? { download: true } : { target: "_blank", rel: "noopener noreferrer" })}
+                  href={heroHref}
+                  {...(preSale ? {} : free ? { download: true } : { target: "_blank", rel: "noopener noreferrer" })}
                   className="group inline-flex items-center rounded-full bg-gradient-to-b from-[#cf6259] to-[#9e433d] px-8 py-4 text-[0.95rem] font-bold tracking-[0.01em] text-white shadow-[0_16px_44px_rgba(207,98,89,0.55)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_20px_56px_rgba(207,98,89,0.72)]"
                 >
-                  {free ? L.ctaDownload : L.ctaBuy}
+                  {preSale ? L.ctaDownload : L.ctaBuy}
                   <span className="ml-3 transition group-hover:translate-x-1">
                     {String.fromCharCode(8594)}
                   </span>
@@ -182,6 +124,17 @@ export default function BookSales({ slug }: { slug: string }) {
                   <div className="text-xs tracking-[0.04em] text-warm-gray/75">{L.priceNote}</div>
                 </div>
               </div>
+              {preSale && (
+                <div className="mt-3">
+                  <a
+                    href={leadPdf}
+                    download
+                    className="text-xs tracking-[0.04em] text-warm-gray/75 underline decoration-warm-gray/40 underline-offset-4 transition hover:text-offwhite"
+                  >
+                    {lang === "es" ? "Leer el adelanto gratis" : "Ler a prévia grátis"} · PDF
+                  </a>
+                </div>
+              )}
               <div className="mt-3 text-xs tracking-[0.04em] text-warm-gray/65">{free ? L.downloadNote : L.ctaBuyNote}</div>
             </div>
 
@@ -216,6 +169,10 @@ export default function BookSales({ slug }: { slug: string }) {
           </div>
         </StudioContainer>
       </section>
+
+      {/* CARD DE PRÉ-VENDA: a lista de espera virou um card animado (ordem do
+          dono 15/08/2026), logo abaixo do herói — é a nova casa de #pre-venda. */}
+      {preSale && <PreSaleCard slug={slug} />}
 
       {/* VIDEO PROMO (vertical 9:16) — só renderiza quando há vídeo no idioma atual */}
       {promoVideo && (
@@ -393,18 +350,17 @@ export default function BookSales({ slug }: { slug: string }) {
             </p>
             <div className="mt-9 flex flex-col items-center gap-3">
               <a
-                href={free ? leadPdf : checkout}
-                {...(free ? { download: true } : { target: "_blank", rel: "noopener noreferrer" })}
+                href={heroHref}
+                {...(preSale ? {} : free ? { download: true } : { target: "_blank", rel: "noopener noreferrer" })}
                 className="group inline-flex items-center rounded-full bg-gradient-to-b from-[#cf6259] to-[#9e433d] px-10 py-5 text-[1.05rem] font-bold text-white shadow-[0_18px_50px_rgba(207,98,89,0.6)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_24px_64px_rgba(207,98,89,0.78)]"
               >
-                {(free ? L.ctaDownload : L.ctaBuy)} · {L.price}
+                {(preSale ? L.ctaDownload : L.ctaBuy)} · {L.price}
                 <span className="ml-3 transition group-hover:translate-x-1">
                   {String.fromCharCode(8594)}
                 </span>
               </a>
               <div className="text-xs tracking-[0.04em] text-warm-gray/65">{free ? L.downloadNote : L.ctaBuyNote}</div>
             </div>
-            {free && <WaitlistForm slug={slug} />}
             <p className="mx-auto mt-8 max-w-2xl text-[0.72rem] leading-[1.6] text-warm-gray/55">
               {L.disclaimer}
             </p>

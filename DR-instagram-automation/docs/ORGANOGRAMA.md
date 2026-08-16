@@ -102,6 +102,8 @@ dr-libertad-site/
 │   ├── migrate/route.ts        ← Migração do banco + seed do token
 │   ├── refresh-token/route.ts  ← Renovação automática mensal do token (NOVO)
 │   ├── og/route.tsx            ← Gerador de imagem editorial 1080x1350
+│   ├── waitlist/route.ts       ← Lista de espera do pré-lançamento "I Love Dopamina" (2026-08-15)
+│   │                              idempotente; detalhe no CLAUDE.md do projeto (delta 15/08)
 │   └── instagram/route.ts      ← Diagnóstico: testa se o token está válido
 │
 ├── vercel.json                 ← Configura os 4 cron jobs

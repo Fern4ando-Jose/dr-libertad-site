@@ -99,8 +99,8 @@ export default async function BookPage({
       "@type": "Offer",
       price: price.amount,
       priceCurrency: price.currency,
-      availability: "https://schema.org/InStock",
-      url: book.free ? url : (book.checkout?.[l] ?? url),
+      availability: book.preSale ? "https://schema.org/PreOrder" : "https://schema.org/InStock",
+      url: book.preSale || book.free ? url : (book.checkout?.[l] ?? url),
     },
   };
 
