@@ -44,6 +44,9 @@ export default function BookSales({ slug }: { slug: string }) {
   // Modo GRÁTIS (prévia): entrega um PDF por download, sem checkout pago.
   const free = !!book.free && !!book.leadPdf;
   const leadPdf = book.leadPdf?.[lang] ?? book.leadPdf?.br ?? "#";
+  // Livros em pré-venda SEM prévia (ex.: Tolos, só a capa existe) não ganham o link
+  // morto "Ler a prévia grátis" → `hasLead` corta o render sem tocar nos que têm PDF.
+  const hasLead = !!book.leadPdf?.[lang] || !!book.leadPdf?.br;
   const checkout = book.checkout?.[lang] ?? book.checkout?.br ?? "#";
   // PRÉ-VENDA (pré-lançamento): a oferta principal vira a lista de espera (garantir
   // o preço). O CTA rola até o formulário (#pre-venda) e a prévia grátis fica como
@@ -124,7 +127,7 @@ export default function BookSales({ slug }: { slug: string }) {
                   <div className="text-xs tracking-[0.04em] text-warm-gray/75">{L.priceNote}</div>
                 </div>
               </div>
-              {preSale && (
+              {preSale && hasLead && (
                 <div className="mt-3">
                   <a
                     href={leadPdf}

@@ -2,7 +2,7 @@
 // Cada livro aponta para sua chave de textos no dicionário (PT/ES) + capa + link de checkout.
 // Para adicionar um novo livro: crie a chave de textos no dicionário e some um item aqui.
 
-export type BookDictKey = "livro" | "dopamina";
+export type BookDictKey = "livro" | "dopamina" | "tolos";
 
 export type BookMeta = {
   slug: string;
@@ -82,6 +82,26 @@ export const BOOKS: BookMeta[] = [
     // US$ 5,90 (equivalente aproximado — o dono decide o valor exato ao publicar).
     price: { br: { amount: 29.9, currency: "BRL" }, es: { amount: 5.9, currency: "USD" } },
     leadPdf: { br: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },
+  },
+  {
+    // PRÉ-VENDA de "Tolos, Inteligentes e Sábios" — romance parabólico (ficção).
+    // Apenas a capa (página e vitrine) existe hoje; o manuscrito está em
+    // finalização. Mesmo padrão da pré-venda de I Love Dopamina: lista de
+    // espera, preço garantido, sem checkout. A imagem com a xícara vai na
+    // PÁGINA do livro (cover "-01"); a outra vai na vitrine (coverList) —
+    // pedido do dono 15/08/2026.
+    slug: "tolos",
+    dictKey: "tolos",
+    // Só há arte em PT (as duas são o mesmo quadro, uma com a xícara). ES
+    // reusa a mesma imagem até a versão espanhola ser produzida.
+    cover: { br: "/images/tolos-capa-br-01.jpg", es: "/images/tolos-capa-br-01.jpg" },
+    coverList: { br: "/images/tolos-capa-pt.jpg", es: "/images/tolos-capa-pt.jpg" },
+    // 825×1024 é a medida real das duas capas (verificada no arquivo).
+    coverSize: { width: 825, height: 1024 },
+    preSale: true,
+    // Pré-lançamento (mesmo valor da pré-venda de dopamina: R$ 29,90 / US$ 5,90 —
+    // o dono decide o valor exato ao publicar).
+    price: { br: { amount: 29.9, currency: "BRL" }, es: { amount: 5.9, currency: "USD" } },
   },
 ];
 
