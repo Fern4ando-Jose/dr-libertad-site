@@ -105,8 +105,17 @@ export default function LivrosIndexView() {
                         />
                       </div>
                       <div className="px-2 pb-1 pt-5">
-                        <div className="text-[10px] tracking-[0.24em] text-muted-red/90 uppercase">
-                          {b.badge}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                          <span className="text-[10px] tracking-[0.24em] text-muted-red/90 uppercase">
+                            {b.badge}
+                          </span>
+                          {/* Selo "Prévia grátis" no card (C8 da auditoria 16/08):
+                              só quando o livro tem PDF de prévia para baixar. */}
+                          {book.free && book.leadPdf && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-warm-gray/20 bg-white/5 px-2.5 py-0.5 text-[10px] tracking-[0.14em] uppercase text-warm-gray/85">
+                              {idx.freeTag}
+                            </span>
+                          )}
                         </div>
                         <h2 className="mt-2 font-serif text-[1.35rem] leading-[1.1] text-offwhite">
                           {b.title} {b.titleAccent}

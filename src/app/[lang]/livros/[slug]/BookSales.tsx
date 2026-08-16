@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import StudioContainer from "@/components/ui/Container";
@@ -13,6 +13,36 @@ import { getBook } from "@/lib/books";
 // saem do mesmo gabarito, então uma constante basta — e o next/image precisa
 // dela para reservar o espaço e não empurrar o texto quando a foto carrega.
 const SPREAD = { width: 1400, height: 990 };
+
+// Prova social do herói (C2 da auditoria de marketing 16/08): quantas pessoas
+// já garantiram o preço na lista de espera. Número REAL da tabela `waitlist`,
+// lido por /api/waitlist?slug= — escondido abaixo do limiar (n<30) e com falha
+// silenciosa: aprimoramento nunca derruba a página nem inventa número.
+function SocialProof({ slug, label }: { slug: string; label: string }) {
+  const [n, setN] = useState<number | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/waitlist?slug=${encodeURIComponent(slug)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d?.ok && typeof d.count === "number") setN(d.count);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [slug]);
+  if (n === null || n < 30) return null;
+  return (
+    <div className="mt-4 inline-flex items-center gap-2.5 rounded-full border border-warm-gray/20 bg-white/5 px-4 py-2 text-xs tracking-[0.04em] text-warm-gray/85">
+      <span className="relative flex h-2 w-2" aria-hidden="true">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-muted-red/50" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-muted-red" />
+      </span>
+      {label.replace("{n}", String(n))}
+    </div>
+  );
+}
 
 function Eyebrow({ children }: { children: ReactNode }) {
   return (
@@ -130,6 +160,9 @@ export default function BookSales({ slug }: { slug: string }) {
                   <div className="text-xs tracking-[0.04em] text-warm-gray/75">{L.priceNote}</div>
                 </div>
               </div>
+              {preSale && "countLabel" in L && (
+                <SocialProof slug={slug} label={L.countLabel} />
+              )}
               {/* Versão do arquivo e onde comprar — ordem do dono 15/08/2026:
                   informar que o livro é a versão e-pub, na Amazon e no Google Play. */}
               {epubNote && (
@@ -138,12 +171,26 @@ export default function BookSales({ slug }: { slug: string }) {
                 </div>
               )}
               {preSale && hasLead && (
-                <div className="mt-3">
+                <div className="mt-4">
                   <a
                     href={leadPdf}
                     download
-                    className="text-xs tracking-[0.04em] text-warm-gray/75 underline decoration-warm-gray/40 underline-offset-4 transition hover:text-offwhite"
+                    className="inline-flex items-center gap-2 rounded-full border border-warm-gray/25 bg-white/[0.03] px-5 py-2.5 text-[0.82rem] font-semibold tracking-[0.01em] text-offwhite/90 ring-1 ring-white/10 transition hover:border-warm-gray/45 hover:bg-white/[0.06] hover:text-offwhite"
                   >
+                    <svg
+                      className="h-3.5 w-3.5 text-warm-gray/80"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
                     {lang === "es" ? "Leer el adelanto gratis" : "Ler a prévia grátis"} · PDF
                   </a>
                 </div>
@@ -186,6 +233,42 @@ export default function BookSales({ slug }: { slug: string }) {
       {/* CARD DE PRÉ-VENDA: a lista de espera virou um card animado (ordem do
           dono 15/08/2026), logo abaixo do herói — é a nova casa de #pre-venda. */}
       {preSale && <PreSaleCard slug={slug} />}
+
+      {/* COMO FUNCIONA (pré-venda em 3 passos) — C9 da auditoria de marketing
+          16/08: só para livros em pré-venda que declaram o bloco `how`. */}
+      {preSale && "how" in L && (
+        <section className="border-b border-warm-gray/10 py-16 md:py-24">
+          <StudioContainer>
+            <div className="grid gap-10 lg:grid-cols-12 lg:items-start">
+              <div className="lg:col-span-5">
+                <Reveal>
+                  <Heading eyebrow={L.how.eyebrow} title={L.how.title} />
+                </Reveal>
+              </div>
+              <div className="lg:col-span-7">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  {L.how.steps.map((s, i) => (
+                    <motion.div
+                      key={s.t}
+                      initial={{ opacity: 0, y: 14 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, amount: 0.3 }}
+                      transition={{ duration: 0.5, delay: i * 0.06 }}
+                      className="rounded-2xl border border-warm-gray/12 bg-ink/25 px-5 py-5"
+                    >
+                      <div className="text-xs tracking-[0.22em] text-muted-red/90 uppercase">
+                        {String(i + 1).padStart(2, "0")}
+                      </div>
+                      <h3 className="mt-3 font-serif text-lg leading-[1.2] text-offwhite">{s.t}</h3>
+                      <p className="mt-2 text-sm leading-[1.6] text-warm-gray/90">{s.d}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </StudioContainer>
+        </section>
+      )}
 
       {/* VIDEO PROMO (vertical 9:16) — só renderiza quando há vídeo no idioma atual */}
       {promoVideo && (
@@ -365,7 +448,7 @@ export default function BookSales({ slug }: { slug: string }) {
               <a
                 href={heroHref}
                 {...(preSale ? {} : free ? { download: true } : { target: "_blank", rel: "noopener noreferrer" })}
-                className="group inline-flex items-center rounded-full bg-gradient-to-b from-[#cf6259] to-[#9e433d] px-10 py-5 text-[1.05rem] font-bold text-white shadow-[0_18px_50px_rgba(207,98,89,0.6)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_24px_64px_rgba(207,98,89,0.78)]"
+                className="group inline-flex items-center rounded-full bg-gradient-to-b from-[#cf6259] to-[#9e433d] px-8 py-4 text-base font-bold text-white shadow-[0_18px_50px_rgba(207,98,89,0.6)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_24px_64px_rgba(207,98,89,0.78)] md:px-10 md:py-5 md:text-[1.05rem]"
               >
                 {(preSale ? L.ctaDownload : L.ctaBuy)} · {L.price}
                 <span className="ml-3 transition group-hover:translate-x-1">

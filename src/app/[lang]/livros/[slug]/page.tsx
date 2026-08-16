@@ -29,7 +29,8 @@ export async function generateMetadata({
 
   const bookTitle = `${b.title} ${b.titleAccent}`.trim(); // ex.: "I Love Dopamina"
   const ogTitle = `${bookTitle} · ${brand}`;
-  const description = b.subtitle;
+  // metaDescription por livro quando existir; senão cai no subtitle (comportamento antigo).
+  const description = "metaDescription" in b && b.metaDescription ? b.metaDescription : b.subtitle;
   const cover = `${SITE_URL}${book.cover[l]}`; // absoluto (scraper de DM baixa direto)
   const url = `${SITE_URL}/${l}/livros/${book.slug}`;
 

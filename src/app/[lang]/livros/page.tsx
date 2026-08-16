@@ -16,17 +16,18 @@ export async function generateMetadata({
   const idx = dictionaries[l].livrosIndex;
   const brand = brandFor(l);
 
-  const title = l === "es" ? "Libros" : "Livros";
+  const title = idx.metaTitle ?? (l === "es" ? "Libros" : "Livros");
+  const description = idx.metaDescription ?? idx.lead;
 
   return {
     title,
-    description: idx.lead,
+    description,
     alternates: alternatesPrefixed(l, "/livros"),
     openGraph: {
       type: "website",
       siteName: brand,
       title: `${title} · ${brand}`,
-      description: idx.lead,
+      description,
       url: abs(`/${l}/livros`),
       locale: ogLocaleFor(l),
     },
