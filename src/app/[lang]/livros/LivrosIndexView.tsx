@@ -47,11 +47,11 @@ export default function LivrosIndexView() {
         </StudioContainer>
       </section>
 
-      {/* POP-UP DE PRÉ-VENDA: bolha PEQUENA flutuando SOBRE o livro, título
-          "PRÉ-VENDA", animada o tempo todo (correção do dono 15/08/2026: não é
-          um modal grande no meio da tela, e não pode ficar parada). Vive dentro
-          do card de cada livro em pré-venda; captura e-mail pela mesma rota do
-          card da página do livro. */}
+      {/* POP-UP DE PRÉ-VENDA: SELO pequeno no canto do card, título "PRÉ-VENDA",
+          animado (flutua + ponto pulsa). Correções do dono 15/08/2026: não é
+          modal grande, não pode ficar parado e NÃO pode tapar a imagem da capa.
+          Leva à página do livro (#pre-venda), onde está o card de entrar na
+          lista. */}
       <section className="pb-24">
         <StudioContainer>
           {/* A grade acompanha quantos livros estão na vitrine: com 1 título, três
@@ -73,9 +73,9 @@ export default function LivrosIndexView() {
               const cover = book.coverList?.[lang] ?? book.coverList?.br ?? book.cover[lang] ?? book.cover.br;
               return (
                 <Reveal key={book.slug} delay={i * 0.06}>
-                  {/* O wrapper relativo ancora a bolha de pré-venda sobre a capa.
-                      Ela é IRMÃ do link (nunca filha): tem input/botão próprios
-                      e não pode ficar dentro de um <a>. */}
+                  {/* O wrapper relativo ancora o selo de pré-venda ao card do
+                      livro. Ele é IRMÃO do link do card (nunca filha) e é ele
+                      mesmo um link para a página do livro. */}
                   <div className="relative">
                     <MotionLink
                       href={`/${lang}/livros/${book.slug}`}

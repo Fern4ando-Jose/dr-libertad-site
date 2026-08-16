@@ -55,6 +55,9 @@ export default function BookSales({ slug }: { slug: string }) {
   const heroHref = preSale ? "#pre-venda" : free ? leadPdf : checkout;
   const cover = book.cover[lang] ?? book.cover.br;
   const spreads = book.insideImages ?? [];
+  // Versão do arquivo e onde comprar (ex.: "Versão e-pub · Amazon e Google Play").
+  // Só aparece quando o livro declara a nota — os demais não são vendidos lá.
+  const epubNote = "epubNote" in L ? L.epubNote : undefined;
   const promoVideo = book.promoVideo?.[lang] ?? null;
   const promoPoster = book.promoPoster?.[lang] ?? null;
 
@@ -127,6 +130,13 @@ export default function BookSales({ slug }: { slug: string }) {
                   <div className="text-xs tracking-[0.04em] text-warm-gray/75">{L.priceNote}</div>
                 </div>
               </div>
+              {/* Versão do arquivo e onde comprar — ordem do dono 15/08/2026:
+                  informar que o livro é a versão e-pub, na Amazon e no Google Play. */}
+              {epubNote && (
+                <div className="mt-3 text-xs tracking-[0.04em] text-warm-gray/70">
+                  {epubNote}
+                </div>
+              )}
               {preSale && hasLead && (
                 <div className="mt-3">
                   <a
