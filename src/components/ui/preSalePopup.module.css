@@ -1,8 +1,36 @@
-/* Pop-up de pré-venda (PreSalePopup) — animações em CSS, mesma família do
- * PreSaleCard (peça ao marketing 15/08/2026): ponto de vida no selo e glow
- * que "respira" no botão. A entrada/saída do popup é do framer-motion. */
+/* Pop-up de pré-venda (PreSalePopup) — bolha PEQUENA flutuando sobre a capa do
+ * livro. Correção do dono 15/08/2026: "pop-up pequeno que aparece sobre o livro,
+ * e que seja animado, não algo parado". Por isso há animação CONTÍNUA (flutuação,
+ * selo pulsante, glow que respira) — não só a entrada. A entrada em si é spring
+ * (no componente). Acessibilidade: quem pede menos movimento recebe versão parada. */
 
-/* Ponto pulsante no selo de pré-lançamento. */
+/* A bolha flutua suavemente — nunca fica parada no ar. */
+.bubble {
+  animation: popup-float 4.5s ease-in-out infinite;
+}
+
+/* Rabo que aponta para a capa do livro (abaixo da bolha). */
+.tail {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: #171512;
+  border-bottom: 0;
+}
+
+@keyframes popup-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Ponto pulsante no selo. */
 .seloDot {
   animation: selo-pulse 2.4s ease-in-out infinite;
 }
@@ -31,15 +59,16 @@
 @keyframes cta-breath {
   0%,
   100% {
-    box-shadow: 0 14px 38px rgba(207, 98, 89, 0.4), 0 0 0 0 rgba(207, 98, 89, 0.25);
+    box-shadow: 0 10px 26px rgba(207, 98, 89, 0.4), 0 0 0 0 rgba(207, 98, 89, 0.25);
   }
   50% {
-    box-shadow: 0 14px 48px rgba(207, 98, 89, 0.62), 0 0 0 6px rgba(207, 98, 89, 0);
+    box-shadow: 0 10px 34px rgba(207, 98, 89, 0.62), 0 0 0 5px rgba(207, 98, 89, 0);
   }
 }
 
 /* Acessibilidade: quem pediu menos movimento, recebe menos movimento. */
 @media (prefers-reduced-motion: reduce) {
+  .bubble,
   .seloDot,
   .button {
     animation: none;
