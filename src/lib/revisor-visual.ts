@@ -21,8 +21,9 @@
 // DeepSeek (1/10 do preço), mas ele **não enxerga imagem**. Mandar arte para ele devolveria
 // opinião sobre o texto fingindo ser sobre a arte — revisor cego jurando que olhou.
 
-import { type Automation, anthropicCost, logSpend } from "@/lib/spend";
+import { type Automation, anthropicCost, logSpend, checkBudget } from "@/lib/spend";
 import {
+  CUSTO_ESTIMADO,
   MODELO_REVISOR,
   MODELO_REVISOR_PRECO,
   naoOlhou,
@@ -155,6 +156,17 @@ async function olhar(
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return naoOlhou(etapa, "sem ANTHROPIC_API_KEY (o revisor que OLHA não roda em DeepSeek)");
   if (!imageUrl) return naoOlhou(etapa, "sem imagem para olhar");
+
+  // ⛔ O FREIO VEM ANTES DA CHAMADA (P2). Os tetos desta casa estão em ZERO desde 05/08 por
+  // ordem do dono — e zero BLOQUEIA. Um revisor que chamasse a API sem perguntar gastaria
+  // por fora do único medidor que ele lê, que é o mesmo defeito de "motor com contabilidade
+  // própria não chega ao painel". Freio fechado NÃO é defeito: é o teto trabalhando, e a
+  // peça segue com "não revisado" escrito no registro.
+  const orcamento = await checkBudget(automation, CUSTO_ESTIMADO);
+  if (!orcamento.ok) {
+    return naoOlhou(etapa, `orçamento: teto de ${automation} não cobre (gasto US$${orcamento.spent.toFixed(3)} + est US$${CUSTO_ESTIMADO} > teto US$${orcamento.budget.toFixed(2)})`);
+  }
+
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
