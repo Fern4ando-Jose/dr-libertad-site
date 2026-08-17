@@ -203,6 +203,11 @@ jobs:
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("slot.txt", p.slot || "noite");
             fs.writeFileSync("topic.txt", p.topic || ""); // → publish-reel (anti-dup cross-formato)
+            // A CAPA vai junto ao publish-reel (17/08/2026): é o que o REVISOR FINAL olha.
+            // Na nuvem não há ffmpeg para tirar prints do vídeo, então ele confere o quadro
+            // que o perfil mostra. Sem esta linha o revisor DECLARA que não olhou — e peça
+            // que ninguém olhou não pode passar por peça conferida.
+            fs.writeFileSync("cover.txt", p.img || "");
             fs.writeFileSync("reel-props.json", JSON.stringify(props));
             console.log("REEL_PROPS montado (run", "'"${{ steps.params.outputs.run }}"'", "lang", "'"${{ steps.params.outputs.lang }}"'", "):", JSON.stringify(props).slice(0, 280));
           '
@@ -338,6 +343,7 @@ jobs:
             --data-urlencode "slot=$(cat slot.txt)" \
             --data-urlencode "run=${{ steps.params.outputs.run }}" \
             --data-urlencode "topic@topic.txt" \
+            --data-urlencode "cover@cover.txt" \
             "https://www.drlibertad.com/api/publish-reel${{ steps.params.outputs.reelqs }}")
           echo "Resposta do servidor:"
           echo "$RESP"

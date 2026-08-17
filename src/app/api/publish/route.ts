@@ -6,6 +6,10 @@ import { formatoDaVaga, diretrizDoRedator, diretrizDeCarona } from "@/lib/format
 import { assuntosDoDia, diretrizDoAssuntoDoDia, diretrizDoTemaDoDia, garantirTemaDoDia, type TemaDoDia } from "@/lib/assunto-do-dia";
 import { conferirFormato, reprovado, resumoDoVeredito } from "@/lib/verificador-formato";
 import { revisarTexto, instrucaoDeCorrecao } from "@/lib/revisao-editorial";
+// Os revisores que OLHAM (17/08/2026). A régua — corte, pesos, modelo — vem do espelho
+// verificado `revisao-regras.json`; a fonte é `.claude/automacoes/REVISAO.json`.
+import { revisarImagem, revisarFinal } from "@/lib/revisor-visual";
+import { CORTE, linhaDoVeredito } from "@/lib/revisao-nota";
 import { prehostCover } from "@/lib/cover-prehost";
 import { Lang, accountFor, getLang, envToken, envAccountId, langLegado } from "@/lib/accounts";
 import { type Automation, checkBudget, logSpend, EST_RUN_COST } from "@/lib/spend";
@@ -1452,6 +1456,68 @@ export async function GET(req: NextRequest) {
         } catch (phErr) {
           slotLog.coverPrehosted = false;
           slotLog.coverPrehostError = String(phErr).slice(0, 200);
+        }
+
+        // ─── OS REVISORES QUE OLHAM (17/08/2026, ordem do dono) ──────────────────────
+        //
+        // *"todas as plataformas devem ter os revisores"*. As outras sete redes recebem isto
+        // de `.claude/lib/revisao/`; aqui é o irmão do Instagram, que roda na nuvem.
+        //
+        // O revisor de TEXTO já existia desde 09/08 (`revisao-editorial`, 3 lentes). O que
+        // entra agora é o que ninguém conferia: a ARTE e a peça INTEIRA, com nota de 0 a 100
+        // e corte em 95. Ele olha a CAPA já hospedada (`slideUrls[0]`), que é o quadro que o
+        // perfil mostra e o que decide se alguém para o dedo.
+        //
+        // ⚠️ MODO OBSERVAÇÃO POR PADRÃO, e isto é regra, não timidez. Na máquina local a
+        // primeira versão deste revisor entrou barrando sem ter sido medida contra o material
+        // real e reprovou **66 peças corretas** numa passada. Aqui ele só BARRA quando
+        // `REVISAO_VISUAL_BARRA` estiver ligada — e essa env só se liga depois de a calibração
+        // (`node .claude/lib/revisao/calibrar.mjs`) provar, contra peças que já foram ao ar,
+        // que ele não reprova o que está certo. Sem ela: mede, escreve a nota no registro e
+        // deixa a peça seguir.
+        const revisoesVisuais: Array<{ etapa: string; nota: number | null; motivo?: string }> = [];
+        let barradoPorRevisor: string | null = null;
+        try {
+          const vImg = await revisarImagem(slideUrls[0], {
+            legenda: content.instagramCaption,
+            lang,
+            automation: "ig-posts",
+            meta: { topic, slot, lang },
+          });
+          revisoesVisuais.push({ etapa: vImg.etapa, nota: vImg.nota, motivo: vImg.motivo });
+          console.log(`[revisao] ${linhaDoVeredito(vImg)}`);
+          if (!vImg.seguiu) barradoPorRevisor = `imagem ${vImg.nota}/${CORTE}: ${vImg.achados.map((a) => a.oQue).join(" · ")}`;
+
+          if (!barradoPorRevisor) {
+            const vFin = await revisarFinal(slideUrls[0], {
+              legenda: content.instagramCaption,
+              titulo: content.postTitle,
+              slides: content.slides,
+              lang,
+              ehReel: false,
+              automation: "ig-posts",
+              meta: { topic, slot, lang },
+            });
+            revisoesVisuais.push({ etapa: vFin.etapa, nota: vFin.nota, motivo: vFin.motivo });
+            console.log(`[revisao] ${linhaDoVeredito(vFin)}${vFin.telas ? ` · leu: ${JSON.stringify(vFin.telas).slice(0, 200)}` : ""}`);
+            if (!vFin.seguiu) barradoPorRevisor = `final ${vFin.nota}/${CORTE}: ${vFin.achados.map((a) => a.oQue).join(" · ")}`;
+          }
+        } catch (revErr) {
+          // Revisor que explode não derruba a linha: vira "não revisado", declarado.
+          console.log(`[revisao] ⚠️ NÃO REVISADO — o revisor falhou: ${String(revErr).slice(0, 160)}`);
+        }
+        slotLog.revisaoVisual = revisoesVisuais;
+        if (barradoPorRevisor) {
+          slotLog.revisaoBarrou = barradoPorRevisor;
+          if (process.env.REVISAO_VISUAL_BARRA === "1") {
+            // Não publica. O disjuntor conta a tentativa como qualquer outra falha, e o
+            // catchup tenta de novo — a peça volta a ser gerada e conferida.
+            console.log(`[revisao] ⛔ PEÇA BARRADA — ${barradoPorRevisor}`);
+            slotLog.instagramError = `revisor reprovou: ${barradoPorRevisor}`;
+            results.push(slotLog);
+            continue;
+          }
+          console.log(`[revisao] ⚠️ reprovaria (${barradoPorRevisor}) MAS está em MODO OBSERVAÇÃO — a peça seguiu. Ligue REVISAO_VISUAL_BARRA=1 só depois de calibrar.`);
         }
 
         // Publicar carrossel — CTA da pesquisa APENSADO no rodapé da legenda na

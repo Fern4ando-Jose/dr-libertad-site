@@ -3,6 +3,9 @@ import { Lang, accountFor, getLang, envToken, envAccountId } from "@/lib/account
 import { dayBRT, runAlreadyPublished, recordRun, topicUsedInOtherVaga, clearRunTopic, siblingPublished, publishedId, bumpAttempt, isHardPublishBlock, attemptsToday, shouldStopRetrying, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome } from "@/lib/run-ledger";
 import { appendSurveyCta } from "@/lib/caption-cta";
 import { assinarLegenda } from "@/lib/serie";
+// O revisor que OLHA (17/08/2026). Régua no espelho verificado `revisao-regras.json`.
+import { revisarFinal } from "@/lib/revisor-visual";
+import { CORTE, linhaDoVeredito } from "@/lib/revisao-nota";
 
 // Publicação de REELS (vídeo) no @drlibertad via Instagram Graph API v25.
 // O vídeo já precisa estar hospedado em URL pública (ex.: Vercel Blob).
@@ -208,6 +211,44 @@ async function handle(req: NextRequest) {
     // de gerar um par divergente. Fail-open: siblingPublished=false em erro → limpa (antigo).
     if (!(await siblingPublished(day, run, lang))) await clearRunTopic(day, run);
     return NextResponse.json({ ok: true, skipped: true, reason: `tópico "${topic}" já saiu em outra vaga em 7d — trava de publicação`, log });
+  }
+
+  // ─── OS REVISORES QUE OLHAM (17/08/2026, ordem do dono: "todas as plataformas devem ter
+  // os revisores") ────────────────────────────────────────────────────────────────────────
+  //
+  // ⚠️ AQUI ELE OLHA A CAPA, e dizer outra coisa seria mentira. Nas outras redes o revisor
+  // final lê os prints do vídeo — a máquina local tem ffmpeg e extrai os quadros. Na nuvem
+  // não há ffmpeg, então o que ele olha é a **capa** (`cover`), que é o quadro que o perfil
+  // mostra e o que decide se alguém para o dedo. Sem capa, ele DECLARA que não olhou — nunca
+  // finge que conferiu.
+  const cover = params.get("cover") ?? "";
+  if (cover) {
+    try {
+      const vFin = await revisarFinal(cover, {
+        legenda: caption,
+        lang,
+        ehReel: true,
+        automation: "ig-reels",
+        meta: { run, lang, topic },
+      });
+      log.revisaoFinal = { nota: vFin.nota, motivo: vFin.motivo, telas: vFin.telas };
+      console.log(`[revisao] ${linhaDoVeredito(vFin)}`);
+      if (!vFin.seguiu) {
+        if (process.env.REVISAO_VISUAL_BARRA === "1") {
+          // Não publica. O catchup redispara a vaga e a peça é refeita.
+          const porque = `revisor final reprovou (${vFin.nota}/${CORTE}): ${vFin.achados.map((a) => a.oQue).join(" · ")}`;
+          console.log(`[revisao] ⛔ REEL BARRADO — ${porque}`);
+          if (run !== null && Number.isFinite(run)) await bumpAttempt(day, run, lang, false);
+          return NextResponse.json({ ok: false, skipped: true, reason: porque, log }, { status: 200 });
+        }
+        console.log(`[revisao] ⚠️ reprovaria MAS está em MODO OBSERVAÇÃO — o Reel seguiu. Ligue REVISAO_VISUAL_BARRA=1 só depois de calibrar.`);
+      }
+    } catch (revErr) {
+      console.log(`[revisao] ⚠️ NÃO REVISADO — o revisor falhou: ${String(revErr).slice(0, 160)}`);
+    }
+  } else {
+    log.revisaoFinal = { nota: null, motivo: "sem capa (`cover`) na chamada — o revisor que olha não rodou" };
+    console.log("[revisao] ⚠️ NÃO REVISADO — a chamada não trouxe a capa (`cover`)");
   }
 
   try {

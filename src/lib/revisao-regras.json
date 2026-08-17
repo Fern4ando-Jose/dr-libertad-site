@@ -1,0 +1,12 @@
+{
+  "_doc": "ESPELHO de .claude/automacoes/REVISAO.json — a Vercel não enxerga a pasta .claude/. NÃO EDITE AQUI: edite a fonte e rode `node .claude/lib/revisao/verificar-espelho.mjs --consertar`. O verificador reprova se os dois divergirem.",
+  "_fonte": ".claude/automacoes/REVISAO.json",
+  "corte": 95,
+  "voltasPorEtapa": 3,
+  "temasPorVaga": 3,
+  "modeloRevisor": "claude-haiku-4-5-20251001",
+  "modeloRevisorPreco": "claude-haiku-4-5",
+  "framesPorVideo": 4,
+  "custoEstimadoPorRevisaoUSD": 0.012,
+  "pesos": { "reprova": 25, "ajuste": 5 }
+}
