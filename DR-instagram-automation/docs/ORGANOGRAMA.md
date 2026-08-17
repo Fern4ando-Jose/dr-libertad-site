@@ -1,5 +1,24 @@
 # Organograma — Automação Dr. Libertad
 
+## ⚡ Delta 2026-08-16 — quem escreve o TEXTO mudou de fornecedor (Claude → DeepSeek)
+
+Ordem do dono: *"todas as esteiras que usam APIs devem migrar para a api do deepseek, isso eu
+autorizei"*. **Nada de infra na nuvem foi tocado** — nem endereço, nem rota, nem tabela, nem
+horário: os desenhos abaixo continuam valendo. O que mudou é **de quem vem o texto**:
+
+| Passo | Antes | Agora |
+|---|---|---|
+| Gerar a peça (`/api/publish`), ensaio da newsletter, `engagement`, revisor editorial, curador de imagem (só texto) | Claude (`api.anthropic.com`) | **DeepSeek** (`api.deepseek.com`), com o **Claude de reserva** se a chave do DeepSeek faltar |
+| Juiz de ARTE (`illustration.ts`) e QA de footage (`footage-qa.ts`) | Claude Sonnet | **continuam no Claude** — o DeepSeek não enxerga imagem |
+
+- **Peça nova:** `src/lib/ia-texto.ts` é a ponte única (recebe o pedido no formato Anthropic, fala com
+  quem estiver ligado, devolve no mesmo formato). Os 5 pontos de texto passaram a chamá-la.
+- **Registro de gasto:** `spend.ts` ganhou o preço do `deepseek-chat` (entrada US$ 0,28/M · saída
+  US$ 0,42/M) e o gasto entra com o fornecedor real.
+- **⛔ ESTADO: mudança só no computador, NÃO ligada no ar.** Falta cadastrar a chave
+  `DEEPSEEK_API_KEY` no painel da hospedagem (Vercel) — **passo do dono**, e sem ela o site continua
+  usando o Claude exatamente como antes (por isso ligar é seguro e desligar também).
+
 ## Fluxo completo de publicação
 
 ```
