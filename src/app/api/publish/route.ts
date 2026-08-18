@@ -19,7 +19,7 @@ import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, select
 import type { ThemeWho } from "@/lib/footage-subject";
 import { generateNarration } from "@/lib/narration";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
-import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome, pinnedTopicsForDay, recordQaFail, recentQaFailedTopics } from "@/lib/run-ledger";
+import { recordRun, recentPublishedSlots, runAlreadyPublished, getOrSetRunTopic, clearRunTopic, topicUsedInOtherVaga, publishedId, bumpAttempt, isHardPublishBlock, siblingPublished, siblingActiveInVaga, marcarVagaIniciada, attemptsToday, slotSkipGate, MAX_PUBLISH_ATTEMPTS, publishFailureMode, containerStatusOutcome, pinnedTopicsForDay, recordQaFail, recentQaFailedTopics } from "@/lib/run-ledger";
 import { buildRotation, topicIndexForRun, selectThemeIndex, slotForDayRun, RANDOM_POOL } from "@/lib/rotation";
 import { editionFor } from "@/lib/edition";
 import { searchDuckDuckGo } from "@/lib/ddg";
@@ -988,6 +988,13 @@ export async function GET(req: NextRequest) {
     const cat = tema?.cat ?? TOPIC_CAT[topic] ?? "freedom";
     const subject = tema?.subject ?? TOPIC_SUBJECT[topic] ?? "";
 
+    // ⛔ MARCA DE PRESENÇA NA VAGA (17/08/2026, ordem do dono: "o looping tem que ser
+    // implementado para que nunca perca um post"). Escrita ANTES do gate, de propósito: é ela
+    // que permite à língua irmã saber que esta vaga já está em andamento. Sem ela, os dois
+    // robôs disparam com 1 minuto de diferença e o segundo pergunta "a irmã já publicou?"
+    // quando a primeira ainda está renderizando — e a resposta "não" mata a vaga dele.
+    await marcarVagaIniciada(dayBRT(now), r, lang);
+
     // Teto: o preview é o pipeline do Reel diário.
     const gate = await checkBudget("ig-reels", EST_RUN_COST.preview);
     if (!gate.ok) {
@@ -995,7 +1002,13 @@ export async function GET(req: NextRequest) {
       // vaga JÁ publicou, NÃO bloqueia por orçamento — senão o par vira ÓRFÃO (foi o
       // PT do run 0 em 07/07: ES publicou 14:27, PT morreu no 402 do preview).
       // Bounded: no máx +1 preview por vaga; footage/pesquisa vêm do cache compartilhado.
-      if (await siblingPublished(dayBRT(now), r, lang)) {
+      // ⚠️ A PERGUNTA MUDOU, e a diferença é a vaga do dia. Era `siblingPublished` — "a irmã
+      // já PUBLICOU?" —, que numa corrida de 1 minuto responde "não" quase sempre. Medido em
+      // 17/08: ES começou 22:43, BR 22:44, BR pediu verba 22:45 (negado), **ES publicou
+      // 22:48**. O BR perdeu a vaga por três minutos, com o robô verde. Agora basta a irmã
+      // ESTAR na vaga (presença, tentativa ou publicação): se o par já começou, o segundo
+      // idioma tem de poder completar a peça. Bounded pelo disjuntor de tentativas.
+      if (await siblingActiveInVaga(dayBRT(now), r, lang)) {
         // segue p/ completar o par — não bloqueia
       } else {
         // DISJUNTOR: 402 de orçamento é motivo que NÃO muda hoje (balde DIÁRIO). Sem o
@@ -1277,6 +1290,7 @@ export async function GET(req: NextRequest) {
         const custoTexto = contentCache ? 0 : EST_RUN_COST.publishAcervo; // cache = a Anthropic não é chamada
         const custoCapaIA = EST_RUN_COST.publish - EST_RUN_COST.publishAcervo; // fal + QA de visão
         let capaDoAcervoUrl: string | null = null;
+        await marcarVagaIniciada(dayBRT(now), runIndex, lang);
         let gate = await checkBudget("ig-posts", custoTexto + custoCapaIA);
         if (!gate.ok) {
           // Sem orçamento para a arte gerada: tenta a capa do acervo (foto curada, licença
@@ -1291,7 +1305,12 @@ export async function GET(req: NextRequest) {
           // fica ÓRFÃ (ES-only). Era a causa nº1 de órfão: o balde ig-posts é compartilhado,
           // o 1º idioma gasta e o 2º bate no teto. Bounded: no máx +1 publish por vaga; a
           // ilustração do 2º vem do cache (barato). Liberar aqui COMPLETA o par.
-          if (await siblingPublished(dayBRT(now), runIndex, lang)) {
+          // 17/08/2026: a pergunta passou de "a irmã já PUBLICOU?" para "a irmã já está NA
+          // VAGA?" — pelo mesmo motivo do Reel (ver o gate do preview): quando os dois robôs
+          // disparam quase juntos, o segundo perguntava cedo demais e perdia a vaga. Aqui o
+          // carrossel ainda não tinha sido pego por isso porque os disparos são espaçados —
+          // mas o defeito é o mesmo, e esperar ele acontecer seria deixar régua desligada.
+          if (await siblingActiveInVaga(dayBRT(now), runIndex, lang)) {
             slotLog.budgetBypassPair = true; // segue p/ não orfanar o par ES+PT
           } else {
             anyBlocked = true;

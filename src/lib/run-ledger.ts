@@ -556,3 +556,63 @@ export async function publishedRunsToday(day: string): Promise<Record<string, nu
   } catch { /* fail-open: devolve o que tiver */ }
   return out;
 }
+
+/**
+ * A IRMÃ JÁ ESTÁ NA VAGA — publicou **ou** já está tentando hoje.
+ *
+ * ⛔ POR QUE ISTO EXISTE (medido em 17/08/2026, ordem do dono: *"o looping tem que ser
+ * implementado para que nunca perca um post"*).
+ *
+ * O perdão de atomicidade (`siblingPublished`) resolvia o par ES+PT quando a irmã **já
+ * tinha terminado**. Só que os dois robôs de Reel disparam com **1 minuto de diferença**, e
+ * o vencedor leva vários minutos até publicar de verdade. Medido no dia:
+ *
+ *   22:43 ES começa · 22:44 BR começa · 22:45 BR pede verba para completar a peça → NEGADO
+ *   (a irmã ainda não publicara) · **22:48 ES publica**.
+ *
+ * O BR morreu por 3 minutos. Perguntar "ela já publicou?" numa corrida de 1 minuto responde
+ * "não" quase sempre — e o segundo idioma perde a vaga TODO dia, com o robô verde.
+ *
+ * Aqui a pergunta certa é outra: **esta vaga já é do par?** Se a irmã publicou OU já registrou
+ * tentativa hoje nesta vaga, a vaga está em andamento e o segundo idioma tem de poder
+ * completar a peça — senão o feed sai assimétrico por uma questão de segundos.
+ *
+ * **Bounded:** o disjuntor de tentativas (`MAX_PUBLISH_ATTEMPTS`) continua valendo, então
+ * isto não vira tempestade: no máximo mais uma passada por vaga e idioma.
+ * **Fail-open no erro** (`false`), como as vizinhas: sem banco, o comportamento é o antigo.
+ */
+export async function siblingActiveInVaga(day: string, run: number, lang: string): Promise<boolean> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    const r = await sql`
+      SELECT 1 FROM published_runs
+      WHERE day = ${day} AND run = ${run} AND lang NOT IN (${lang}, ${langLegado(lang)})
+      LIMIT 1
+    `;
+    return r.rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * MARCA que este idioma COMEÇOU a vaga — a peça que faltava para a irmã enxergar a corrida.
+ *
+ * Grava a linha `(dia, run, idioma)` **sem** post e **sem** tentativa: é só presença. As
+ * leituras que decidem publicação continuam exigindo `instagram_post_id IS NOT NULL`
+ * (`runAlreadyPublished`, `recentPublishedSlots`, os alarmes), então uma linha de presença
+ * NÃO faz nenhuma delas achar que houve post — foi conferido consulta por consulta antes de
+ * isto entrar.
+ *
+ * `ON CONFLICT DO NOTHING`: quem já publicou ou já tentou não é rebaixado.
+ */
+export async function marcarVagaIniciada(day: string, run: number, lang: string): Promise<void> {
+  try {
+    const { sql } = await import("@vercel/postgres");
+    await sql`
+      INSERT INTO published_runs (day, run, lang, ts, attempts)
+      VALUES (${day}, ${run}, ${lang}, NOW(), 0)
+      ON CONFLICT (day, run, lang) DO NOTHING
+    `;
+  } catch { /* best-effort: sem banco, o comportamento é o de antes */ }
+}
