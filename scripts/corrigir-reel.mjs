@@ -110,9 +110,61 @@ async function corrigir(faltando, props, caption) {
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
+/**
+ * ⛔ MÍDIA QUE NÃO ABRE DERRUBA A PEÇA INTEIRA (17/08/2026).
+ *
+ * Medido no Reel BR que o dono cobrou: uma foto do Pixabay respondeu
+ * `EncodingError: The source image cannot be decoded` e o render morreu com `CancelledError`
+ * — **a peça inteira perdida por causa de UMA cena**. O motor tinha material de sobra.
+ *
+ * Aqui cada mídia é aberta ANTES do render (mesma leitura sem credencial que confere se a
+ * peça saiu no ar). Cena que não abre é **descartada**, e a peça segue com as que abrem —
+ * perder uma cena é aceitável; perder o post do dia não é.
+ *
+ * ⚠️ A capa é tratada à parte: sem ela o motor sabe se virar (o corretor re-obtém), e por
+ * isso ela some do jeito certo — declarada como ausente — em vez de entrar quebrada.
+ */
+async function abre(url) {
+  if (!url || typeof url !== "string" || !/^https?:/i.test(url)) return false;
+  try {
+    const r = await fetch(url, { method: "GET", headers: { "user-agent": "Mozilla/5.0 Chrome/126 Safari/537.36" } });
+    if (!r.ok) return false;
+    const tipo = String(r.headers.get("content-type") || "");
+    if (!/^(image|video)\//i.test(tipo)) return false;
+    const buf = Buffer.from(await r.arrayBuffer());
+    return buf.length > 1024; // arquivo de 200 bytes é página de erro, não mídia
+  } catch {
+    return false;
+  }
+}
+
+async function descartarMidiaQuebrada(props) {
+  const linhas = [];
+  const clips = Array.isArray(props.clips) ? props.clips : [];
+  const bons = [];
+  for (const c of clips) {
+    const u = typeof c === "string" ? c : c?.src || c?.url || "";
+    if (await abre(u)) bons.push(c);
+    else linhas.push(`cena DESCARTADA (não abre): ${String(u).slice(0, 80)}`);
+  }
+  if (bons.length !== clips.length) props.clips = bons;
+  if (props.img && !(await abre(props.img))) {
+    linhas.push(`capa DESCARTADA (não abre): ${String(props.img).slice(0, 80)}`);
+    props.img = undefined;
+  }
+  return linhas;
+}
+
 async function main() {
   const props = leProps();
   const caption = readFileSync(CAPTION_PATH, "utf8");
+
+  // Antes de qualquer correção: tirar da peça o que NÃO ABRE. Sem isto, o corretor pode
+  // declarar a peça "100% pronta" com uma cena que vai matar o render minutos depois.
+  const descartes = await descartarMidiaQuebrada(props);
+  for (const l of descartes) console.log(`[corrigir-reel] ${l}`);
+  if (descartes.length) console.log(`::warning title=Mídia quebrada descartada::${descartes.length} peça(s) de mídia não abriram e saíram do Reel — a peça seguiu com o resto.`);
+
   const res = await corrigirAtePronto(props, caption, corrigir, 3);
   gravaProps(res.props, res.caption);
 
