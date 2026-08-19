@@ -123,7 +123,7 @@ export const FORMATOS: Formato[] = [
     midia: ["carrossel", "reel"],
     roteiro:
       "Abra citando a objeção mais comum contra a tese, entre aspas, como se fosse um comentário recebido. Depois responda a ela ponto a ponto. O conflito já vem embutido na citação.",
-    tituloMolde: { br: "«___» — RESPONDENDO", es: "«___» — RESPONDIENDO" },
+    tituloMolde: { br: "“___” — RESPONDENDO", es: "“___” — RESPONDIENDO" },
   },
   {
     id: "tela-verde",

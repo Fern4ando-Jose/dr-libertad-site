@@ -1,4 +1,4 @@
-import { limparInvisiveis } from "./texto-limpo";
+import { limparInvisiveis, normalizarTipografia } from "./texto-limpo";
 
 // Parser robusto do JSON que o haiku devolve em generateContent.
 // O modelo às vezes embrulha a saída em prosa ou em ```backticks```; extraímos
@@ -24,10 +24,15 @@ export function parseContentJson<T = unknown>(raw: string): T {
 // (carrossel, Reel, legenda, voz). Um hífen suave dentro de "buscas" — invisível na
 // tela — fez a voz do Reel ES falar "busca H" e o dono ouvir sem sentido nenhum.
 // Ver src/lib/texto-limpo.ts.
-const asString = (v: unknown): string => (typeof v === "string" ? limparInvisiveis(v) : "");
+// A TIPOGRAFIA entra no mesmo funil e pelo mesmo motivo: o guillemet que o molde do
+// formato pede («___») sai desenhado como `<<` na Anton do Reel — o dono viu no ar
+// em 18/08 ("a legenda com caracteres"). Aqui ele vira aspa curva na origem, antes de
+// virar tela, voz, legenda e cache.
+const limpar = (t: string): string => normalizarTipografia(limparInvisiveis(t));
+const asString = (v: unknown): string => (typeof v === "string" ? limpar(v) : "");
 const asStringArray = (v: unknown): string[] =>
   Array.isArray(v)
-    ? v.filter((x): x is string => typeof x === "string").map((x) => limparInvisiveis(x))
+    ? v.filter((x): x is string => typeof x === "string").map((x) => limpar(x))
     : [];
 
 export interface NormalizedContent {
@@ -52,7 +57,7 @@ export function normalizeContentJson(obj: unknown): NormalizedContent {
     tags: asStringArray(o.tags),
   };
   if (o.videoQueries !== undefined) out.videoQueries = asStringArray(o.videoQueries);
-  if (typeof o.narration === "string") out.narration = limparInvisiveis(o.narration);
+  if (typeof o.narration === "string") out.narration = limpar(o.narration);
   return out;
 }
 

@@ -305,6 +305,43 @@ jobs:
         if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
         run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelV2
 
+      # 6b. CONFERE A PEÇA PRONTA — o arquivo, não os campos dele (18/08/2026).
+      #     O dono viu o Reel BR no ar e reprovou: "a voz está cortada, a legenda com
+      #     caracteres". Todos os robôs estavam verdes, porque nenhum media o mp4: a trava
+      #     do "100%" pergunta se os CAMPOS existem, e o revisor da nuvem olha a CAPA.
+      #     Aqui o ffmpeg mede o que vai ao feed — tem som? o som cobre o fim? o texto usa
+      #     caractere que a fonte desenha? A tipografia ele CONSERTA e pede render novo;
+      #     o resto ele BARRA (a vaga fica aberta e o catchup a redispara).
+      - name: Conferir a peça pronta (som, fim mudo, tipografia)
+        id: conferir
+        if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
+        run: node scripts/conferir-render.mjs
+
+      - name: Renderizar de novo (tipografia corrigida)
+        if: ${{ steps.conferir.outputs.recorrigir == '1' }}
+        run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelV2
+
+      - name: Conferir a peça pronta (2ª e última passada)
+        id: conferir2
+        if: ${{ steps.conferir.outputs.recorrigir == '1' }}
+        env:
+          JA_CORRIGIU: "1"
+        run: node scripts/conferir-render.mjs
+
+      # A capa que o revisor final OLHA sai do estado ATUAL da peça: o passo 2 escreveu
+      # cover.txt antes de o corretor obter a ilustração, e por isso o Reel de 18/08 chegou
+      # ao publish sem capa — o revisor final registrou "não rodou". Aqui ela é regravada.
+      - name: Regravar a capa para o revisor final
+        if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const p = JSON.parse(fs.readFileSync("reel-props.json", "utf8"));
+            const capa = (p.img && String(p.img).trim()) || (Array.isArray(p.clips) && p.clips[0]) || "";
+            fs.writeFileSync("cover.txt", capa);
+            console.log(capa ? "[cover] capa para o revisor final: " + capa.slice(0, 80) : "[cover] a peça não tem capa — o revisor final vai DECLARAR que não olhou");
+          '
+
       # 7. Sobe o mp4 como asset de um GitHub Release (repo PÚBLICO) e captura a URL
       #    pública (stdout). PONTE de emergência 2026-07-15: o Vercel Blob suspendeu as
       #    stores da conta inteira (BlobStoreSuspendedError) → 0 reel. O Release dá URL
@@ -313,7 +350,7 @@ jobs:
       #    upload-blob.mjs fica preservado p/ rollback.
       - name: Upload do mp4 para GitHub Release (ponte)
         id: upload
-        if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
+        if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' && (steps.conferir.outputs.render_ok == '1' || steps.conferir2.outputs.render_ok == '1') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -324,7 +361,7 @@ jobs:
       # 7b. Modo preview: no disparo manual com publish=no, NÃO publica — só expõe a
       #     URL do mp4 p/ revisar a criação. O cron (schedule) sempre publica.
       - name: Preview (sem publicar)
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'yes' && steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'yes' && steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' && (steps.conferir.outputs.render_ok == '1' || steps.conferir2.outputs.render_ok == '1') }}
         run: |
           echo "::notice title=Reel pronto (preview, não publicado)::${{ steps.upload.outputs.video_url }}"
           echo "Preview do Reel (NÃO publicado): ${{ steps.upload.outputs.video_url }}"
@@ -333,7 +370,7 @@ jobs:
       #     Roda no cron (schedule) ou no disparo manual com publish=yes — e só se
       #     houver fundo (has_media): Reel sem footage/ilustração é pulado, não preto.
       - name: Publicar Reel no Instagram
-        if: ${{ (github.event_name == 'schedule' || github.event.inputs.publish == 'yes') && steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
+        if: ${{ (github.event_name == 'schedule' || github.event.inputs.publish == 'yes') && steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' && (steps.conferir.outputs.render_ok == '1' || steps.conferir2.outputs.render_ok == '1') }}
         run: |
           RESP=$(curl -sS --max-time 280 -G \
             -w $'\nHTTP_CODE:%{http_code}' \

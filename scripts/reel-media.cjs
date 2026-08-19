@@ -108,4 +108,70 @@ async function corrigirAtePronto(props, caption, corrigir, maxTentativas = 3) {
   return { ok: v.ok, faltando: v.faltando, tentativas, log, props, caption };
 }
 
-module.exports = { hasVisualMedia, reelPronto, corrigirAtePronto };
+// ─── TRAVA DA PEÇA RENDERIZADA (18/08/2026) ───────────────────────────────────
+// POR QUE EXISTE: em 18/08 um Reel BR foi ao ar com a voz terminando aos 24,7 s de um
+// vídeo de 31,0 s — 5,5 s finais em silêncio (medido: −47 dB) — e com a manchete
+// desenhando `<<` no lugar das aspas. TODOS os robôs estavam verdes. Eles estavam
+// verdes porque `reelPronto` mede PRESENÇA (o campo existe?) e ninguém media a PEÇA
+// PRONTA. Presença não é qualidade: um mp3 de silêncio preenche `narrationUrl`.
+//
+// Estas funções são PURAS de propósito (recebem medidas, não abrem arquivo): o script
+// que roda o ffmpeg fica de fora, e o teste fixa a regra sem depender de binário.
+
+/** Quanto tempo de fim mudo uma peça pode ter. Acima disto, quem assiste ouve a peça morrer. */
+const CAUDA_MUDA_MAX_S = 2.5;
+/**
+ * Abaixo deste nível não há som ÚTIL no celular.
+ *
+ * O número saiu da medição do Reel que o dono reprovou, não de tabela: a fala dele vive
+ * entre −13 e −22 dB, e os 5,5 s finais — que ele ouviu como "a voz cortada" — ficaram
+ * entre −36 e −48 dB (a cama musical em 0,07, o ducking da voz, tocando sozinha). Um piso
+ * de −40 dB deixaria essa cauda passar como "tem som"; −32 dB separa fala de sussurro
+ * inaudível, e é o mesmo piso que o revisor de voz da casa usa para "voz baixa demais"
+ * (.claude/lib/revisao/audio.mjs).
+ */
+const SILENCIO_DB = -32;
+
+/**
+ * A peça renderizada está publicável?
+ *
+ * @param {{duracaoS?: number, temAudio?: boolean, caudaMudaS?: number|null, picoDb?: number|null}} medida
+ * @param {{title?: unknown, slides?: unknown, caption?: unknown}} [texto]
+ * @returns {{ok: boolean, achados: string[], corrigivelNoTexto: boolean}}
+ */
+function renderPublicavel(medida, texto = {}) {
+  const achados = [];
+  let corrigivelNoTexto = false;
+  const m = medida && typeof medida === "object" ? medida : {};
+
+  if (!(Number(m.duracaoS) > 0)) achados.push("não consegui medir a duração do vídeo");
+  if (m.temAudio === false) achados.push("a peça NÃO tem trilha — iria ao ar muda");
+  if (m.picoDb !== null && m.picoDb !== undefined && Number(m.picoDb) <= SILENCIO_DB) {
+    achados.push(`a trilha existe mas é silenciosa (pico ${m.picoDb} dB)`);
+  }
+  if (m.caudaMudaS !== null && m.caudaMudaS !== undefined && Number(m.caudaMudaS) > CAUDA_MUDA_MAX_S) {
+    achados.push(
+      `os últimos ${Number(m.caudaMudaS).toFixed(1)}s da peça estão mudos (abaixo de ${SILENCIO_DB} dB) — ` +
+        `quem assiste ouve a peça morrer antes de acabar`,
+    );
+  }
+
+  // Tipografia que a fonte da peça desenha errado. É corrigível SEM re-gerar nada:
+  // basta trocar o caractere e renderizar de novo.
+  const alvos = [texto.title, ...(Array.isArray(texto.slides) ? texto.slides : []), texto.caption];
+  const torto = alvos.filter((t) => typeof t === "string" && /[«»‹›]/.test(t));
+  if (torto.length) {
+    corrigivelNoTexto = true;
+    achados.push(`texto com aspas que a fonte da peça desenha como \`<<\` (${torto.length} trecho(s))`);
+  }
+
+  return { ok: achados.length === 0, achados, corrigivelNoTexto };
+}
+
+/** Troca o que a fonte desenha mal. Irmã de `normalizarTipografia` do site (src/lib/texto-limpo.ts). */
+function normalizarTipografia(texto) {
+  if (typeof texto !== "string" || !texto) return texto;
+  return texto.replace(/[«‹]/g, "“").replace(/[»›]/g, "”");
+}
+
+module.exports = { hasVisualMedia, reelPronto, corrigirAtePronto, renderPublicavel, normalizarTipografia, CAUDA_MUDA_MAX_S, SILENCIO_DB };

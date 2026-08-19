@@ -49,9 +49,13 @@ export interface PecaParaConferir {
 export function partesFixasDoMolde(molde: string): string[] {
   return molde
     .split("___")
-    // tira aspas, pontuação e TRAVESSÃO das bordas — «___» — RESPONDENDO tem de virar
-    // só "RESPONDENDO", senão o travessão vira parte "fixa" e nenhum título casaria
-    .map((p) => p.trim().replace(/^[«»"'\s:,.!?¡¿—–-]+|[«»"'\s:,.!?¡¿—–-]+$/g, ""))
+    // tira aspas, pontuação e TRAVESSÃO das bordas — “___” — RESPONDENDO tem de virar
+    // só "RESPONDENDO", senão o travessão vira parte "fixa" e nenhum título casaria.
+    // ⚠️ As aspas CURVAS entram nesta lista desde 18/08: o molde da caixinha polêmica
+    // deixou de usar « » (a Anton do Reel as desenha como `<<`) e passou a “ ” — sem
+    // elas aqui, a parte fixa virava `”— RESPONDENDO` e o portão reprovava todo título
+    // certo, nas duas línguas.
+    .map((p) => p.trim().replace(/^[«»“”‘’"'\s:,.!?¡¿—–-]+|[«»“”‘’"'\s:,.!?¡¿—–-]+$/g, ""))
     .filter((p) => p.length >= 3);
 }
 

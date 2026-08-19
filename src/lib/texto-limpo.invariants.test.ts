@@ -5,7 +5,7 @@
 // transcrição do próprio áudio publicado — guardada em `narration_cache.words` — registrou
 // «qué busca H». O dono ouviu e disse que não fazia sentido nenhum.
 import { describe, it, expect } from "vitest";
-import { limparInvisiveis, temInvisivel } from "./texto-limpo";
+import { limparInvisiveis, temInvisivel, normalizarTipografia, temTipografiaTorta } from "./texto-limpo";
 import { normalizeContentJson } from "./content-json";
 
 const SOFT_HYPHEN = "\u00AD"; // o caractere do caso real
@@ -56,5 +56,35 @@ describe("invisíveis — o detector responde igual quando perguntado duas vezes
   it("expressão global não guarda posição entre chamadas (o bug clássico do /g)", () => {
     for (let i = 0; i < 6; i++) expect(temInvisivel(FRASE_REAL)).toBe(true);
     for (let i = 0; i < 6; i++) expect(temInvisivel("texto limpo")).toBe(false);
+  });
+});
+
+// ─── TIPOGRAFIA QUE A FONTE DESENHA ERRADO (18/08/2026) ──────────────────────
+// O dono viu o Reel BR no ar: a manchete abria com `<<` em vez de aspas. Não era
+// encoding — era o guillemet da Anton, que ao lado das letras pesadas lê como dois
+// sinais de menor. Provado lado a lado no navegador antes de trocar: só a aspa CURVA
+// desenha como aspas nesta fonte.
+describe("normalizarTipografia — o que a fonte da peça não sabe desenhar", () => {
+  it("troca os guillemets pela aspa que a Anton desenha", () => {
+    expect(normalizarTipografia("«Tanta paz que você me dá» — RESPONDENDO")).toBe(
+      "“Tanta paz que você me dá” — RESPONDENDO",
+    );
+    expect(normalizarTipografia("‹isso› é menor")).toBe("“isso” é menor");
+  });
+
+  it("texto sem guillemet sai IDÊNTICO — a limpeza não reescreve o que está certo", () => {
+    const t = "Isso não é paz, é ausência. “Já era”, disse ela — e saiu.";
+    expect(normalizarTipografia(t)).toBe(t);
+  });
+
+  it("acusa em vez de calar: temTipografiaTorta diz SE havia", () => {
+    expect(temTipografiaTorta("«a»")).toBe(true);
+    expect(temTipografiaTorta("“a”")).toBe(false);
+    expect(temTipografiaTorta("")).toBe(false);
+  });
+
+  it("entrada que não é texto volta vazia, nunca lança", () => {
+    expect(normalizarTipografia(null as unknown as string)).toBe("");
+    expect(normalizarTipografia(undefined as unknown as string)).toBe("");
   });
 });

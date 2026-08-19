@@ -48,3 +48,35 @@ export function temInvisivel(texto: string): boolean {
   if (typeof texto !== "string" || !texto) return false;
   return limparInvisiveis(texto) !== texto;
 }
+
+// ─── Tipografia que a FONTE DA PEÇA não sabe desenhar ────────────────────────
+// POR QUE EXISTE (2026-08-18, o dono viu o Reel BR no ar e disse "a legenda com
+// caracteres... ta uma bosta"):
+//
+// O molde do formato "caixinha polêmica" manda o redator abrir a manchete com
+// GUILLEMETS — «___» — RESPONDENDO. Na tela do Reel a manchete é escrita em ANTON
+// (condensada pesada), e o guillemet da Anton é um chevron duplo FINO: ao lado das
+// letras grossas ele não lê como aspas, lê como `<<` e `>>`. Medido no frame que foi
+// ao ar e reproduzido lado a lado com as três alternativas: só as aspas CURVAS
+// (“ ”) desenham como aspas de verdade nesta fonte.
+//
+// A troca acontece na ORIGEM (todo texto que o redator devolve passa por
+// `normalizeContentJson`), então pega manchete, slides, CTA e legenda de uma vez —
+// e não depende de o modelo "lembrar" de obedecer ao molde.
+//
+// ⚠️ Não é regra de idioma: « » é tipograficamente correto em espanhol. É regra de
+// RENDERIZAÇÃO — a fonte é a mesma nas duas línguas, e nas duas ela desenha mal.
+const GUILLEMET_ABRE = new RegExp("[\u00AB\u2039]", "g"); // « ‹
+const GUILLEMET_FECHA = new RegExp("[\u00BB\u203A]", "g"); // » ›
+
+/** Troca o que a fonte da peça desenha mal por um equivalente que ela desenha bem. */
+export function normalizarTipografia(texto: string): string {
+  if (typeof texto !== "string" || !texto) return "";
+  return texto.replace(GUILLEMET_ABRE, "“").replace(GUILLEMET_FECHA, "”");
+}
+
+/** Diz SE havia caractere que a fonte desenha mal — para o registro ACUSAR em vez de calar. */
+export function temTipografiaTorta(texto: string): boolean {
+  if (typeof texto !== "string" || !texto) return false;
+  return normalizarTipografia(texto) !== texto;
+}

@@ -6,7 +6,12 @@ import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { hasVisualMedia, reelPronto, corrigirAtePronto } = require("../../scripts/reel-media.cjs") as {
+const { hasVisualMedia, reelPronto, corrigirAtePronto, renderPublicavel, normalizarTipografia } = require("../../scripts/reel-media.cjs") as {
+  renderPublicavel: (
+    medida: { duracaoS?: number; temAudio?: boolean; caudaMudaS?: number | null; picoDb?: number | null },
+    texto?: { title?: unknown; slides?: unknown; caption?: unknown },
+  ) => { ok: boolean; achados: string[]; corrigivelNoTexto: boolean };
+  normalizarTipografia: (t: unknown) => unknown;
   hasVisualMedia: (props: unknown) => boolean;
   reelPronto: (props: unknown, caption: unknown) => { ok: boolean; faltando: string[] };
   corrigirAtePronto: (
@@ -194,5 +199,65 @@ describe("corrigirAtePronto (faltou → corrige → re-confere)", () => {
     expect(chamadas).toBe(1); // parou no TETO, não no progresso
     expect(res.ok).toBe(false);
     expect(res.faltando).toEqual(["vídeo"]);
+  });
+});
+
+// ─── A PEÇA PRONTA (18/08/2026) ───────────────────────────────────────────────
+// O dono viu o Reel BR no ar e reprovou: "a voz está cortada, a legenda com caracteres".
+// Todos os robôs verdes — porque `reelPronto` mede PRESENÇA e ninguém media o ARQUIVO.
+// Os números aqui são os do Reel real (31,0 s, voz até 24,7 s): se a régua afrouxar,
+// aquela peça volta a passar.
+const BOM = { duracaoS: 31, temAudio: true, caudaMudaS: 0.8, picoDb: -0.9 };
+
+describe("renderPublicavel — a peça pronta, não os campos dela", () => {
+  it("peça sã passa", () => {
+    expect(renderPublicavel(BOM, { title: "TANTA PAZ", slides: ["a"], caption: "b" }).ok).toBe(true);
+  });
+
+  it("REPROVA a peça que emudece no fim — o defeito exato de 18/08", () => {
+    const v = renderPublicavel({ ...BOM, caudaMudaS: 6.7 }, {});
+    expect(v.ok).toBe(false);
+    expect(v.achados.join(" ")).toMatch(/mudos/);
+  });
+
+  it("2,5s de fim mudo ainda passa; 2,6s não — o corte é onde está escrito", () => {
+    expect(renderPublicavel({ ...BOM, caudaMudaS: 2.5 }, {}).ok).toBe(true);
+    expect(renderPublicavel({ ...BOM, caudaMudaS: 2.6 }, {}).ok).toBe(false);
+  });
+
+  it("REPROVA peça muda e peça com trilha silenciosa", () => {
+    expect(renderPublicavel({ ...BOM, temAudio: false }, {}).ok).toBe(false);
+    expect(renderPublicavel({ ...BOM, picoDb: -60 }, {}).ok).toBe(false);
+  });
+
+  it("REPROVA o texto com aspas que a fonte desenha como `<<` — e diz que dá para consertar", () => {
+    const v = renderPublicavel(BOM, { title: "«Tanta paz» — RESPONDENDO", slides: [], caption: "" });
+    expect(v.ok).toBe(false);
+    expect(v.corrigivelNoTexto).toBe(true);
+  });
+
+  it("aspa curva NÃO é defeito — é justamente o conserto", () => {
+    const v = renderPublicavel(BOM, { title: "“Tanta paz” — RESPONDENDO", slides: [], caption: "" });
+    expect(v.ok).toBe(true);
+  });
+
+  it("não medi ≠ está bom: sem duração, reprova", () => {
+    expect(renderPublicavel({ ...BOM, duracaoS: 0 }, {}).ok).toBe(false);
+  });
+
+  it("cauda não medida (null) não inventa reprovação nem aprovação por ela", () => {
+    const v = renderPublicavel({ ...BOM, caudaMudaS: null }, {});
+    expect(v.achados.join(" ")).not.toMatch(/mudos/);
+  });
+});
+
+describe("normalizarTipografia (irmã da do site)", () => {
+  it("troca os guillemets pelas aspas que a Anton desenha", () => {
+    expect(normalizarTipografia("«Tanta paz» — RESPONDENDO")).toBe("“Tanta paz” — RESPONDENDO");
+    expect(normalizarTipografia("‹a›")).toBe("“a”");
+  });
+  it("texto normal sai idêntico, e o que não é texto volta como veio", () => {
+    expect(normalizarTipografia("Isso não é paz.")).toBe("Isso não é paz.");
+    expect(normalizarTipografia(undefined)).toBe(undefined);
   });
 });

@@ -521,6 +521,31 @@ function FunnelCardV2({ cover, keyword, action, note, handle }: { cover?: string
   );
 }
 
+/** Sem voz por cima, mas ainda é o fecho de uma peça — não é abertura de clipe. */
+export const CAMA_LIVRE = 0.45;
+/** 0,4 s para a cama subir: rápido o bastante para não soar como buraco, lento para não pular. */
+const RAMPA_F = 12;
+
+/**
+ * A CURVA DO VOLUME DA MÚSICA — pura, para a prova não depender de render.
+ *
+ * Enquanto a voz fala, a cama fica no ducking (`musicMax`, 0,07 com narração). Quando a
+ * fala termina, ela SOBE — é o conserto de 18/08: o Reel BR foi ao ar com 5,5 s finais em
+ * −47 dB e o dono ouviu isso como "a voz está cortada".
+ *
+ * Sem medida da narração (ou fala curtíssima, ou cauda mínima) devolve a curva de sempre,
+ * ponto a ponto — os pontos do `interpolate` precisam ser estritamente crescentes.
+ */
+export function curvaDaMusica({ total, musicMax, fimDaVozF }: { total: number; musicMax: number; fimDaVozF: number | null }) {
+  const sobeNoFecho = fimDaVozF !== null && fimDaVozF > 15 && fimDaVozF + RAMPA_F < total - 24;
+  if (!sobeNoFecho) return { x: [0, 15, total - 24, total], y: [0, musicMax, musicMax, 0], sobeNoFecho: false };
+  return {
+    x: [0, 15, fimDaVozF as number, (fimDaVozF as number) + RAMPA_F, total - 24, total],
+    y: [0, musicMax, musicMax, CAMA_LIVRE, CAMA_LIVRE, 0],
+    sobeNoFecho: true,
+  };
+}
+
 // ─── Composição V2 ─────────────────────────────────────────────────────────────
 export const ReelV2: React.FC<ReelProps> = (props) => {
   const {
@@ -568,7 +593,19 @@ export const ReelV2: React.FC<ReelProps> = (props) => {
   // com o fade de abertura outra vez. Lendo o frame da COMPOSIÇÃO, a curva é uma só: sobe
   // no início, segura, e só desce no fim de verdade.
   const frameDaPeca = useCurrentFrame();
-  const musicVol = interpolate(frameDaPeca, [0, 15, total - 24, total], [0, musicMax, musicMax, 0], {
+  // ⛔ 2026-08-18 — A PEÇA NÃO PODE EMUDECER DEPOIS DA VOZ. O dono viu o Reel BR no ar
+  // e disse "a voz está cortada". A voz não foi cortada: ela terminou aos 24,7 s de um
+  // vídeo de 31,0 s, e o que sobrou — CTA e card do funil — ficou com a cama musical em
+  // 0,07 (o ducking da fala), que medido no arquivo publicado dá −47 dB: silêncio, na
+  // prática. Quem assiste ouve a peça MORRER 5,5 s antes de acabar.
+  // A cama agora SOBE quando a fala termina (o contrário do ducking, pelo mesmo motivo:
+  // o volume da música serve à voz — sem voz, ela volta a ser a peça). O fim da fala sai
+  // da MEDIDA da narração; sem medida, o comportamento é o de antes, byte a byte.
+  const fimDaVozF = narrationSrc && Number(props.narrationDurationSec) > 0
+    ? Math.round(Number(props.narrationDurationSec) * FPS)
+    : null;
+  const { x: curvaX, y: curvaY } = curvaDaMusica({ total, musicMax, fimDaVozF });
+  const musicVol = interpolate(frameDaPeca, curvaX, curvaY, {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
