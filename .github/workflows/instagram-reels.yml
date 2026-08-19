@@ -312,6 +312,18 @@ jobs:
       #     Aqui o ffmpeg mede o que vai ao feed — tem som? o som cobre o fim? o texto usa
       #     caractere que a fonte desenha? A tipografia ele CONSERTA e pede render novo;
       #     o resto ele BARRA (a vaga fica aberta e o catchup a redispara).
+      # O medidor de vídeo NÃO vem na imagem do runner (medido 19/08: os 2 Reels agendados
+      # foram barrados porque `ffprobe` não existia e a leitura voltou "0,0 s · sem trilha").
+      # Instalar custa ~20 s e é grátis; sem ele a conferência DECLARA que não mediu e deixa
+      # passar — mas aí a peça vai ao ar sem ninguém ouvir o fim, que é o defeito de 18/08.
+      - name: Garantir ffmpeg (medidor da peça)
+        if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
+        run: |
+          if ! command -v ffprobe >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          fi
+          ffprobe -version | head -1
+
       - name: Conferir a peça pronta (som, fim mudo, tipografia)
         id: conferir
         if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}

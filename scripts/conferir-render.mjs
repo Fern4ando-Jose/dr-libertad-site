@@ -30,6 +30,24 @@ const VIDEO = process.env.VIDEO_PATH || "out/reel.mp4";
 const PROPS_PATH = process.env.PROPS_PATH || "reel-props.json";
 const CAPTION_PATH = process.env.CAPTION_PATH || "caption.txt";
 
+/**
+ * ⛔ QUEM NÃO MEDIU NÃO REPROVA (medido 19/08/2026, na 1ª noite desta trava).
+ *
+ * Os dois Reels agendados foram **barrados por engano**: o runner do robô não tem `ffprobe`,
+ * o programa falhou na hora e a leitura voltou "0,0 s · sem trilha" — que a régua leu como
+ * peça muda. Duas vagas perdidas, e pela pior razão: a trava disse que mediu quando não mediu.
+ * É a regra que a casa já tinha escrito em outro lugar (ausência não é zero nem reprovação) e
+ * que esta trava nasceu sem: se a ferramenta não existe, a peça segue com "NÃO CONFERIDO" no
+ * registro — nunca barrada.
+ */
+function temFerramentas() {
+  for (const bin of ["ffprobe", "ffmpeg"]) {
+    const r = spawnSync(bin, ["-version"], { encoding: "utf8" });
+    if (r.error || r.status !== 0) return false;
+  }
+  return true;
+}
+
 function ffprobe(args) {
   const r = spawnSync("ffprobe", args, { encoding: "utf8" });
   return r.status === 0 ? String(r.stdout || "").trim() : null;
@@ -105,6 +123,28 @@ function main() {
   }
   const props = JSON.parse(readFileSync(PROPS_PATH, "utf8"));
   const caption = existsSync(CAPTION_PATH) ? readFileSync(CAPTION_PATH, "utf8") : "";
+
+  if (!temFerramentas()) {
+    // Sem medidor não há veredito. A tipografia, que não depende de ffmpeg, ainda é conferida
+    // e corrigida — o que dá para conferir se confere; o que não dá, se DECLARA.
+    const alvos = [props.title, ...(Array.isArray(props.slides) ? props.slides : []), caption];
+    const torto = alvos.some((t) => typeof t === "string" && /[«»‹›]/.test(t));
+    if (torto && process.env.JA_CORRIGIU !== "1") {
+      props.title = normalizarTipografia(props.title);
+      if (Array.isArray(props.slides)) props.slides = props.slides.map(normalizarTipografia);
+      if (typeof props.cta === "string") props.cta = normalizarTipografia(props.cta);
+      writeFileSync(PROPS_PATH, JSON.stringify(props));
+      writeFileSync(CAPTION_PATH, normalizarTipografia(caption));
+      console.log("::warning title=Tipografia corrigida::Aspas trocadas — a peça vai ser renderizada de novo.");
+      saida("render_ok", "0");
+      saida("recorrigir", "1");
+      return;
+    }
+    console.log("::warning title=Peça NÃO CONFERIDA::ffmpeg/ffprobe ausentes nesta máquina — som e fim mudo NÃO foram medidos. A peça segue (guardião que pula não barra), e isto fica no registro.");
+    saida("render_ok", "1");
+    saida("recorrigir", "0");
+    return;
+  }
 
   const m = sondar(VIDEO);
   const cauda = caudaMuda(VIDEO, m.duracaoS);
