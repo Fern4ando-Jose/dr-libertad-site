@@ -230,6 +230,33 @@ export default function BookSales({ slug }: { slug: string }) {
         </StudioContainer>
       </section>
 
+      {/* CARD "EM REVISÃO" — status honesto (ordem do dono 23/08/2026): o livro
+          está em revisão final; a pré-venda segue. Só aparece se o livro declara
+          `underReview` e o dicionário traz `reviewNote`. */}
+      {book.underReview && "reviewNote" in L && (
+        <section className="border-b border-warm-gray/10 py-10 md:py-12">
+          <StudioContainer>
+            <div className="mx-auto flex max-w-3xl items-start gap-4 rounded-2xl border border-warm-gray/20 bg-white/[0.03] px-6 py-5 backdrop-blur">
+              <span className="relative mt-1.5 flex h-2.5 w-2.5 shrink-0" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-muted-red/60" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-muted-red" />
+              </span>
+              <div>
+                <div className="text-xs tracking-[0.22em] uppercase text-warm-gray/70">
+                  {L.reviewNote.eyebrow}
+                </div>
+                <h3 className="mt-2 font-serif text-[1.35rem] leading-[1.15] text-offwhite">
+                  {L.reviewNote.title}
+                </h3>
+                <p className="mt-2 text-sm leading-[1.7] text-warm-gray/90">
+                  {L.reviewNote.body}
+                </p>
+              </div>
+            </div>
+          </StudioContainer>
+        </section>
+      )}
+
       {/* CARD DE PRÉ-VENDA: a lista de espera virou um card animado (ordem do
           dono 15/08/2026), logo abaixo do herói — é a nova casa de #pre-venda. */}
       {preSale && <PreSaleCard slug={slug} />}

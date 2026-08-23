@@ -2,7 +2,7 @@
 // Cada livro aponta para sua chave de textos no dicionário (PT/ES) + capa + link de checkout.
 // Para adicionar um novo livro: crie a chave de textos no dicionário e some um item aqui.
 
-export type BookDictKey = "livro" | "dopamina" | "tolos";
+export type BookDictKey = "livro" | "dopamina" | "tolos" | "perdi";
 
 export type BookMeta = {
   slug: string;
@@ -33,6 +33,9 @@ export type BookMeta = {
   // e o preço vai ao schema.org como PreOrder. Convive com `free`: a prévia grátis
   // continua disponível como opção secundária (o funil comment→DM aponta para cá).
   preSale?: boolean;
+  // EM REVISÃO: o livro está em revisão final. Mostra um card de status na página
+  // (honesto: "em revisão"), sem tirar a pré-venda. Ausente → nenhum card.
+  underReview?: boolean;
   // Imagens de "por dentro" (spreads). Ausente → a seção mostra só o texto (sem fotos
   // de outro livro). O guia de plantas declara as suas; a prévia de dopamina não tem.
   insideImages?: string[];
@@ -102,6 +105,28 @@ export const BOOKS: BookMeta[] = [
     // Pré-lançamento (mesmo valor da pré-venda de dopamina: R$ 29,90 / US$ 5,90 —
     // o dono decide o valor exato ao publicar).
     price: { br: { amount: 29.9, currency: "BRL" }, es: { amount: 5.9, currency: "USD" } },
+  },
+  {
+    // PRÉ-VENDA de "Como Perdi a Mulher da Minha Vida" — o livro da guerra
+    // invisível do homem ("livro não apto para mulheres", selo da própria capa).
+    // Só há arte da capa em PT (a versão ES reusa a mesma imagem até ser
+    // produzida — mesmo padrão do Tolos). Lista de espera, sem checkout.
+    slug: "como-perdi-a-mulher-da-minha-vida",
+    dictKey: "perdi",
+    // Página do livro: a foto do livro em pé (já em uso). Vitrine: uma 2ª foto
+    // distinta (mesa com planta/café) — antes as duas usavam o MESMO arquivo,
+    // que era o defeito apontado pelo dono em 23/08.
+    cover: { br: "/images/como-perdi-capa-br-01.png", es: "/images/como-perdi-capa-br-01.png" },
+    coverList: { br: "/images/como-perdi-capa-pt.png", es: "/images/como-perdi-capa-pt.png" },
+    // 1024×1536 é a medida real das DUAS artes (verificada nos PNGs) — mesma
+    // proporção, então o campo único `coverSize` vale para as duas sem distorcer.
+    coverSize: { width: 1024, height: 1536 },
+    preSale: true,
+    underReview: true,
+    // ES US$ 9,99 (ordem do dono 23/08). BR = conversão literal ao câmbio do dia
+    // (1 USD = R$ 5,1433, Investing.com 23/08/2026) — não é preço de marketing
+    // arredondado; o dono decide se quer fechar num número redondo.
+    price: { br: { amount: 51.38, currency: "BRL" }, es: { amount: 9.99, currency: "USD" } },
   },
 ];
 
