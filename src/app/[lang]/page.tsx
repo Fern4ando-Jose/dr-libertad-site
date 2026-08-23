@@ -143,27 +143,22 @@ export default function Page() {
                   </p>
                 </div>
 
-                {/* [P1 hierarquia, 23/08] As duas ações tinham o MESMO peso visual
-                    (mesmo tamanho de pílula-contorno) e competiam pela atenção. Uma
-                    vence: "Ler o manifesto" é o conteúdo que a marca é dona (o link
-                    pro estudo é externo/institucional) — vira botão SÓLIDO no acento
-                    endurecido; o segundo cai a link de texto discreto ao lado. */}
-                <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3" data-gsap="reveal">
+                {/* [P1 hierarquia, 23/08] As duas ações tinham o MESMO peso visual e
+                    competiam pela atenção — resolvido virando uma pílula sólida e a
+                    outra um link fantasma. [Clarify, 23/08 delta 2 — /impeccable,
+                    achado do dono: "estão soltas... pegar guia... ao lado responder
+                    pesquisa"] O peso desigual não bastava: um CTA do funil do guia ao
+                    lado de um link pra pesquisa institucional, sem nenhuma relação
+                    entre os dois, ainda lia como "escolha uma opção". O herói agora
+                    comita numa ação só — a pesquisa segue alcançável pelo menu
+                    ("Estudo"), não precisa competir aqui. */}
+                <div className="mt-10" data-gsap="reveal">
                   <a
                     href={`/${lang}/guia-7-dias`}
                     className="group inline-flex items-center rounded-xl bg-muted-red-strong px-7 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase text-offwhite shadow-[0_14px_36px_rgba(158,74,46,0.38)] transition hover:bg-muted-red-strong/90"
                   >
                     {t.hero.ctaPrimary}
                     <span className="ml-3 transition group-hover:translate-x-0.5">
-                      {String.fromCharCode(8594)}
-                    </span>
-                  </a>
-                  <a
-                    href={lang === "es" ? "/el-estudio" : "/o-estudo"}
-                    className="group inline-flex items-center text-xs tracking-[0.22em] uppercase text-warm-gray/75 underline decoration-warm-gray/25 underline-offset-4 transition hover:text-offwhite hover:decoration-muted-red/70"
-                  >
-                    {t.hero.ctaSecondary}
-                    <span className="ml-2 text-muted-red transition group-hover:translate-x-0.5">
                       {String.fromCharCode(8594)}
                     </span>
                   </a>
