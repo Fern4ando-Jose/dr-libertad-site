@@ -95,7 +95,7 @@ export default function StudioNav() {
             }
           }}
           aria-label={t.brand}
-          className="group inline-flex flex-col items-start gap-1.5 font-serif text-[1.1rem] font-semibold leading-none tracking-[-0.01em] text-offwhite/95 hover:text-offwhite transition"
+          className="group inline-flex shrink-0 flex-col items-start gap-1.5 font-serif text-[1.1rem] font-semibold leading-none tracking-[-0.01em] text-offwhite/95 hover:text-offwhite transition"
         >
           <span>{t.brand}</span>
           <span
@@ -111,8 +111,12 @@ export default function StudioNav() {
             lotação bem em cima do pivô (1024px), Artigos/Autor (secundários) só
             aparecem a partir de `xl` (1280). De 0 a 1023 quem resolve é o hambúrguer
             (também movido de `md` para `lg`), sempre ao lado do CTA — nunca escondido
-            junto com ele. */}
-        <nav className="hidden items-center gap-5 lg:flex xl:gap-6">
+            junto com ele.
+            GARANTIA (não só estimativa): `min-w-0 overflow-hidden` aqui + `shrink-0`
+            na logo e no cluster da direita (abaixo) fazem esta nav ser a ÚNICA coisa
+            que cede espaço se algum dia não couber — nunca o CTA. Testado com a régua
+            do próprio Tailwind (flex-shrink), não só medido a olho num viewport. */}
+        <nav className="hidden min-w-0 items-center gap-5 overflow-hidden lg:flex xl:gap-6">
           {t.nav.items.map((it) => (
             <a key={it.id} {...sectionProps(it.id)} className={linkCls}>
               {it.label}
@@ -145,7 +149,9 @@ export default function StudioNav() {
           </a>
         </nav>
 
-        <div className="flex items-center gap-3">
+        {/* shrink-0: este cluster (idioma + CTA + hambúrguer) NUNCA cede espaço —
+            é a nav ao lado (min-w-0/overflow-hidden acima) que cede primeiro. */}
+        <div className="flex shrink-0 items-center gap-3">
           <LangToggle lang={lang} setLang={setLang} />
           {/* [Endurecer visual, 23/08] O CTA principal do nav era uma pílula
               cinza-fantasma (border-warm-gray, sem acento) — o item mais
