@@ -1,0 +1,7 @@
+name: DIAG temporario — ler /api/spend
+on: { workflow_dispatch: {} }
+jobs:
+  ler:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sS -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ secrets.SITE_URL }}/api/spend"
