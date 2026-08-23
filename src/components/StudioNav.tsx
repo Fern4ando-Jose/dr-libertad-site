@@ -32,7 +32,8 @@ export default function StudioNav() {
   // A Pesquisa ("Estudo") é rota FIXA por idioma (não /[lang]/...): PT → /o-estudo,
   // ES → /el-estudio (página institucional que leva à pesquisa viva). Rótulo de uma
   // palavra + nowrap para caber limpo na nav (o item "Newsletter" saiu daqui por ser
-  // redundante com o CTA "Entrar na lista", abrindo espaço sem entulhar).
+  // redundante com o CTA principal — hoje o guia de 7 dias, único pedido de e-mail
+  // em destaque no site, delta 2026-08-23: "unificar no guia", ordem do dono).
   const studyHref = lang === "es" ? "/el-estudio" : "/o-estudo";
 
   // Link de seção: rola suave quando já está na home; fora dela, navega para a
@@ -159,7 +160,8 @@ export default function StudioNav() {
               acento sólido: --color-muted-red-strong (5.32:1 medido contra o
               texto offwhite, ver globals.css). */}
           <a
-            {...sectionProps("newsletter")}
+            href={`${home}/guia-7-dias`}
+            onClick={() => setOpen(false)}
             className="hidden rounded-xl bg-muted-red-strong px-4 py-2 text-xs font-semibold tracking-[0.22em] uppercase text-offwhite transition hover:bg-muted-red-strong/90 md:inline-flex"
           >
             {t.nav.cta}
@@ -216,7 +218,8 @@ export default function StudioNav() {
                 {t.nav.author}
               </a>
               <a
-                {...sectionProps("newsletter")}
+                href={`${home}/guia-7-dias`}
+                onClick={() => setOpen(false)}
                 className="my-4 rounded-xl bg-muted-red-strong px-5 py-3 text-center text-xs tracking-[0.22em] uppercase text-offwhite transition hover:bg-muted-red-strong/90"
               >
                 {t.nav.cta}

@@ -6,6 +6,21 @@
 // HONESTIDADE P4 (trava desta peça): "resetar o piso da dopamina" é METÁFORA, não
 // neurociência literal — bloco de honestidade visível na página. Recalibração
 // comportamental, não pseudociência. Ver o .md do editor-chefe.
+//
+// DESBLOQUEIO PROGRESSIVO (delta 2026-08-23, briefing do estrategista de atenção —
+// desbloqueio por AÇÃO, não por tempo passivo): o Dia 1 continua sempre aberto; os
+// Dias 2–7 nascem TRANCADOS (título visível, ação/porquê escondidos) e só abrem
+// quando a pessoa marca "fiz o Dia N" — com piso de 1 dia-calendário real entre
+// desbloqueios (mecanismo 100% client-side, `localStorage` — ver Guia7Funnel.tsx).
+//
+// ⛔ SEM ATALHO (correção do dono, mesmo dia): existiu um atalho por e-mail que
+// destrancava os 7 de uma vez — REMOVIDO. Ordem do dono: "não de opção de
+// destravar os 7 não, o interessante é que a pessoa espere um a cada dia". A
+// espera É o produto; o e-mail vira só o lembrete diário (não pula fila).
+//
+// FECHO QUE VENDE (mesmo delta): ao completar o Dia 7, aparece um card de
+// conclusão levando à pré-venda de I Love Dopamina (`finalHref` + "#pre-venda") —
+// "ao final dos 7 dias leve ao link para a compra do livro ou ofereça o livro".
 
 export type Lang = "br" | "es";
 
@@ -33,8 +48,27 @@ export interface Guia7Content {
   honestyHeading: string;
   honestyBody: string;
   stepsHeading: string;
+  /** Subtítulo logo abaixo do heading dos passos — explica a mecânica de desbloqueio. */
+  stepsSubheading: string;
   porqueLabel: string;
   steps: Step[];
+  /** Badge do card trancado (Dias 2–7 antes de abrir). */
+  lockedBadge: string;
+  /** Teaser do card trancado — template com o marcador literal "{N-1}". */
+  lockedTeaser: string;
+  /** Botão de desbloqueio dos dias 1–6 — template com "{N}" e "{N+1}". */
+  unlockButtonLabel: string;
+  /** Botão de desbloqueio do Dia 7 (não tem próximo dia). */
+  unlockButtonLabelFinal: string;
+  /** Botão desabilitado (piso de 1 dia já usado hoje) — template com "{N+1}". */
+  unlockButtonDisabledLabel: string;
+  /** Rodapé de honestidade da seção de passos: o progresso é só deste navegador. */
+  progressFooterNote: string;
+  /** Selo do card de conclusão (mostrado só quando o Dia 7 está feito). */
+  completionEyebrow: string;
+  completionTitle: string;
+  completionBody: string;
+  completionCta: string;
   form: {
     heading: string;
     body: string;
@@ -69,7 +103,9 @@ export const guia7Content: Record<Lang, Guia7Content> = {
     honestyHeading: "A verdade que o guia assume",
     honestyBody:
       "“Resetar o piso da dopamina” é uma imagem, não um botão no seu cérebro. Ninguém zera nada em uma semana. O que dá para fazer — e funciona — é recalibrar o comportamento: mudar o ambiente, aguentar o tédio, trocar o prazer barato pelo prazer lento. Sem pseudociência, sem culpa. Só 7 passos.",
-    stepsHeading: "Os 7 passos",
+    stepsHeading: "Os 7 passos — um abre por dia.",
+    stepsSubheading:
+      "O Dia 1 já está aberto pra você começar agora. Os outros seis destravam um de cada vez, conforme você for cumprindo.",
     porqueLabel: "Por quê",
     steps: [
       {
@@ -122,15 +158,27 @@ export const guia7Content: Record<Lang, Guia7Content> = {
         porque: "não o escravo do bolso — o que está com a chave.",
       },
     ],
+    lockedBadge: "🔒 Trancado — ainda não é a vez dele.",
+    lockedTeaser: "O passo e o porquê ficam escondidos até você fechar o Dia {N-1} — de propósito.",
+    unlockButtonLabel: "Fiz o Dia {N}. Destranco o Dia {N+1} →",
+    unlockButtonLabelFinal: "Fiz os 7. A chave é sua.",
+    unlockButtonDisabledLabel: "Volta amanhã pro Dia {N+1}.",
+    progressFooterNote:
+      "Seu progresso mora neste navegador, não numa conta. Trocou de aparelho ou limpou o cache? Volta pro Dia 1 — aqui ninguém pede login, e isso é de propósito.",
+    completionEyebrow: "OS 7 DIAS ACABARAM",
+    completionTitle: "Você tem a chave. A ciência por trás dela está aqui.",
+    completionBody:
+      "Você provou, na prática, que dava pra escolher — os 7 dias inteiros, um de cada vez. O porquê disso, a ciência real da dopamina e do vício, é o assunto de I Love Dopamina. Garanta seu exemplar agora, no preço da pré-venda.",
+    completionCta: "Garantir meu exemplar",
     form: {
       heading: "Quer o reforço diário?",
       body:
-        "Deixe seu e-mail e receba, por 7 dias, um lembrete curto do passo do dia — um por dia, na voz do Dr. Liberdade. Opcional: o guia inteiro já está aqui em cima.",
+        "Deixe seu e-mail e receba o lembrete curto do passo do dia — um por dia, na voz do Dr. Liberdade, pra não perder o ritmo. Não pula fila: os passos continuam abrindo um por dia, no seu tempo.",
       label: "Seu melhor e-mail",
       placeholder: "voce@email.com",
       cta: "Quero o reforço",
       success:
-        "Pronto — teu e-mail está guardado. 👊 O guia inteiro está logo aqui em cima; o reforço diário chega quando você começar.",
+        "Pronto — teu e-mail está guardado. O reforço diário chega a partir de amanhã, um lembrete por dia. Os passos aqui em cima continuam abrindo no seu ritmo — um a cada dia.",
       note: "Sem spam. Um e-mail por dia, 7 dias. Cancela com um clique.",
       error: "Confere o e-mail — parece que faltou algo.",
     },
@@ -158,7 +206,9 @@ export const guia7Content: Record<Lang, Guia7Content> = {
     honestyHeading: "La verdad que la guía asume",
     honestyBody:
       "“Resetear el piso de la dopamina” es una imagen, no un botón en tu cerebro. Nadie pone nada a cero en una semana. Lo que sí se puede — y funciona — es recalibrar la conducta: cambiar el entorno, aguantar el aburrimiento, cambiar el placer barato por el placer lento. Sin pseudociencia, sin culpa. Solo 7 pasos.",
-    stepsHeading: "Los 7 pasos",
+    stepsHeading: "Los 7 pasos — uno se abre por día.",
+    stepsSubheading:
+      "Empieza ahora con el Día 1. Los otros seis se destraban de a uno, a medida que los vayas cumpliendo.",
     porqueLabel: "Por qué",
     steps: [
       {
@@ -211,15 +261,27 @@ export const guia7Content: Record<Lang, Guia7Content> = {
         porque: "no el esclavo del bolsillo — el que tiene la llave.",
       },
     ],
+    lockedBadge: "🔒 Bloqueado — todavía no le toca.",
+    lockedTeaser: "El paso y el porqué quedan ocultos hasta que cierres el Día {N-1} — a propósito.",
+    unlockButtonLabel: "Hice el Día {N}. Destrabo el Día {N+1} →",
+    unlockButtonLabelFinal: "Hice los 7. La llave es tuya.",
+    unlockButtonDisabledLabel: "Vuelve mañana por el Día {N+1}.",
+    progressFooterNote:
+      "Tu progreso vive en este navegador, no en una cuenta. ¿Cambiaste de aparato o borraste el caché? Vuelves al Día 1 — aquí nadie pide login, y eso es a propósito.",
+    completionEyebrow: "LOS 7 DÍAS TERMINARON",
+    completionTitle: "Tienes la llave. La ciencia detrás de ella está aquí.",
+    completionBody:
+      "Probaste, en la práctica, que se podía elegir — los 7 días enteros, uno a la vez. El porqué de eso, la ciencia real de la dopamina y la adicción, es el tema de I Love Dopamina. Asegura tu ejemplar ahora, al precio de la preventa.",
+    completionCta: "Asegurar mi ejemplar",
     form: {
       heading: "¿Quieres el refuerzo diario?",
       body:
-        "Deja tu correo y recibe, durante 7 días, un recordatorio corto del paso del día — uno por día, en la voz del Dr. Libertad. Opcional: la guía entera ya está aquí arriba.",
+        "Deja tu correo y recibe el recordatorio corto del paso del día — uno por día, en la voz del Dr. Libertad, para no perder el ritmo. No te saltas la fila: los pasos siguen abriéndose uno por día, a tu ritmo.",
       label: "Tu mejor correo",
       placeholder: "tu@email.com",
       cta: "Quiero el refuerzo",
       success:
-        "Listo — tu correo quedó guardado. 👊 La guía entera está aquí arriba; el refuerzo diario llega cuando empieces.",
+        "Listo — tu correo quedó guardado. El refuerzo diario llega a partir de mañana, un recordatorio por día. Los pasos aquí arriba siguen abriéndose a tu ritmo — uno cada día.",
       note: "Sin spam. Un correo por día, 7 días. Cancela con un clic.",
       error: "Revisa el correo — parece que faltó algo.",
     },

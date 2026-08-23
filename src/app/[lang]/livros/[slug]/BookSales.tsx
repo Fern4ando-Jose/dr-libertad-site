@@ -286,6 +286,28 @@ export default function BookSales({ slug }: { slug: string }) {
         />
       )}
 
+      {/* CROSS-LINK PARA O GUIA DE 7 DIAS — pedido do estrategista de atenção
+          (2026-08-23): livro em pré-venda ainda sem certeza de compra ganha uma
+          porta de entrada grátis, discreta, perto do CTA de compra (PreSaleCard
+          é a oferta principal desta seção). Gated por "guia7Cross" in L: só os 3
+          livros que declaram o campo no dicionário mostram o card — hoje, os 3
+          preSale (dopamina/tolos/perdi), sem tocar no guia de 100 plantas. */}
+      {preSale && "guia7Cross" in L && (
+        <section className="border-b border-warm-gray/10 py-8">
+          <StudioContainer>
+            <a
+              href={"/" + lang + "/guia-7-dias"}
+              className="mx-auto flex max-w-2xl flex-col items-center gap-2 rounded-2xl border border-warm-gray/15 bg-white/[0.02] px-6 py-5 text-center transition hover:border-warm-gray/30 hover:bg-white/[0.04] sm:flex-row sm:justify-between sm:gap-4 sm:text-left"
+            >
+              <span className="text-sm leading-[1.6] text-warm-gray/85">{L.guia7Cross.body}</span>
+              <span className="shrink-0 text-sm font-semibold tracking-[0.01em] text-muted-red">
+                {L.guia7Cross.cta}
+              </span>
+            </a>
+          </StudioContainer>
+        </section>
+      )}
+
       {/* COMO FUNCIONA (pré-venda em 3 passos) — C9 da auditoria de marketing
           16/08: só para livros em pré-venda que declaram o bloco `how`. */}
       {preSale && "how" in L && (

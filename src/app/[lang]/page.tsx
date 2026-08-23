@@ -150,7 +150,7 @@ export default function Page() {
                     endurecido; o segundo cai a link de texto discreto ao lado. */}
                 <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3" data-gsap="reveal">
                   <a
-                    href={lang === "br" ? "/br/guia-7-dias" : "#manifesto"}
+                    href={`/${lang}/guia-7-dias`}
                     className="group inline-flex items-center rounded-xl bg-muted-red-strong px-7 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase text-offwhite shadow-[0_14px_36px_rgba(158,74,46,0.38)] transition hover:bg-muted-red-strong/90"
                   >
                     {t.hero.ctaPrimary}
@@ -384,58 +384,33 @@ export default function Page() {
         </StudioContainer>
       </section>
 
-      {/* NEWSLETTER */}
-      <section id="newsletter" className="py-16 md:py-24">
-        <StudioContainer>
-          <div className="grid gap-8 lg:grid-cols-12 lg:items-center">
-            <div className="lg:col-span-7">
-              <Reveal>
-                <SectionHeading eyebrow={t.newsletter.eyebrow} title={t.newsletter.title} />
-              </Reveal>
-              <p className="prose-justify mt-4 text-sm leading-[1.8] text-warm-gray/90">{t.newsletter.lead}</p>
-              <NewsletterForm />
-            </div>
-
-            <div className="lg:col-span-5">
-              <motion.div
-                data-reveal
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.25 }}
-                transition={{ duration: 0.65, ease: "easeOut" }}
-                className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur-xs"
-              >
-                <div className="text-sm tracking-[0.18em] text-warm-gray/80 uppercase">
-                  {t.newsletter.benefitsLabel}
-                </div>
-                <div className="mt-5 space-y-3">
-                  {t.newsletter.benefits.map((row, idx) => (
-                    <div key={row.t} className="rounded-2xl border border-warm-gray/10 bg-ink/25 px-5 py-4">
-                      <div className="text-base">{row.t}</div>
-                      <div className="mt-1 text-sm text-warm-gray/90 leading-[1.6]">{row.d}</div>
-                      <div className="mt-3 h-[1px] w-16 bg-warm-gray/25" />
-                      <div className="mt-2 text-xs tracking-[0.22em] text-muted-red/90 uppercase">
-                        {String(idx + 1).padStart(2, "0")}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </StudioContainer>
-      </section>
+      {/* NEWSLETTER — deixou de ser seção própria (delta 2026-08-23, ordem do dono:
+          "unificar no guia"). Ela e o guia de 7 dias pediam o MESMO e-mail em dois
+          lugares da mesma página, competindo — hoje o guia é o único pedido de
+          e-mail em destaque (CTA do nav inteiro aponta pra ele). A newsletter
+          continua existindo, só que discreta, dentro do rodapé (ver FOOTER abaixo);
+          nada mudou no backend (/api/subscribe, src/lib/newsletter.ts intactos). */}
 
       {/* FOOTER */}
       <footer className="border-t border-warm-gray/10 py-10">
         <StudioContainer>
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="font-serif text-[1.75rem] font-semibold leading-none tracking-[-0.01em] text-offwhite">
                 {t.brand}
               </div>
               <div className="mt-4 h-[2px] w-11 bg-muted-red" />
               <div className="mt-4 text-sm tracking-[0.02em] text-warm-gray/90">{t.footer.tagline}</div>
+
+              {/* Newsletter discreta (delta 2026-08-23) — mesma função de antes,
+                  só sem competir em destaque com o guia de 7 dias. */}
+              <div className="mt-8 max-w-sm">
+                <div className="text-xs tracking-[0.18em] text-warm-gray/60 uppercase">
+                  {t.newsletter.eyebrow}
+                </div>
+                <p className="mt-2 text-xs leading-[1.6] text-warm-gray/70">{t.newsletter.lead}</p>
+                <NewsletterForm compact />
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-warm-gray/90">
               {t.footer.links.map((link) => (
@@ -491,7 +466,7 @@ export default function Page() {
   );
 }
 
-function NewsletterForm() {
+function NewsletterForm({ compact = false }: { compact?: boolean }) {
   const { t, lang } = useLang();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
@@ -521,7 +496,13 @@ function NewsletterForm() {
   };
 
   return (
-    <div className="mt-7 rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur-xs">
+    <div
+      className={
+        compact
+          ? "mt-4"
+          : "mt-7 rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur-xs"
+      }
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           value={email}
@@ -533,7 +514,11 @@ function NewsletterForm() {
           placeholder={t.newsletter.placeholder}
           type="email"
           disabled={status === "loading" || status === "ok"}
-          className="w-full rounded-2xl border border-warm-gray/15 bg-ink/35 px-4 py-3 text-offwhite placeholder:text-warm-gray/50 outline-none focus:border-muted-red/60 disabled:opacity-60"
+          className={
+            compact
+              ? "w-full rounded-xl border border-warm-gray/15 bg-ink/35 px-3 py-2 text-sm text-offwhite placeholder:text-warm-gray/50 outline-none focus:border-muted-red/60 disabled:opacity-60"
+              : "w-full rounded-2xl border border-warm-gray/15 bg-ink/35 px-4 py-3 text-offwhite placeholder:text-warm-gray/50 outline-none focus:border-muted-red/60 disabled:opacity-60"
+          }
         />
         {/* [Contraste, 23/08 — achado da crítica] bg-muted-red + texto offwhite
             media 4.41:1 (abaixo do mínimo AA de 4.5:1 pra texto normal). O botão
@@ -543,7 +528,11 @@ function NewsletterForm() {
           type="button"
           onClick={submit}
           disabled={status === "loading" || status === "ok"}
-          className="rounded-2xl bg-muted-red-strong px-5 py-3 text-sm font-semibold text-offwhite transition hover:bg-muted-red-strong/90 disabled:opacity-70"
+          className={
+            compact
+              ? "shrink-0 rounded-xl bg-muted-red-strong px-4 py-2 text-xs font-semibold text-offwhite transition hover:bg-muted-red-strong/90 disabled:opacity-70"
+              : "rounded-2xl bg-muted-red-strong px-5 py-3 text-sm font-semibold text-offwhite transition hover:bg-muted-red-strong/90 disabled:opacity-70"
+          }
         >
           {status === "ok"
             ? t.newsletter.success
