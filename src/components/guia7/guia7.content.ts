@@ -69,6 +69,19 @@ export interface Guia7Content {
   completionTitle: string;
   completionBody: string;
   completionCta: string;
+  /** Registro do Consentimento (delta 2026-08-23): convite pra escrever 1 frase
+   * por dia — opcional, vira a "Carta da Chave" no Dia 7. Pesquisa dupla
+   * (neurociência + mercado) validou este mecanismo como o diferencial real. */
+  registroLabel: string;
+  registroPlaceholder: string;
+  /** Frase-fallback por dia (índice 0 = Dia 1) — usada na carta se a pessoa não escreveu nada naquele dia. */
+  diaFallback: string[];
+  carta: {
+    heading: string;
+    subheading: string;
+    closing: string;
+    shareInvite: string;
+  };
   form: {
     heading: string;
     body: string;
@@ -170,6 +183,26 @@ export const guia7Content: Record<Lang, Guia7Content> = {
     completionBody:
       "Você provou, na prática, que dava pra escolher — os 7 dias inteiros, um de cada vez. O porquê disso, a ciência real da dopamina e do vício, é o assunto de I Love Dopamina. Garanta seu exemplar agora, no preço da pré-venda.",
     completionCta: "Garantir meu exemplar",
+    registroLabel: "Numa frase: o que você notou ou escolheu hoje?",
+    registroPlaceholder: "Ex.: reparei que a mão foi sozinha ao bolso.",
+    diaFallback: [
+      "Aguentei dez minutos sem tela. O tédio bateu — e o mundo continuava ali, do mesmo jeito.",
+      "Contei quantas vezes a mão foi sozinha ao bolso. Não julguei — só contei.",
+      "Tirei a isca da tela inicial. Hoje o anzol ficou vazio.",
+      "Fiquei na fila de mãos vazias. Doeu um pouco — e eu aguentei.",
+      "Troquei vinte minutos de scroll por dez páginas de um livro. Não morri de tédio.",
+      "Deixei o celular em outro cômodo por uma hora. A presença bastou — inteira, sem dose.",
+      "Escolhi um dos seis passos pra levar pra vida. A chave, agora, é minha.",
+    ],
+    carta: {
+      heading: "Sua Carta da Chave",
+      subheading:
+        "As suas sete frases, uma por dia, viradas em carta. Não é certificado de nada — é o registro de que a escolha foi sua, um dia de cada vez.",
+      closing:
+        "Sete frases, sete dias. Não é resumo do que você leu — é o registro de que retirou o consentimento, uma linha por vez. A chave sempre foi sua.",
+      shareInvite:
+        "Se quiser, printa — pra guardar, ou pra mandar a alguém que precisa ler isso. É sua carta. Eu não peço marcação nem hashtag: você decide se ela sai daqui.",
+    },
     form: {
       heading: "Quer o reforço diário?",
       body:
@@ -273,6 +306,26 @@ export const guia7Content: Record<Lang, Guia7Content> = {
     completionBody:
       "Probaste, en la práctica, que se podía elegir — los 7 días enteros, uno a la vez. El porqué de eso, la ciencia real de la dopamina y la adicción, es el tema de I Love Dopamina. Asegura tu ejemplar ahora, al precio de la preventa.",
     completionCta: "Asegurar mi ejemplar",
+    registroLabel: "En una frase: ¿qué notaste o elegiste hoy?",
+    registroPlaceholder: "Ej.: noté que la mano fue sola al bolsillo.",
+    diaFallback: [
+      "Aguanté diez minutos sin pantalla. El aburrimiento llegó — y el mundo seguía ahí, igual que siempre.",
+      "Conté cuántas veces la mano fue sola al bolsillo. No me juzgué — solo conté.",
+      "Saqué el cebo de la pantalla de inicio. Hoy el anzuelo quedó vacío.",
+      "Me quedé en la cola con las manos vacías. Dolió un poco — y aguanté.",
+      "Cambié veinte minutos de scroll por diez páginas de un libro. No me morí de aburrimiento.",
+      "Dejé el móvil en otra habitación por una hora. La presencia alcanzó — entera, sin dosis.",
+      "Elegí uno de los seis pasos para llevarlo a mi vida. La llave, ahora, es mía.",
+    ],
+    carta: {
+      heading: "Tu Carta de la Llave",
+      subheading:
+        "Tus siete frases, un día a la vez, convertidas en carta. No es ningún certificado — es el registro de que la elección fue tuya, un día tras otro.",
+      closing:
+        "Siete frases, siete días. No es un resumen de lo que leíste — es el registro de que retiraste el consentimiento, una línea a la vez. La llave siempre fue tuya.",
+      shareInvite:
+        "Si quieres, haz captura — para guardarla, o para mandársela a alguien que necesita leer esto. Es tu carta. No pido que me etiquetes ni ningún hashtag: tú decides si sale de aquí.",
+    },
     form: {
       heading: "¿Quieres el refuerzo diario?",
       body:

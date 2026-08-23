@@ -45,13 +45,21 @@ type Guia7Progress = {
   diaAtual: number;
   diasConcluidos: number[];
   dataUltimoDesbloqueio: string;
+  // Registro do Consentimento (delta 2026-08-23): a frase que a pessoa escreveu
+  // em cada dia — chave = número do dia, string vazia/ausente = pulou (usa o
+  // fallback do dicionário na Carta da Chave). Validado por pesquisa dupla
+  // (neurociência + mercado) como o mecanismo mais diferenciado do guia.
+  respostas: Record<number, string>;
 };
 
 const DEFAULT_PROGRESS: Guia7Progress = {
   diaAtual: 1,
   diasConcluidos: [],
   dataUltimoDesbloqueio: "",
+  respostas: {},
 };
+
+const RESPOSTA_MAX = 80;
 
 // Data local (YYYY-MM-DD) — de propósito NÃO usa UTC: o piso é "1 dia-calendário
 // real" no fuso do navegador de quem está lendo, não um recorte de 24h corrido.
@@ -76,7 +84,16 @@ function readProgress(): Guia7Progress {
         ? parsed.diaAtual
         : 1;
     const dataUltimoDesbloqueio = typeof parsed?.dataUltimoDesbloqueio === "string" ? parsed.dataUltimoDesbloqueio : "";
-    return { diaAtual, diasConcluidos, dataUltimoDesbloqueio };
+    const respostas: Record<number, string> = {};
+    if (parsed?.respostas && typeof parsed.respostas === "object") {
+      for (const [k, v] of Object.entries(parsed.respostas)) {
+        const n = Number(k);
+        if (Number.isInteger(n) && n >= 1 && n <= TOTAL_DAYS && typeof v === "string") {
+          respostas[n] = v.slice(0, RESPOSTA_MAX);
+        }
+      }
+    }
+    return { diaAtual, diasConcluidos, dataUltimoDesbloqueio, respostas };
   } catch {
     // localStorage indisponível (modo privado antigo, etc.) — segue com o padrão.
     return DEFAULT_PROGRESS;
@@ -116,6 +133,9 @@ export default function Guia7Funnel({ lang }: { lang: Lang }) {
   // renderiza, então não há mismatch de hidratação — só o "pop" normal ao carregar
   // o progresso real de quem já voltou à página).
   const [progress, setProgress] = useState<Guia7Progress>(DEFAULT_PROGRESS);
+  // Rascunho da frase do dia ativo — só vai pro localStorage quando a pessoa
+  // clica "fiz o Dia N" (junto com o desbloqueio, não antes).
+  const [rascunho, setRascunho] = useState("");
 
   useEffect(() => {
     setProgress(readProgress());
@@ -164,14 +184,17 @@ export default function Guia7Funnel({ lang }: { lang: Lang }) {
       ? progress.diasConcluidos
       : [...progress.diasConcluidos, dayNum];
     const diaAtual = dayNum < TOTAL_DAYS ? dayNum + 1 : TOTAL_DAYS;
-    const next: Guia7Progress = { diaAtual, diasConcluidos, dataUltimoDesbloqueio: today };
+    const frase = rascunho.trim().slice(0, RESPOSTA_MAX);
+    const respostas = frase ? { ...progress.respostas, [dayNum]: frase } : progress.respostas;
+    const next: Guia7Progress = { diaAtual, diasConcluidos, dataUltimoDesbloqueio: today, respostas };
     setProgress(next);
+    setRascunho("");
     try {
       window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(next));
     } catch {
       // sem localStorage: o desbloqueio vale só para esta visita (não persiste).
     }
-    fbTrack("guia7_day_unlocked", true, { dia: dayNum });
+    fbTrack("guia7_day_unlocked", true, { dia: dayNum, escreveu: !!frase });
   }
 
   const isComplete = progress.diasConcluidos.includes(TOTAL_DAYS);
@@ -231,6 +254,19 @@ export default function Guia7Funnel({ lang }: { lang: Lang }) {
         <section className={`${styles.wrap} ${styles.section}`} id="passos">
           <h2 className={styles.h2}>{c.stepsHeading}</h2>
           <p className={styles.stepsSubheading}>{c.stepsSubheading}</p>
+          {/* Chave Fragmentada (delta 2026-08-23): a barra de progresso vira os
+              dentes da PRÓPRIA chave do guia (não um indicador genérico) — cada
+              dente acende quando o dia fecha. O Dia 1 já nasce aceso (efeito do
+              progresso dotado, Nunes & Drèze 2006: começar com 1/7 já feito
+              aumenta a taxa de conclusão vs. começar do zero). */}
+          <div className={styles.chaveProgresso} role="img" aria-label={`${progress.diasConcluidos.length} de ${TOTAL_DAYS} dias`}>
+            {Array.from({ length: TOTAL_DAYS }, (_, i) => i + 1).map((n) => (
+              <span
+                key={n}
+                className={`${styles.dente} ${progress.diasConcluidos.includes(n) ? styles.denteAceso : ""}`}
+              />
+            ))}
+          </div>
           <div className={styles.steps}>
             {c.steps.map((s, i) => {
               const dayNum = i + 1;
@@ -276,6 +312,23 @@ export default function Guia7Funnel({ lang }: { lang: Lang }) {
                       </p>
                       {showButton && (
                         <div className={styles.unlockRow}>
+                          {!todayBlocked && (
+                            <>
+                              <label className={styles.registroLabel} htmlFor={`guia7-registro-${dayNum}`}>
+                                {c.registroLabel}
+                              </label>
+                              <input
+                                id={`guia7-registro-${dayNum}`}
+                                className={styles.registroInput}
+                                type="text"
+                                maxLength={RESPOSTA_MAX}
+                                placeholder={c.registroPlaceholder}
+                                value={rascunho}
+                                onChange={(ev) => setRascunho(ev.target.value)}
+                                onKeyDown={(ev) => ev.key === "Enter" && handleUnlock(dayNum)}
+                              />
+                            </>
+                          )}
                           <button
                             type="button"
                             className={`${styles.btn} ${styles.unlockBtn}`}
@@ -292,6 +345,23 @@ export default function Guia7Funnel({ lang }: { lang: Lang }) {
               );
             })}
           </div>
+          {isComplete && (
+            <div className={styles.cartaCard}>
+              <p className={styles.eyebrow}>{c.badge}</p>
+              <h3 className={styles.cartaHeading}>{c.carta.heading}</h3>
+              <p className={styles.cartaSubheading}>{c.carta.subheading}</p>
+              <ol className={styles.cartaLista}>
+                {Array.from({ length: TOTAL_DAYS }, (_, i) => i + 1).map((n) => (
+                  <li key={n} className={styles.cartaLinha}>
+                    <span className={styles.cartaDia}>{String(n).padStart(2, "0")}</span>
+                    <span className={styles.cartaFrase}>{progress.respostas[n] || c.diaFallback[n - 1]}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className={styles.cartaClosing}>{c.carta.closing}</p>
+              <p className={styles.cartaShareInvite}>{c.carta.shareInvite}</p>
+            </div>
+          )}
           {isComplete && (
             <div className={styles.completionCard}>
               <p className={styles.eyebrow}>{c.completionEyebrow}</p>
