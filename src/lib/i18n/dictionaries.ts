@@ -34,13 +34,13 @@ export const br = {
     title: "A sua gaiola não tem grade.",
     titleAccent: "Você é que não voa.",
     lead: "O feed não tranca a porta — e mesmo assim você volta a ele cem vezes por dia. Não é falta de disciplina: é dopamina barata te deixando dócil, e uma solidão que ninguém nomeia por baixo. Aqui você troca a recompensa barata da tela pela cara — presença, vínculo, uma mente que volta a ser sua.",
-    ctaPrimary: "Ler o manifesto",
+    ctaPrimary: "Pegar o guia grátis de 7 dias",
     ctaSecondary: "Responder à pesquisa",
-    deckEyebrow: "Ritual Diário",
-    deckTitle: "90 segundos de silêncio antes da reação automática.",
-    deckLead: "Entre o impulso e a resposta existe um espaço. É ali — e só ali — que a liberdade começa.",
+    deckEyebrow: "O Intervalo",
+    deckTitle: "90 segundos antes de morder a isca.",
+    deckLead: "A isca é do algoritmo; a mordida é sua escolha. Entre as duas cabem 90 segundos — e neles, quem decide ainda é você.",
     deckTag: "foco",
-    deckSteps: ["Nomeie a emoção", "Observe o impulso", "Escolha conscientemente"],
+    deckSteps: ["Sinta o impulso", "Não morda", "Escolha você"],
   },
   marquee: [
     "GAIOLA SEM GRADE",
@@ -67,8 +67,8 @@ export const br = {
         d: "Impulsos são sinais. Você pode observar antes de agir.",
       },
       {
-        t: "O problema não é a sua força de vontade. É o design contra ela.",
-        d: "Feed, notificação e like foram desenhados por milhares de engenheiros. Disciplina não vence design — arquitetura vence.",
+        t: "A tela promete companhia. Entrega comparação.",
+        d: "Quanto mais você rola, mais sozinho o feed te deixa — e chama isso de conexão.",
       },
       {
         t: "Ser homem não é performar. É ter coragem de não se anular.",
@@ -78,7 +78,7 @@ export const br = {
     promiseLabel: "uma promessa",
     promiseTitle: "Menos estímulo. Mais mundo real. A sua mente de volta.",
     promiseLead:
-      "A estética é silenciosa — mas a mudança é radical. Você vai aprender a reconhecer gatilhos, reduzir compulsão e fortalecer a relação com o próprio pensamento.",
+      "A estética é silenciosa — mas a mudança é radical. Você vai aprender a largar o celular antes de ele te prender, cortar o scroll no automático e voltar a pensar com a sua própria cabeça.",
     rhythmLabel: "ritmo",
     rhythmValue: "Menos pico. Mais presença.",
     stats: [
@@ -150,7 +150,7 @@ export const br = {
     title: "Cartas curtas. Verdades longas.",
     lead: "Receba ensaios editoriais sobre atenção, desintoxicação digital, psicologia e liberdade interna. Sem ruído. Só direção.",
     placeholder: "Seu e-mail",
-    submit: "Inscrever",
+    submit: "Quero as cartas",
     submitting: "Enviando…",
     success: "Inscrito ✓",
     errorInvalid: "Digite um e-mail válido.",
@@ -159,7 +159,7 @@ export const br = {
     benefitsLabel: "o que você recebe",
     benefits: [
       { t: "Reflexões curtas", d: "Para quebrar o ciclo de reação e reacender a escolha." },
-      { t: "Rituais práticos", d: "Micro-hábitos para reduzir compulsão e recuperar desejo." },
+      { t: "Ação concreta", d: "Mudar vai contra o seu cérebro e dói. Aqui a ação vem mesmo assim — coragem, não truque de ambiente." },
       { t: "Psicologia aplicada", d: "Entenda o porquê antes do como." },
     ],
   },
