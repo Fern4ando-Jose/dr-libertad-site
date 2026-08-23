@@ -13,16 +13,21 @@ import styles from "./preSaleCard.module.css";
 // Redesenho 23/08/2026 (dono: "está muito feio, quadrado desse jeito, veja o
 // que tem de mais novo e moderno"): o retângulo escuro empilhado (rótulo sobre
 // rótulo, input em cima do botão, lista de bullet) virou um painel de vidro —
-// borda com gradiente de luz, reflexo especular no canto, glow ambiente atrás,
-// preço e selo de garantia lado a lado, garantias como chips horizontais, e o
-// e-mail + botão fundidos numa única cápsula. Nenhuma copy nem lógica mudou.
+// borda com gradiente de luz, reflexo especular no canto, preço e selo de
+// garantia lado a lado, garantias como chips horizontais, e o e-mail + botão
+// fundidos numa única cápsula. Nenhuma copy nem lógica mudou.
 //
-// Correção 23/08/2026 (dono: "está piscando feito louco"): o glow atrás
-// GIRAVA (blur pesado + transform animando) colado num painel com
-// backdrop-filter — em celular de verdade essa combinação faz o vidro
-// piscar por vários segundos (ver preSaleCard.module.css .aura). O glow
-// virou estático; quem carrega a exigência de "sempre animado" (15/08) são
-// o selo, o botão e a entrada.
+// Duas correções no mesmo dia, as duas só visíveis em celular de VERDADE (o
+// navegador de teste local não reproduz nenhuma das duas — lacuna real desta
+// sessão): (1) dono "está piscando feito louco" — havia um glow GIRANDO
+// (blur pesado + transform animando) atrás do painel com backdrop-filter,
+// combinação que faz o vidro derrapar/piscar; (2) dono "estourando e
+// ocupando toda a tela" — mesmo já parado, esse glow (extrapolava a moldura
+// em -40px por fora, com blur de 64px) ainda estourava visualmente em telas
+// pequenas. Removido de vez: sobra o glow radial simples do herói (sem
+// filtro, contido, já existia antes do redesenho) para a ambientação. Quem
+// carrega a exigência de "sempre animado" (15/08) são o selo, o botão e a
+// entrada — nenhum deles dependia do glow.
 
 const cardContainer: Variants = {
   hidden: {},
@@ -126,13 +131,6 @@ export default function PreSaleCard({
         }}
       />
       <div id="pre-venda" className="relative mx-auto max-w-xl scroll-mt-28">
-        {/* Aura — glow ambiente que gira devagar atrás do vidro (ordem do dono
-            15/08: este card se move sempre). Fica FORA do painel de vidro
-            para não ser cortada pelo backdrop-blur. */}
-        <div
-          aria-hidden="true"
-          className={`${styles.aura} pointer-events-none absolute -inset-10 -z-10 rounded-[3rem]`}
-        />
         {/* Borda com gradiente — a "beira" do vidro pegando luz de um lado. */}
         <div className={`${styles.glassBorder} rounded-[2rem] p-px`}>
           <motion.div
