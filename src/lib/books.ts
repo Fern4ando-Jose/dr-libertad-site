@@ -12,11 +12,16 @@ export type BookMeta = {
   // dono 15/08/2026: a vitrine usa a imagem "Capa-para-site"; a página do livro usa
   // a "-01"). Ausente → a vitrine cai para `cover` (comportamento antigo).
   coverList?: { br: string; es: string };
-  // Medida real do arquivo da capa. O next/image precisa dela para reservar o
-  // espaço antes de a imagem chegar (sem isso a página "pula" — CLS) e o
-  // og:image precisa dela para o scraper não ter de baixar tudo para descobrir.
-  // As duas versões de idioma de um livro têm sempre a mesma medida.
+  // Medida real do arquivo de `cover` (a capa da PÁGINA). O next/image precisa
+  // dela para reservar o espaço antes de a imagem chegar (sem isso a página
+  // "pula" — CLS) e o og:image precisa dela para o scraper não ter de baixar
+  // tudo para descobrir. As duas versões de idioma de `cover` têm a mesma medida.
   coverSize: { width: number; height: number };
+  // Medida real de `coverList` — só quando ela tem proporção DIFERENTE de
+  // `cover` (ex.: "Como Perdi": página 1086×1448, vitrine 1024×1536). Ausente
+  // → a vitrine usa `coverSize` (comportamento antigo, vale quando as duas
+  // artes já nascem na mesma proporção).
+  coverListSize?: { width: number; height: number };
   // Checkout pago (Hotmart etc.). Opcional: um livro em modo GRÁTIS (prévia) não tem.
   checkout?: { br: string; es: string };
   // Preço em número, para os dados estruturados (schema.org/Offer) — o Google
@@ -113,14 +118,13 @@ export const BOOKS: BookMeta[] = [
     // produzida — mesmo padrão do Tolos). Lista de espera, sem checkout.
     slug: "como-perdi-a-mulher-da-minha-vida",
     dictKey: "perdi",
-    // Página do livro: a foto do livro em pé (já em uso). Vitrine: uma 2ª foto
-    // distinta (mesa com planta/café) — antes as duas usavam o MESMO arquivo,
-    // que era o defeito apontado pelo dono em 23/08.
+    // Nomes definitivos do dono (23/08): "Imagem-Pagina-livro" = capa da PÁGINA
+    // do livro; "Imagem-Livros" = capa da VITRINE /livros. Proporções REAIS
+    // diferentes (1086×1448 × 1024×1536) — por isso `coverListSize` abaixo.
     cover: { br: "/images/como-perdi-capa-br-01.png", es: "/images/como-perdi-capa-br-01.png" },
     coverList: { br: "/images/como-perdi-capa-pt.png", es: "/images/como-perdi-capa-pt.png" },
-    // 1024×1536 é a medida real das DUAS artes (verificada nos PNGs) — mesma
-    // proporção, então o campo único `coverSize` vale para as duas sem distorcer.
-    coverSize: { width: 1024, height: 1536 },
+    coverSize: { width: 1086, height: 1448 },
+    coverListSize: { width: 1024, height: 1536 },
     preSale: true,
     underReview: true,
     // ES US$ 9,99 (ordem do dono 23/08). BR = conversão literal ao câmbio do dia

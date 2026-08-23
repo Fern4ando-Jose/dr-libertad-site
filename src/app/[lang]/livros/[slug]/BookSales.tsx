@@ -224,6 +224,19 @@ export default function BookSales({ slug }: { slug: string }) {
                   priority
                   className="w-full h-auto rounded-xl shadow-[0_24px_70px_-18px_rgba(0,0,0,0.7)]"
                 />
+                {/* Selo "em revisão" ANCORADO NA IMAGEM (ordem do dono 23/08),
+                    não só como texto separado abaixo do herói. */}
+                {book.underReview && "reviewNote" in L && (
+                  <div className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-full border border-warm-gray/25 bg-[#0d0c0a]/90 px-3 py-1.5 backdrop-blur">
+                    <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-muted-red/60" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-muted-red" />
+                    </span>
+                    <span className="text-[0.65rem] font-semibold tracking-[0.14em] uppercase text-offwhite">
+                      {L.reviewNote.eyebrow}: {L.reviewNote.title}
+                    </span>
+                  </div>
+                )}
               </motion.div>
             </div>
           </div>

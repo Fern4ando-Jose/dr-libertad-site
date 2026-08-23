@@ -98,8 +98,8 @@ export default function LivrosIndexView() {
                           <Image
                             src={cover}
                             alt={b.coverAlt}
-                            width={book.coverSize.width}
-                            height={book.coverSize.height}
+                            width={(book.coverListSize ?? book.coverSize).width}
+                            height={(book.coverListSize ?? book.coverSize).height}
                             // Card da vitrine: coluna única no celular, 1/2 no
                             // tablet, 1/3 no desktop — nunca a largura toda.
                             sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
