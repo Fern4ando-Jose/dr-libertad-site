@@ -104,8 +104,15 @@ export const BOOKS: BookMeta[] = [
     // reusa a mesma imagem até a versão espanhola ser produzida.
     cover: { br: "/images/tolos-capa-br-01.jpg", es: "/images/tolos-capa-br-01.jpg" },
     coverList: { br: "/images/tolos-capa-pt.jpg", es: "/images/tolos-capa-pt.jpg" },
-    // 825×1024 é a medida real das duas capas (verificada no arquivo).
+    // 825×1024 é a medida real da capa da PÁGINA (arte original, sem moldura).
     coverSize: { width: 825, height: 1024 },
+    // A capa da VITRINE ganhou moldura sólida (mesma cor de fundo do site,
+    // `#0B0B0C`) até virar 1086×1448 — dono 23/08: "padronize o tamanho das
+    // imagens... estão de tamanhos diferentes" (as 3 capas tinham proporção
+    // própria; na mesma moldura 3:4 do card, a arte visível saía menor ou
+    // maior conforme o livro). 1086×1448 é a proporção exata de "I Love
+    // Dopamina", que já nascia em 3:4 — as outras duas foram encaixadas nela.
+    coverListSize: { width: 1086, height: 1448 },
     preSale: true,
     // Pré-lançamento (mesmo valor da pré-venda de dopamina: R$ 29,90 / US$ 5,90 —
     // o dono decide o valor exato ao publicar).
@@ -119,12 +126,14 @@ export const BOOKS: BookMeta[] = [
     slug: "como-perdi-a-mulher-da-minha-vida",
     dictKey: "perdi",
     // Nomes definitivos do dono (23/08): "Imagem-Pagina-livro" = capa da PÁGINA
-    // do livro; "Imagem-Livros" = capa da VITRINE /livros. Proporções REAIS
-    // diferentes (1086×1448 × 1024×1536) — por isso `coverListSize` abaixo.
+    // do livro; "Imagem-Livros" = capa da VITRINE /livros.
     cover: { br: "/images/como-perdi-capa-br-01.png", es: "/images/como-perdi-capa-br-01.png" },
     coverList: { br: "/images/como-perdi-capa-pt.png", es: "/images/como-perdi-capa-pt.png" },
     coverSize: { width: 1086, height: 1448 },
-    coverListSize: { width: 1024, height: 1536 },
+    // A capa da VITRINE (proporção original 1024×1536, mais estreita que as
+    // outras duas) ganhou moldura sólida lateral até virar 1086×1448 — mesma
+    // correção e mesmo motivo do Tolos, acima.
+    coverListSize: { width: 1086, height: 1448 },
     preSale: true,
     underReview: true,
     // ES US$ 9,99 (ordem do dono 23/08). BR = conversão literal ao câmbio do dia
