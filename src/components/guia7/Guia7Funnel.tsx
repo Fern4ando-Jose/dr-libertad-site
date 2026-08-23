@@ -278,6 +278,13 @@ export default function Guia7Funnel({ lang }: { lang: Lang }) {
                 dayNum < TOTAL_DAYS &&
                 !!progress.dataUltimoDesbloqueio &&
                 progress.dataUltimoDesbloqueio >= todayStr();
+              // [Sem vazamento de conteúdo, 23/08 delta 3 — achado do dono: "o segundo
+              // dia abre e não deveria abrir"] Ao fechar um dia, `diaAtual` avança na
+              // hora — o dia seguinte virava "ativo" e mostrava ação+porquê completos
+              // no MESMO instante, só o botão ficava desabilitado. A espera de 1 dia
+              // é o mecanismo (Gollwitzer/Ovsiankina, briefing do estrategista); o
+              // texto tem de ficar tão escondido quanto num dia ainda trancado.
+              const isWaitingTomorrow = isActive && todayBlocked;
               const cardCls = [
                 styles.step,
                 isLocked ? styles.stepLocked : "",
@@ -302,44 +309,46 @@ export default function Guia7Funnel({ lang }: { lang: Lang }) {
                       </span>
                     )}
                   </div>
-                  {isLocked ? (
-                    <p className={styles.lockedTeaser}>{fillTemplate(c.lockedTeaser, dayNum)}</p>
+                  {isLocked || isWaitingTomorrow ? (
+                    <p className={styles.lockedTeaser}>
+                      {fillTemplate(isWaitingTomorrow ? c.waitingTeaser : c.lockedTeaser, dayNum)}
+                    </p>
                   ) : (
                     <>
                       <p className={styles.stepAcao}>{s.acao}</p>
                       <p className={styles.stepPorque}>
                         <b>{c.porqueLabel}:</b> {s.porque}
                       </p>
-                      {showButton && (
-                        <div className={styles.unlockRow}>
-                          {!todayBlocked && (
-                            <>
-                              <label className={styles.registroLabel} htmlFor={`guia7-registro-${dayNum}`}>
-                                {c.registroLabel}
-                              </label>
-                              <input
-                                id={`guia7-registro-${dayNum}`}
-                                className={styles.registroInput}
-                                type="text"
-                                maxLength={RESPOSTA_MAX}
-                                placeholder={c.registroPlaceholder}
-                                value={rascunho}
-                                onChange={(ev) => setRascunho(ev.target.value)}
-                                onKeyDown={(ev) => ev.key === "Enter" && handleUnlock(dayNum)}
-                              />
-                            </>
-                          )}
-                          <button
-                            type="button"
-                            className={`${styles.btn} ${styles.unlockBtn}`}
-                            disabled={todayBlocked}
-                            onClick={() => handleUnlock(dayNum)}
-                          >
-                            {buttonLabel}
-                          </button>
-                        </div>
-                      )}
                     </>
+                  )}
+                  {showButton && (
+                    <div className={styles.unlockRow}>
+                      {!todayBlocked && (
+                        <>
+                          <label className={styles.registroLabel} htmlFor={`guia7-registro-${dayNum}`}>
+                            {c.registroLabel}
+                          </label>
+                          <input
+                            id={`guia7-registro-${dayNum}`}
+                            className={styles.registroInput}
+                            type="text"
+                            maxLength={RESPOSTA_MAX}
+                            placeholder={c.registroPlaceholder}
+                            value={rascunho}
+                            onChange={(ev) => setRascunho(ev.target.value)}
+                            onKeyDown={(ev) => ev.key === "Enter" && handleUnlock(dayNum)}
+                          />
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.unlockBtn}`}
+                        disabled={todayBlocked}
+                        onClick={() => handleUnlock(dayNum)}
+                      >
+                        {buttonLabel}
+                      </button>
+                    </div>
                   )}
                 </article>
               );

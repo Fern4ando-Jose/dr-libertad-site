@@ -56,6 +56,10 @@ export interface Guia7Content {
   lockedBadge: string;
   /** Teaser do card trancado — template com o marcador literal "{N-1}". */
   lockedTeaser: string;
+  /** Teaser do dia ATIVO quando o piso de 1 dia já foi usado hoje (o passo/porquê
+   * fica escondido até amanhã, igual ao trancado — só muda o motivo). Template
+   * com "{N}". */
+  waitingTeaser: string;
   /** Botão de desbloqueio dos dias 1–6 — template com "{N}" e "{N+1}". */
   unlockButtonLabel: string;
   /** Botão de desbloqueio do Dia 7 (não tem próximo dia). */
@@ -173,6 +177,7 @@ export const guia7Content: Record<Lang, Guia7Content> = {
     ],
     lockedBadge: "🔒 Trancado — ainda não é a vez dele.",
     lockedTeaser: "O passo e o porquê ficam escondidos até você fechar o Dia {N-1} — de propósito.",
+    waitingTeaser: "Você já deu seu passo hoje. O Dia {N} escondido aqui só abre amanhã — de propósito, para não pular fila.",
     unlockButtonLabel: "Fiz o Dia {N}. Destranco o Dia {N+1} →",
     unlockButtonLabelFinal: "Fiz os 7. A chave é sua.",
     unlockButtonDisabledLabel: "Volta amanhã pro Dia {N+1}.",
@@ -296,6 +301,7 @@ export const guia7Content: Record<Lang, Guia7Content> = {
     ],
     lockedBadge: "🔒 Bloqueado — todavía no le toca.",
     lockedTeaser: "El paso y el porqué quedan ocultos hasta que cierres el Día {N-1} — a propósito.",
+    waitingTeaser: "Ya diste tu paso hoy. El Día {N}, oculto aquí, se abre recién mañana — a propósito, para no saltarte la fila.",
     unlockButtonLabel: "Hice el Día {N}. Destrabo el Día {N+1} →",
     unlockButtonLabelFinal: "Hice los 7. La llave es tuya.",
     unlockButtonDisabledLabel: "Vuelve mañana por el Día {N+1}.",

@@ -169,14 +169,21 @@ export default function StudioNav() {
               Abaixo de 340px SÓ o CTA some (LangToggle + hambúrguer nunca somem,
               são os alvos de toque protegidos) — nessa faixa raríssima o guia
               continua a 1 toque dentro do menu hambúrguer, como sempre foi. */}
-          <a
-            href={`${home}/guia-7-dias`}
-            onClick={() => setOpen(false)}
-            className="hidden shrink-0 items-center rounded-xl bg-muted-red-strong px-2.5 py-2 text-[10px] font-semibold tracking-[0.08em] whitespace-nowrap uppercase text-offwhite transition hover:bg-muted-red-strong/90 min-[340px]:inline-flex sm:px-4 sm:text-xs sm:tracking-[0.22em]"
-          >
-            <span className="sm:hidden">{t.nav.ctaShort}</span>
-            <span className="hidden sm:inline">{t.nav.cta}</span>
-          </a>
+          {/* [Sem duplicata na home, 23/08 delta 3 — achado do dono: "ainda segue em 2
+              lugar o guia na pagina inicial"] Nav é fixo: na home o herói já mostra
+              este MESMO cta logo abaixo, e os dois ficavam visíveis ao mesmo tempo
+              desde o primeiro scroll. Nas outras páginas (livros, blog, o guia em
+              si) o nav continua sendo o único acesso — só some aqui, na home. */}
+          {!isHome && (
+            <a
+              href={`${home}/guia-7-dias`}
+              onClick={() => setOpen(false)}
+              className="hidden shrink-0 items-center rounded-xl bg-muted-red-strong px-2.5 py-2 text-[10px] font-semibold tracking-[0.08em] whitespace-nowrap uppercase text-offwhite transition hover:bg-muted-red-strong/90 min-[340px]:inline-flex sm:px-4 sm:text-xs sm:tracking-[0.22em]"
+            >
+              <span className="sm:hidden">{t.nav.ctaShort}</span>
+              <span className="hidden sm:inline">{t.nav.cta}</span>
+            </a>
+          )}
 
           {/* Botão do menu mobile — ligado até `lg` (ver nota acima do <nav>). Alvo
               de toque 44×44 (era 36×36, abaixo do mínimo de acessibilidade). */}
@@ -228,13 +235,15 @@ export default function StudioNav() {
               <a href={`${home}/autor`} onClick={() => setOpen(false)} className={mobileItemCls}>
                 {t.nav.author}
               </a>
-              <a
-                href={`${home}/guia-7-dias`}
-                onClick={() => setOpen(false)}
-                className="my-4 rounded-xl bg-muted-red-strong px-5 py-3 text-center text-xs tracking-[0.22em] uppercase text-offwhite transition hover:bg-muted-red-strong/90"
-              >
-                {t.nav.cta}
-              </a>
+              {!isHome && (
+                <a
+                  href={`${home}/guia-7-dias`}
+                  onClick={() => setOpen(false)}
+                  className="my-4 rounded-xl bg-muted-red-strong px-5 py-3 text-center text-xs tracking-[0.22em] uppercase text-offwhite transition hover:bg-muted-red-strong/90"
+                >
+                  {t.nav.cta}
+                </a>
+              )}
             </div>
           </motion.nav>
         )}
