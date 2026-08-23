@@ -141,7 +141,9 @@ export default function LivrosIndexView() {
                         </div>
                       </div>
                     </MotionLink>
-                    {book.preSale && <PreSalePopup slug={book.slug} />}
+                    {book.preSale && (
+                      <PreSalePopup slug={book.slug} price={b.price} priceNote={"priceNote" in b ? b.priceNote : undefined} />
+                    )}
                   </div>
                 </Reveal>
               );

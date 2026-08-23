@@ -22,9 +22,22 @@ import styles from "./preSalePopup.module.css";
 
 const KEY = "dl-pre-venda-popup-2026-08";
 
-export default function PreSalePopup({ slug }: { slug: string }) {
+export default function PreSalePopup({
+  slug,
+  price,
+  priceNote,
+}: {
+  slug: string;
+  // Preço do LIVRO — mesma causa do bug visto ao vivo em 23/08 no PreSaleCard:
+  // sem isto, o selo cai no preço GENÉRICO de `t.waitlist` (igual para todo
+  // livro em pré-venda) e diverge do preço mostrado no card ao lado dele.
+  price?: string;
+  priceNote?: string;
+}) {
   const { t, lang } = useLang();
   const w = t.waitlist;
+  const displayPrice = price ?? w.price;
+  const displayPriceNote = priceNote ?? w.priceNote;
   const [open, setOpen] = useState(false);
 
   // Aparece após um respiro (1,4 s) e só 1× por sessão; fechou, não volta.
@@ -83,8 +96,8 @@ export default function PreSalePopup({ slug }: { slug: string }) {
                   {w.popupTitle}
                 </span>
               </span>
-              <span className="mt-1.5 block text-[0.95rem] leading-none text-offwhite">{w.price}</span>
-              <span className="mt-0.5 block text-[0.6rem] tracking-[0.04em] text-warm-gray/70">{w.priceNote}</span>
+              <span className="mt-1.5 block text-[0.95rem] leading-none text-offwhite">{displayPrice}</span>
+              <span className="mt-0.5 block text-[0.6rem] tracking-[0.04em] text-warm-gray/70">{displayPriceNote}</span>
               <span className="mt-2 inline-flex items-center gap-1 text-[0.7rem] font-bold tracking-[0.08em] text-muted-red uppercase transition group-hover:gap-1.5">
                 {w.submit}
                 <span aria-hidden="true">{String.fromCharCode(8594)}</span>
