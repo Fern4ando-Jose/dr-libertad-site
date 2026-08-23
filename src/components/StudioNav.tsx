@@ -152,19 +152,30 @@ export default function StudioNav() {
 
         {/* shrink-0: este cluster (idioma + CTA + hambúrguer) NUNCA cede espaço —
             é a nav ao lado (min-w-0/overflow-hidden acima) que cede primeiro. */}
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-3">
           <LangToggle lang={lang} setLang={setLang} />
           {/* [Endurecer visual, 23/08] O CTA principal do nav era uma pílula
               cinza-fantasma (border-warm-gray, sem acento) — o item mais
               importante do header não se destacava de nada ao redor. Vira
               acento sólido: --color-muted-red-strong (5.32:1 medido contra o
-              texto offwhite, ver globals.css). */}
+              texto offwhite, ver globals.css).
+              [Sempre visível, 23/08 delta 2] Era `hidden md:inline-flex` — sumia
+              abaixo de 768px, sobrando só dentro do menu hambúrguer. Hoje é o
+              ÚNICO CTA de e-mail do site inteiro (unificação do mesmo dia) — não
+              pode depender de largura de tela nem de abrir o menu pra existir.
+              Abaixo de `sm` (640px) o rótulo curto (`ctaShort`) + padding menor
+              evitam o hambúrguer (44×44, alvo de toque — não pode encolher)
+              ser empurrado pra fora da tela; medido contra 320/345/375/414/640px.
+              Abaixo de 340px SÓ o CTA some (LangToggle + hambúrguer nunca somem,
+              são os alvos de toque protegidos) — nessa faixa raríssima o guia
+              continua a 1 toque dentro do menu hambúrguer, como sempre foi. */}
           <a
             href={`${home}/guia-7-dias`}
             onClick={() => setOpen(false)}
-            className="hidden rounded-xl bg-muted-red-strong px-4 py-2 text-xs font-semibold tracking-[0.22em] uppercase text-offwhite transition hover:bg-muted-red-strong/90 md:inline-flex"
+            className="hidden shrink-0 items-center rounded-xl bg-muted-red-strong px-2.5 py-2 text-[10px] font-semibold tracking-[0.08em] whitespace-nowrap uppercase text-offwhite transition hover:bg-muted-red-strong/90 min-[340px]:inline-flex sm:px-4 sm:text-xs sm:tracking-[0.22em]"
           >
-            {t.nav.cta}
+            <span className="sm:hidden">{t.nav.ctaShort}</span>
+            <span className="hidden sm:inline">{t.nav.cta}</span>
           </a>
 
           {/* Botão do menu mobile — ligado até `lg` (ver nota acima do <nav>). Alvo
