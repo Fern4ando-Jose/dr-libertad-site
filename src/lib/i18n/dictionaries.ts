@@ -671,7 +671,7 @@ export const es: Dict = {
     title: "Tu jaula no tiene rejas.",
     titleAccent: "Eres tú quien no vuela.",
     lead: "El feed no cierra la puerta con llave — y aun así vuelves a él cien veces al día. No es falta de disciplina: es dopamina barata que te mantiene dócil, y una soledad que nadie nombra por debajo. Aquí cambias la recompensa barata de la pantalla por la cara — presencia, vínculo, una mente que vuelve a ser tuya.",
-    ctaPrimary: "Leer el manifiesto",
+    ctaPrimary: "Consigue la guía gratis de 7 días",
     ctaSecondary: "Responder la investigación",
     deckEyebrow: "Ritual Diario",
     deckTitle: "90 segundos de silencio antes de la reacción automática.",
