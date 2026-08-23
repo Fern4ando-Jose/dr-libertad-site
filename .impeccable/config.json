@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "_Historico/IMPECCABLE-CRITIQUE-HOME-2026-08-23.html"
+        ],
+        "createdAt": "2026-08-23T16:56:04.523Z",
+        "reason": "arquivo é um relatório interno (não é UI de produto do site) — a borda colorida à esquerda nos cards de prioridade é convenção comum de callout/severidade em documento (tipo comentário de PR), não tentativa de parecer produto artesanal"
+      }
+    ]
+  }
+}
