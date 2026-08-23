@@ -1,12 +1,70 @@
-/* Card de pré-venda (PreSaleCard) — animações em CSS. A copy e a direção de
- * animação vieram da peça ao marketing (15/08/2026): entrada discreta, ponto de
- * vida no selo e glow que "respira" no botão. Sobriedade da marca — nada de grito.
- * A entrada em stagger é do framer-motion (no próprio componente).
- * ⚠️ 15/08/2026: a trava de "menos movimento" foi removida por ordem do dono
- * ("o card deve ser animado, anime") — as animações do card rodam SEMPRE. */
+/* Redesenho 23/08/2026: retângulo escuro empilhado → painel de vidro líquido
+ * (borda com gradiente de luz, reflexo especular, glow ambiente girando
+ * devagar atrás). Ver PreSaleCard.tsx para o porquê de cada peça. */
 
-.card {
-  position: relative;
+/* Glow ambiente atrás do vidro — gira devagar (a marca pediu movimento
+ * SEMPRE neste card, nunca uma trava de "menos movimento"). Puro CSS: não
+ * pesa a mão do framer-motion e não some em prefers-reduced-motion, por
+ * ordem do dono. */
+.aura {
+  background: conic-gradient(
+    from 0deg at 50% 45%,
+    rgba(164, 90, 90, 0.55),
+    rgba(185, 176, 162, 0.1) 30%,
+    transparent 52%,
+    rgba(164, 90, 90, 0.32) 78%,
+    rgba(164, 90, 90, 0.55)
+  );
+  filter: blur(64px);
+  opacity: 0.8;
+  animation: aura-spin 24s linear infinite;
+}
+
+@keyframes aura-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* A "beira" do vidro: gradiente fino simulando luz pegando um lado do card. */
+.glassBorder {
+  background: linear-gradient(
+    135deg,
+    rgba(164, 90, 90, 0.55),
+    rgba(244, 240, 232, 0.1) 45%,
+    rgba(164, 90, 90, 0.3) 100%
+  );
+}
+
+/* O painel de vidro em si: leve gradiente + reflexo especular no canto
+ * superior esquerdo (luz batendo no vidro), profundidade real (sombra com
+ * offset e blur — nunca halo de brilho zero-offset). O desfoque de vidro vem
+ * da utilidade backdrop-blur do Tailwind no className (não daqui): escrita
+ * à mão, a build (Lightning CSS) descartava a `backdrop-filter` padrão e só
+ * sobrava a `-webkit-`, que este navegador não aplica — o vidro ficava
+ * opaco sem desfoque nenhum (achado 23/08). */
+.glass {
+  background: radial-gradient(120% 100% at 12% -10%, rgba(255, 255, 255, 0.13), transparent 45%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 32px 90px -24px rgba(0, 0, 0, 0.7);
+}
+
+/* Cápsula do e-mail: o próprio campo ganha o mesmo reflexo do vidro por
+ * dentro, para não parecer um input solto sobre o painel. */
+.capsule {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
+    rgba(11, 11, 12, 0.3);
+}
+
+.spinner {
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Ponto pulsante no selo de pré-lançamento: microvida, sem roubar a cena. */
