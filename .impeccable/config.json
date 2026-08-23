@@ -11,6 +11,15 @@
         ],
         "createdAt": "2026-08-23T16:56:04.523Z",
         "reason": "arquivo é um relatório interno (não é UI de produto do site) — a borda colorida à esquerda nos cards de prioridade é convenção comum de callout/severidade em documento (tipo comentário de PR), não tentativa de parecer produto artesanal"
+      },
+      {
+        "rule": "dark-glow",
+        "value": "0 0 10px -1px rgba(235,176,115,.6)",
+        "files": [
+          "_HISTORICO/GUIA-7-DIAS-CARTA-DA-CHAVE-2026-08-23.html"
+        ],
+        "createdAt": "2026-08-23T23:05:25.690Z",
+        "reason": "reprodução fiel do CSS real já em produção (guia7.module.css .denteAceso, já aprovado pelo detector no componente de origem) — este HTML é relatório de prova, não design novo"
       }
     ]
   }
