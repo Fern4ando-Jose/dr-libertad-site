@@ -1,5 +1,13 @@
 # Organograma — Automação Dr. Libertad
 
+> ⛔ **DESATUALIZADO — o diagrama ASCII abaixo ("Fluxo completo de publicação") é da era do
+> CRON DO VERCEL (pré-migração para GitHub Actions) e cita slots/horários que não existem mais.**
+> A cadência mudou várias vezes desde então — **hoje (2026-08-23) é 1 peça/dia**: Reel na
+> maioria dos dias, Carrossel a cada 3 dias no lugar dele, agendado via GitHub Actions
+> (`.github/workflows/instagram-posts.yml` + `instagram-reels.yml`). Fonte única sempre
+> `../../src/lib/day.ts` (`RUN_HOUR_BRT`/`POSTS_PER_DAY`) e `../../CLAUDE.md`. Preservado abaixo
+> como registro histórico do desenho original.
+
 ## ⚡ Delta 2026-08-16 — quem escreve o TEXTO mudou de fornecedor (Claude → DeepSeek)
 
 Ordem do dono: *"todas as esteiras que usam APIs devem migrar para a api do deepseek, isso eu

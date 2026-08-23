@@ -1,11 +1,18 @@
 // ─── Registro de contas / idiomas ─────────────────────────────────────────────
 // Uma conta de Instagram por idioma/mercado. A "máquina" (footage, render, design)
-// é a mesma; só mudam: idioma da copy, @handle, hashtags e as credenciais (token +
+// é a mesma; só mudam: idioma da copy, @handle e as credenciais (token +
 // account-id) da conta de destino.
 //
 // ES é a conta atual (@dr.liberdad) — usa as envs históricas, comportamento
 // inalterado. BR (@dr.liberdade.br) usa envs próprias. lang default = "es" em
 // todos os pontos → ES nunca muda.
+//
+// ⛔ HASHTAGS não vivem aqui (não são config fixa por conta) — o prompt de
+// `generateContent` (api/publish/route.ts) exige 3-5 hashtags ESPECÍFICAS DO TEMA
+// por peça, no máximo 1 de marca "e só se encaixar". Existiu um campo `baseHashtags`
+// aqui até 2026-08-23 — nunca foi lido por nenhum código (dead code), mas era
+// exatamente a forma do defeito medido pelo dono (mesmas hashtags sempre = lido como
+// spam). Removido para não confundir quem procurar "onde estão as hashtags fixas".
 //
 // ⛔ O IDIOMA SE CHAMA "br" (ordem do dono, 29/07/2026 — "não existe o idioma PT").
 // O código antigo "pt" sobrevive SÓ como LEGADO DE FRONTEIRA, isolado nas funções
@@ -30,8 +37,6 @@ export interface AccountCfg {
   ctaFollow: string;
   /** Linha "link da bio" do CTA do Reel, no idioma da conta. */
   ctaBio: string;
-  /** Hashtags base da marca (o Claude adiciona temáticas por cima). */
-  baseHashtags: string[];
   /** Nome da env var com o access token da conta. */
   tokenEnv: string;
   /** Nome LEGADO da env na Vercel (era do rótulo antigo) — lido só como reserva. */
@@ -60,7 +65,6 @@ export const ACCOUNTS: Record<Lang, AccountCfg> = {
     handle: "@dr.liberdad",
     ctaFollow: "Sigue",
     ctaBio: "→ Más en el link de la bio",
-    baseHashtags: ["#DrLibertad", "#LibertadMental"],
     tokenEnv: "META_ACCESS_TOKEN",
     accountIdEnv: "META_INSTAGRAM_ACCOUNT_ID",
     dbTokenKey: "meta_access_token",
@@ -73,7 +77,6 @@ export const ACCOUNTS: Record<Lang, AccountCfg> = {
     handle: "@dr.liberdade.br",
     ctaFollow: "Siga",
     ctaBio: "→ Mais no link da bio",
-    baseHashtags: ["#DrLiberdade", "#LiberdadeMental"],
     tokenEnv: "META_ACCESS_TOKEN_BR",
     tokenEnvLegado: "META_ACCESS_TOKEN_PT",
     accountIdEnv: "META_INSTAGRAM_ACCOUNT_ID_BR",

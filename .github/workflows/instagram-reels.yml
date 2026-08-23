@@ -11,23 +11,20 @@ name: Instagram Reels — Dr. Libertad / Dr. Liberdade (ES + BR)
 # fonte única do job, ES e PT nunca mais saem de sincronia. ES dispara em :17 e PT em
 # :22 (5 min depois, p/ ler a arte que o ES já gerou; imagem compartilhada, só a copy muda).
 #
-# 2 Reels de VÍDEO/dia por idioma (runs 3 e 2). O Reel CLÁSSICO (slide animado) foi
-# DESLIGADO em 09/08 por ordem do dono — a vaga das 19h (run 3) virou Reel de vídeo.
-# O `run` também vem da EXPRESSÃO cron, não do relógio — pra atraso do cron não
-# colidir com o run vizinho.
+# CADÊNCIA 1 PEÇA/DIA (ordem do dono 2026-08-23, reestruturação total das 2 contas:
+# "pode, aplique tudo"): 1 Reel de VÍDEO/dia por idioma (run 3, 19h BRT), NA MAIORIA
+# dos dias. A cada 3 dias o CARROSSEL (instagram-posts.yml, mesmo horário 19h) toma a
+# vaga no lugar do Reel — `/api/publish?preview=1` devolve `skipped:true` sem gastar
+# nada nesses dias (`isCarouselDay`, fonte única em src/lib/day.ts). O Reel CLÁSSICO
+# (slide animado) segue DESLIGADO desde 09/08. O `run` vem da EXPRESSÃO cron, não do
+# relógio — pra atraso do cron não colidir com o run vizinho.
 on:
   schedule:
-    # Cadência 3/dia por idioma (ordem do dono 15/08: "2 reel ao dia e 1 carrossel"):
-    # 1 carrossel (instagram-posts, 9h) + 2 Reels de VÍDEO por idioma (19h e 21h).
-    # O run 0 (12h) foi RETIRADO em 15/08; os runs 1 (17:17) e 6 (07:17) já haviam
-    # saído em 27/07. Quem manda no conjunto de vagas é RUN_HOUR_BRT em src/lib/day.ts
-    # (fonte única); estes crons a espelham.
-    # ES (:17)
-    - cron: "17 22 * * *" # 19:17 BRT — ES run 3 (era do Reel CLÁSSICO; assumida em 09/08 por ordem do dono)
-    - cron: "17 0 * * *"  # 21:17 BRT — ES run 2
-    # PT (:22, 5 min após o ES)
-    - cron: "22 22 * * *" # 19:22 BRT — PT run 3 (era do Reel CLÁSSICO)
-    - cron: "22 0 * * *"  # 21:22 BRT — PT run 2
+    # Único horário armado: 19h BRT, o mesmo do carrossel — os dois se revezam por
+    # dia (ver header acima). Quem manda no conjunto de vagas é RUN_HOUR_BRT em
+    # src/lib/day.ts (fonte única); estes crons a espelham.
+    - cron: "17 22 * * *" # 19:17 BRT — ES run 3
+    - cron: "22 22 * * *" # 19:22 BRT — PT run 3 (5 min após o ES)
   workflow_dispatch:
     inputs:
       lang:
@@ -35,7 +32,7 @@ on:
         required: false
         default: "es"
       run:
-        description: "Run 2 ou 3 p/ escolher o tópico (vazio = run 2)"
+        description: "Run p/ escolher o tópico (vazio = 3, o único horário ativo; 0/1/2/6 só para backfill manual)"
         required: false
         default: ""
       publish:
@@ -84,19 +81,13 @@ jobs:
           IN_RUN: ${{ github.event.inputs.run }}
         run: |
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            RUN="${IN_RUN:-2}"   # disparo manual: run informado ou 2 (noite)
+            RUN="${IN_RUN:-3}"   # disparo manual: run informado ou 3 (o único horário ativo)
             LANG="${IN_LANG:-es}"
           else
             case "$SCHEDULE" in
-              "17 20 * * *") RUN=1; LANG=es ;;
               "17 22 * * *") RUN=3; LANG=es ;;
-              "17 0 * * *")  RUN=2; LANG=es ;;
-              "17 10 * * *") RUN=6; LANG=es ;;
-              "22 20 * * *") RUN=1; LANG=br ;;
               "22 22 * * *") RUN=3; LANG=br ;;
-              "22 0 * * *")  RUN=2; LANG=br ;;
-              "22 10 * * *") RUN=6; LANG=br ;;
-              *) RUN=2; LANG=es ;;  # fallback defensivo
+              *) RUN=3; LANG=es ;;  # fallback defensivo
             esac
           fi
           [ "$LANG" = "pt" ] && LANG=br  # aceita o codigo LEGADO de chamada antiga (catchup/curl velho)
@@ -151,6 +142,14 @@ jobs:
             echo "::error title=Falha ao obter conteúdo::HTTP $HTTP"
             cat preview.json; echo
             exit 1
+          fi
+          # Cadência 1 peça/dia (2026-08-23): hoje é dia de CARROSSEL, não de Reel —
+          # /api/publish devolve "skipped":true sem gastar nada. Não é defeito.
+          if grep -q '"skipped":true' preview.json; then
+            echo "pulado=1" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Reel pulado — hoje é dia de carrossel::Cadência 1 peça/dia: o carrossel substitui o Reel a cada 3 dias, e hoje é um deles."
+            cat preview.json; echo
+            exit 0
           fi
           echo "Prévia recebida:"
           cat preview.json | head -c 400; echo

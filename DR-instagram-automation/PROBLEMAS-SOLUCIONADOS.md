@@ -122,7 +122,10 @@ O `preview-carousel.html` usa Fraunces do Google Fonts apenas para visualizaçã
 > **GitHub Actions** (grátis, sem limite de cron). A tabela antiga de 3 slots no Vercel
 > virou histórico abaixo. **Fonte da verdade da cadência = `../CLAUDE.md` / `PROJETO.md`.**
 
-**Configuração VIGENTE — 6 posts/dia (4 Reels + 2 carrosséis), no GitHub Actions:**
+**Configuração de 2026-06-16 (HISTÓRICO — não é mais a cadência atual, ver banner acima):
+6 posts/dia (4 Reels + 2 carrosséis), no GitHub Actions.** A cadência real de hoje é
+**1 peça/dia** (Reel na maioria dos dias, Carrossel a cada 3 dias no lugar dele) — fonte
+única `../src/lib/day.ts`.
 
 | Run | Horário BRT / UTC | Formato | Workflow |
 |---|---|---|---|

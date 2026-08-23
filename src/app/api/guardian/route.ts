@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dayBRT, publishedRunsToday, recentDuplicateTopics, attemptsToday, shouldStopRetrying, orphanedPairs } from "@/lib/run-ledger";
-import { minOfDayBRT, RUN_HOUR_BRT, ACTIVE_RUNS, POSTS_PER_DAY } from "@/lib/day";
+import { minOfDayBRT, RUN_HOUR_BRT, runsForDay, POSTS_PER_DAY } from "@/lib/day";
 import { accountFor, type Lang, envToken, envAccountId } from "@/lib/accounts";
 
-// GUARDIÃO diário: verifica se as 6 vagas do dia publicaram em CADA conta (ES + PT).
-// VERIFICA DUAS FONTES: (1) nosso livro-razão (published_runs) e (2) o PRÓPRIO
-// Instagram via Graph API (a verdade — pega post-fantasma: livro diz publicou mas o
-// IG não tem). Persiste o veredito em `daily_report` (lido pelo painel-adm) e devolve
-// `missing[]` p/ o guardiao.yml dar a última varredura de auto-cura. Pedido do dono
-// (2026-07-07): "os 6 posts rodam nos 2 IGs e VOCÊ vigia, verificando no Instagram".
+// GUARDIÃO diário: verifica se a 1 peça do dia (Reel OU Carrossel — cadência
+// 2026-08-23) publicou em CADA conta (ES + PT). VERIFICA DUAS FONTES: (1) nosso
+// livro-razão (published_runs) e (2) o PRÓPRIO Instagram via Graph API (a verdade —
+// pega post-fantasma: livro diz publicou mas o IG não tem). Persiste o veredito em
+// `daily_report` (lido pelo painel-adm) e devolve `missing[]` p/ o guardiao.yml dar
+// a última varredura de auto-cura. Pedido do dono (2026-07-07): "os posts rodam nos
+// 2 IGs e VOCÊ vigia, verificando no Instagram".
 //
 //   GET /api/guardian            → verifica (livro + IG) + PERSISTE + retorna
 //   GET /api/guardian?day=YYYY-MM-DD → força um dia específico
@@ -22,8 +23,9 @@ export const dynamic = "force-dynamic";
 const GRACE_MIN = 75;
 const ACTIVE_LANGS: Lang[] = ["es", "br"];
 // Vagas esperadas por conta/dia. NÃO é número solto: sai da cadência em @/lib/day
-// (hoje 4 = 1 carrossel + 2 reels vídeo + 1 clássico). Escrever "7" aqui à mão foi o
-// que fez o vigia cobrar 7 enquanto os crons entregavam outra coisa.
+// (hoje 1 — Reel na maioria dos dias, Carrossel a cada 3 dias no lugar dele; nunca
+// os dois). Escrever um número à mão aqui foi o que já fez o vigia cobrar uma conta
+// enquanto os crons entregavam outra.
 const EXPECTED = POSTS_PER_DAY;
 
 function authed(req: NextRequest): boolean {
@@ -97,9 +99,13 @@ export async function GET(req: NextRequest) {
   const missing: { lang: string; run: number }[] = [];   // recuperável AGORA (só se isToday)
   const gaveUp: { lang: string; run: number; attempts: number }[] = [];
   const notRun: { lang: string; run: number }[] = [];     // dia passado que não publicou (irrecuperável)
+  // CADÊNCIA 1 PEÇA/DIA (2026-08-23): só o run do TIPO do dia (Reel ou Carrossel,
+  // nunca os dois — isCarouselDay em @/lib/day) entra na varredura; o outro foi
+  // pulado de propósito e não é "faltando".
+  const runsDeHoje = runsForDay(targetDay);
   for (const lang of ACTIVE_LANGS) {
     const done = new Set(published[lang] ?? []);
-    for (const run of ACTIVE_RUNS) {
+    for (const run of runsDeHoje) {
       const dueMin = RUN_HOUR_BRT[run] * 60 + GRACE_MIN;
       if (isToday && nowMin < dueMin) continue; // ainda não venceu
       if (done.has(run)) continue;

@@ -119,13 +119,15 @@ describe("trilha que gira — não repete cedo", () => {
     }
   });
 
-  // ⏱️ 20s (2026-07-26): a LÓGICA está intacta — isto é só o relógio. Este caso varre
-  // todos os pilares × 60 dias e leva ~890ms rodando sozinho, mas ESTOURA os 5s padrão
-  // quando o vitest roda os 43 arquivos em paralelo numa máquina carregada. Como o
-  // `verify.sh` é a trava de pre-commit, o estouro BLOQUEAVA o commit de todas as
-  // sessões no repo. Aumentar o limite não afrouxa nenhuma garantia: o teste segue
-  // exigindo o mesmo resultado, só deixa de falhar por lentidão da máquina.
-  it("na cadência real, aparições seguidas do mesmo tema nunca dão a mesma faixa", { timeout: 20000 }, () => {
+  // ⏱️ 45s (2026-08-23, subiu de 20s): a LÓGICA está intacta — isto é só o relógio. Este caso
+  // varre todos os pilares × 60 dias e leva ~890ms rodando sozinho, mas ESTOURA quando o
+  // vitest roda os 71 arquivos em paralelo numa máquina carregada (`verify.sh`, trava de
+  // pre-commit, roda a suíte inteira). Estourou de novo em 23/08 (20s) com a máquina puxando
+  // várias sessões Claude ao mesmo tempo — mesmo padrão do estouro de 26/07 (era 5s → 20s),
+  // não regressão de lógica (a suíte isolada continua em segundos). Aumentar o limite não
+  // afrouxa nenhuma garantia: o teste segue exigindo o mesmo resultado, só deixa de falhar
+  // por lentidão da máquina.
+  it("na cadência real, aparições seguidas do mesmo tema nunca dão a mesma faixa", { timeout: 45000 }, () => {
     for (const [n, topic] of porTamanho) {
       for (let i = 0; i < 60; i++) {
         const d = 20000 + i * RETORNO;
@@ -138,14 +140,34 @@ describe("trilha que gira — não repete cedo", () => {
     }
   });
 
-  it("na cadência real, cada tema alcança ao menos METADE do seu pool", () => {
+  // A régua "≥ metade" era calibrada pra retorno=26d (cadência 3/dia até 22/08) e só
+  // por coincidência dava ≥50% nos pools daquele momento (11/15/17 → 100%; 16 → 8/16
+  // por mdc(26,16)=2). Ela não é a garantia real do algoritmo — é a GARANTIA
+  // MATEMÁTICA que importa: `indiceNoPool` anda por PASSO FIXO = RETORNO a cada
+  // aparição do tema (ver pick-music.cjs), então o nº de faixas distintas visitadas é
+  // SEMPRE `n / mdc(RETORNO, n)`, nem mais nem menos — é o próprio teorema do passo
+  // fixo em aritmética modular. Testar essa igualdade exata (em vez de um limiar que
+  // envelhece a cada mudança de cadência) cobre TODAS as cadências futuras.
+  //
+  // 2026-08-23 (cadência 1 peça/dia, retorno=183d=3×61): os pools de 15 e 27 faixas
+  // (pilares dopamina e mente/redes) compartilham o fator 3 com 183 → visitam só 1/3
+  // do pool (5/15 e 9/27) — MENOS variedade que antes, efeito colateral conhecido e
+  // aceito da cadência mais lenta (183 temas ÷ 1 post/dia). Consertar de verdade exige
+  // OU gerar faixa nova (fal, pago, fora deste escopo) OU redistribuir os pools —
+  // decisão de conteúdo, não desta mudança de cadência.
+  function mdc(a: number, b: number): number {
+    return b === 0 ? a : mdc(b, a % b);
+  }
+
+  it("na cadência real, cada tema visita EXATAMENTE n/mdc(retorno,n) faixas — a garantia do passo fixo", () => {
     for (const [n, topic] of porTamanho) {
       const vistas = new Set<string>();
       for (let i = 0; i < n * 3; i++) vistas.add(noDia(20000 + i * RETORNO, topic));
+      const esperado = n / mdc(RETORNO, n);
       expect(
         vistas.size,
-        `pool ${n} (retorno de ${RETORNO}d): só ${vistas.size} faixas — se a cadência mudou, ver o cabeçalho deste arquivo`,
-      ).toBeGreaterThanOrEqual(Math.ceil(n / 2));
+        `pool ${n} (retorno de ${RETORNO}d): esperado ${esperado} faixas (n/mdc), viu ${vistas.size}`,
+      ).toBe(esperado);
     }
   });
 

@@ -1,9 +1,13 @@
 # DR Instagram Automation — índice
 
-Hub da automação do **@drlibertad** (6 posts/dia = 4 Reels + 2 carrosséis). Esta pasta reúne a
-**documentação e os snapshots de referência**. O código que roda em produção
-**continua em `src/` e `.github/`** porque o Next.js/Vercel exige essa estrutura
-— mover essas rotas quebra o deploy e o cron.
+Hub da automação do **@drlibertad**. Esta pasta reúne a **documentação e os snapshots de
+referência**. O código que roda em produção **continua em `src/` e `.github/`** porque o
+Next.js/Vercel exige essa estrutura — mover essas rotas quebra o deploy e o cron.
+
+> ⛔ **Cadência:** o "6 posts/dia = 4 Reels + 2 carrosséis" era de 06/2026 e está DESATUALIZADO —
+> a cadência mudou várias vezes desde então (última em 2026-08-23: **1 peça/dia**, Reel na
+> maioria dos dias e Carrossel a cada 3 dias no lugar dele). Os docs desta pasta são snapshots
+> históricos; a fonte única da cadência é sempre `../src/lib/day.ts` + `../CLAUDE.md`.
 
 ## Nesta pasta (docs + referência — seguro mover)
 
@@ -31,7 +35,7 @@ As rotas existem porque estão em `src/app/api/`. Mover = a URL deixa de existir
 | Renova token (60d) | `../src/app/api/refresh-token/route.ts` |
 | Lista/grava posts | `../src/app/api/posts/route.ts` |
 | Migração do banco | `../src/app/api/migrate/route.ts` |
-| Cron de publicação (6/dia) | `../.github/workflows/instagram-posts.yml` |
+| Cron de publicação (carrossel, cadência atual em `day.ts`) | `../.github/workflows/instagram-posts.yml` |
 | Cron de renovação de token | `../.github/workflows/refresh-token.yml` |
 | Fontes embutidas (Fraunces 700) | `../public/fonts/` |
 

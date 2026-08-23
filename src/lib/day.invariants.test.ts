@@ -2,11 +2,14 @@
 // Codifica o bug real de 24/06: com dia=UTC, o slot das 21h BRT (00h UTC) e os
 // catchups da madrugada caíam no dia UTC SEGUINTE e marcavam as vagas do dia
 // seguinte como já publicadas → o reel renderizava e PULAVA. Ancorar em BRT mantém
-// todos os 6 slots (09h–21h) no MESMO dia do calendário da conta.
+// todos os slots no MESMO dia do calendário da conta.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { dayBRT, minOfDayBRT, RUN_HOUR_BRT, ACTIVE_RUNS, POSTS_PER_DAY } from "./day";
+import {
+  dayBRT, minOfDayBRT, RUN_HOUR_BRT, ACTIVE_RUNS, POSTS_PER_DAY,
+  REEL_RUN, CARROSSEL_RUN, dayIndex, isCarouselDay, runsForDay,
+} from "./day";
 
 describe("dayBRT — dia ancorado em Brasília (UTC-3)", () => {
   it("meio do dia BRT fica no dia certo", () => {
@@ -29,7 +32,7 @@ describe("dayBRT — dia ancorado em Brasília (UTC-3)", () => {
 });
 
 describe("minOfDayBRT — minuto-do-dia em BRT (janela do watchdog)", () => {
-  it("00h UTC = 21h BRT = 1260 min (o run 2 já venceu)", () => {
+  it("00h UTC = 21h BRT = 1260 min", () => {
     expect(minOfDayBRT(new Date("2026-06-25T00:00:00Z"))).toBe(21 * 60);
   });
 
@@ -39,22 +42,79 @@ describe("minOfDayBRT — minuto-do-dia em BRT (janela do watchdog)", () => {
 });
 
 describe("RUN_HOUR_BRT — FONTE ÚNICA do horário-alvo por run (watchdog)", () => {
-  // Antes o mapa vivia COPIADO nas 3 rotas do watchdog (catchup/guardian/runs-status).
-  // Aqui trava o contrato: se a cadência mudar, muda SÓ este mapa e o teste avisa.
-  it("cobre as 3 vagas da cadência com as horas dos crons dos workflows", () => {
-    // Cadência 3/dia por idioma (1 carrossel + 2 Reels de vídeo, ordem do dono
-    // 15/08): 9h carrossel · 19h reel vídeo · 21h reel vídeo. O run 0 (12h) saiu.
-    expect(RUN_HOUR_BRT).toEqual({ 4: 9, 3: 19, 2: 21 });
+  // Cadência 1 peça/dia (ordem do dono 2026-08-23): Reel (run 3) e Carrossel (run 4)
+  // ficam ARMADOS no MESMO horário — 19h BRT — e são mutuamente excludentes por dia
+  // (isCarouselDay decide qual publica).
+  it("os 2 runs armados apontam para o MESMO horário — 19h", () => {
+    expect(RUN_HOUR_BRT).toEqual({ 3: 19, 4: 19 });
   });
 
-  it("ACTIVE_RUNS sai do mapa, em ordem de horário, sem número solto", () => {
-    expect(ACTIVE_RUNS).toEqual([4, 3, 2]);
-    expect(POSTS_PER_DAY).toBe(3);
+  it("ACTIVE_RUNS sai do mapa, sem número solto", () => {
+    expect(ACTIVE_RUNS.slice().sort()).toEqual([3, 4]);
+    expect(ACTIVE_RUNS.length).toBe(2);
   });
 
-  it("o dueMin do watchdog casa com o horário do run (ex.: run 2 = 21h)", () => {
+  it("REEL_RUN e CARROSSEL_RUN são os números preservados da cadência anterior", () => {
+    expect(REEL_RUN).toBe(3);
+    expect(CARROSSEL_RUN).toBe(4);
+  });
+
+  it("o dueMin do watchdog casa com o horário do run (19h + carência)", () => {
     const GRACE_MIN = 75; // mesma carência das rotas
-    expect(RUN_HOUR_BRT[2] * 60 + GRACE_MIN).toBe(21 * 60 + 75);
+    expect(RUN_HOUR_BRT[REEL_RUN] * 60 + GRACE_MIN).toBe(19 * 60 + 75);
+    expect(RUN_HOUR_BRT[CARROSSEL_RUN] * 60 + GRACE_MIN).toBe(19 * 60 + 75);
+  });
+});
+
+describe("isCarouselDay / dayIndex — 1 carrossel a cada 3 dias, o resto é Reel", () => {
+  it("é pura e determinística: mesma entrada, mesma saída", () => {
+    expect(isCarouselDay("2026-08-23")).toBe(isCarouselDay("2026-08-23"));
+  });
+
+  it("exatamente 1 em cada 3 dias consecutivos é dia de carrossel", () => {
+    let carrosseis = 0;
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(Date.UTC(2026, 7, 1) + i * 86_400_000).toISOString().slice(0, 10);
+      if (isCarouselDay(d)) carrosseis++;
+    }
+    // 30 dias consecutivos, ciclo de 3 → exatamente 10.
+    expect(carrosseis).toBe(10);
+  });
+
+  it("nunca 2 dias de carrossel seguidos", () => {
+    for (let i = 0; i < 30; i++) {
+      const d1 = new Date(Date.UTC(2026, 7, 1) + i * 86_400_000).toISOString().slice(0, 10);
+      const d2 = new Date(Date.UTC(2026, 7, 1) + (i + 1) * 86_400_000).toISOString().slice(0, 10);
+      if (isCarouselDay(d1)) expect(isCarouselDay(d2)).toBe(false);
+    }
+  });
+
+  it("dayIndex avança exatamente 1 por dia civil", () => {
+    expect(dayIndex("2026-08-24") - dayIndex("2026-08-23")).toBe(1);
+  });
+});
+
+describe("runsForDay — o único run que deve publicar hoje", () => {
+  it("devolve sempre exatamente 1 run", () => {
+    for (let i = 0; i < 10; i++) {
+      const d = new Date(Date.UTC(2026, 7, 1) + i * 86_400_000).toISOString().slice(0, 10);
+      expect(runsForDay(d).length).toBe(1);
+    }
+  });
+
+  it("dia de carrossel → CARROSSEL_RUN; dia de reel → REEL_RUN", () => {
+    for (let i = 0; i < 10; i++) {
+      const d = new Date(Date.UTC(2026, 7, 1) + i * 86_400_000).toISOString().slice(0, 10);
+      const esperado = isCarouselDay(d) ? CARROSSEL_RUN : REEL_RUN;
+      expect(runsForDay(d)).toEqual([esperado]);
+    }
+  });
+});
+
+describe("POSTS_PER_DAY — o que REALMENTE publica, não o que está armado", () => {
+  it("é 1 (não ACTIVE_RUNS.length=2) — os 2 runs armados são mutuamente excludentes", () => {
+    expect(POSTS_PER_DAY).toBe(1);
+    expect(POSTS_PER_DAY).not.toBe(ACTIVE_RUNS.length);
   });
 });
 
@@ -74,28 +134,27 @@ describe("os crons dos workflows espelham a cadência (papel × máquina)", () =
     return horas;
   }
 
-  it("cada vaga de RUN_HOUR_BRT tem cron nos DOIS idiomas, e nenhum cron sobra", () => {
+  it("cada vaga ARMADA (Reel + Carrossel) tem cron nos DOIS idiomas, e nenhum cron sobra", () => {
+    // instagram-reels-classic.yml está DESLIGADO (só workflow_dispatch) desde 09/08 —
+    // não entra nesta soma.
     const agendadas = [
       ...horasBrtDosCrons("instagram-posts.yml"),
       ...horasBrtDosCrons("instagram-reels.yml"),
-      ...horasBrtDosCrons("instagram-reels-classic.yml"),
     ].sort((a, b) => a - b);
 
-    // 2 idiomas (ES em :17, PT em :22) → cada vaga aparece exatamente 2×.
+    // 2 idiomas (ES em :17, PT em :22) × 2 runs armados (3 e 4, ambos 19h) → 4 crons, todos às 19h.
     const esperadas = ACTIVE_RUNS.flatMap((r) => [RUN_HOUR_BRT[r], RUN_HOUR_BRT[r]]).sort((a, b) => a - b);
 
     expect(agendadas).toEqual(esperadas);
   });
 
-  it("cada vaga sai 2× ao dia — uma por conta (ES e PT)", () => {
-    const todas = [
-      ...horasBrtDosCrons("instagram-posts.yml"),
-      ...horasBrtDosCrons("instagram-reels.yml"),
-      ...horasBrtDosCrons("instagram-reels-classic.yml"),
-    ];
-    expect(todas.length).toBe(POSTS_PER_DAY * 2);
-    for (const run of ACTIVE_RUNS) {
-      expect(todas.filter((h) => h === RUN_HOUR_BRT[run]).length).toBe(2);
-    }
+  it("cada workflow (1 run cada) sai 2× ao dia — uma por conta (ES e PT), na hora do seu run", () => {
+    // Hora sozinha não distingue run 3 de run 4 (os dois são 19h de propósito) —
+    // aqui o disambiguador é o ARQUIVO: instagram-posts.yml é sempre CARROSSEL_RUN,
+    // instagram-reels.yml é sempre REEL_RUN.
+    const posts = horasBrtDosCrons("instagram-posts.yml");
+    const reels = horasBrtDosCrons("instagram-reels.yml");
+    expect(posts).toEqual([RUN_HOUR_BRT[CARROSSEL_RUN], RUN_HOUR_BRT[CARROSSEL_RUN]]);
+    expect(reels).toEqual([RUN_HOUR_BRT[REEL_RUN], RUN_HOUR_BRT[REEL_RUN]]);
   });
 });

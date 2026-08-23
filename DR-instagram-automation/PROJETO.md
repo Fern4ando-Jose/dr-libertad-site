@@ -66,9 +66,16 @@
 
 ---
 
-## Cadência diária de publicação (REGRA VIGENTE — definida 2026-06-15)
+## Cadência diária de publicação (HISTÓRICO — era a regra vigente em 2026-06-15/16, PR #4)
 
-> **6 posts/dia** no @drlibertad = **4 Reels + 2 carrosséis**.
+> ⛔ **DESATUALIZADO desde 2026-08-23.** Esta seção é um SNAPSHOT do estado de 16/06/2026 (logo
+> após o PR #4) — não foi mais tocada desde então, enquanto a cadência real mudou várias vezes
+> (4/dia em 27/07, 3/dia em 15/08, **1 peça/dia** em 23/08: Reel na maioria dos dias, Carrossel a
+> cada 3 dias no lugar dele). **Fonte única da cadência ATUAL:** `../src/lib/day.ts`
+> (`RUN_HOUR_BRT`/`POSTS_PER_DAY`) e `../CLAUDE.md` § "Automações e cadência" — nunca este arquivo.
+> O que segue abaixo é histórico, preservado como registro do PR #4.
+
+> **6 posts/dia** no @drlibertad = **4 Reels + 2 carrosséis** (válido até 27/07/2026).
 > A regra antiga de **"6 carrosséis/dia"** foi **REVOGADA em 2026-06-15** — não vale mais.
 
 | Horário (BRT) | Formato |

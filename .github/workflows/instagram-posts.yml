@@ -1,8 +1,12 @@
 name: Instagram — publicar posts (ES + BR)
 
 # Agendamento gratuito via GitHub Actions (substitui os crons do Vercel).
-# 1 CARROSSEL/dia por idioma (run 4 — tópico distinto dos Reels, que usam 3 e 2, ambos vídeo).
-# Os runs 0/1/5/6 existem no código para backfill manual, mas NÃO têm mais cron (cadência 3/dia, 15/08).
+# CADÊNCIA 1 PEÇA/DIA (ordem do dono 2026-08-23, reestruturação total das 2 contas:
+# "pode, aplique tudo"): o CARROSSEL (run 4) fica ARMADO todo dia às 19h BRT, no
+# MESMO horário do Reel (instagram-reels.yml) — mas só publica em 1 a cada 3 dias
+# (`isCarouselDay`, fonte única em src/lib/day.ts). Nos outros dias /api/publish
+# devolve `skipped:true` sem gastar nada; o Reel é quem publica nesses dias.
+# Os runs 0/1/2/5/6 existem no código para backfill manual, mas NÃO têm cron.
 #
 # WORKFLOW ÚNICO ES+PT (fusão 2026-07-14): antes eram 2 arquivos quase idênticos
 # (instagram-posts.yml + instagram-posts-pt.yml) que DIVERGIAM à mão. Agora o
@@ -12,10 +16,10 @@ name: Instagram — publicar posts (ES + BR)
 # `run` também vem da expressão cron, não do relógio (atraso do cron não colide com o vizinho).
 on:
   schedule:
-    # Cadência 3/dia por idioma (ordem do dono 15/08: "2 reel ao dia e 1 carrossel"): 1 carrossel
-    # por idioma. Os runs 0 (12h), 1 (17h), 5 (14h) e 6 (07h) foram RETIRADOS — ver RUN_HOUR_BRT em src/lib/day.ts (fonte única).
-    - cron: "17 12 * * *" # 09:17 BRT — ES run 4
-    - cron: "22 12 * * *" # 09:22 BRT — PT run 4 (5 min após o ES)
+    # Cadência 1 peça/dia (2026-08-23): o carrossel fica ARMADO todo dia às 19h BRT
+    # (mesmo horário do Reel), mas só publica 1 em cada 3 dias — ver header acima.
+    - cron: "17 22 * * *" # 19:17 BRT — ES run 4
+    - cron: "22 22 * * *" # 19:22 BRT — PT run 4 (5 min após o ES)
   workflow_dispatch:
     inputs:
       lang:
@@ -72,10 +76,8 @@ jobs:
           else
             # Agendado: run E idioma derivados da EXPRESSÃO cron que disparou.
             case "$SCHEDULE" in
-              "17 12 * * *") RUN=4; LANG=es ;;
-              "17 17 * * *") RUN=5; LANG=es ;;
-              "22 12 * * *") RUN=4; LANG=br ;;
-              "22 17 * * *") RUN=5; LANG=br ;;
+              "17 22 * * *") RUN=4; LANG=es ;;
+              "22 22 * * *") RUN=4; LANG=br ;;
               *) RUN=4; LANG=es ;;  # fallback defensivo
             esac
             echo "run=$RUN" >> "$GITHUB_OUTPUT"
@@ -120,6 +122,12 @@ jobs:
           # erro de verdade (401, 500, rede) continua derrubando o robô como sempre.
           if [ "$HTTP_CODE" = "402" ]; then
             echo "::warning title=Carrossel pulado — gasto desligado::O teto de gasto está em zero (ordem do dono, 05/08/2026). Nada foi publicado (lang=$LANG). Religar = o dono dizer o número."
+            exit 0
+          fi
+          # Cadência 1 peça/dia (2026-08-23): hoje é dia de REEL, não de carrossel —
+          # /api/publish devolve "skipped":true sem gastar nada. Não é defeito.
+          if grep -q '"skipped":true' response.json; then
+            echo "::notice title=Carrossel pulado — hoje é dia de Reel::Cadência 1 peça/dia (lang=$LANG): o Reel publica hoje, o carrossel volta em até 3 dias."
             exit 0
           fi
           if [ "$HTTP_CODE" -ge 400 ]; then

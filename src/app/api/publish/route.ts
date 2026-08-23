@@ -16,6 +16,7 @@ import { type Automation, checkBudget, logSpend, EST_RUN_COST } from "@/lib/spen
 import { chamarIATexto, custoIATexto } from "@/lib/ia-texto";
 import { parseContentJson, normalizeContentJson, missingEssentialContent } from "@/lib/content-json";
 import { dayBRT, reelSharedKey, hashStr, readReelShared, writeReelShared, selectFootage } from "@/lib/reel-shared";
+import { isCarouselDay } from "@/lib/day";
 import type { ThemeWho } from "@/lib/footage-subject";
 import { generateNarration } from "@/lib/narration";
 import { readContentCache, writeContentCache } from "@/lib/content-cache";
@@ -561,7 +562,7 @@ VOZ EDITORIAL: directa, valiente y sin miedo a la POLÉMICA — la polémica es 
 
 ALMA de la marca (impregna el TONO; no la cites literalmente): hombría — fuerza, coraje y responsabilidad, y la capacidad de amar sin anularse; rechazo a la servidumbre voluntaria y al hombre pasivo que entrega su libertad; determinación de ir hasta las últimas consecuencias por un sueño; y un sentido de la vida que solo se completa en lo compartido (nadie nació para vivir solo). Cuando el tema lo permita, mira con ojo crítico la era de las pantallas: filtros y apps venden un estándar de belleza inexistente y una ilusión de opciones infinitas que dejan a la gente más sola, no más libre.
 
-PERO la provocación viene de la IDEA, nunca del odio: atacas la idea, el sistema o el comportamiento — JAMÁS a la persona. Nunca insultes ni deshumanices a personas o grupos (por sexo, raza, orientación, etc.) ni incites violencia — eso hunde la cuenta. Incomoda con argumentos, no con desprecio.
+PERO la provocación viene de la IDEA, nunca del odio: atacas la idea, el sistema o el comportamiento — JAMÁS a la persona. Nunca insultes ni deshumanices a personas o grupos (por sexo, raza, orientación, etc.) ni incites violencia — eso hunde la cuenta. Incomoda con argumentos, no con desprecio. Cuando hables de un GRUPO (ej. "los hombres", "las mujeres"): es CONSTATACIÓN DE TENDENCIA ("muchos", "la mayoría", un patrón que observas), NUNCA sentencia sobre cada individuo — "toda generalización es burra" cuando se presenta como ley absoluta sin excepción.
 
 NUNCA DIRÍA (filtro anti-IA-genérica — si la frase huele a esto, reescríbela):
 - PROHIBIDO el registro coach/espiritual/corporativo: "resignificar", "empoderar", "sal de tu zona de confort", "el universo conspira", "permítete", "mindset", "fluir", "abundancia", "manifestar", "amor propio", "propósito", "buena vibra", "pensar fuera de la caja". Una palabra entra solo si carga sentido CONCRETO; si es adorno reflejo, fuera.
@@ -983,6 +984,13 @@ export async function GET(req: NextRequest) {
     // fora do assunto, cache indisponível) → a rotação dos temas segue intocada. O
     // carrossel (mais abaixo) NÃO muda — a ordem fala da reel.
     const dia = dayBRT(now);
+    // ⛔ CADÊNCIA 1 PEÇA/DIA (2026-08-23, ordem do dono: refazer as 2 contas do
+    // zero). Reel nos dias normais; a cada 3 dias o CARROSSEL substitui o Reel —
+    // fonte única `isCarouselDay` em src/lib/day.ts. force=1 (backfill manual)
+    // ignora o gate, igual às outras travas de vaga desta rota.
+    if (!force && isCarouselDay(dia)) {
+      return NextResponse.json({ preview: true, skipped: true, reason: "carousel-day", dia, run: r, lang });
+    }
     const tema = await garantirTemaDoDia(lang, dia);
     const topic = topicOverride ?? (tema?.topic ?? await getFreshTopicForRun(now, r, lang));
     const cat = tema?.cat ?? TOPIC_CAT[topic] ?? "freedom";
@@ -1219,6 +1227,17 @@ export async function GET(req: NextRequest) {
       const now = new Date(); // hoisted: o catch externo (disjuntor) também precisa do dia
 
       try {
+
+        // ⛔ CADÊNCIA 1 PEÇA/DIA (2026-08-23) — em dia de Reel, o CARROSSEL fica de
+        // fora (o Reel toma a vaga do dia). Fonte única `isCarouselDay` em
+        // src/lib/day.ts; force=1 (backfill manual) ignora o gate, igual às
+        // outras travas de vaga desta rota. Não conta tentativa (não é falha).
+        if (!force && !isCarouselDay(dayBRT(now))) {
+          slotLog.skipped = true;
+          slotLog.reason = `run ${runIndex} (${lang}) — hoje é dia de Reel, não de carrossel (cadência 1 peça/dia)`;
+          results.push(slotLog);
+          continue;
+        }
 
         // As DUAS primeiras portas da vaga, na ORDEM load-bearing (slotSkipGate, PURA +
         // invariante): (1) IDEMPOTÊNCIA — se a vaga já saiu hoje nesta conta, pula (sem
