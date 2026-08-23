@@ -48,6 +48,7 @@ export default function HeroFloatingDeck({ children }: { children: ReactNode }) 
           rotateY: ry,
           transformStyle: "preserve-3d",
         }}
+        data-reveal
         initial={{ opacity: 0, y: 14 }}
         animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }}
         transition={{ duration: 0.7, ease: "easeOut" }}
@@ -57,7 +58,7 @@ export default function HeroFloatingDeck({ children }: { children: ReactNode }) 
           animate={{ y: [0, -14, 0], rotate: [0, -1.5, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
         >
-          <div className="h-[200px] w-[200px] rounded-3xl border border-warm-gray/10 bg-white/3 shadow-soft backdrop-blur [filter:blur(0px)]" />
+          <div className="h-[200px] w-[200px] rounded-3xl border border-warm-gray/10 bg-white/3 shadow-soft backdrop-blur-xs [filter:blur(0px)]" />
           <div
             className="absolute -inset-2 rounded-3xl opacity-60"
             style={{
@@ -78,6 +79,7 @@ export default function HeroFloatingDeck({ children }: { children: ReactNode }) 
           rotateY: ry,
           transformStyle: "preserve-3d",
         }}
+        data-reveal
         initial={{ opacity: 0, y: 18 }}
         animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
         transition={{ duration: 0.7, ease: "easeOut", delay: 0.08 }}
@@ -87,7 +89,7 @@ export default function HeroFloatingDeck({ children }: { children: ReactNode }) 
           animate={{ y: [0, 12, 0], rotate: [0, 1.5, 0] }}
           transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
         >
-          <div className="h-[210px] w-[210px] rounded-3xl border border-warm-gray/10 bg-ink/20 shadow-soft backdrop-blur" />
+          <div className="h-[210px] w-[210px] rounded-3xl border border-warm-gray/10 bg-ink/20 shadow-soft backdrop-blur-xs" />
           <div
             className="absolute inset-0 rounded-3xl opacity-70"
             style={{
@@ -98,8 +100,10 @@ export default function HeroFloatingDeck({ children }: { children: ReactNode }) 
         </motion.div>
       </motion.div>
 
-      {/* Main card (slot) */}
+      {/* Main card (slot) — conteúdo real (ritual do dia), não decoração:
+          ver data-reveal em globals.css. */}
       <motion.div
+        data-reveal
         className="relative z-10"
         style={{
           x: tx,

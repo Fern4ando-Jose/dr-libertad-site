@@ -37,6 +37,16 @@ export function LanguageProvider({
     document.documentElement.lang = lang === "es" ? "es-ES" : "pt-BR";
   }, [lang]);
 
+  // [P0 conteúdo invisível sem JS, 23/08] Só roda depois que React montou a
+  // árvore inteira (o HTML do servidor, com Reveal/whileInView em opacity:0 já
+  // pintado, chegou primeiro). A partir daqui `globals.css` libera o estilo
+  // inline do Framer Motion; até aqui — sem JS, ou com hidratação travada —
+  // `html:not(.hydrated) [data-reveal]` mantém tudo visível. Fica no Provider
+  // (não em cada página) porque toda página passa por ele.
+  useEffect(() => {
+    document.documentElement.classList.add("hydrated");
+  }, []);
+
   const persist = useCallback((l: Lang) => {
     try {
       window.localStorage.setItem(STORAGE_KEY, l);
