@@ -150,7 +150,7 @@ export default function Page() {
                     endurecido; o segundo cai a link de texto discreto ao lado. */}
                 <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3" data-gsap="reveal">
                   <a
-                    href="#manifesto"
+                    href={lang === "br" ? "/br/guia-7-dias" : "#manifesto"}
                     className="group inline-flex items-center rounded-xl bg-muted-red-strong px-7 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase text-offwhite shadow-[0_14px_36px_rgba(158,74,46,0.38)] transition hover:bg-muted-red-strong/90"
                   >
                     {t.hero.ctaPrimary}
