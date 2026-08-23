@@ -22,9 +22,26 @@ const cardItem: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
 };
 
-export default function PreSaleCard({ slug }: { slug: string }) {
+export default function PreSaleCard({
+  slug,
+  price,
+  priceNote,
+  guarantee1,
+}: {
+  slug: string;
+  // Preço do LIVRO (books.ts, fonte única) — sem isto, o card caía no preço
+  // GENÉRICO de `t.waitlist` (mesmo texto para todo livro em pré-venda) e
+  // divergia do preço mostrado no herói da página quando um livro tinha
+  // preço próprio (bug real visto no ar em 23/08: herói R$ 51,38 × card R$ 29,90).
+  price?: string;
+  priceNote?: string;
+  guarantee1?: string;
+}) {
   const { t, lang } = useLang();
   const w = t.waitlist;
+  const displayPrice = price ?? w.price;
+  const displayPriceNote = priceNote ?? w.priceNote;
+  const displayGuarantee1 = guarantee1 ?? w.guarantee1;
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [msg, setMsg] = useState("");
@@ -100,15 +117,15 @@ export default function PreSaleCard({ slug }: { slug: string }) {
 
           <motion.div variants={cardItem} className="mt-5">
             <div className="font-serif text-[clamp(2.4rem,4.5vw,3.2rem)] leading-none text-offwhite">
-              {w.price}
+              {displayPrice}
             </div>
-            <div className="mt-1 text-xs tracking-[0.06em] text-warm-gray/75">{w.priceNote}</div>
+            <div className="mt-1 text-xs tracking-[0.06em] text-warm-gray/75">{displayPriceNote}</div>
           </motion.div>
 
           <motion.ul variants={cardItem} className="mt-5 space-y-2 text-sm text-warm-gray/90">
             <li>
               <span className="mr-2 text-muted-red">✦</span>
-              {w.guarantee1}
+              {displayGuarantee1}
             </li>
             <li>
               <span className="mr-2 text-muted-red">✦</span>

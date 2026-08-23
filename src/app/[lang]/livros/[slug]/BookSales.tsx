@@ -258,8 +258,20 @@ export default function BookSales({ slug }: { slug: string }) {
       )}
 
       {/* CARD DE PRÉ-VENDA: a lista de espera virou um card animado (ordem do
-          dono 15/08/2026), logo abaixo do herói — é a nova casa de #pre-venda. */}
-      {preSale && <PreSaleCard slug={slug} />}
+          dono 15/08/2026), logo abaixo do herói — é a nova casa de #pre-venda.
+          Preço vem do PRÓPRIO livro (L.price) — antes o card usava o texto
+          genérico de `waitlist`, e podia divergir do preço do herói (bug visto
+          no ar em 23/08 no "Como Perdi": herói R$ 51,38 × card R$ 29,90). */}
+      {preSale && (
+        <PreSaleCard
+          slug={slug}
+          price={L.price}
+          priceNote={L.priceNote}
+          guarantee1={
+            lang === "es" ? `Precio asegurado: ${L.price}` : `Preço garantido: ${L.price}`
+          }
+        />
+      )}
 
       {/* COMO FUNCIONA (pré-venda em 3 passos) — C9 da auditoria de marketing
           16/08: só para livros em pré-venda que declaram o bloco `how`. */}
