@@ -72,7 +72,7 @@ export const br = {
       },
       {
         t: "Ser homem não é performar. É ter coragem de não se anular.",
-        d: "Hombridade é força e responsabilidade — e amar sem se ajoelhar. Ninguém admira quem se anula.",
+        d: "Masculinidade é força e responsabilidade — e amar sem se ajoelhar. Ninguém admira quem se anula.",
       },
     ],
     promiseLabel: "uma promessa",
@@ -618,9 +618,14 @@ export const br = {
     tagline: "Verdades incômodas sobre atenção, redes e liberdade.",
     legal: "Privacidade",
     terms: "Termos",
+    // Link do perfil (P1, 23/08) — o endereço vem de instagramUrlDe(lang) em
+    // page.tsx, DERIVADO de accounts.ts (nunca escrito à mão aqui).
+    instagram: "Seguir no Instagram",
     links: [
       { label: "Manifesto", id: "manifesto" },
-      { label: "Tópicos", id: "topics" },
+      // Era "Tópicos" aqui e "Temas" no menu — mesma seção, dois nomes
+      // (achado da crítica, 23/08). O ES já usava "Temas" nos dois lugares.
+      { label: "Temas", id: "topics" },
       { label: "Galeria", id: "gallery" },
       { label: "Newsletter", id: "newsletter" },
     ],
@@ -1238,6 +1243,7 @@ export const es: Dict = {
     tagline: "Verdades incómodas sobre atención, redes y libertad.",
     legal: "Privacidad",
     terms: "Términos",
+    instagram: "Seguir en Instagram",
     links: [
       { label: "Manifiesto", id: "manifesto" },
       { label: "Temas", id: "topics" },

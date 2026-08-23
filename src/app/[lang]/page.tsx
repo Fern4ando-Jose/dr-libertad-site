@@ -8,6 +8,7 @@ import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
 import Marquee from "@/components/ui/Marquee";
 import { useLang } from "@/lib/i18n/LanguageProvider";
+import { instagramUrlDe } from "@/lib/accounts";
 
 function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
@@ -59,6 +60,7 @@ export default function Page() {
 
   return (
     <motion.main
+      data-reveal
       className="relative z-10"
       initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -141,22 +143,27 @@ export default function Page() {
                   </p>
                 </div>
 
-                <div className="mt-10 flex flex-wrap items-center gap-3" data-gsap="reveal">
+                {/* [P1 hierarquia, 23/08] As duas ações tinham o MESMO peso visual
+                    (mesmo tamanho de pílula-contorno) e competiam pela atenção. Uma
+                    vence: "Ler o manifesto" é o conteúdo que a marca é dona (o link
+                    pro estudo é externo/institucional) — vira botão SÓLIDO no acento
+                    endurecido; o segundo cai a link de texto discreto ao lado. */}
+                <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3" data-gsap="reveal">
                   <a
                     href="#manifesto"
-                    className="group inline-flex items-center rounded-full border border-warm-gray/20 bg-white/5 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:bg-white/10 transition"
+                    className="group inline-flex items-center rounded-xl bg-muted-red-strong px-7 py-3.5 text-xs font-semibold tracking-[0.22em] uppercase text-offwhite shadow-[0_14px_36px_rgba(158,74,46,0.38)] transition hover:bg-muted-red-strong/90"
                   >
                     {t.hero.ctaPrimary}
-                    <span className="ml-3 text-muted-red transition group-hover:translate-x-0.5">
+                    <span className="ml-3 transition group-hover:translate-x-0.5">
                       {String.fromCharCode(8594)}
                     </span>
                   </a>
                   <a
                     href={lang === "es" ? "/el-estudio" : "/o-estudo"}
-                    className="inline-flex items-center rounded-full border border-muted-red/40 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:text-offwhite hover:border-muted-red/70 transition"
+                    className="group inline-flex items-center text-xs tracking-[0.22em] uppercase text-warm-gray/75 underline decoration-warm-gray/25 underline-offset-4 transition hover:text-offwhite hover:decoration-muted-red/70"
                   >
                     {t.hero.ctaSecondary}
-                    <span className="ml-3 text-muted-red transition group-hover:translate-x-0.5">
+                    <span className="ml-2 text-muted-red transition group-hover:translate-x-0.5">
                       {String.fromCharCode(8594)}
                     </span>
                   </a>
@@ -168,11 +175,12 @@ export default function Page() {
               <div className="lg:col-span-5">
                 <HeroFloatingDeck>
                   <motion.div
+                    data-reveal
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1.2, ease: "easeOut" }}
                     whileHover={{ y: -6, scale: 1.02 }}
-                    className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.03] backdrop-blur-xl p-8 shadow-[0_20px_80px_rgba(0,0,0,0.45)]"
+                    className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-8 shadow-[0_20px_80px_rgba(0,0,0,0.45)]"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] to-transparent pointer-events-none" />
                     <div className="relative z-10">
@@ -229,7 +237,7 @@ export default function Page() {
 
           <div className="mt-10 grid gap-6 lg:grid-cols-12">
             <div className="lg:col-span-7">
-              <div className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur">
+              <div className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur-xs">
                 <div className="text-sm tracking-[0.18em] text-warm-gray/80 uppercase">
                   {t.manifesto.principlesLabel}
                 </div>
@@ -237,6 +245,7 @@ export default function Page() {
                   {t.manifesto.principles.map((item, idx) => (
                     <motion.div
                       key={item.t}
+                      data-reveal
                       initial={{ opacity: 0, y: 14 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true, amount: 0.25 }}
@@ -258,11 +267,12 @@ export default function Page() {
 
             <div className="lg:col-span-5">
               <motion.div
+                data-reveal
                 initial={{ opacity: 0, y: 18 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.65, ease: "easeOut" }}
-                className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur h-full"
+                className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur-xs h-full"
               >
                 <div className="text-sm tracking-[0.18em] text-warm-gray/80 uppercase">
                   {t.manifesto.promiseLabel}
@@ -306,12 +316,13 @@ export default function Page() {
             {t.topics.items.map((topic, idx) => (
               <motion.article
                 key={topic.title}
+                data-reveal
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.6, delay: idx * 0.04 }}
                 whileHover={{ y: -4, borderColor: "rgba(185,176,162,0.55)" }}
-                className="group rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur transition-colors"
+                className="group rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur-xs transition-colors"
               >
                 <div className="text-xs tracking-[0.22em] text-warm-gray/80 uppercase">
                   {t.topics.label} {String(idx + 1).padStart(2, "0")}
@@ -348,11 +359,12 @@ export default function Page() {
             {t.quotes.items.map((q, idx) => (
               <motion.blockquote
                 key={q.meta}
+                data-reveal
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.6, delay: idx * 0.04 }}
-                className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur"
+                className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur-xs"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -386,11 +398,12 @@ export default function Page() {
 
             <div className="lg:col-span-5">
               <motion.div
+                data-reveal
                 initial={{ opacity: 0, y: 18 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.65, ease: "easeOut" }}
-                className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur"
+                className="rounded-3xl border border-warm-gray/15 bg-white/3 p-8 backdrop-blur-xs"
               >
                 <div className="text-sm tracking-[0.18em] text-warm-gray/80 uppercase">
                   {t.newsletter.benefitsLabel}
@@ -438,6 +451,18 @@ export default function Page() {
                   {link.label}
                 </a>
               ))}
+              {/* [P1 sem link de Instagram, 23/08] Só existia, às vezes, um link
+                  pra UM post via modal da galeria — nenhum lugar linkava pro
+                  PERFIL. Endereço DERIVADO do handle (fonte única em accounts.ts;
+                  nunca escrito à mão — foi o que causou o perfil errado 01/08). */}
+              <a
+                className="font-semibold text-muted-red hover:text-offwhite transition"
+                href={instagramUrlDe(lang)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t.footer.instagram}
+              </a>
               <a
                 className="text-warm-gray/70 hover:text-offwhite transition"
                 href={`/${lang}/privacidade`}
@@ -496,7 +521,7 @@ function NewsletterForm() {
   };
 
   return (
-    <div className="mt-7 rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur">
+    <div className="mt-7 rounded-3xl border border-warm-gray/15 bg-white/3 p-6 backdrop-blur-xs">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           value={email}
@@ -510,11 +535,15 @@ function NewsletterForm() {
           disabled={status === "loading" || status === "ok"}
           className="w-full rounded-2xl border border-warm-gray/15 bg-ink/35 px-4 py-3 text-offwhite placeholder:text-warm-gray/50 outline-none focus:border-muted-red/60 disabled:opacity-60"
         />
+        {/* [Contraste, 23/08 — achado da crítica] bg-muted-red + texto offwhite
+            media 4.41:1 (abaixo do mínimo AA de 4.5:1 pra texto normal). O botão
+            é o CTA que a marca mais precisa que converta — usa o acento SÓLIDO
+            (--color-muted-red-strong), medido 5.32:1 contra offwhite. */}
         <button
           type="button"
           onClick={submit}
           disabled={status === "loading" || status === "ok"}
-          className="rounded-2xl bg-muted-red px-5 py-3 text-sm font-semibold text-offwhite transition hover:bg-muted-red/85 disabled:opacity-70"
+          className="rounded-2xl bg-muted-red-strong px-5 py-3 text-sm font-semibold text-offwhite transition hover:bg-muted-red-strong/90 disabled:opacity-70"
         >
           {status === "ok"
             ? t.newsletter.success

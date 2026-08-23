@@ -9,7 +9,12 @@ export default function Marquee({
   items: string[];
   className?: string;
 }) {
+  // [Bônus a11y, 23/08] O set duplicado (só existe pra fechar o loop visual, sem
+  // corte) não tinha aria-hidden — um leitor de tela lia as mesmas 9 palavras
+  // duas vezes seguidas. Só o 1º set (real) fica exposto; o 2º ganha
+  // aria-hidden.
   const row = [...items, ...items];
+  const half = items.length;
   return (
     <div className={`relative overflow-hidden ${className}`}>
       <motion.div
@@ -20,6 +25,7 @@ export default function Marquee({
         {row.map((t, i) => (
           <div
             key={`${t}-${i}`}
+            aria-hidden={i >= half ? "true" : undefined}
             className="text-xs tracking-[0.26em] uppercase text-warm-gray/80"
           >
             {t}

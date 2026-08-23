@@ -22,27 +22,13 @@ type EditorialPost = {
   href: string | null;
 };
 
-// Fallback estático — só aparece se a API e o banco estiverem indisponíveis.
-const FALLBACK: EditorialPost[] = [
-  {
-    id: "f1", issue: "ED. 01", kicker: "DOPAMINA",
-    title: "VOCÊ NÃO ESTÁ CANSADO.", subtitle: "Você está saturado de estímulo.",
-    tags: ["dopamine detox", "attention"], mood: "red",
-    image: null, video: null, permalink: null, body: null, publishedAt: null, href: null,
-  },
-  {
-    id: "f2", issue: "ED. 02", kicker: "ANSIEDADE",
-    title: "O MEDO NÃO SOME.", subtitle: "Ele muda de forma quando você aprende a observar.",
-    tags: ["modern anxiety", "self-awareness"], mood: "ink",
-    image: null, video: null, permalink: null, body: null, publishedAt: null, href: null,
-  },
-  {
-    id: "f3", issue: "ED. 03", kicker: "HÁBITO",
-    title: "IMPULSO NÃO É ORDEM.", subtitle: "É informação. Você escolhe a resposta.",
-    tags: ["psychology", "habits"], mood: "red",
-    image: null, video: null, permalink: null, body: null, publishedAt: null, href: null,
-  },
-];
+// [P1 vazamento de idioma, 23/08] Existiu aqui um FALLBACK estático com título e
+// legenda em português fixo, mostrado quando /api/posts falhava — inclusive no
+// site em espanhol (nenhum campo variava por `lang`). Removido: a saída mais
+// simples e segura é a mesma tela vazia que já existe para "zero posts"
+// (`t.gallery.empty`), que É localizada por idioma — ver `cards.length === 0`
+// abaixo. Sem posts (API fora ou banco fora) a seção mostra essa mensagem em
+// vez de inventar conteúdo estático que pode sair no idioma errado.
 
 type Block = { type: "p" | "h" | "li"; text: string };
 
@@ -118,9 +104,9 @@ export default function EditorialGrid() {
       .then((data) => {
         if (!alive) return;
         const list: EditorialPost[] = data?.posts ?? [];
-        setPosts(list.length > 0 ? list : FALLBACK);
+        setPosts(list);
       })
-      .catch(() => alive && setPosts(FALLBACK));
+      .catch(() => alive && setPosts([]));
     return () => {
       alive = false;
     };
@@ -187,14 +173,14 @@ export default function EditorialGrid() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 14, scale: 0.99 }}
               transition={{ type: "spring", stiffness: 260, damping: 26 }}
-              className="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-warm-gray/20 bg-[#121214]/97 backdrop-blur sm:max-h-[86vh] sm:flex-row"
+              className="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-warm-gray/20 bg-[#121214]/97 backdrop-blur-xs sm:max-h-[86vh] sm:flex-row"
             >
               {/* Fechar — botão flutuante, sempre acessível em qualquer layout */}
               <button
                 type="button"
                 onClick={() => setActive(null)}
                 aria-label={t.gallery.close}
-                className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-warm-gray/20 bg-black/45 text-warm-gray/85 backdrop-blur transition hover:bg-black/65 hover:text-offwhite"
+                className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-warm-gray/20 bg-black/45 text-warm-gray/85 backdrop-blur transition hover:bg-black/65 hover:text-offwhite"
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
                   <path d="M6 6l12 12M18 6L6 18" />

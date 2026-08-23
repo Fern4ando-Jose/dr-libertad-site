@@ -104,7 +104,15 @@ export default function StudioNav() {
           />
         </a>
 
-        <nav className="hidden items-center gap-6 md:flex">
+        {/* [P0 nav 768–1024, 23/08] O nav completo (8 links) só entrava num único
+            breakpoint (md=768) junto com o CTA — nessa faixa o total nunca coube e o
+            CTA saía fisicamente da viewport. Agora o nav completo só liga em `lg`
+            (1024) — igual à faixa em que já cabia — e, para não repetir a mesma
+            lotação bem em cima do pivô (1024px), Artigos/Autor (secundários) só
+            aparecem a partir de `xl` (1280). De 0 a 1023 quem resolve é o hambúrguer
+            (também movido de `md` para `lg`), sempre ao lado do CTA — nunca escondido
+            junto com ele. */}
+        <nav className="hidden items-center gap-5 lg:flex xl:gap-6">
           {t.nav.items.map((it) => (
             <a key={it.id} {...sectionProps(it.id)} className={linkCls}>
               {it.label}
@@ -124,34 +132,41 @@ export default function StudioNav() {
               só não aparece mais no menu. */}
           {/* O arquivo de artigos. Além de ser a porta de entrada do leitor, é
               por este link que o rastreador chega aos textos: a grade da home
-              carrega os posts no navegador, então nada dela existe no HTML. */}
-          <a href={`${home}/blog`} className={linkCls}>
+              carrega os posts no navegador, então nada dela existe no HTML.
+              Escondido entre lg e xl (1024–1279) — ver nota acima do <nav>. */}
+          <a href={`${home}/blog`} className={`hidden xl:inline ${linkCls}`}>
             {t.blog.navLabel}
           </a>
           <a href={`${home}/livros`} className={linkCls}>
             {t.nav.books}
           </a>
-          <a href={`${home}/autor`} className={linkCls}>
+          <a href={`${home}/autor`} className={`hidden xl:inline ${linkCls}`}>
             {t.nav.author}
           </a>
         </nav>
 
         <div className="flex items-center gap-3">
           <LangToggle lang={lang} setLang={setLang} />
+          {/* [Endurecer visual, 23/08] O CTA principal do nav era uma pílula
+              cinza-fantasma (border-warm-gray, sem acento) — o item mais
+              importante do header não se destacava de nada ao redor. Vira
+              acento sólido: --color-muted-red-strong (5.32:1 medido contra o
+              texto offwhite, ver globals.css). */}
           <a
             {...sectionProps("newsletter")}
-            className="hidden rounded-full border border-warm-gray/20 bg-white/5 px-4 py-2 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:bg-white/10 transition md:inline-flex"
+            className="hidden rounded-xl bg-muted-red-strong px-4 py-2 text-xs font-semibold tracking-[0.22em] uppercase text-offwhite transition hover:bg-muted-red-strong/90 md:inline-flex"
           >
             {t.nav.cta}
           </a>
 
-          {/* Botão do menu mobile */}
+          {/* Botão do menu mobile — ligado até `lg` (ver nota acima do <nav>). Alvo
+              de toque 44×44 (era 36×36, abaixo do mínimo de acessibilidade). */}
           <button
             type="button"
             aria-label="Menu"
             aria-expanded={open}
             onClick={() => setOpen((o) => !o)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-warm-gray/20 bg-white/5 text-offwhite/90 transition hover:bg-white/10 md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-warm-gray/20 bg-white/5 text-offwhite/90 transition hover:bg-white/10 lg:hidden"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
               {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
@@ -160,7 +175,8 @@ export default function StudioNav() {
         </div>
       </div>
 
-      {/* Painel mobile — dá acesso a tudo (seções, Livros, Autor, CTA) no celular */}
+      {/* Painel mobile — dá acesso a tudo (seções, Livros, Autor, CTA); cobre a
+          mesma faixa (0–1023) do hambúrguer que o abre. */}
       <AnimatePresence>
         {open && (
           <motion.nav
@@ -168,7 +184,7 @@ export default function StudioNav() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="overflow-hidden border-t border-warm-gray/10 bg-ink/95 backdrop-blur md:hidden"
+            className="overflow-hidden border-t border-warm-gray/10 bg-ink/95 backdrop-blur lg:hidden"
           >
             <div className="flex flex-col px-6 py-2">
               {t.nav.items.map((it) => (
@@ -195,7 +211,7 @@ export default function StudioNav() {
               </a>
               <a
                 {...sectionProps("newsletter")}
-                className="my-4 rounded-full bg-muted-red px-5 py-3 text-center text-xs tracking-[0.22em] uppercase text-offwhite transition hover:bg-muted-red/85"
+                className="my-4 rounded-xl bg-muted-red-strong px-5 py-3 text-center text-xs tracking-[0.22em] uppercase text-offwhite transition hover:bg-muted-red-strong/90"
               >
                 {t.nav.cta}
               </a>
@@ -222,7 +238,10 @@ function LangToggle({ lang, setLang }: { lang: "br" | "es"; setLang: (l: "br" | 
             type="button"
             onClick={() => setLang(code)}
             aria-pressed={activeOn}
-            className={`relative z-10 rounded-full px-2.5 py-1 transition-colors ${
+            // Alvo de toque ≥44×44 (bônus a11y, 23/08) — o rótulo continua
+            // pequeno (2 letras); min-h/min-w abrem a área clicável sem inchar
+            // visualmente o texto.
+            className={`relative z-10 flex min-h-11 min-w-11 items-center justify-center rounded-full px-2.5 transition-colors ${
               activeOn ? "text-offwhite" : "text-warm-gray/70 hover:text-offwhite"
             }`}
           >

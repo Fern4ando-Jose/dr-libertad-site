@@ -4,7 +4,48 @@
   --color-ink: #0B0B0C;
   --color-offwhite: #F4F0E8;
   --color-warm-gray: #B9B0A2;
-  --color-muted-red: #A45A5A;
+
+  /* [Endurecer visual, 23/08 — ordem do dono após a crítica Impeccable] O acento
+     único ficava "luxo discreto" (pouco saturado, #A45A5A) para uma marca que se
+     declara "não teme a polêmica". Fonte única: mudar aqui muda TODO uso de
+     text-muted-red/border-muted-red/bg-muted-red do site (é var do @theme, não
+     spot isolado). --color-muted-red ficou mais saturado (serve texto/borda sobre
+     fundo ESCURO — títulos, ícones, sublinhados: contraste SOBE de 3,92:1 para
+     4,39:1 contra --color-ink). --color-muted-red-strong é NOVO, só para fundo
+     SÓLIDO com texto claro em cima (botão da newsletter, CTA do nav) — mais
+     escuro/saturado que o de texto, medido 5,32:1 contra --color-offwhite (era
+     4,41:1 com a cor antiga — abaixo do mínimo AA de 4,5:1; achado da crítica). */
+  --color-muted-red: #BC594E;
+  --color-muted-red-strong: #9E4A2E;
+
+  /* Raio das bordas REDUZIDO (ordem do dono: "menos arredondado, mais seco/
+     anguloso"), nos 3 degraus mais usados em card/CTA. Como é var do @theme,
+     TODO `rounded-xl/2xl/3xl` do site herda — sistêmico, não card a card.
+     `rounded-full` (pill) não é afetado por esta escala; onde um CTA precisava
+     ficar menos "pílula" a classe do próprio elemento trocou para um destes
+     degraus (ver StudioNav/page.tsx). */
+  --radius-xl: 0.5rem;   /* era 0.75rem */
+  --radius-2xl: 0.625rem; /* era 1rem */
+  --radius-3xl: 0.875rem; /* era 1.5rem */
+}
+
+/* [P0 conteúdo invisível sem JS, 23/08] Reveal.tsx e os blocos com whileInView/
+   animate partem de opacity:0 (+blur/translate) via ESTILO INLINE do Framer
+   Motion — o próprio HTML que o servidor manda já nasce assim. Se a hidratação
+   travar (ou JS não rodar), manifesto/temas/citações/newsletter ficam invisíveis
+   OU borrados PARA SEMPRE, sem nenhum aviso.
+   A rede de segurança: todo bloco animado ganha `data-reveal` no componente; a
+   regra abaixo fica ATIVA por padrão (cobre "sem JS" para sempre, e "hidratação
+   lenta" até ela terminar) e só sai quando `<html>` ganha a classe `hydrated`
+   (page.tsx grava isso em um `useEffect` — só roda depois que React montou a
+   árvore inteira, ou seja, depois que o servidor já pintou tudo visível).
+   `!important` aqui é o único jeito de vencer o estilo INLINE sem !important do
+   Framer Motion (regra do cascade: important de autor bate normal de autor,
+   mesmo inline) — não é gambiarra, é a ferramenta certa pra isto. */
+html:not(.hydrated) [data-reveal] {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
 }
 
 /* Base cinematic feel: tighter leading, subtle letter spacing. */
