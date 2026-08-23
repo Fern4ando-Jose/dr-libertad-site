@@ -42,6 +42,9 @@ export default function PreSaleCard({
   const displayPrice = price ?? w.price;
   const displayPriceNote = priceNote ?? w.priceNote;
   const displayGuarantee1 = guarantee1 ?? w.guarantee1;
+  // `{price}` no texto de lead é preenchido com o preço DO LIVRO — mesma causa
+  // do bug de 23/08 (número fixo no dicionário compartilhado por todo livro).
+  const displayLead = w.lead.replace("{price}", displayPrice);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [msg, setMsg] = useState("");
@@ -110,7 +113,7 @@ export default function PreSaleCard({
           </motion.h3>
 
           <motion.p variants={cardItem} className="mt-3 text-sm leading-[1.7] text-warm-gray/85">
-            {w.lead}
+            {displayLead}
           </motion.p>
 
           <motion.div variants={cardItem} className="mt-6 h-[1px] w-16 bg-muted-red/70" />
