@@ -39,7 +39,6 @@ function fbTrack(event: string, custom = false, data?: Record<string, unknown>) 
 // client-side (localStorage), sem chamada a backend nova — 100% honesto: o rodapé
 // da seção avisa que o progresso é só deste navegador.
 const PROGRESS_KEY = "guia7_progress_v1";
-const UNLOCK_ALL_KEY = "guia7_unlocked_all";
 const TOTAL_DAYS = 7;
 
 type Guia7Progress = {
@@ -117,18 +116,9 @@ export default function Guia7Funnel({ lang }: { lang: Lang }) {
   // renderiza, então não há mismatch de hidratação — só o "pop" normal ao carregar
   // o progresso real de quem já voltou à página).
   const [progress, setProgress] = useState<Guia7Progress>(DEFAULT_PROGRESS);
-  const [unlockedAll, setUnlockedAll] = useState(false);
 
   useEffect(() => {
     setProgress(readProgress());
-    try {
-      if (window.localStorage.getItem(UNLOCK_ALL_KEY) === "true") {
-        setUnlockedAll(true);
-        setState((s) => (s === "idle" ? "done" : s));
-      }
-    } catch {
-      // segue sem o atalho — a jornada dia a dia continua funcionando normalmente.
-    }
   }, []);
 
   async function submit() {
@@ -147,17 +137,9 @@ export default function Guia7Funnel({ lang }: { lang: Lang }) {
         body: JSON.stringify({ email: e, lang, utm: utmRef.current }),
       });
     } catch {
-      // silencioso — a UX confirma sucesso de qualquer forma (o e-mail já destrava os 7 dias)
+      // silencioso — a UX confirma sucesso de qualquer forma (o e-mail é só o lembrete diário)
     } finally {
       setState("done");
-      // Atalho por e-mail: destrava os 7 dias de uma vez, ignorando o piso de dias
-      // (delta 2026-08-23) — grava ANTES de qualquer outro estado depender disso.
-      try {
-        window.localStorage.setItem(UNLOCK_ALL_KEY, "true");
-      } catch {
-        // sem localStorage: a página segue funcionando, só sem lembrar o atalho.
-      }
-      setUnlockedAll(true);
     }
   }
 
@@ -192,7 +174,7 @@ export default function Guia7Funnel({ lang }: { lang: Lang }) {
     fbTrack("guia7_day_unlocked", true, { dia: dayNum });
   }
 
-  const hasLockedDays = !unlockedAll && progress.diaAtual < TOTAL_DAYS;
+  const isComplete = progress.diasConcluidos.includes(TOTAL_DAYS);
 
   return (
     <div className={`${styles.root} ${instrument.variable}`}>
@@ -253,9 +235,9 @@ export default function Guia7Funnel({ lang }: { lang: Lang }) {
             {c.steps.map((s, i) => {
               const dayNum = i + 1;
               const isDone = progress.diasConcluidos.includes(dayNum);
-              const isLocked = !unlockedAll && dayNum !== 1 && dayNum > progress.diaAtual && !isDone;
-              const isActive = !unlockedAll && dayNum === progress.diaAtual && !isDone;
-              const showButton = !unlockedAll && dayNum === progress.diaAtual && !isDone;
+              const isLocked = dayNum !== 1 && dayNum > progress.diaAtual && !isDone;
+              const isActive = dayNum === progress.diaAtual && !isDone;
+              const showButton = dayNum === progress.diaAtual && !isDone;
               const todayBlocked =
                 dayNum < TOTAL_DAYS &&
                 !!progress.dataUltimoDesbloqueio &&
@@ -310,10 +292,19 @@ export default function Guia7Funnel({ lang }: { lang: Lang }) {
               );
             })}
           </div>
-          {hasLockedDays && (
-            <button type="button" className={styles.emailShortcut} onClick={goToForm}>
-              {c.emailShortcutCta}
-            </button>
+          {isComplete && (
+            <div className={styles.completionCard}>
+              <p className={styles.eyebrow}>{c.completionEyebrow}</p>
+              <p className={styles.completionTitle}>{c.completionTitle}</p>
+              <p className={styles.completionBody}>{c.completionBody}</p>
+              <a
+                className={`${styles.btn} ${styles.completionCta}`}
+                href={`${c.finalHref}#pre-venda`}
+                onClick={() => fbTrack("guia7_completion_cta", true)}
+              >
+                {c.completionCta} →
+              </a>
+            </div>
           )}
           <p className={styles.progressFooterNote}>{c.progressFooterNote}</p>
         </section>

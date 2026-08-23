@@ -12,10 +12,15 @@
 // Dias 2–7 nascem TRANCADOS (título visível, ação/porquê escondidos) e só abrem
 // quando a pessoa marca "fiz o Dia N" — com piso de 1 dia-calendário real entre
 // desbloqueios (mecanismo 100% client-side, `localStorage` — ver Guia7Funnel.tsx).
-// O atalho por e-mail (`guia7_unlocked_all`) destrava os 7 de uma vez, ignorando o
-// piso. Por isso `form.body`/`form.success` mudaram: deixaram de prometer "o guia
-// inteiro já está aqui em cima" incondicionalmente — isso só é verdade DEPOIS do
-// e-mail (atalho) ou dos 7 dias reais cumpridos um a um.
+//
+// ⛔ SEM ATALHO (correção do dono, mesmo dia): existiu um atalho por e-mail que
+// destrancava os 7 de uma vez — REMOVIDO. Ordem do dono: "não de opção de
+// destravar os 7 não, o interessante é que a pessoa espere um a cada dia". A
+// espera É o produto; o e-mail vira só o lembrete diário (não pula fila).
+//
+// FECHO QUE VENDE (mesmo delta): ao completar o Dia 7, aparece um card de
+// conclusão levando à pré-venda de I Love Dopamina (`finalHref` + "#pre-venda") —
+// "ao final dos 7 dias leve ao link para a compra do livro ou ofereça o livro".
 
 export type Lang = "br" | "es";
 
@@ -57,10 +62,13 @@ export interface Guia7Content {
   unlockButtonLabelFinal: string;
   /** Botão desabilitado (piso de 1 dia já usado hoje) — template com "{N+1}". */
   unlockButtonDisabledLabel: string;
-  /** Atalho que rola até o formulário de e-mail — some quando os 7 já estão destrancados. */
-  emailShortcutCta: string;
   /** Rodapé de honestidade da seção de passos: o progresso é só deste navegador. */
   progressFooterNote: string;
+  /** Selo do card de conclusão (mostrado só quando o Dia 7 está feito). */
+  completionEyebrow: string;
+  completionTitle: string;
+  completionBody: string;
+  completionCta: string;
   form: {
     heading: string;
     body: string;
@@ -155,18 +163,22 @@ export const guia7Content: Record<Lang, Guia7Content> = {
     unlockButtonLabel: "Fiz o Dia {N}. Destranco o Dia {N+1} →",
     unlockButtonLabelFinal: "Fiz os 7. A chave é sua.",
     unlockButtonDisabledLabel: "Volta amanhã pro Dia {N+1}.",
-    emailShortcutCta: "Não quer esperar? Destranca os 7 de uma vez com seu e-mail →",
     progressFooterNote:
       "Seu progresso mora neste navegador, não numa conta. Trocou de aparelho ou limpou o cache? Volta pro Dia 1 — aqui ninguém pede login, e isso é de propósito.",
+    completionEyebrow: "OS 7 DIAS ACABARAM",
+    completionTitle: "Você tem a chave. A ciência por trás dela está aqui.",
+    completionBody:
+      "Você provou, na prática, que dava pra escolher — os 7 dias inteiros, um de cada vez. O porquê disso, a ciência real da dopamina e do vício, é o assunto de I Love Dopamina. Garanta seu exemplar agora, no preço da pré-venda.",
+    completionCta: "Garantir meu exemplar",
     form: {
       heading: "Quer o reforço diário?",
       body:
-        "Deixe seu e-mail e os 7 passos destrancam agora — sem esperar um dia por cada um. Ainda assim, você recebe o lembrete curto do passo do dia, um por dia, na voz do Dr. Liberdade, pra não perder o ritmo.",
+        "Deixe seu e-mail e receba o lembrete curto do passo do dia — um por dia, na voz do Dr. Liberdade, pra não perder o ritmo. Não pula fila: os passos continuam abrindo um por dia, no seu tempo.",
       label: "Seu melhor e-mail",
       placeholder: "voce@email.com",
       cta: "Quero o reforço",
       success:
-        "Pronto — teu e-mail está guardado. 🔓 Os 7 passos já destrancaram aqui em cima; é só rolar e continuar de onde parou. O reforço diário chega a partir de amanhã.",
+        "Pronto — teu e-mail está guardado. O reforço diário chega a partir de amanhã, um lembrete por dia. Os passos aqui em cima continuam abrindo no seu ritmo — um a cada dia.",
       note: "Sem spam. Um e-mail por dia, 7 dias. Cancela com um clique.",
       error: "Confere o e-mail — parece que faltou algo.",
     },
@@ -254,18 +266,22 @@ export const guia7Content: Record<Lang, Guia7Content> = {
     unlockButtonLabel: "Hice el Día {N}. Destrabo el Día {N+1} →",
     unlockButtonLabelFinal: "Hice los 7. La llave es tuya.",
     unlockButtonDisabledLabel: "Vuelve mañana por el Día {N+1}.",
-    emailShortcutCta: "¿No quieres esperar? Destraba los 7 de una vez con tu correo →",
     progressFooterNote:
       "Tu progreso vive en este navegador, no en una cuenta. ¿Cambiaste de aparato o borraste el caché? Vuelves al Día 1 — aquí nadie pide login, y eso es a propósito.",
+    completionEyebrow: "LOS 7 DÍAS TERMINARON",
+    completionTitle: "Tienes la llave. La ciencia detrás de ella está aquí.",
+    completionBody:
+      "Probaste, en la práctica, que se podía elegir — los 7 días enteros, uno a la vez. El porqué de eso, la ciencia real de la dopamina y la adicción, es el tema de I Love Dopamina. Asegura tu ejemplar ahora, al precio de la preventa.",
+    completionCta: "Asegurar mi ejemplar",
     form: {
       heading: "¿Quieres el refuerzo diario?",
       body:
-        "Deja tu correo y los 7 pasos se destraban ahora — sin esperar un día por cada uno. Aun así, recibes el recordatorio corto del paso del día, uno por día, en la voz del Dr. Libertad, para no perder el ritmo.",
+        "Deja tu correo y recibe el recordatorio corto del paso del día — uno por día, en la voz del Dr. Libertad, para no perder el ritmo. No te saltas la fila: los pasos siguen abriéndose uno por día, a tu ritmo.",
       label: "Tu mejor correo",
       placeholder: "tu@email.com",
       cta: "Quiero el refuerzo",
       success:
-        "Listo — tu correo quedó guardado. 🔓 Los 7 pasos ya están destrabados aquí arriba; solo desplázate y sigue donde quedaste. El refuerzo diario llega a partir de mañana.",
+        "Listo — tu correo quedó guardado. El refuerzo diario llega a partir de mañana, un recordatorio por día. Los pasos aquí arriba siguen abriéndose a tu ritmo — uno cada día.",
       note: "Sin spam. Un correo por día, 7 días. Cancela con un clic.",
       error: "Revisa el correo — parece que faltó algo.",
     },
