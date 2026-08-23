@@ -2,10 +2,15 @@
  * (borda com gradiente de luz, reflexo especular, glow ambiente girando
  * devagar atrás). Ver PreSaleCard.tsx para o porquê de cada peça. */
 
-/* Glow ambiente atrás do vidro — gira devagar (a marca pediu movimento
- * SEMPRE neste card, nunca uma trava de "menos movimento"). Puro CSS: não
- * pesa a mão do framer-motion e não some em prefers-reduced-motion, por
- * ordem do dono. */
+/* Glow ambiente atrás do vidro — ESTÁTICO (dono, 23/08: "fica piscando feito
+ * louco"). Era um conic-gradient com blur(64px) GIRANDO sem parar, colado
+ * atrás de um painel com backdrop-filter — no navegador de celular de
+ * verdade essa combinação (filtro pesado + transform animando + vidro na
+ * frente reamostrando o fundo a cada quadro) faz o GPU derrapar entre
+ * camada composta e repintura, e o resultado é o vidro piscando por vários
+ * segundos. O card continua animado pelo selo, pelo botão e pela entrada
+ * (framer-motion) — a exigência de "sempre animado" (15/08) já está coberta
+ * por eles; o glow não precisa girar para cumprir isso. */
 .aura {
   background: conic-gradient(
     from 0deg at 50% 45%,
@@ -17,13 +22,6 @@
   );
   filter: blur(64px);
   opacity: 0.8;
-  animation: aura-spin 24s linear infinite;
-}
-
-@keyframes aura-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 /* A "beira" do vidro: gradiente fino simulando luz pegando um lado do card. */

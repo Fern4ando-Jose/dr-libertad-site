@@ -13,10 +13,16 @@ import styles from "./preSaleCard.module.css";
 // Redesenho 23/08/2026 (dono: "está muito feio, quadrado desse jeito, veja o
 // que tem de mais novo e moderno"): o retângulo escuro empilhado (rótulo sobre
 // rótulo, input em cima do botão, lista de bullet) virou um painel de vidro —
-// borda com gradiente de luz, reflexo especular no canto, glow ambiente que
-// gira devagar atrás (a marca exige movimento sempre neste card), preço e
-// selo de garantia lado a lado, garantias como chips horizontais, e o e-mail
-// + botão fundidos numa única cápsula. Nenhuma copy nem lógica mudou.
+// borda com gradiente de luz, reflexo especular no canto, glow ambiente atrás,
+// preço e selo de garantia lado a lado, garantias como chips horizontais, e o
+// e-mail + botão fundidos numa única cápsula. Nenhuma copy nem lógica mudou.
+//
+// Correção 23/08/2026 (dono: "está piscando feito louco"): o glow atrás
+// GIRAVA (blur pesado + transform animando) colado num painel com
+// backdrop-filter — em celular de verdade essa combinação faz o vidro
+// piscar por vários segundos (ver preSaleCard.module.css .aura). O glow
+// virou estático; quem carrega a exigência de "sempre animado" (15/08) são
+// o selo, o botão e a entrada.
 
 const cardContainer: Variants = {
   hidden: {},
