@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, type Variants } from "framer-motion";
 import { useLang } from "@/lib/i18n/LanguageProvider";
+import StudioContainer from "@/components/ui/Container";
 import styles from "./preSaleCard.module.css";
 
 // Card animado de PRÉ-VENDA (lista de espera) — pedido do dono 15/08/2026:
@@ -130,7 +131,16 @@ export default function PreSaleCard({
             "radial-gradient(600px circle at 50% 0%, rgba(164,90,90,0.12), transparent 60%)",
         }}
       />
-      <div id="pre-venda" className="relative mx-auto max-w-xl scroll-mt-28">
+      <div id="pre-venda" className="relative scroll-mt-28">
+        {/* Mesma faixa (StudioContainer) do resto da página — inclusive do
+            card final de CTA mais abaixo — para os dois terem o MESMO
+            tamanho de caixa (dono, 23/08: estavam em larguras diferentes;
+            este era o único card da página colado nas bordas da tela, sem
+            StudioContainer). A caixa (borda/vidro) acompanha a largura do
+            container; o conteúdo de dentro fica centrado numa coluna de
+            leitura confortável (senão o campo de e-mail esticaria a página
+            inteira). */}
+        <StudioContainer>
         {/* Borda com gradiente — a "beira" do vidro pegando luz de um lado. */}
         <div className={`${styles.glassBorder} rounded-[2rem] p-px`}>
           <motion.div
@@ -140,6 +150,7 @@ export default function PreSaleCard({
             viewport={{ once: true, amount: 0.3 }}
             className={`${styles.glass} relative overflow-hidden rounded-[calc(2rem-1px)] p-7 text-left backdrop-blur-[28px] backdrop-saturate-[1.6] md:p-10`}
           >
+          <div className="mx-auto max-w-xl">
             <motion.div variants={cardItem}>
               <span className="inline-flex items-center gap-2 rounded-full border border-muted-red/40 bg-muted-red/[0.06] px-3 py-1 text-[0.65rem] tracking-[0.22em] uppercase text-muted-red">
                 <span className={`${styles.seloDot} h-1.5 w-1.5 rounded-full bg-muted-red`} aria-hidden="true" />
@@ -247,8 +258,10 @@ export default function PreSaleCard({
             <div id="pre-sale-feedback" aria-live="polite" className="mt-3 text-xs leading-[1.6] text-warm-gray/70">
               {status === "error" ? <span className="text-muted-red">{msg}</span> : w.disclaimer}
             </div>
+          </div>
           </motion.div>
         </div>
+        </StudioContainer>
       </div>
     </section>
   );
