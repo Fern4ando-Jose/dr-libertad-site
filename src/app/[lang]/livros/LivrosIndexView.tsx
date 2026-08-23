@@ -109,7 +109,12 @@ export default function LivrosIndexView() {
                             // (deadlock visto ao vivo em 16/08: capa do Tolos sumida).
                             // São 2 imagens; o custo é mínimo.
                             priority
-                            className="h-auto max-h-full w-auto max-w-full rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]"
+                            // w-auto/h-auto deixava a capa no tamanho NATURAL do
+                            // arquivo — no celular a moldura 3:4 ocupa quase a tela
+                            // toda e a imagem sobrava pequena, cercada de vazio
+                            // (achado 23/08). object-contain preenche a moldura
+                            // inteira sem cortar a arte.
+                            className="h-full w-full rounded-xl object-contain shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]"
                           />
                         </div>
                       </div>
