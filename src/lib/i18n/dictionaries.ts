@@ -16,7 +16,7 @@ export const br = {
       { id: "gallery", label: "Editorial" },
       { id: "quotes", label: "Citações" },
     ],
-    cta: "Entrar na lista",
+    cta: "Guia grátis",
     books: "Livros",
     author: "Autor",
     quiz: "Teste",
@@ -639,7 +639,6 @@ export const br = {
       // (achado da crítica, 23/08). O ES já usava "Temas" nos dois lugares.
       { label: "Temas", id: "topics" },
       { label: "Galeria", id: "gallery" },
-      { label: "Newsletter", id: "newsletter" },
     ],
   },
 };
@@ -653,7 +652,7 @@ export const es: Dict = {
       { id: "gallery", label: "Editorial" },
       { id: "quotes", label: "Citas" },
     ],
-    cta: "Unirme a la lista",
+    cta: "Guía gratis",
     books: "Libros",
     author: "Autor",
     quiz: "Test",
@@ -1272,7 +1271,6 @@ export const es: Dict = {
       { label: "Manifiesto", id: "manifesto" },
       { label: "Temas", id: "topics" },
       { label: "Galería", id: "gallery" },
-      { label: "Newsletter", id: "newsletter" },
     ],
   },
 };
