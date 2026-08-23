@@ -43,7 +43,7 @@ function loadInputProps() {
 function loadComposition() {
   const arg = process.argv.find((a) => a.startsWith("--composition="));
   const id = arg ? arg.slice("--composition=".length) : process.env.REEL_COMPOSITION || "Reel";
-  const ALLOWED = new Set(["Reel", "ReelClassic", "ReelV2"]);
+  const ALLOWED = new Set(["Reel", "ReelClassic", "ReelV2", "ReelPassos"]);
   return ALLOWED.has(id) ? id : "Reel";
 }
 
