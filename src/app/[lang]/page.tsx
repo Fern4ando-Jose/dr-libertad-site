@@ -143,11 +143,15 @@ export default function Page() {
 
                 <div className="mt-10 flex flex-wrap items-center gap-3" data-gsap="reveal">
                   <a
-                    href={`/${lang}/guia-7-dias`}
-                    className="group inline-flex items-center rounded-full bg-muted-red px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite transition hover:bg-muted-red/85"
+                    href={lang === "br" ? "/br/guia-7-dias" : "#manifesto"}
+                    className={
+                      lang === "br"
+                        ? "group inline-flex items-center rounded-full bg-muted-red px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite transition hover:bg-muted-red/85"
+                        : "group inline-flex items-center rounded-full border border-warm-gray/20 bg-white/5 px-6 py-3 text-xs tracking-[0.22em] uppercase text-offwhite/90 hover:bg-white/10 transition"
+                    }
                   >
                     {t.hero.ctaPrimary}
-                    <span className="ml-3 text-offwhite transition group-hover:translate-x-0.5">
+                    <span className={lang === "br" ? "ml-3 text-offwhite transition group-hover:translate-x-0.5" : "ml-3 text-muted-red transition group-hover:translate-x-0.5"}>
                       {String.fromCharCode(8594)}
                     </span>
                   </a>
