@@ -408,3 +408,111 @@
   .ember { animation: none; display: none; }
   .btn:hover { transform: none; }
 }
+
+/* Subtítulo da seção de passos — explica a mecânica de desbloqueio por dia. */
+.stepsSubheading {
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--cream2);
+  margin-top: -6px;
+  margin-bottom: 22px;
+  max-width: 58ch;
+}
+
+/* Estados dos cards de passo (desbloqueio progressivo, delta 2026-08-23) */
+.stepLocked {
+  opacity: 0.58;
+  border-color: var(--line);
+  box-shadow: none;
+  background: rgba(42, 32, 25, 0.4);
+}
+.stepLocked .stepTitle {
+  color: var(--warm);
+}
+.stepActive {
+  border-color: var(--line3);
+  background: var(--cardhi);
+  box-shadow: 0 0 0 1px rgba(235, 176, 115, 0.28), var(--shadow), var(--lit);
+}
+.stepDone {
+  border-color: var(--line2);
+}
+
+.lockedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sans);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warm);
+  background: rgba(235, 176, 115, 0.08);
+  border: 1px solid var(--line2);
+  border-radius: 100px;
+  padding: 4px 11px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+.stepCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(235, 176, 115, 0.16);
+  color: var(--ember);
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.lockedTeaser {
+  font-family: var(--sans);
+  font-size: 13.5px;
+  line-height: 1.58;
+  color: var(--dim);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.unlockRow {
+  margin-top: 16px;
+}
+.unlockBtn {
+  font-size: 13px;
+  padding: 11px 22px;
+}
+
+/* Atalho por e-mail — rola até o form; some quando os 7 já estão destrancados */
+.emailShortcut {
+  display: block;
+  width: 100%;
+  margin: 22px auto 0;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  color: var(--ember);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: none;
+  padding: 6px;
+}
+.emailShortcut:hover {
+  color: var(--cream);
+}
+
+/* Rodapé de honestidade da seção de passos: o progresso é só do navegador */
+.progressFooterNote {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--dim);
+  text-align: center;
+}

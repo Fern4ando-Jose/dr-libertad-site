@@ -290,6 +290,10 @@ export const br = {
     disclaimer: "Conteúdo estritamente educativo. Não substitui o acompanhamento de um profissional de saúde e não promete cura nem tratamento de transtornos.",
     finalTitle: "Seu querer, de volta ao dono.",
     finalLead: "Entre na lista de espera e garanta os R$ 29,90 do pré-lançamento. Enquanto a compra não abre, baixe a prévia grátis — o mito da “molécula do prazer” cai já nas primeiras páginas.",
+    guia7Cross: {
+      body: "Ainda não tem certeza? Comece grátis, sem esperar a pré-venda abrir: o Guia de 7 Dias para retomar sua atenção — o primeiro passo, hoje.",
+      cta: "Começar o Guia de 7 Dias →",
+    },
   },
   tolos: {
     badge: "Pré-lançamento · Romance parabólico",
@@ -347,6 +351,10 @@ export const br = {
     disclaimer: "Obra de ficção. A vila não está no mapa — mas, como avisa o prólogo, é de todos nós.",
     finalTitle: "Qual dos três é você?",
     finalLead: "Entre na lista de espera e garanta o preço de pré-lançamento. O livro está em finalização — e a vila continua onde sempre esteve: esperando você entrar.",
+    guia7Cross: {
+      body: "Ainda não tem certeza? Enquanto o livro não sai, comece grátis com o Guia de 7 Dias para retomar sua atenção — o mesmo olhar sem anestesia, em sete passos.",
+      cta: "Começar o Guia de 7 Dias →",
+    },
   },
   perdi: {
     badge: "Pré-lançamento · R$ 51,38",
@@ -409,6 +417,10 @@ export const br = {
     disclaimer: "Livro não apto para mulheres. Conteúdo editorial sobre relações e a natureza do homem — verdades incômodas, sem moralismo e sem pedido de desculpas.",
     finalTitle: "A natureza explica. A natureza não absolve.",
     finalLead: "Entre na lista de espera e garanta o preço de pré-lançamento. Este é o livro que você vai querer ter lido antes — não depois.",
+    guia7Cross: {
+      body: "Ainda não tem certeza? Comece grátis, agora: o Guia de 7 Dias para retomar sua atenção — sete passos pequenos, a mesma verdade sem anestesia.",
+      cta: "Começar o Guia de 7 Dias →",
+    },
   },
   livrosIndex: {
     eyebrow: "Biblioteca",
@@ -915,6 +927,10 @@ export const es: Dict = {
     disclaimer: "Contenido estrictamente educativo. No sustituye el acompañamiento de un profesional de salud y no promete cura ni tratamiento de trastornos.",
     finalTitle: "Tu querer, de vuelta a su dueño.",
     finalLead: "Entra en la lista de espera y asegura los US$ 5,90 de preventa. Mientras la compra no abre, descarga el adelanto gratis — el mito de la “molécula del placer” cae en las primeras páginas.",
+    guia7Cross: {
+      body: "¿Todavía no estás seguro? Empieza gratis: la Guía de 7 Días para recuperar tu atención — el primer paso antes del libro entero.",
+      cta: "Empezar la Guía de 7 Días →",
+    },
   },
   tolos: {
     badge: "Preventa · Novela parabólica",
@@ -972,6 +988,10 @@ export const es: Dict = {
     disclaimer: "Obra de ficción. El pueblo no está en el mapa — pero, como advierte el prólogo, es de todos nosotros.",
     finalTitle: "¿Cuál de los tres eres?",
     finalLead: "Entra en la lista de espera y asegura el precio de preventa. El libro está en finalización — y el pueblo sigue donde siempre estuvo: esperando que entres.",
+    guia7Cross: {
+      body: "¿Todavía no estás seguro? Mientras la novela no sale, empieza gratis con la Guía de 7 Días para recuperar tu atención — la misma mirada honesta, en siete pasos.",
+      cta: "Empezar la Guía de 7 Días →",
+    },
   },
   perdi: {
     badge: "Preventa · US$ 9,99",
@@ -1034,6 +1054,10 @@ export const es: Dict = {
     disclaimer: "Libro no apto para mujeres. Contenido editorial sobre relaciones y la naturaleza del hombre — verdades incómodas, sin moralismo y sin disculpas.",
     finalTitle: "La naturaleza explica. La naturaleza no absuelve.",
     finalLead: "Entra en la lista de espera y asegura el precio de preventa. Este es el libro que querrás haber leído antes — no después.",
+    guia7Cross: {
+      body: "¿Todavía no estás seguro? Empieza gratis, ahora: la Guía de 7 Días para recuperar tu atención — siete pasos pequeños, la misma verdad sin anestesia.",
+      cta: "Empezar la Guía de 7 Días →",
+    },
   },
   livrosIndex: {
     eyebrow: "Biblioteca",
