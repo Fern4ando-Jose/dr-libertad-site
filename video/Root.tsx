@@ -10,6 +10,7 @@ import { Reel, reelDefaultProps, reelDurations, ReelProps, FPS } from "./Reel";
 import { ReelClassic, reelClassicDefaultProps, ReelClassicProps } from "./ReelClassic";
 import { ReelV2, reelV2DefaultProps, reelDurationsV2, reelPlanV2 } from "./ReelV2";
 import { KenBurnsProof, kenBurnsProofDefaultProps, kenBurnsProofDuration } from "./KenBurns";
+import { ReelPassos, reelPassosDefaultProps, reelPlanPassos, ReelPassosProps } from "./ReelPassos";
 
 // Duração do motor clássico (mesma matemática inline do componente original).
 function classicDuration(slidesCount: number): number {
@@ -68,6 +69,26 @@ export const RemotionRoot: React.FC = () => {
           const p = props as ReelClassicProps;
           const count = p.slides && p.slides.length ? p.slides.length : reelClassicDefaultProps.slides.length;
           return { durationInFrames: classicDuration(count) };
+        }}
+      />
+
+      {/* ReelPassos — composição NOVA (grid+numeral+barra-de-progresso), NÃO é
+          produção (P1.5: a automação segue no ReelV2). Disponível para adoção
+          futura; ver CLAUDE.md/registro da tarefa 2026-08-23 (padrão observado
+          em @estoicodiario/@HONORESTOICO). Render de teste isolado:
+          `render-reel.mjs --composition=ReelPassos`. */}
+      <Composition
+        id="ReelPassos"
+        component={ReelPassos}
+        durationInFrames={reelPlanPassos(reelPassosDefaultProps.steps.length).total}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={reelPassosDefaultProps}
+        calculateMetadata={({ props }) => {
+          const p = props as ReelPassosProps;
+          const count = p.steps && p.steps.length ? p.steps.length : reelPassosDefaultProps.steps.length;
+          return { durationInFrames: reelPlanPassos(count).total };
         }}
       />
 
