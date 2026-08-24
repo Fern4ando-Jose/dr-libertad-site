@@ -95,7 +95,14 @@ export const reelPassosDefaultProps: ReelPassosProps = {
     { text: "Repite hasta que la libertad sea automática" },
   ],
   cta: "¿Cuál es tu primer paso hoy?",
-  ctaNote: "Guarda este Reel y vuelve mañana",
+  // ⚠️ 2026-08-23 — SEM ctaNote default de propósito. Remotion faz MERGE raso do
+  // `--props` com o defaultProps (não substitui por inteiro) — um Reel BR real
+  // renderizado sem `ctaNote` no reel-props.json (o pipeline não gera essa linha)
+  // ACENDEU o valor default em ESPANHOL por baixo do handle @dr.liberdade.br
+  // (achado no 1º render de teste com conteúdo real, run 32676723055). É a MESMA
+  // classe de defeito que lang-guard.ts existe pra barrar ("Influência não
+  // absuelve", 04/08). Workflow também manda `ctaNote: ""` explícito (defesa em
+  // profundidade) — mas o default aqui NUNCA pode ser uma frase só-ES.
   handle: "@dr.liberdad",
   brand: "Dr. Libertad",
   ctaFollow: "Sigue",

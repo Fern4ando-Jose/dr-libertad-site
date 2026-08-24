@@ -164,6 +164,13 @@ describe("reelPassosDefaultProps — sanidade dos props default (usados pelo Roo
       expect(s.text.trim().length).toBeGreaterThan(0);
     }
   });
+
+  it("ctaNote NUNCA tem um valor default — Remotion faz merge raso do --props com o " +
+     "defaultProps; um ctaNote default vazaria uma frase (hoje seria ES) por baixo de " +
+     "QUALQUER idioma real que o workflow renderize (achado no render de teste real " +
+     "23/08: 'Guarda este Reel y vuelve mañana' sob @dr.liberdade.br)", () => {
+    expect(reelPassosDefaultProps.ctaNote).toBeFalsy();
+  });
 });
 
 describe("musicVolumeAtFrame — a peça NUNCA fica sem trilha do início ao fim (guarda do conferir-render)", () => {

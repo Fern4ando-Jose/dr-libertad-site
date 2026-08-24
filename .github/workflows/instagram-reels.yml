@@ -229,6 +229,14 @@ jobs:
             // slide=um passo, cta=bloco final). Fonte única: scripts/reel-passos-map.cjs
             // (mesma função testada em src/lib/reel-passos-map.invariants.test.ts).
             props.steps = require("./scripts/reel-passos-map.cjs").mapContentToPassosSteps({ title: p.title, slides: p.slides, cta: p.cta }).steps;
+            // ⚠️ 2026-08-23 — SEMPRE explícito, NUNCA ausente. Remotion faz merge raso
+            // do --props com o defaultProps da composição; um campo que falta aqui
+            // "vaza" o default de ReelPassos.tsx (que é em ESPANHOL) por baixo de um
+            // handle BR — achado no 1º render de teste com conteúdo real (run
+            // 32676723055, "Guarda este Reel y vuelve mañana" sob @dr.liberdade.br).
+            // O pipeline ainda não gera uma linha de nota separada da cta — string
+            // vazia desliga a linha no componente ({ctaNote ? ... : null}).
+            props.ctaNote = "";
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("slot.txt", p.slot || "noite");
             fs.writeFileSync("topic.txt", p.topic || ""); // → publish-reel (anti-dup cross-formato)
