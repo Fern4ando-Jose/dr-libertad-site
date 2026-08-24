@@ -336,15 +336,20 @@ jobs:
       #    exigindo footage+ilustração+narração no reel-props.json (mesma trava de
       #    sempre, composição-agnóstica) mesmo que ReelPassos não os desenhe —
       #    ReelPassos toca só a cama musical (props.music); ver video/ReelPassos.tsx.
+      # TEMPORARIO (branch de teste, reverter): "só render de QA" NÃO exige `pronto==1`
+      # (o gate de "imagens" bateu no teto de gasto de ilustração ao vivo, ortogonal ao
+      # que este teste quer inspecionar — o visual do ReelPassos com conteúdo REAL). O
+      # passo de PUBLICAR continua exigindo `pronto==1` (inalterado, abaixo) — nada disto
+      # afrouxa o que vai pro feed de verdade.
       - name: Renderizar Reel (Remotion)
-        if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
+        if: ${{ steps.media.outputs.has_media == '1' }}
         run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelPassos
 
       # TEMPORARIO (branch de teste, reverter): sobe o mp4 renderizado como ARTEFATO do
       # GitHub Actions (privado, nunca publicado em rede social) mesmo que a conferência
       # de áudio/tipografia barre o upload pro Release — só para inspeção manual dos frames.
       - name: "[TESTE] Guardar mp4 renderizado como artefato (não publica em lugar nenhum)"
-        if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
+        if: ${{ steps.media.outputs.has_media == '1' }}
         uses: actions/upload-artifact@v4
         with:
           name: reelpassos-teste-render
