@@ -48,6 +48,16 @@ on:
         default: "no"
         type: choice
         options: ["no", "yes"]
+      force:
+        description: "TEMPORARIO (branch de teste, reverter): força bypass do gate de dia-de-carrossel, só para render de TESTE sem publicar."
+        required: false
+        default: "no"
+        type: choice
+        options: ["no", "yes"]
+      topic:
+        description: "TEMPORARIO (branch de teste, reverter): força um tópico específico (chave EXATA do THEMES em ES)."
+        required: false
+        default: ""
 
 # Um Reel por horário/idioma roda isolado; horários e idiomas diferentes não se cancelam.
 concurrency:
@@ -135,9 +145,15 @@ jobs:
           # pelo revisor, escolhe o footage e gera a NARRAÇÃO — a voz é o trecho lento).
           # 480 s dá folga sem cegar nada: o job tem limite próprio, e um site realmente
           # travado ainda derruba o passo, só que 8 min depois em vez de 3.
+          FORCEQS=""
+          if [ "${{ github.event.inputs.force }}" = "yes" ]; then FORCEQS="&force=1"; fi
+          TOPICQS=""
+          if [ -n "${{ github.event.inputs.topic }}" ]; then
+            TOPICQS="&topic=$(node -e 'console.log(encodeURIComponent(process.argv[1]))' "${{ github.event.inputs.topic }}")"
+          fi
           HTTP=$(curl -sS --max-time 480 -o preview.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://www.drlibertad.com/api/publish?preview=1${{ steps.params.outputs.langqs }}&run=${{ steps.params.outputs.run }}" \
+            "https://www.drlibertad.com/api/publish?preview=1${{ steps.params.outputs.langqs }}&run=${{ steps.params.outputs.run }}$FORCEQS$TOPICQS" \
             || echo 000)
           if [ "$HTTP" = "402" ]; then
             echo "pulado=1" >> "$GITHUB_OUTPUT"
@@ -263,9 +279,11 @@ jobs:
             exit 0
           fi
           echo "Sem footage e sem ilustração — tentando ilustração (fal) como fallback…"
+          FORCEQS=""
+          if [ "${{ github.event.inputs.force }}" = "yes" ]; then FORCEQS="&force=1"; fi
           curl -fsS --max-time 200 \
             -H "Authorization: Bearer $CRON_SECRET" \
-            "https://www.drlibertad.com/api/publish?preview=1&illus=1${{ steps.params.outputs.langqs }}&run=${{ steps.params.outputs.run }}" \
+            "https://www.drlibertad.com/api/publish?preview=1&illus=1${{ steps.params.outputs.langqs }}&run=${{ steps.params.outputs.run }}$FORCEQS" \
             -o illus.json || echo "(chamada de ilustração falhou)"
           node -e '
             const fs = require("fs");
@@ -305,6 +323,7 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           RUN: ${{ steps.params.outputs.run }}
           LANGQS: ${{ steps.params.outputs.langqs }}
+          FORCE: ${{ github.event.inputs.force == 'yes' && '1' || '' }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -320,6 +339,17 @@ jobs:
       - name: Renderizar Reel (Remotion)
         if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
         run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelPassos
+
+      # TEMPORARIO (branch de teste, reverter): sobe o mp4 renderizado como ARTEFATO do
+      # GitHub Actions (privado, nunca publicado em rede social) mesmo que a conferência
+      # de áudio/tipografia barre o upload pro Release — só para inspeção manual dos frames.
+      - name: "[TESTE] Guardar mp4 renderizado como artefato (não publica em lugar nenhum)"
+        if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reelpassos-teste-render
+          path: out/reel.mp4
+          retention-days: 1
 
       # 6b. CONFERE A PEÇA PRONTA — o arquivo, não os campos dele (18/08/2026).
       #     O dono viu o Reel BR no ar e reprovou: "a voz está cortada, a legenda com
