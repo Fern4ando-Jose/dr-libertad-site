@@ -14,6 +14,7 @@ import {
   stepWord,
   doneWord,
   reelPassosDefaultProps,
+  musicVolumeAtFrame,
 } from "./ReelPassos";
 import { FPS } from "./Reel";
 
@@ -162,5 +163,33 @@ describe("reelPassosDefaultProps — sanidade dos props default (usados pelo Roo
     for (const s of reelPassosDefaultProps.steps) {
       expect(s.text.trim().length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("musicVolumeAtFrame — a peça NUNCA fica sem trilha do início ao fim (guarda do conferir-render)", () => {
+  it("começa em silêncio (fade-in) e nunca ultrapassa o teto", () => {
+    const total = reelPlanPassos(4).total;
+    expect(musicVolumeAtFrame(0, total)).toBe(0);
+    for (let f = 0; f <= total; f += 5) {
+      expect(musicVolumeAtFrame(f, total)).toBeLessThanOrEqual(0.55);
+      expect(musicVolumeAtFrame(f, total)).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("segura no teto durante o miolo da peça (não é silenciosa no meio)", () => {
+    const total = reelPlanPassos(4).total;
+    const meio = Math.floor(total / 2);
+    expect(musicVolumeAtFrame(meio, total)).toBeCloseTo(0.55, 5);
+  });
+
+  it("desce a zero no último frame (fade-out, sem corte abrupto)", () => {
+    const total = reelPlanPassos(4).total;
+    expect(musicVolumeAtFrame(total, total)).toBe(0);
+  });
+
+  it("não quebra em peças muito curtas (1 passo)", () => {
+    const total = reelPlanPassos(1).total;
+    expect(() => musicVolumeAtFrame(0, total)).not.toThrow();
+    expect(() => musicVolumeAtFrame(total, total)).not.toThrow();
   });
 });

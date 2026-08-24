@@ -33,9 +33,11 @@
 import React from "react";
 import {
   AbsoluteFill,
+  Audio,
   Sequence,
   interpolate,
   spring,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
@@ -75,6 +77,14 @@ export type ReelPassosProps = {
   brand?: string;
   ctaFollow?: string; // verbo "seguir" por idioma
   ctaBio?: string; // linha "link da bio" por idioma
+  // Cama musical (mesmo mecanismo de ReelV2/pick-music.cjs — UMA faixa por TEMA,
+  // já resolvida antes do render; custo zero, arquivo reusado). SEM narração
+  // aqui de propósito (P1.5 do escopo desta tarefa: o timing de cada passo é
+  // FIXO — reelDurationsPassos —, não medido pela fala; sincronizar narração
+  // exigiria a mesma engenharia de reelPlanV2/wordFrames do ReelV2, fora do
+  // escopo pedido). Sem música → peça muda (fail-open; mesmo risco que ReelV2
+  // já corre quando pick-music.cjs não acha faixa nenhuma).
+  music?: string;
 };
 
 export const reelPassosDefaultProps: ReelPassosProps = {
@@ -90,6 +100,7 @@ export const reelPassosDefaultProps: ReelPassosProps = {
   brand: "Dr. Libertad",
   ctaFollow: "Sigue",
   ctaBio: "→ Más en el link de la bio",
+  music: "music/bed-0.mp3", // QA local/preview — produção manda a faixa do TEMA (pick-music.cjs)
 };
 
 // ─── Tempos — fonte única (componente + Root.calculateMetadata) ──────────────
@@ -160,6 +171,22 @@ export function doneWord(lang: "es" | "br" = "es"): string {
 /** Label "PASO 0X"/"PASSO 0X" — usa o override do passo se vier, senão gera do índice+idioma. */
 export function labelFor(index: number, override?: string, lang: "es" | "br" = "es"): string {
   return override && override.trim() ? override.trim().toUpperCase() : `${stepWord(lang)} ${numeralFor(index)}`;
+}
+
+/**
+ * Curva de volume da cama musical: sobe nos 15 primeiros frames, segura em
+ * `max`, desce nos 24 frames finais. Pura (frame → volume), sem `loop` no
+ * cálculo — o componente lê o frame da PEÇA (não o do áudio), mesmo motivo
+ * documentado em ReelV2 (`curvaDaMusica`): com `loop` ligado, o frame relativo
+ * ao áudio volta a zero a cada repetição e reabriria o fade no meio da peça.
+ */
+export function musicVolumeAtFrame(frame: number, total: number, max = 0.55): number {
+  const rampaFim = Math.min(15, Math.max(1, total - 1));
+  const fadeInicio = Math.max(rampaFim, total - 24);
+  return interpolate(frame, [0, rampaFim, fadeInicio, total], [0, max, max, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
 }
 
 // ─── Fundo: grid de linhas verticais finas (papel milimetrado, quase invisível) ─
@@ -366,12 +393,15 @@ function CtaScene({ cta, ctaNote, n, handle, brand, ctaFollow, ctaBio, lang }: {
 // ─── Composição ────────────────────────────────────────────────────────────────
 export const ReelPassos: React.FC<ReelPassosProps> = (props) => {
   const {
-    steps, cta, ctaNote, handle = "@dr.liberdad", brand = "Dr. Libertad", ctaFollow = "Sigue", ctaBio = "→ Más en el link de la bio",
+    steps, cta, ctaNote, handle = "@dr.liberdad", brand = "Dr. Libertad", ctaFollow = "Sigue", ctaBio = "→ Más en el link de la bio", music,
   } = props;
   const safeSteps = steps && steps.length ? steps : reelPassosDefaultProps.steps;
   const plan = reelPlanPassos(safeSteps.length);
   const usedSteps = safeSteps.slice(0, plan.n);
   const lang = langDoHandle(handle);
+  const musicSrc = music ? (/^https?:\/\//.test(music) ? music : staticFile(music)) : null;
+  const frameDaPeca = useCurrentFrame();
+  const musicVol = musicVolumeAtFrame(frameDaPeca, plan.total);
 
   return (
     <AbsoluteFill style={{ backgroundColor: PASSOS_BLACK }}>
@@ -394,6 +424,12 @@ export const ReelPassos: React.FC<ReelPassosProps> = (props) => {
           </Sequence>
         );
       })()}
+
+      {/* Cama musical — mesma faixa por TEMA que o resto do Reel usa (pick-music.cjs),
+          sem narração (ver nota em ReelPassosProps.music). Garante que a peça
+          renderizada tenha trilha de áudio real — a conferência de render
+          (scripts/conferir-render.mjs) barra qualquer Reel sem som. */}
+      {musicSrc && <Audio src={musicSrc} loop volume={musicVol} />}
     </AbsoluteFill>
   );
 };
