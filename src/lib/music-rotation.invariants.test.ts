@@ -70,9 +70,19 @@ function noDia(dia: number, topic: string): string {
 // vez de fixar um número que envelhece calado.
 const RETORNO = Math.max(2, Math.round(readThemes().length / POSTS_PER_DAY));
 
-// Um tema representativo de cada tamanho de pool existente.
-const porTamanho = new Map<number, string>();
-for (const [t, p] of Object.entries(pools)) if (!porTamanho.has(p.length)) porTamanho.set(p.length, t);
+// ⛔ 30/08/2026 — O UNIVERSO DA ROTAÇÃO ENCOLHEU DE PROPÓSITO, e estas provas seguiram a régua nova.
+// O TikTok silenciou 82 dos 84 vídeos das duas contas por "sons não autorizados": 132 das 143 faixas
+// deste acervo têm autor na etiqueta (82 obras de Kevin MacLeod, CC BY) e são reconhecidas pelo banco
+// de áudio da plataforma. Desde então o picker só sorteia o que está em `public/music/livres.json`, e
+// como nenhum pilar tem duas faixas livres próprias, o pool efetivo de TODO tema é esse conjunto.
+// Medir contra o tamanho do pool BRUTO passou a medir uma realidade que deixou de existir — e teste
+// que mede o que não existe mais vira vermelho permanente, que é como se aprende a ignorar vermelho.
+const LIVRES: string[] = JSON.parse(readFileSync(resolve(MUSIC_DIR, "livres.json"), "utf8")).livres;
+const N_EFETIVO = LIVRES.length;
+
+// Um tema representativo — o tamanho do pool bruto deixou de diferenciar os casos, porque o universo
+// sorteável é o mesmo para todos os temas. A chave do mapa é o tamanho EFETIVO.
+const porTamanho = new Map<number, string>([[N_EFETIVO, Object.keys(pools)[0]]]);
 
 describe("trilha que gira — pools", () => {
   it("todo tema dos THEMES tem pool, e nenhum pool é vazio", () => {
@@ -173,7 +183,11 @@ describe("trilha que gira — não repete cedo", () => {
 
   // Uma amostra de temas por pilar já prova o ponto: varrer os 183 × 40 dias faz milhares
   // de checagens de disco e estoura o tempo do teste sem acrescentar informação.
-  it("o conjunto não deixa faixa encalhada (era 76 antes da rotação)", () => {
+  //
+  // ⚠️ O TETO desta prova mudou em 30/08: era ">100 faixas alcançadas" (o acervo inteiro). Hoje o
+  // universo permitido tem N_EFETIVO faixas, e o que precisa ser garantido é que a rotação use
+  // TODAS elas — nenhuma encalhada. É a mesma pergunta de sempre, medida no universo que existe.
+  it("o conjunto não deixa faixa encalhada — usa TODAS as livres", () => {
     const porPilar = new Map<string, string[]>();
     for (const [t, p] of Object.entries(pools)) {
       const cat = /bed-pilar-([a-z]+)/.exec(p[0])?.[1] ?? "?";
@@ -182,14 +196,12 @@ describe("trilha que gira — não repete cedo", () => {
       porPilar.set(cat, lista);
     }
     const amostra = [...porPilar.values()].flat();
-    const maiorPool = Math.max(...Object.values(pools).map((p) => p.length));
 
     const alcancadas = new Set<string>();
-    for (let d = 20000; d < 20000 + maiorPool; d++) for (const t of amostra) alcancadas.add(noDia(d, t));
+    for (let d = 20000; d < 20000 + N_EFETIVO; d++) for (const t of amostra) alcancadas.add(noDia(d, t));
 
-    const teto = new Set(Object.values(pools).flat()).size;
-    expect(alcancadas.size).toBeGreaterThan(100); // era 76 com uma faixa por tema
-    expect(alcancadas.size).toBeLessThanOrEqual(teto);
+    expect(alcancadas.size).toBe(N_EFETIVO); // nenhuma das livres fica encalhada
+    for (const f of alcancadas) expect(LIVRES).toContain(f); // e nenhuma com dono escapa
   });
 });
 
