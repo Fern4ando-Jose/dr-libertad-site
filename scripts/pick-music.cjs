@@ -32,6 +32,7 @@ const path = require("node:path");
 const MUSIC_DIR = path.resolve(__dirname, "..", "public", "music");
 const MANIFEST = path.join(MUSIC_DIR, "manifest.json");
 const POOLS = path.join(MUSIC_DIR, "pools.json");
+const LIVRES = path.join(MUSIC_DIR, "livres.json");
 // bed.wav / bed.mp3 (base) e bed-<n>.wav / bed-<n>.mp3 (legado, rotação por run).
 // NÃO casa bed-<NN>-<slug>.mp3 (faixas por tema) — essas só vêm via manifest.
 const RE = /^bed(?:-(\d+))?\.(wav|mp3)$/i;
@@ -53,6 +54,36 @@ function readPools() {
   } catch {
     return {};
   }
+}
+
+// ── A PENEIRA QUE FALTAVA (30/08/2026) ───────────────────────────────────────
+// ⛔ Só entra no vídeo faixa SEM autor registrado. O TikTok silenciou 82 dos 84 vídeos das duas
+// contas — aviso dele, 9 vezes entre 06/08 e 30/08: "Publicação silenciada devido a sons não
+// autorizados". As 132 faixas com autor deste acervo (82 obras de Kevin MacLeod, CC BY) estão
+// catalogadas no banco de identificação de áudio da plataforma: a licença permite o uso, o robô
+// silencia assim mesmo. E como a narração divide o canal com a música, silenciar mata a peça.
+// A lista é gerada de fora, lendo a etiqueta de cada arquivo: `scripts/build-music-livres.mjs`.
+//
+// ⚠️ FAIL-CLOSED de propósito: sem `livres.json` legível, NENHUMA faixa é liberada e o Reel sai
+// sem trilha. Peça sem música ainda tem a narração e vai ao ar; peça com faixa reconhecida vai ao
+// ar MUDA. Entre as duas, a escolha não é opinião.
+let _livresCache = null;
+function livres() {
+  if (_livresCache) return _livresCache;
+  try {
+    const j = JSON.parse(fs.readFileSync(LIVRES, "utf8"));
+    _livresCache = new Set(Array.isArray(j.livres) ? j.livres : []);
+  } catch {
+    _livresCache = new Set();
+  }
+  return _livresCache;
+}
+
+/** A faixa pode ir ao ar? Aceita "music/x.mp3" (como está nos pools) ou "x.mp3" (legado). */
+function podeIrAoAr(file) {
+  if (typeof file !== "string" || !file) return false;
+  const comPasta = file.startsWith("music/") ? file : `music/${file}`;
+  return livres().has(comPasta);
 }
 
 // Mesma conta do gerador (build-music-manifest.mjs) — dá a POSIÇÃO INICIAL do tema no
@@ -92,12 +123,20 @@ function indiceNoPool(topic, n, d) {
 }
 
 function pickFromPool(topic, pool) {
-  const n = pool.length;
+  // ⛔ A peneira das livres esvazia quase todo pool: dos 6 pilares, 4 ficaram com UMA faixa e dois
+  // (anxiety, freedom) com nenhuma — as outras têm autor registrado (ver `podeIrAoAr`). Pool de uma
+  // faixa devolve a MESMA música em todo tema do pilar, que é justamente o que o dono mandou acabar
+  // em 26/07 ("não devem ficar repetindo música todo dia"). Então, quando o pilar não tem pelo menos
+  // duas faixas livres, o pool passa a ser o acervo livre INTEIRO — a rotação por dia continua a
+  // mesma, só que sobre 11 faixas em vez de 1.
+  const doPilar = pool.filter(podeIrAoAr);
+  const usar = doPilar.length >= 2 ? doPilar : [...livres()];
+  const n = usar.length;
   if (!n) return null;
   const base = indiceNoPool(topic, n, diaCorrido());
   for (let i = 0; i < n; i++) {
-    const file = pool[(base + i) % n];
-    if (typeof file === "string" && fs.existsSync(path.resolve(MUSIC_DIR, "..", file))) return file;
+    const file = usar[(base + i) % n];
+    if (fs.existsSync(path.resolve(MUSIC_DIR, "..", file))) return file;
   }
   return null;
 }
@@ -132,7 +171,8 @@ function listBeds() {
 function pickByRun(run) {
   const r = Number.isFinite(Number(run)) ? Math.abs(Math.trunc(Number(run))) : 0;
   const { numbered, base } = listBeds();
-  const pool = numbered.length ? numbered : base ? [base] : [];
+  const todas = numbered.length ? numbered : base ? [base] : [];
+  const pool = todas.filter(podeIrAoAr);
   if (!pool.length) return "";
   return `music/${pool[r % pool.length]}`;
 }
@@ -162,12 +202,12 @@ function pickMusic(input) {
     }
     // 2º: faixa âncora do manifest (comportamento antigo — vale se pools.json faltar)
     const file = readManifest()[topic];
-    if (file && fs.existsSync(path.resolve(MUSIC_DIR, "..", file))) return file;
+    if (podeIrAoAr(file) && fs.existsSync(path.resolve(MUSIC_DIR, "..", file))) return file;
   }
   return pickByRun(run);
 }
 
-module.exports = { pickMusic, listBeds, readManifest, readPools, pickFromPool, hashStr };
+module.exports = { pickMusic, listBeds, readManifest, readPools, pickFromPool, hashStr, podeIrAoAr, livres };
 
 // CLI: imprime o caminho (ou linha vazia).
 if (require.main === module) {

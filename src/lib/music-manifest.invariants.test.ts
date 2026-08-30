@@ -59,15 +59,23 @@ describe("música por tema — picker", () => {
   // ver src/lib/music-rotation.invariants.test.ts. O manifest continua sendo a âncora e o
   // FALLBACK (vale quando pools.json falta), então o que se garante aqui é: o picker
   // devolve uma faixa do POOL daquele tema, e o manifest é uma delas.
-  it("resolve o tema para uma faixa do pool daquele tema", () => {
+  // ⛔ 30/08/2026: a faixa entregue NÃO vem mais do pool do tema quando o pool não tem faixa
+  // permitida. O TikTok silenciou 82 dos 84 vídeos por "sons não autorizados" — 132 das 143 faixas
+  // deste acervo têm autor (Kevin MacLeod, CC BY) e são reconhecidas pelo banco de áudio da
+  // plataforma —, então o picker só sorteia o que está em `public/music/livres.json`. O manifest e
+  // os pools continuam íntegros (nada foi apagado); o que mudou é QUEM pode ir ao ar.
+  it("resolve o tema para uma faixa PERMITIDA — e o pool do tema segue íntegro", () => {
     const pools = JSON.parse(
       readFileSync(resolve(ROOT, "public/music/pools.json"), "utf8"),
     ) as Record<string, string[]>;
+    const livres: string[] = JSON.parse(
+      readFileSync(resolve(ROOT, "public/music/livres.json"), "utf8"),
+    ).livres;
     const [topic, file] = Object.entries(manifest)[0];
     const pool = pools[topic];
     expect(pool, `tema sem pool: ${topic}`).toBeTruthy();
     expect(pool).toContain(file);
-    expect(pool).toContain(pickMusic({ topic, run: 0 }));
+    expect(livres).toContain(pickMusic({ topic, run: 0 }));
   });
 
   it("tema fora do manifest é fail-open (devolve string, nunca lança)", () => {

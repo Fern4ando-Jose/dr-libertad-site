@@ -1,0 +1,19 @@
+{
+  "_doc": "As ÚNICAS trilhas que pick-music.cjs pode sortear: as sem autor registrado na etiqueta. Gerado por scripts/build-music-livres.mjs. Faixa com autor está catalogada em banco de identificação de áudio e faz a plataforma SILENCIAR o vídeo inteiro (TikTok, 06/08–30/08/2026, 82 de 84 vídeos com zero visualização). Não editar à mão: rode o script.",
+  "_geradoDe": "etiqueta ID3 `artist` de cada arquivo de public/music",
+  "_comDono": 132,
+  "_naoLidos": [],
+  "livres": [
+    "music/bed-0.mp3",
+    "music/bed-1.mp3",
+    "music/bed-2.mp3",
+    "music/bed-3.mp3",
+    "music/bed-4.mp3",
+    "music/bed-5.mp3",
+    "music/bed-pilar-dopamine.mp3",
+    "music/bed-pilar-mind.mp3",
+    "music/bed-pilar-network.mp3",
+    "music/bed-pilar-self.mp3",
+    "music/bed.wav"
+  ]
+}
