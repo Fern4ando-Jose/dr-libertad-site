@@ -1,9 +1,16 @@
 name: Instagram Reels — Dr. Libertad / Dr. Liberdade (ES + BR)
 
 # Pipeline GRÁTIS de Reels (vídeo) para @dr.liberdad (ES) e @dr.liberdade.br (PT).
-# Fundo = footage real de banco (Pexels) + grade da marca + música. Renderiza com
-# Remotion no GitHub Actions (Chromium + ffmpeg), sobe o mp4 pro Vercel Blob e
-# publica via /api/publish-reel.
+# Renderiza com Remotion no GitHub Actions (Chromium + ffmpeg), sobe o mp4 pro
+# GitHub Release (ponte) e publica via /api/publish-reel.
+#
+# COMPOSIÇÃO DE PRODUÇÃO = ReelPassos (delta 2026-08-23, ordem do dono: "pode,
+# aplique tudo" — reestruturação total após zero crescimento/+US$3000 gastos sem
+# retorno). Molde grid+numeral fantasma+label "PASO 0X"+barra de progresso, fundo
+# PRETO PURO sem footage (padrão observado ao vivo em 2 contas do nicho crescendo:
+# @estoicodiario, @HONORESTOICO — ver video/ReelPassos.tsx). ReelV2 (footage real
+# de banco + grade da marca + gancho cinético) fica de RESERVA, mesmo padrão do
+# ReelClassic — não foi apagado, só saiu do render de produção.
 #
 # WORKFLOW ÚNICO ES+PT (fusão 2026-07-14): antes eram 2 arquivos quase idênticos
 # (instagram-reels.yml + instagram-reels-pt.yml) que DIVERGIAM à mão. Agora `lang` é
@@ -199,6 +206,21 @@ jobs:
               narrationWords: Array.isArray(p.narrationWords) && p.narrationWords.length ? p.narrationWords : undefined,
               narrationSegments: Array.isArray(p.narrationSegments) && p.narrationSegments.length ? p.narrationSegments : undefined
             };
+            // ReelPassos (composição de produção 2026-08-23): title/slides/cta já
+            // passaram pelo revisor editorial + guarda §8 (polêmica do dia) + trava
+            // anti-idioma (lang-guard.ts) — o redator NÃO MUDA. Este mapa só
+            // REORGANIZA o que já saiu dele em steps[] (título=1º passo, cada
+            // slide=um passo, cta=bloco final). Fonte única: scripts/reel-passos-map.cjs
+            // (mesma função testada em src/lib/reel-passos-map.invariants.test.ts).
+            props.steps = require("./scripts/reel-passos-map.cjs").mapContentToPassosSteps({ title: p.title, slides: p.slides, cta: p.cta }).steps;
+            // ⚠️ 2026-08-23 — SEMPRE explícito, NUNCA ausente. Remotion faz merge raso
+            // do --props com o defaultProps da composição; um campo que falta aqui
+            // "vaza" o default de ReelPassos.tsx (que é em ESPANHOL) por baixo de um
+            // handle BR — achado no 1º render de teste com conteúdo real (run
+            // 32676723055, "Guarda este Reel y vuelve mañana" sob @dr.liberdade.br).
+            // O pipeline ainda não gera uma linha de nota separada da cta — string
+            // vazia desliga a linha no componente ({ctaNote ? ... : null}).
+            props.ctaNote = "";
             fs.writeFileSync("caption.txt", p.caption || p.title || "");
             fs.writeFileSync("slot.txt", p.slot || "noite");
             fs.writeFileSync("topic.txt", p.topic || ""); // → publish-reel (anti-dup cross-formato)
@@ -298,11 +320,14 @@ jobs:
         run: node scripts/corrigir-reel.mjs
 
       # 6. Renderiza o Reel para out/reel.mp4 (só se há fundo de verdade).
-      #    Composição RETENÇÃO (ReelV2): capa curta 3s + gancho cinético + capa com
-      #    cor de marca + de-dup capa×insight 1. Promovido a produção 2026-06-26.
+      #    Composição de produção = ReelPassos (grid+numeral+barra-de-progresso,
+      #    fundo preto puro), promovida 2026-08-23. `has_media`/`pronto` continuam
+      #    exigindo footage+ilustração+narração no reel-props.json (mesma trava de
+      #    sempre, composição-agnóstica) mesmo que ReelPassos não os desenhe —
+      #    ReelPassos toca só a cama musical (props.music); ver video/ReelPassos.tsx.
       - name: Renderizar Reel (Remotion)
         if: ${{ steps.media.outputs.has_media == '1' && steps.pronto.outputs.pronto == '1' }}
-        run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelV2
+        run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelPassos
 
       # 6b. CONFERE A PEÇA PRONTA — o arquivo, não os campos dele (18/08/2026).
       #     O dono viu o Reel BR no ar e reprovou: "a voz está cortada, a legenda com
@@ -330,7 +355,7 @@ jobs:
 
       - name: Renderizar de novo (tipografia corrigida)
         if: ${{ steps.conferir.outputs.recorrigir == '1' }}
-        run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelV2
+        run: node scripts/render-reel.mjs --props=reel-props.json --composition=ReelPassos
 
       - name: Conferir a peça pronta (2ª e última passada)
         id: conferir2
