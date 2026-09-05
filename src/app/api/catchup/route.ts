@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dayBRT, publishedRunsToday, attemptsToday, shouldStopRetrying } from "@/lib/run-ledger";
-import { minOfDayBRT, RUN_HOUR_BRT, ACTIVE_RUNS } from "@/lib/day";
+import { minOfDayBRT, RUN_HOUR_BRT, runsForDay } from "@/lib/day";
 import { workflowFor } from "@/lib/workflows";
 
 // ─── Catch-up acionável DE FORA (agendador externo) ──────────────────────────
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 
   for (const lang of ACTIVE_LANGS) {
     const done = new Set(published[lang] ?? []);
-    for (const run of ACTIVE_RUNS) {
+    for (const run of runsForDay(day)) {
       const dueMin = RUN_HOUR_BRT[run] * 60 + GRACE_MIN;
       if (nowMin < dueMin || done.has(run)) continue;
       // Disjuntor: se a vaga já falhou MAX vezes hoje, PARA de redisparar (até amanhã).
