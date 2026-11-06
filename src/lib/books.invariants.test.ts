@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOOKS } from "@/lib/books";
+import { BOOKS, emPreVenda, getBook } from "@/lib/books";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import { SEO_LANGS } from "@/lib/seo";
 
@@ -56,6 +56,21 @@ describe("registro de livros", () => {
         }
       }
     }
+  });
+
+  it("I Love Dopamina: BR compra na Amazon, ES segue na pré-venda", () => {
+    const book = getBook("i-love-dopamina")!;
+    expect(book.store?.br).toBe("https://www.amazon.com.br/dp/B0HQG3559L");
+    expect(emPreVenda(book, "br")).toBe(false);
+    // A edição em castelhano ainda não existe à venda: nada de loja nela.
+    expect(book.store?.es).toBeUndefined();
+    expect(emPreVenda(book, "es")).toBe(true);
+  });
+
+  it("KDP Select: a edição BR à venda não anuncia Google nem pré-venda", () => {
+    const L = dictionaries.br.dopamina;
+    const vitrine = [L.badge, L.priceNote, L.ctaBuy, L.ctaBuyNote, L.epubNote, L.finalLead, L.metaDescription, ...L.chips].join(" ");
+    expect(vitrine).not.toMatch(/google|hotmart|pdf|lista de espera|pré-venda|pré-lançamento/i);
   });
 
   it("a medida da capa é declarada e plausível", () => {

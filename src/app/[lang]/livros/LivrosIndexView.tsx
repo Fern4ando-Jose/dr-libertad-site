@@ -7,7 +7,7 @@ import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
 import PreSalePopup from "@/components/ui/PreSalePopup";
 import { useLang } from "@/lib/i18n/LanguageProvider";
-import { VISIBLE_BOOKS } from "@/lib/books";
+import { VISIBLE_BOOKS, emPreVenda } from "@/lib/books";
 
 const MotionLink = motion.create(Link);
 
@@ -146,7 +146,7 @@ export default function LivrosIndexView() {
                         </div>
                       </div>
                     </MotionLink>
-                    {book.preSale && (
+                    {emPreVenda(book, lang) && (
                       <PreSalePopup slug={book.slug} price={b.price} priceNote={"priceNote" in b ? b.priceNote : undefined} />
                     )}
                   </div>

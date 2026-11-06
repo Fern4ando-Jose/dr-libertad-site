@@ -7,7 +7,7 @@ import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
 import PreSaleCard from "@/components/ui/PreSaleCard";
 import { useLang } from "@/lib/i18n/LanguageProvider";
-import { getBook } from "@/lib/books";
+import { emPreVenda, getBook } from "@/lib/books";
 
 // Medida das fotos de "por dentro" (public/images/livro-spread-*.jpg). Todas
 // saem do mesmo gabarito, então uma constante basta — e o next/image precisa
@@ -81,8 +81,18 @@ export default function BookSales({ slug }: { slug: string }) {
   // PRÉ-VENDA (pré-lançamento): a oferta principal vira a lista de espera (garantir
   // o preço). O CTA rola até o formulário (#pre-venda) e a prévia grátis fica como
   // opção secundária — o funil comment→DM continua apontando para esta página.
-  const preSale = !!book.preSale;
-  const heroHref = preSale ? "#pre-venda" : free ? leadPdf : checkout;
+  // Loja externa (Amazon) só no idioma que já vende: ali o livro deixa de ser pré-venda.
+  const store = book.store?.[lang];
+  const preSale = emPreVenda(book, lang);
+  const heroHref = store ?? (preSale ? "#pre-venda" : free ? leadPdf : checkout);
+  const ctaAttrs = store
+    ? { target: "_blank", rel: "noopener noreferrer" }
+    : preSale
+      ? {}
+      : free
+        ? { download: true }
+        : { target: "_blank", rel: "noopener noreferrer" };
+  const buyNote = free && !store ? L.downloadNote : L.ctaBuyNote;
   const cover = book.cover[lang] ?? book.cover.br;
   const spreads = book.insideImages ?? [];
   // Versão do arquivo e onde comprar (ex.: "Versão e-pub · Amazon e Google Play").
@@ -147,7 +157,7 @@ export default function BookSales({ slug }: { slug: string }) {
               <div className="mt-9 flex flex-wrap items-center gap-4">
                 <a
                   href={heroHref}
-                  {...(preSale ? {} : free ? { download: true } : { target: "_blank", rel: "noopener noreferrer" })}
+                  {...ctaAttrs}
                   className="group inline-flex items-center rounded-full bg-gradient-to-b from-[#cf6259] to-[#9e433d] px-8 py-4 text-[0.95rem] font-bold tracking-[0.01em] text-white shadow-[0_16px_44px_rgba(207,98,89,0.55)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_20px_56px_rgba(207,98,89,0.72)]"
                 >
                   {preSale ? L.ctaDownload : L.ctaBuy}
@@ -170,7 +180,7 @@ export default function BookSales({ slug }: { slug: string }) {
                   {epubNote}
                 </div>
               )}
-              {preSale && hasLead && (
+              {(preSale || store) && hasLead && (
                 <div className="mt-4">
                   <a
                     href={leadPdf}
@@ -195,7 +205,7 @@ export default function BookSales({ slug }: { slug: string }) {
                   </a>
                 </div>
               )}
-              <div className="mt-3 text-xs tracking-[0.04em] text-warm-gray/65">{free ? L.downloadNote : L.ctaBuyNote}</div>
+              <div className="mt-3 text-xs tracking-[0.04em] text-warm-gray/65">{buyNote}</div>
             </div>
 
             <div className="lg:col-span-5">
@@ -521,7 +531,7 @@ export default function BookSales({ slug }: { slug: string }) {
             <div className="mt-9 flex flex-col items-center gap-3">
               <a
                 href={heroHref}
-                {...(preSale ? {} : free ? { download: true } : { target: "_blank", rel: "noopener noreferrer" })}
+                {...ctaAttrs}
                 className="group inline-flex items-center rounded-full bg-gradient-to-b from-[#cf6259] to-[#9e433d] px-8 py-4 text-base font-bold text-white shadow-[0_18px_50px_rgba(207,98,89,0.6)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_24px_64px_rgba(207,98,89,0.78)] md:px-10 md:py-5 md:text-[1.05rem]"
               >
                 {(preSale ? L.ctaDownload : L.ctaBuy)} · {L.price}
@@ -529,7 +539,7 @@ export default function BookSales({ slug }: { slug: string }) {
                   {String.fromCharCode(8594)}
                 </span>
               </a>
-              <div className="text-xs tracking-[0.04em] text-warm-gray/65">{free ? L.downloadNote : L.ctaBuyNote}</div>
+              <div className="text-xs tracking-[0.04em] text-warm-gray/65">{buyNote}</div>
             </div>
             <p className="mx-auto mt-8 max-w-2xl text-[0.72rem] leading-[1.6] text-warm-gray/55">
               {L.disclaimer}

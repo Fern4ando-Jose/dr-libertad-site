@@ -181,7 +181,7 @@ const br: DopaminaContent = {
       },
       {
         q: "Preciso pagar?",
-        a: "Não. Teste e prévia são gratuitos. O livro completo vem depois, e quem está na lista fica sabendo primeiro (e com a melhor condição de lançamento).",
+        a: "Não. Teste e prévia são gratuitos. O livro completo é vendido à parte, na Amazon, só se você quiser.",
       },
     ],
   },

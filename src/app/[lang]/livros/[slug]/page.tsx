@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { BOOKS, getBook } from "@/lib/books";
+import { BOOKS, emPreVenda, getBook } from "@/lib/books";
 import { dictionaries, type Lang } from "@/lib/i18n/dictionaries";
 import { SITE_URL, abs, toLang } from "@/lib/seo";
 import BookSales from "./BookSales";
@@ -100,8 +100,8 @@ export default async function BookPage({
       "@type": "Offer",
       price: price.amount,
       priceCurrency: price.currency,
-      availability: book.preSale ? "https://schema.org/PreOrder" : "https://schema.org/InStock",
-      url: book.preSale || book.free ? url : (book.checkout?.[l] ?? url),
+      availability: emPreVenda(book, l) ? "https://schema.org/PreOrder" : "https://schema.org/InStock",
+      url: book.store?.[l] ?? (book.preSale || book.free ? url : (book.checkout?.[l] ?? url)),
     },
   };
 

@@ -38,6 +38,9 @@ export type BookMeta = {
   // e o preço vai ao schema.org como PreOrder. Convive com `free`: a prévia grátis
   // continua disponível como opção secundária (o funil comment→DM aponta para cá).
   preSale?: boolean;
+  // LOJA EXTERNA por idioma: onde a edição daquele idioma já está à venda. Vence a
+  // pré-venda SÓ nesse idioma — o outro segue na lista de espera até a edição existir.
+  store?: { br?: string; es?: string };
   // EM REVISÃO: o livro está em revisão final. Mostra um card de status na página
   // (honesto: "em revisão"), sem tirar a pré-venda. Ausente → nenhum card.
   underReview?: boolean;
@@ -86,9 +89,11 @@ export const BOOKS: BookMeta[] = [
     coverSize: { width: 1086, height: 1448 },
     free: true,
     preSale: true,
-    // Pré-lançamento (pedido do dono, 15/08/2026): R$ 29,90 no BR. O ES sai em
-    // US$ 5,90 (equivalente aproximado — o dono decide o valor exato ao publicar).
-    price: { br: { amount: 29.9, currency: "BRL" }, es: { amount: 5.9, currency: "USD" } },
+    // BR À VENDA na Amazon desde 05/11/2026: eBook Kindle R$ 24,90, lido na página da
+    // loja em 06/11 (ASIN B0HQG3559L). KDP Select até ~01/02/2027: só a Amazon vende.
+    // ES ainda em revisão: segue na pré-venda, US$ 5,90 (o dono decide ao publicar).
+    store: { br: "https://www.amazon.com.br/dp/B0HQG3559L" },
+    price: { br: { amount: 24.9, currency: "BRL" }, es: { amount: 5.9, currency: "USD" } },
     leadPdf: { br: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },
   },
   {
@@ -142,6 +147,10 @@ export const BOOKS: BookMeta[] = [
     price: { br: { amount: 51.38, currency: "BRL" }, es: { amount: 9.99, currency: "USD" } },
   },
 ];
+
+// Pré-venda vale por idioma: edição já à venda numa loja não está mais em pré-venda.
+export const emPreVenda = (book: BookMeta, lang: "br" | "es"): boolean =>
+  !!book.preSale && !book.store?.[lang];
 
 export const getBook = (slug: string): BookMeta | undefined =>
   BOOKS.find((b) => b.slug === slug);
