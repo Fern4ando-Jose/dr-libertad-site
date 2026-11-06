@@ -248,7 +248,7 @@ export const br = {
     ctaDownload: "Comprar na Amazon",
     downloadNote: "Pagamento e entrega pela Amazon",
     epubNote: "eBook Kindle · 232 páginas · à venda só na Amazon",
-    chips: ["À venda na Amazon", "eBook Kindle · 232 páginas", "Prévia grátis para ler", "Grátis no Kindle+"],
+    chips: ["À venda na Amazon", "eBook Kindle · 232 páginas", "Prévia grátis para ler", "Grátis com assinatura Kindle+"],
     metaDescription:
       "I Love Dopamina à venda na Amazon: eBook Kindle por R$ 24,90. A história real da molécula do querer: o que o vício faz no cérebro — e o caminho de volta.",
     how: {
