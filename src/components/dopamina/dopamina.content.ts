@@ -166,7 +166,7 @@ const br: DopaminaContent = {
     heading: "Não é mais um vídeo de detox.",
     body: "I Love Dopamina não é mais um vídeo de “detox de dopamina em 24 horas”. É o contrário disso. É a história honesta da dopamina — da molécula que a ciência jogou no lixo por 40 anos à que a internet transformou em vilã — em português de gente, sem alarmismo. A tese, simples e incômoda: quase tudo que te venderam sobre dopamina (que ela é “prazer”, que a solução é um “detox”) está errado. Assinado por Dr. Liberdade — o mesmo trabalho de @dr.liberdade.br, para quem cansou de ser farmado.",
     honesty:
-      "Honestidade primeiro: este livro ainda está sendo escrito, capítulo a capítulo. A prévia que você recebe já está pronta e é real. Ao entrar na lista, você lê o restante antes de todo mundo — e ajuda a moldar o livro final.",
+      "Honestidade primeiro: a prévia é real e é sua, de graça. O livro completo já saiu: está à venda na Amazon, e só compra quem quiser.",
   },
   faq: {
     heading: "Antes de você perguntar",

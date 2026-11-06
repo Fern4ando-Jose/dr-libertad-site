@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { BOOKS, emPreVenda, getBook } from "@/lib/books";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 import { SEO_LANGS } from "@/lib/seo";
+import { dopaminaContent } from "@/components/dopamina/dopamina.content";
 
 // O preço aparece em dois lugares: como TEXTO no dicionário (o que o leitor lê,
 // "R$ 37") e como NÚMERO em books.ts (o que vai no schema.org/Offer, para o
@@ -71,6 +72,12 @@ describe("registro de livros", () => {
     const L = dictionaries.br.dopamina;
     const vitrine = [L.badge, L.priceNote, L.ctaBuy, L.ctaBuyNote, L.epubNote, L.finalLead, L.metaDescription, ...L.chips].join(" ");
     expect(vitrine).not.toMatch(/google|hotmart|pdf|lista de espera|pré-venda|pré-lançamento/i);
+  });
+
+  it("o funil BR não diz mais que o livro ainda vai sair", () => {
+    const texto = JSON.stringify(dopaminaContent.br);
+    expect(texto).not.toMatch(/sendo escrito|vem depois|lista de espera/i);
+    expect(texto).toMatch(/Amazon/);
   });
 
   it("a medida da capa é declarada e plausível", () => {
