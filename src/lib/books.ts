@@ -96,7 +96,7 @@ export const BOOKS: BookMeta[] = [
     // ES ainda em revisão: segue na pré-venda, US$ 5,90 (o dono decide ao publicar).
     store: { br: "https://www.amazon.com.br/dp/B0HQG3559L" },
     // Impresso: só na Uiclap (ua194705); na Amazon Brasil ele não está. KDP Select não
-    // alcança o impresso. O preço muda na loja, por isso não fica fixo no texto.
+    // alcança o impresso. Preço no dicionário: R$ 46,34, lido em 06/11; muda na loja, conferir.
     storePrint: { br: "https://loja.uiclap.com/titulo/ua194705/" },
     price: { br: { amount: 24.9, currency: "BRL" }, es: { amount: 5.9, currency: "USD" } },
     leadPdf: { br: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },

@@ -249,7 +249,7 @@ export const br = {
     downloadNote: "Leia no Kindle ou no app Kindle gratuito",
     epubNote: "eBook Kindle · 232 páginas",
     ctaPrint: "Comprar o impresso na Uiclap",
-    printNote: "Livro impresso · 246 páginas",
+    printNote: "Livro impresso · 246 páginas · R$ 46,34",
     chips: ["Kindle na Amazon", "Impresso na Uiclap", "Prévia grátis para ler", "Grátis com assinatura Kindle+"],
     metaDescription:
       "I Love Dopamina à venda: eBook Kindle por R$ 24,90 na Amazon e livro impresso na Uiclap. A história real da molécula do querer: o que o vício faz no cérebro — e o caminho de volta.",
