@@ -887,6 +887,8 @@ export const es: Dict = {
     ctaDownload: "Entrar en la lista de espera",
     downloadNote: "US$ 5,90 en preventa · te avisamos cuando abra la compra",
     epubNote: "Versión e-pub · disponible en Amazon y Google Play",
+    ctaPrint: "Comprar el impreso",
+    printNote: "Libro impreso",
     chips: ["Preventa con precio asegurado", "Adelanto gratis para leer", "Edición en portugués y español", "E-pub en Amazon y Google Play"],
     metaDescription:
       "I Love Dopamina en preventa por US$ 5,90 con precio asegurado. La historia real de la molécula del querer: lo que el vicio hace en el cerebro — y el camino de vuelta.",
