@@ -101,9 +101,9 @@ export const BOOKS: BookMeta[] = [
     // ES ainda em revisão: segue na pré-venda, US$ 5,90 (o dono decide ao publicar).
     store: { br: "https://www.amazon.com.br/dp/B0HQG3559L" },
     // Impresso: só na Uiclap (ua194705); na Amazon Brasil ele não está. KDP Select não
-    // alcança o impresso. Preço no dicionário: R$ 46,34, lido em 06/11; muda na loja, conferir.
-    // O selo "À VENDA" da vitrine usa o mesmo preço (de R$ 58,53 na loja, lido em 06/11).
-    printPrice: { br: { price: "R$ 46,34", from: "R$ 58,53" } },
+    // alcança o impresso. Preço no dicionário: R$ 47,45, lido em 07/11; muda na loja, conferir.
+    // O selo "À VENDA" da vitrine usa o mesmo preço (de R$ 59,93 na loja, lido em 07/11).
+    printPrice: { br: { price: "R$ 47,45", from: "R$ 59,93" } },
     storePrint: { br: "https://loja.uiclap.com/titulo/ua194705/" },
     price: { br: { amount: 24.9, currency: "BRL" }, es: { amount: 5.9, currency: "USD" } },
     leadPdf: { br: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },
