@@ -247,7 +247,7 @@ export const br = {
     ctaBuyNote: "Leia no Kindle ou no app Kindle gratuito",
     ctaDownload: "Comprar na Amazon",
     downloadNote: "Leia no Kindle ou no app Kindle gratuito",
-    epubNote: "eBook Kindle · 232 páginas · leia no Kindle ou no app Kindle gratuito",
+    epubNote: "eBook Kindle · 232 páginas",
     ctaPrint: "Comprar o impresso na Uiclap",
     printNote: "Livro impresso · 246 páginas",
     chips: ["Kindle na Amazon", "Impresso na Uiclap", "Prévia grátis para ler", "Grátis com assinatura Kindle+"],
