@@ -87,7 +87,10 @@ export const BOOKS: BookMeta[] = [
     // Página do livro (e OG): a arte final "-01" por idioma.
     cover: { br: "/images/i-love-dopamina-capa-br-01.png", es: "/images/i-love-dopamina-capa-es-01.png" },
     // Vitrine /livros: a arte "Capa-para-site" (pedido do dono, 15/08/2026).
-    coverList: { br: "/images/i-love-dopamina-capa-pt.png", es: "/images/i-love-dopamina-capa-es.png" },
+    // BR: mockup sem planta, fundo escuro como Tolos/Como Perdi (pedido do dono 07/11/2026:
+    // "tirar aquilo de planta"). Vem de Imagens livro/Arquivos divulgação/_limpo-sem-marca-ia,
+    // recortado em 3:4 (mesma proporção da arte anterior). ES segue com a arte de antes.
+    coverList: { br: "/images/i-love-dopamina-capa-vitrine-br.jpg", es: "/images/i-love-dopamina-capa-es.png" },
     // 1086×1448 é a medida real das quatro artes (capa do livro e da vitrine,
     // PT e ES) — todas iguais; o next/image reserva o espaço sem a página "pular".
     coverSize: { width: 1086, height: 1448 },

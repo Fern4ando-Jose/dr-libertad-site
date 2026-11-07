@@ -59,3 +59,12 @@
     transform: scale(0.7);
   }
 }
+
+/* Selo À VENDA: com o mouse em cima ele PARA (pedido do dono 07/11/2026: "quando o mouse
+ * passa sobre o card ele tem que parar"). Só nesta variação; o de pré-venda segue igual. */
+.paraNoMouse:hover,
+.paraNoMouse:hover .card,
+.paraNoMouse:focus-within,
+.paraNoMouse:focus-within .card {
+  animation-play-state: paused;
+}

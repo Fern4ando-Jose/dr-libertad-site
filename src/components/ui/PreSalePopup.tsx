@@ -31,6 +31,11 @@ export type VendaSelo = {
   impresso: { href: string; price: string; from?: string };
 };
 
+// As duas linhas (Kindle e Impresso) com o MESMO desenho e o MESMO realce ao passar o
+// mouse (pedido do dono 07/11: "no kindle não aparece").
+const LINHA_LOJA =
+  "flex items-center justify-between gap-2 rounded-lg border border-[#5f9a72]/45 bg-[#2d5a3d]/40 px-2 py-1.5 text-offwhite transition hover:border-[#9fd4b0] hover:bg-[#2d5a3d] hover:shadow-[0_0_0_1px_rgba(159,212,176,0.35)] focus-visible:border-[#9fd4b0] focus-visible:bg-[#2d5a3d]";
+
 const VENDA_TXT = {
   br: { title: "À VENDA", kindle: "Kindle", impresso: "Impresso", de: "de" },
   es: { title: "A LA VENTA", kindle: "Kindle", impresso: "Impreso", de: "de" },
@@ -93,7 +98,7 @@ export default function PreSalePopup({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.7, y: -8 }}
           transition={{ type: "spring", stiffness: 320, damping: 20 }}
-          className={`${styles.tag} absolute -top-3 right-2 z-30`}
+          className={`${styles.tag} ${venda ? styles.paraNoMouse : ""} absolute -top-3 right-2 z-30`}
         >
             {/* Fechar — canto superior direito, fora do link. */}
             <button
@@ -119,7 +124,7 @@ export default function PreSalePopup({
                   href={venda.kindle.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-[#2d5a3d] px-2 py-1.5 text-offwhite transition hover:bg-[#356b48]"
+                  className={`mt-2 ${LINHA_LOJA}`}
                 >
                   <span className="text-[0.7rem] font-bold tracking-[0.06em] uppercase">{VENDA_TXT[lang].kindle}</span>
                   <span className="whitespace-nowrap text-[0.82rem] leading-none">{venda.kindle.price}</span>
@@ -128,7 +133,7 @@ export default function PreSalePopup({
                   href={venda.impresso.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-1.5 flex items-center justify-between gap-2 rounded-lg border border-[#5f9a72]/45 px-2 py-1.5 text-offwhite transition hover:border-[#7fbf93]"
+                  className={`mt-1.5 ${LINHA_LOJA}`}
                 >
                   <span className="text-[0.7rem] font-bold tracking-[0.06em] uppercase">{VENDA_TXT[lang].impresso}</span>
                   <span className="flex flex-col items-end text-right leading-none">
