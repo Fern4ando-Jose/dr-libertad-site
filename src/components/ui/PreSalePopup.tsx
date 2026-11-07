@@ -119,23 +119,25 @@ export default function PreSalePopup({
                   href={venda.kindle.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 flex items-baseline justify-between gap-2 rounded-lg bg-[#2d5a3d] px-2 py-1.5 text-offwhite transition hover:bg-[#356b48]"
+                  className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-[#2d5a3d] px-2 py-1.5 text-offwhite transition hover:bg-[#356b48]"
                 >
                   <span className="text-[0.7rem] font-bold tracking-[0.06em] uppercase">{VENDA_TXT[lang].kindle}</span>
-                  <span className="text-[0.82rem] leading-none">{venda.kindle.price}</span>
+                  <span className="whitespace-nowrap text-[0.82rem] leading-none">{venda.kindle.price}</span>
                 </a>
                 <a
                   href={venda.impresso.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-1.5 flex items-baseline justify-between gap-2 rounded-lg border border-[#5f9a72]/45 px-2 py-1.5 text-offwhite transition hover:border-[#7fbf93]"
+                  className="mt-1.5 flex items-center justify-between gap-2 rounded-lg border border-[#5f9a72]/45 px-2 py-1.5 text-offwhite transition hover:border-[#7fbf93]"
                 >
                   <span className="text-[0.7rem] font-bold tracking-[0.06em] uppercase">{VENDA_TXT[lang].impresso}</span>
-                  <span className="text-right text-[0.82rem] leading-none">
+                  <span className="flex flex-col items-end text-right leading-none">
+                    <span className="whitespace-nowrap text-[0.82rem]">{venda.impresso.price}</span>
                     {venda.impresso.from && (
-                      <span className="mr-1 text-[0.6rem] text-warm-gray/70 line-through">{venda.impresso.from}</span>
+                      <span className="mt-0.5 whitespace-nowrap text-[0.58rem] text-warm-gray/70">
+                        {VENDA_TXT[lang].de} <span className="line-through">{venda.impresso.from}</span>
+                      </span>
                     )}
-                    {venda.impresso.price}
                   </span>
                 </a>
               </div>
