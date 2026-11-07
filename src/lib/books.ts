@@ -41,6 +41,8 @@ export type BookMeta = {
   // LOJA EXTERNA por idioma: onde a edição daquele idioma já está à venda. Vence a
   // pré-venda SÓ nesse idioma — o outro segue na lista de espera até a edição existir.
   store?: { br?: string; es?: string };
+  // LIVRO IMPRESSO por idioma, quando vende em outra loja que não a do e-book.
+  storePrint?: { br?: string; es?: string };
   // EM REVISÃO: o livro está em revisão final. Mostra um card de status na página
   // (honesto: "em revisão"), sem tirar a pré-venda. Ausente → nenhum card.
   underReview?: boolean;
@@ -93,6 +95,9 @@ export const BOOKS: BookMeta[] = [
     // loja em 06/11 (ASIN B0HQG3559L). KDP Select até ~01/02/2027: só a Amazon vende.
     // ES ainda em revisão: segue na pré-venda, US$ 5,90 (o dono decide ao publicar).
     store: { br: "https://www.amazon.com.br/dp/B0HQG3559L" },
+    // Impresso: só na Uiclap (ua194705); na Amazon Brasil ele não está. KDP Select não
+    // alcança o impresso. O preço muda na loja, por isso não fica fixo no texto.
+    storePrint: { br: "https://loja.uiclap.com/titulo/ua194705/" },
     price: { br: { amount: 24.9, currency: "BRL" }, es: { amount: 5.9, currency: "USD" } },
     leadPdf: { br: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },
   },

@@ -65,12 +65,15 @@ describe("registro de livros", () => {
     expect(emPreVenda(book, "br")).toBe(false);
     // A edição em castelhano ainda não existe à venda: nada de loja nela.
     expect(book.store?.es).toBeUndefined();
+    // O impresso vende na Uiclap e nunca aponta para a Amazon.
+    expect(book.storePrint?.br).toBe("https://loja.uiclap.com/titulo/ua194705/");
+    expect(book.storePrint?.es).toBeUndefined();
     expect(emPreVenda(book, "es")).toBe(true);
   });
 
   it("KDP Select: a edição BR à venda não anuncia Google nem pré-venda", () => {
     const L = dictionaries.br.dopamina;
-    const vitrine = [L.badge, L.priceNote, L.ctaBuy, L.ctaBuyNote, L.epubNote, L.finalLead, L.metaDescription, ...L.chips].join(" ");
+    const vitrine = [L.badge, L.priceNote, L.ctaBuy, L.ctaBuyNote, L.epubNote, L.ctaPrint, L.printNote, L.finalLead, L.metaDescription, ...L.chips].join(" ");
     expect(vitrine).not.toMatch(/google|hotmart|pdf|lista de espera|pré-venda|pré-lançamento/i);
   });
 

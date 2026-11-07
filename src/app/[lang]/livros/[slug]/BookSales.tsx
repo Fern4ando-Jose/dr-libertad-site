@@ -6,6 +6,7 @@ import Image from "next/image";
 import StudioContainer from "@/components/ui/Container";
 import Reveal from "@/components/ui/Reveal";
 import PreSaleCard from "@/components/ui/PreSaleCard";
+import MetaPixel from "@/components/survey/MetaPixel";
 import { useLang } from "@/lib/i18n/LanguageProvider";
 import { emPreVenda, getBook } from "@/lib/books";
 
@@ -93,6 +94,14 @@ export default function BookSales({ slug }: { slug: string }) {
         ? { download: true }
         : { target: "_blank", rel: "noopener noreferrer" };
   const buyNote = free && !store ? L.downloadNote : L.ctaBuyNote;
+  const storePrint = book.storePrint?.[lang];
+  const ctaPrint = "ctaPrint" in L ? L.ctaPrint : undefined;
+  const printNote = "printNote" in L ? L.printNote : undefined;
+  // Medição do clique: a loja é externa, então o clique é o último sinal que o site vê.
+  const medirClique = (evento: string) => () => {
+    if (window.fbq) window.fbq("trackCustom", evento, { livro: slug });
+  };
+  const cliqueKindle = store ? { onClick: medirClique("compra_kindle_click") } : {};
   const cover = book.cover[lang] ?? book.cover.br;
   const spreads = book.insideImages ?? [];
   // Versão do arquivo e onde comprar (ex.: "Versão e-pub · Amazon e Google Play").
@@ -108,6 +117,7 @@ export default function BookSales({ slug }: { slug: string }) {
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.9, ease: "easeOut" }}
     >
+      {store && <MetaPixel />}
       {/* HERO */}
       <section id="top" className="relative overflow-hidden border-b border-warm-gray/10">
         <div
@@ -158,6 +168,7 @@ export default function BookSales({ slug }: { slug: string }) {
                 <a
                   href={heroHref}
                   {...ctaAttrs}
+                  {...cliqueKindle}
                   className="group inline-flex items-center rounded-full bg-gradient-to-b from-[#cf6259] to-[#9e433d] px-8 py-4 text-[0.95rem] font-bold tracking-[0.01em] text-white shadow-[0_16px_44px_rgba(207,98,89,0.55)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_20px_56px_rgba(207,98,89,0.72)]"
                 >
                   {preSale ? L.ctaDownload : L.ctaBuy}
@@ -178,6 +189,20 @@ export default function BookSales({ slug }: { slug: string }) {
               {epubNote && (
                 <div className="mt-3 text-xs tracking-[0.04em] text-warm-gray/70">
                   {epubNote}
+                </div>
+              )}
+              {storePrint && ctaPrint && (
+                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <a
+                    href={storePrint}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={medirClique("compra_impresso_click")}
+                    className="inline-flex items-center rounded-full border border-warm-gray/30 bg-white/[0.05] px-6 py-3 text-[0.9rem] font-semibold text-offwhite ring-1 ring-white/10 transition hover:border-warm-gray/50 hover:bg-white/[0.08]"
+                  >
+                    {ctaPrint}
+                  </a>
+                  <span className="text-xs tracking-[0.04em] text-warm-gray/70">{printNote}</span>
                 </div>
               )}
               {(preSale || store) && hasLead && (
@@ -532,6 +557,7 @@ export default function BookSales({ slug }: { slug: string }) {
               <a
                 href={heroHref}
                 {...ctaAttrs}
+                  {...cliqueKindle}
                 className="group inline-flex items-center rounded-full bg-gradient-to-b from-[#cf6259] to-[#9e433d] px-8 py-4 text-base font-bold text-white shadow-[0_18px_50px_rgba(207,98,89,0.6)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_24px_64px_rgba(207,98,89,0.78)] md:px-10 md:py-5 md:text-[1.05rem]"
               >
                 {(preSale ? L.ctaDownload : L.ctaBuy)} · {L.price}
@@ -540,6 +566,17 @@ export default function BookSales({ slug }: { slug: string }) {
                 </span>
               </a>
               <div className="text-xs tracking-[0.04em] text-warm-gray/65">{buyNote}</div>
+              {storePrint && ctaPrint && (
+                <a
+                  href={storePrint}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={medirClique("compra_impresso_click")}
+                  className="mt-2 inline-flex items-center rounded-full border border-warm-gray/30 bg-white/[0.05] px-6 py-3 text-[0.9rem] font-semibold text-offwhite ring-1 ring-white/10 transition hover:border-warm-gray/50 hover:bg-white/[0.08]"
+                >
+                  {ctaPrint}
+                </a>
+              )}
             </div>
             <p className="mx-auto mt-8 max-w-2xl text-[0.72rem] leading-[1.6] text-warm-gray/55">
               {L.disclaimer}
