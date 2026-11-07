@@ -146,6 +146,21 @@ export default function LivrosIndexView() {
                         </div>
                       </div>
                     </MotionLink>
+                    {/* À VENDA: mesmo selo, variação verde com os dois botões —
+                        só no idioma que já vende (pedido do dono, 07/11/2026). */}
+                    {book.store?.[lang] && book.storePrint?.[lang] && book.printPrice?.[lang] && (
+                      <PreSalePopup
+                        slug={book.slug}
+                        venda={{
+                          kindle: { href: book.store[lang]!, price: b.price },
+                          impresso: {
+                            href: book.storePrint[lang]!,
+                            price: book.printPrice[lang]!.price,
+                            from: book.printPrice[lang]!.from,
+                          },
+                        }}
+                      />
+                    )}
                     {emPreVenda(book, lang) && (
                       <PreSalePopup slug={book.slug} price={b.price} priceNote={"priceNote" in b ? b.priceNote : undefined} />
                     )}

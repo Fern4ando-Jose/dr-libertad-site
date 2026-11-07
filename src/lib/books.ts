@@ -43,6 +43,8 @@ export type BookMeta = {
   store?: { br?: string; es?: string };
   // LIVRO IMPRESSO por idioma, quando vende em outra loja que não a do e-book.
   storePrint?: { br?: string; es?: string };
+  // Preço do impresso como a loja mostra (atual e "de"), para o selo da vitrine.
+  printPrice?: { br?: { price: string; from?: string }; es?: { price: string; from?: string } };
   // EM REVISÃO: o livro está em revisão final. Mostra um card de status na página
   // (honesto: "em revisão"), sem tirar a pré-venda. Ausente → nenhum card.
   underReview?: boolean;
@@ -97,6 +99,8 @@ export const BOOKS: BookMeta[] = [
     store: { br: "https://www.amazon.com.br/dp/B0HQG3559L" },
     // Impresso: só na Uiclap (ua194705); na Amazon Brasil ele não está. KDP Select não
     // alcança o impresso. Preço no dicionário: R$ 46,34, lido em 06/11; muda na loja, conferir.
+    // O selo "À VENDA" da vitrine usa o mesmo preço (de R$ 58,53 na loja, lido em 06/11).
+    printPrice: { br: { price: "R$ 46,34", from: "R$ 58,53" } },
     storePrint: { br: "https://loja.uiclap.com/titulo/ua194705/" },
     price: { br: { amount: 24.9, currency: "BRL" }, es: { amount: 5.9, currency: "USD" } },
     leadPdf: { br: "/lead/I-Love-Dopamina_Previa_PT.pdf", es: "/lead/I-Love-Dopamina_Previa_ES.pdf" },

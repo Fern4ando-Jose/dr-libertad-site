@@ -21,13 +21,30 @@ import styles from "./preSalePopup.module.css";
 //     lista (PreSaleCard #pre-venda).
 
 const KEY = "dl-pre-venda-popup-2026-08";
+// Variação "À VENDA" (pedido do dono, 07/11/2026: "crie um card para diferenciar
+// que o livro já está a venda"). Mesmo selo, mesma posição, outra cor (o verde da
+// vitrine) e dois botões direto às lojas. Chave própria: fechar um não fecha o outro.
+const KEY_VENDA = "dl-a-venda-popup-2026-11";
+
+export type VendaSelo = {
+  kindle: { href: string; price: string };
+  impresso: { href: string; price: string; from?: string };
+};
+
+const VENDA_TXT = {
+  br: { title: "À VENDA", kindle: "Kindle", impresso: "Impresso", de: "de" },
+  es: { title: "A LA VENTA", kindle: "Kindle", impresso: "Impreso", de: "de" },
+} as const;
 
 export default function PreSalePopup({
   slug,
   price,
   priceNote,
+  venda,
 }: {
   slug: string;
+  // Presente = o livro JÁ ESTÁ À VENDA neste idioma: o selo vira "À VENDA".
+  venda?: VendaSelo;
   // Preço do LIVRO — mesma causa do bug visto ao vivo em 23/08 no PreSaleCard:
   // sem isto, o selo cai no preço GENÉRICO de `t.waitlist` (igual para todo
   // livro em pré-venda) e diverge do preço mostrado no card ao lado dele.
@@ -41,15 +58,17 @@ export default function PreSalePopup({
   const [open, setOpen] = useState(false);
 
   // Aparece após um respiro (1,4 s) e só 1× por sessão; fechou, não volta.
+  const chave = venda ? KEY_VENDA : KEY;
+
   useEffect(() => {
-    if (sessionStorage.getItem(KEY)) return;
+    if (sessionStorage.getItem(chave)) return;
     const id = setTimeout(() => setOpen(true), 1400);
     return () => clearTimeout(id);
   }, []);
 
   const close = () => {
     try {
-      sessionStorage.setItem(KEY, "1");
+      sessionStorage.setItem(chave, "1");
     } catch {
       /* storage indisponível: fecha do mesmo jeito */
     }
@@ -86,6 +105,41 @@ export default function PreSalePopup({
               <span aria-hidden="true" className="text-xs leading-none">✕</span>
             </button>
 
+            {venda ? (
+              <div
+                className={`${styles.card} block w-[168px] rounded-2xl border border-[#5f9a72]/45 bg-[#121a14]/95 p-2.5 text-left shadow-[0_14px_40px_rgba(0,0,0,0.5)] backdrop-blur`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <span className={`${styles.seloDot} h-1.5 w-1.5 shrink-0 rounded-full bg-[#7fbf93]`} aria-hidden="true" />
+                  <span className="font-serif text-[0.82rem] leading-[1.1] tracking-[0.14em] text-offwhite uppercase">
+                    {VENDA_TXT[lang].title}
+                  </span>
+                </span>
+                <a
+                  href={venda.kindle.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 flex items-baseline justify-between gap-2 rounded-lg bg-[#2d5a3d] px-2 py-1.5 text-offwhite transition hover:bg-[#356b48]"
+                >
+                  <span className="text-[0.7rem] font-bold tracking-[0.06em] uppercase">{VENDA_TXT[lang].kindle}</span>
+                  <span className="text-[0.82rem] leading-none">{venda.kindle.price}</span>
+                </a>
+                <a
+                  href={venda.impresso.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1.5 flex items-baseline justify-between gap-2 rounded-lg border border-[#5f9a72]/45 px-2 py-1.5 text-offwhite transition hover:border-[#7fbf93]"
+                >
+                  <span className="text-[0.7rem] font-bold tracking-[0.06em] uppercase">{VENDA_TXT[lang].impresso}</span>
+                  <span className="text-right text-[0.82rem] leading-none">
+                    {venda.impresso.from && (
+                      <span className="mr-1 text-[0.6rem] text-warm-gray/70 line-through">{venda.impresso.from}</span>
+                    )}
+                    {venda.impresso.price}
+                  </span>
+                </a>
+              </div>
+            ) : (
             <Link
               href={`/${lang}/livros/${slug}#pre-venda`}
               className={`${styles.card} group block w-[152px] rounded-2xl border border-warm-gray/20 bg-[#171512]/95 p-2.5 text-left shadow-[0_14px_40px_rgba(0,0,0,0.5)] backdrop-blur transition-colors hover:border-warm-gray/40`}
@@ -103,6 +157,7 @@ export default function PreSalePopup({
                 <span aria-hidden="true">{String.fromCharCode(8594)}</span>
               </span>
             </Link>
+            )}
           </motion.div>
         )}
     </AnimatePresence>
