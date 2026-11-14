@@ -20,11 +20,9 @@ import styles from "./preSalePopup.module.css";
 //  5. O selo é um link para a página do livro, onde está o card de entrar na
 //     lista (PreSaleCard #pre-venda).
 
-const KEY = "dl-pre-venda-popup-2026-08";
 // Variação "À VENDA" (pedido do dono, 07/11/2026: "crie um card para diferenciar
 // que o livro já está a venda"). Mesmo selo, mesma posição, outra cor (o verde da
-// vitrine) e dois botões direto às lojas. Chave própria: fechar um não fecha o outro.
-const KEY_VENDA = "dl-a-venda-popup-2026-11";
+// vitrine) e dois botões direto às lojas.
 
 export type VendaSelo = {
   kindle: { href: string; price: string };
@@ -62,23 +60,16 @@ export default function PreSalePopup({
   const displayPriceNote = priceNote ?? w.priceNote;
   const [open, setOpen] = useState(false);
 
-  // Aparece após um respiro (1,4 s) e só 1× por sessão; fechou, não volta.
-  const chave = venda ? KEY_VENDA : KEY;
-
+  // Aparece após um respiro (1,4 s). O X fecha SÓ este selo e SÓ nesta visita:
+  // ao recarregar, os três voltam (pedido do dono 07/11/2026, "cadê os cards?").
+  // Antes, fechar um selo de pré-venda gravava uma chave ÚNICA no navegador e
+  // escondia os de TODOS os livros em pré-venda até fechar a aba (provado ao vivo).
   useEffect(() => {
-    if (sessionStorage.getItem(chave)) return;
     const id = setTimeout(() => setOpen(true), 1400);
     return () => clearTimeout(id);
   }, []);
 
-  const close = () => {
-    try {
-      sessionStorage.setItem(chave, "1");
-    } catch {
-      /* storage indisponível: fecha do mesmo jeito */
-    }
-    setOpen(false);
-  };
+  const close = () => setOpen(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
